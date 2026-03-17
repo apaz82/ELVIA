@@ -1,0 +1,560 @@
+import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useCV } from '../context/CVContext'
+import { useAuth } from '../context/AuthContext'
+import { supabase } from '../services/authService'
+import { api } from '../services/api'
+import Button from '../components/common/Button'
+
+const extraerNombre = (contenido) => {
+  if (!contenido) return 'CV sin nombre'
+  return contenido.split('\n').find(l => l.trim().length > 2)?.trim() || 'CV sin nombre'
+}
+
+const fechaRelativa = (fechaStr) => {
+  if (!fechaStr) return null
+  const diff = Date.now() - new Date(fechaStr).getTime()
+  const dias = Math.floor(diff / 86400000)
+  if (dias === 0) return 'Hoy'
+  if (dias === 1) return 'Ayer'
+  if (dias < 30) return `Hace ${dias} días`
+  return null
+}
+
+const colorScore = (score) => {
+  if (score >= 80) return { text: 'text-green-600', bg: 'bg-green-50 border-green-200' }
+  if (score >= 50) return { text: 'text-amber-600', bg: 'bg-amber-50 border-amber-200' }
+  return { text: 'text-red-500', bg: 'bg-red-50 border-red-200' }
+}
+
+function CompatibilidadPanel({ vacante, cvText, onGenerarCV, onRefreshUsage, onSave }) {
+  const [loading, setLoading]   = useState(false)
+  const [resultado, setResultado] = useState(null)
+  const [error, setError]       = useState('')
+
+  const verificar = async () => {
+    setLoading(true)
+    setError('')
+    try {
+      const data = await api.post('/api/jobs/compatibility', {
+        cvText,
+        jobTitle:    vacante.title,
+        jobCompany:  vacante.company,
+        jobSnippet:  vacante.snippet,
+        jobLink:     vacante.link,
+        jobLocation: vacante.location,
+        jobVia:      vacante.via,
+      })
+      if (data.error) return setError(data.error)
+      setResultado(data)
+      if (!data.fromCache && onRefreshUsage) onRefreshUsage()
+      // Auto-guardar vacante cuando se verifica compatibilidad
+      if (onSave) onSave()
+    } catch {
+      setError('Error al calcular compatibilidad')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (!resultado) {
+    return (
+      <div className="mt-3 flex items-center gap-2">
+        <Button variant="outline" onClick={verificar} loading={loading}>
+          {loading ? 'Calculando...' : 'Ver compatibilidad'}
+        </Button>
+        {error && <span className="text-xs text-red-500">{error}</span>}
+      </div>
+    )
+  }
+
+  const { text, bg } = colorScore(resultado.score)
+
+  return (
+    <div className={`mt-3 rounded-lg border p-3 ${bg}`}>
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-medium text-gray-600">Compatibilidad con tu CV</span>
+          {resultado.fromCache && (
+            <span className="text-xs bg-white text-gray-400 px-1.5 py-0.5 rounded-full border">Ya verificado</span>
+          )}
+        </div>
+        <span className={`text-lg font-bold ${text}`}>{resultado.score}%</span>
+      </div>
+      <ul className="space-y-1 mb-3">
+        {resultado.motivos.map((m, i) => (
+          <li key={i} className="text-xs text-gray-600 flex gap-1.5">
+            <span className="shrink-0">{resultado.score >= 50 ? '•' : '·'}</span>
+            {m}
+          </li>
+        ))}
+      </ul>
+      {resultado.score >= 80 && (
+        <button
+          onClick={() => onGenerarCV(vacante)}
+          className="w-full text-xs font-semibold bg-primary text-white py-1.5 rounded-md hover:bg-blue-700 transition-colors"
+        >
+          Generar CV adaptado para esta vacante →
+        </button>
+      )}
+    </div>
+  )
+}
+
+export default function JobMatches() {
+  const { resultadoMatch, resultadoOptimize } = useCV()
+  const { user, refreshUsage, perfil } = useAuth()
+  const navigate = useNavigate()
+
+  // CV base para compatibilidad: primero el de contexto (sesión actual), si no el seleccionado de historial
+  const cvTextContexto = resultadoOptimize?.optimizedCV || resultadoMatch?.tailoredCV || ''
+  const [cvsSaved, setCvsSaved]         = useState([])   // lista de CVs de Supabase
+  const [cvSeleccionado, setCvSeleccionado] = useState(null) // { id, nombre, contenido }
+  const [mostrarSelector, setMostrarSelector] = useState(false)
+
+  const cvText = cvTextContexto || cvSeleccionado?.contenido || ''
+
+  // Cargar CVs guardados si no hay CV en contexto
+  useEffect(() => {
+    if (cvTextContexto || !user) return
+    supabase.from('cv_results')
+      .select('id, contenido, tipo, created_at')
+      .order('created_at', { ascending: false })
+      .limit(10)
+      .then(({ data }) => {
+        if (!data?.length) return
+        setCvsSaved(data)
+        setCvSeleccionado({ id: data[0].id, nombre: extraerNombre(data[0].contenido), contenido: data[0].contenido })
+      })
+  }, [user, cvTextContexto])
+
+  // --- Búsquedas guardadas en localStorage ---
+  const STORAGE_KEY = 'cvopt_saved_searches'
+  const cargarBusquedasGuardadas = () => {
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]') } catch { return [] }
+  }
+  const persistirBusqueda = (t, u, f) => {
+    const label = [t, u].filter(Boolean).join(' · ')
+    const nueva = { id: Date.now(), titulo: t, ubicacion: u, filtros: f, label }
+    const previas = cargarBusquedasGuardadas().filter(s => s.label !== label)
+    localStorage.setItem(STORAGE_KEY, JSON.stringify([nueva, ...previas].slice(0, 6)))
+    setBusquedasGuardadas([nueva, ...previas].slice(0, 6))
+  }
+  const eliminarBusquedaGuardada = (id) => {
+    const actualizadas = cargarBusquedasGuardadas().filter(s => s.id !== id)
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(actualizadas))
+    setBusquedasGuardadas(actualizadas)
+  }
+
+  const [titulo, setTitulo]     = useState(resultadoMatch?.jobData?.title || '')
+  const [ubicacion, setUbicacion] = useState(
+    [resultadoMatch?.jobData?.location, resultadoMatch?.jobData?.country].filter(Boolean).join(', ')
+  )
+  const [filtros, setFiltros] = useState({
+    datecreated: '', employment_type: '', experience: '', radius: '', salary: '',
+  })
+  const [vacantes, setVacantes]             = useState([])
+  const [total, setTotal]                   = useState(0)
+  const [loading, setLoading]               = useState(false)
+  const [error, setError]                   = useState('')
+  const [buscado, setBuscado]               = useState(false)
+  const [mostrarFiltros, setMostrarFiltros] = useState(false)
+  const [panelAbierto, setPanelAbierto]     = useState({})
+  const [savedKeys, setSavedKeys]           = useState(new Set()) // job_keys con liked=true
+  const [busquedasGuardadas, setBusquedasGuardadas] = useState(cargarBusquedasGuardadas)
+
+  // Ubicación automática: perfil → IP geolocation
+  useEffect(() => {
+    // Si ya hay ubicación (viene de CVvsJob) no sobreescribir
+    if (ubicacion) return
+    // 1. Perfil del usuario
+    if (perfil?.ciudad || perfil?.pais) {
+      setUbicacion([perfil.ciudad, perfil.pais].filter(Boolean).join(', '))
+      return
+    }
+    // 2. Fallback: geolocalización por IP
+    fetch('https://ipapi.co/json/')
+      .then(r => r.json())
+      .then(d => {
+        // Usar region (ej. "Mexico City") en vez de city (ej. "Cuauhtémoc")
+        // para obtener la ciudad principal, no la alcaldía/municipio
+        const lugar = d.region || d.city
+        if (lugar || d.country_name) {
+          setUbicacion([lugar, d.country_name].filter(Boolean).join(', '))
+        }
+      })
+      .catch(() => {})
+  }, [perfil])
+
+  const generarJobKey = (title, company) =>
+    `${(title || '').toLowerCase().trim()}|${(company || '').toLowerCase().trim()}`
+
+  // Cargar vacantes guardadas del usuario (liked=true para mostrar corazón activo)
+  const recargarSavedKeys = async () => {
+    if (!user) return
+    const { data } = await supabase.from('saved_jobs').select('job_key, liked')
+    if (data) setSavedKeys(new Set(data.filter(r => r.liked).map(r => r.job_key)))
+  }
+
+  useEffect(() => { recargarSavedKeys() }, [user])
+
+  const jobDataDe = (v) => ({
+    title: v.title, company: v.company, location: v.location,
+    link: v.link, snippet: v.snippet, via: v.via, salary: v.salary,
+  })
+
+  const toggleLike = async (v) => {
+    if (!user) return
+    const key = generarJobKey(v.title, v.company)
+    const tienelike = savedKeys.has(key)
+
+    // Optimistic UI inmediato
+    setSavedKeys(prev => {
+      const s = new Set(prev); tienelike ? s.delete(key) : s.add(key); return s
+    })
+
+    if (tienelike) {
+      const { error } = await supabase.from('saved_jobs')
+        .update({ liked: false })
+        .eq('job_key', key).eq('user_id', user.id)
+      // Revertir si falla
+      if (error) setSavedKeys(prev => new Set([...prev, key]))
+    } else {
+      const { error } = await supabase.from('saved_jobs').upsert({
+        user_id: user.id,
+        job_key: key,
+        job_data: jobDataDe(v),
+        liked: true,
+      }, { onConflict: 'user_id,job_key' })
+      // Revertir si falla
+      if (error) {
+        console.error('[toggleLike] error:', error.message)
+        setSavedKeys(prev => { const s = new Set(prev); s.delete(key); return s })
+      }
+    }
+  }
+
+  const autoSave = async (v) => {
+    if (!user) return
+    const key = generarJobKey(v.title, v.company)
+    // ignoreDuplicates: no sobreescribir si ya existe (no queremos quitar el liked)
+    await supabase.from('saved_jobs').upsert({
+      user_id: user.id,
+      job_key: key,
+      job_data: jobDataDe(v),
+      liked: false,
+    }, { onConflict: 'user_id,job_key', ignoreDuplicates: true })
+    setSavedKeys(prev => new Set([...prev, key]))
+  }
+
+  useEffect(() => {
+    if (resultadoMatch?.jobData?.title) buscar()
+  }, [])
+
+  const buscar = async () => {
+    if (!titulo.trim()) return setError('Ingresa el cargo a buscar')
+    setLoading(true)
+    setError('')
+    setBuscado(false)
+    setPanelAbierto({})
+    try {
+      const params = new URLSearchParams({ title: titulo })
+      if (ubicacion) params.append('location', ubicacion)
+      Object.entries(filtros).forEach(([k, v]) => { if (v) params.append(k, v) })
+      const data = await api.get(`/api/jobs/similar?${params}`)
+      if (data.error) return setError(data.error)
+      setVacantes(data.vacantes || [])
+      setTotal(data.total || 0)
+      setBuscado(true)
+      persistirBusqueda(titulo, ubicacion, filtros)
+      recargarSavedKeys() // sincronizar likes con Supabase
+    } catch {
+      setError('Error al buscar vacantes')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const aplicarBusquedaGuardada = (b) => {
+    setTitulo(b.titulo)
+    setUbicacion(b.ubicacion)
+    setFiltros(b.filtros)
+    // Ejecutar búsqueda con los parámetros del guardado
+    setTimeout(() => buscarCon(b.titulo, b.ubicacion, b.filtros), 0)
+  }
+
+  const buscarCon = async (t, u, f) => {
+    if (!t.trim()) return
+    setLoading(true); setError(''); setBuscado(false); setPanelAbierto({})
+    try {
+      const params = new URLSearchParams({ title: t })
+      if (u) params.append('location', u)
+      Object.entries(f).forEach(([k, v]) => { if (v) params.append(k, v) })
+      const data = await api.get(`/api/jobs/similar?${params}`)
+      if (data.error) return setError(data.error)
+      setVacantes(data.vacantes || []); setTotal(data.total || 0); setBuscado(true)
+    } catch { setError('Error al buscar vacantes') }
+    finally { setLoading(false) }
+  }
+
+  const togglePanel = (id) =>
+    setPanelAbierto(prev => ({ ...prev, [id]: !prev[id] }))
+
+  // Lleva a CV vs Vacante con la descripción de la vacante pre-cargada
+  const generarCVAdaptado = (vacante) => {
+    sessionStorage.setItem('vacante_prefill', JSON.stringify({
+      texto: `${vacante.title}\n${vacante.company || ''}\n${vacante.location || ''}\n\n${vacante.snippet || ''}`,
+    }))
+    navigate('/cv-vs-job')
+  }
+
+  return (
+    <div className="max-w-4xl mx-auto px-4 py-8">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900">Vacantes Similares</h1>
+        <p className="mt-2 text-gray-600">Encuentra oportunidades y verifica tu compatibilidad antes de aplicar.</p>
+      </div>
+
+      {/* CV en uso para compatibilidad */}
+      {user && (
+        <div className="mb-4">
+          {cvTextContexto ? (
+            <div className="flex items-center gap-2 text-xs text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2 w-fit">
+              <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+              CV de sesión actual en uso para compatibilidad
+            </div>
+          ) : cvSeleccionado ? (
+            <div className="relative">
+              <button onClick={() => setMostrarSelector(!mostrarSelector)}
+                className="flex items-center gap-2 text-xs bg-white border border-gray-200 rounded-lg px-3 py-2 hover:border-primary transition-colors">
+                <svg className="w-3.5 h-3.5 text-primary shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+                <span className="text-gray-700">CV en uso: <strong>{cvSeleccionado.nombre}</strong></span>
+                <svg className={`w-3.5 h-3.5 text-gray-400 transition-transform ${mostrarSelector ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/>
+                </svg>
+              </button>
+              {mostrarSelector && (
+                <div className="absolute left-0 top-full mt-1 w-80 bg-white border border-gray-200 rounded-xl shadow-lg z-10 overflow-hidden">
+                  <p className="text-xs text-gray-400 px-3 pt-2 pb-1">Selecciona el CV para comparar:</p>
+                  {cvsSaved.map(cv => (
+                    <button key={cv.id} onClick={() => { setCvSeleccionado({ id: cv.id, nombre: extraerNombre(cv.contenido), contenido: cv.contenido }); setMostrarSelector(false) }}
+                      className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 flex items-center justify-between gap-2 ${cvSeleccionado?.id === cv.id ? 'bg-blue-50 text-primary' : 'text-gray-700'}`}>
+                      <span className="truncate">{extraerNombre(cv.contenido)}</span>
+                      <span className="text-xs text-gray-400 shrink-0">{cv.tipo === 'match' ? 'vs Vacante' : 'Optimizado'}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 w-fit">
+              <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+              </svg>
+              No tienes CVs guardados — <button onClick={() => navigate('/')} className="underline font-medium ml-0.5">optimiza tu CV primero</button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Buscador */}
+      <div className="bg-white rounded-2xl border border-gray-200 p-6 mb-6">
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex-1">
+            <label className="block text-xs font-medium text-gray-500 mb-1">Cargo</label>
+            <input type="text" value={titulo} onChange={e => setTitulo(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && buscar()}
+              placeholder="ej. Director Comercial, Gerente de RH..."
+              className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+          </div>
+          <div className="sm:w-56">
+            <label className="block text-xs font-medium text-gray-500 mb-1">Ubicación</label>
+            <input type="text" value={ubicacion} onChange={e => setUbicacion(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && buscar()}
+              placeholder="ej. Ciudad de México"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+          </div>
+          <div className="sm:self-end">
+            <Button onClick={buscar} loading={loading} disabled={!titulo.trim()}>Buscar</Button>
+          </div>
+        </div>
+
+        {/* Búsquedas guardadas */}
+        {busquedasGuardadas.length > 0 && (
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <span className="text-xs text-gray-400 shrink-0">Recientes:</span>
+            {busquedasGuardadas.map(b => (
+              <div key={b.id} className="flex items-center gap-0.5 bg-gray-50 border border-gray-200 rounded-full pl-3 pr-1 py-1">
+                <button onClick={() => aplicarBusquedaGuardada(b)}
+                  className="text-xs text-gray-600 hover:text-primary transition-colors">
+                  {b.label}
+                </button>
+                <button onClick={() => eliminarBusquedaGuardada(b.id)}
+                  className="ml-1 text-gray-300 hover:text-red-400 transition-colors p-0.5 rounded-full">
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/>
+                  </svg>
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Filtros */}
+        <div className="mt-4 border-t border-gray-100 pt-4">
+          <button onClick={() => setMostrarFiltros(!mostrarFiltros)}
+            className="text-sm text-gray-500 hover:text-primary flex items-center gap-1.5 transition-colors">
+            <svg className={`w-4 h-4 transition-transform ${mostrarFiltros ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z"/>
+            </svg>
+            {mostrarFiltros ? 'Ocultar filtros' : 'Más filtros'}
+          </button>
+
+          {mostrarFiltros && (
+            <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {[
+                { key: 'datecreated', label: 'Fecha', options: [['','Cualquier fecha'],['1','Últimas 24h'],['3','Últimos 3 días'],['7','Última semana'],['30','Último mes']] },
+                { key: 'employment_type', label: 'Tipo', options: [['','Todos'],['Full-time','Tiempo completo'],['Part-time','Medio tiempo'],['Contract','Contrato'],['Internship','Prácticas'],['Temporary','Temporal']] },
+                { key: 'experience', label: 'Experiencia', options: [['','Cualquiera'],['0','Sin experiencia'],['1','1+ años'],['3','3+ años'],['5','5+ años']] },
+                { key: 'radius', label: 'Radio', options: [['','Sin límite'],['10','10 km'],['25','25 km'],['50','50 km'],['100','100 km']] },
+              ].map(({ key, label, options }) => (
+                <div key={key}>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">{label}</label>
+                  <select value={filtros[key]} onChange={e => setFiltros(f => ({...f, [key]: e.target.value}))}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary">
+                    {options.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                  </select>
+                </div>
+              ))}
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">Salario mínimo</label>
+                <input type="number" value={filtros.salary} onChange={e => setFiltros(f => ({...f, salary: e.target.value}))}
+                  placeholder="ej. 20000"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+              </div>
+              <div className="flex items-end">
+                <button onClick={() => setFiltros({ datecreated:'', employment_type:'', experience:'', radius:'', salary:'' })}
+                  className="text-xs text-gray-400 hover:text-red-500 transition-colors">Limpiar filtros</button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {error && <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">{error}</div>}
+      </div>
+
+      {/* Resultados */}
+      {buscado && (
+        <>
+          <p className="text-sm text-gray-500 mb-4">
+            {total > 0 ? `${total} vacantes relevantes encontradas` : 'No se encontraron vacantes'}
+          </p>
+          <div className="space-y-3">
+            {vacantes.map((v) => {
+              const vid = v.id || v.link
+              const jobKey = generarJobKey(v.title, v.company)
+              const esGuardada = savedKeys.has(jobKey)
+              return (
+                <div key={vid} className="bg-white rounded-xl border border-gray-200 p-5 hover:border-gray-300 transition-colors">
+                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-gray-900 text-base leading-snug">{v.title}</h3>
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1">
+                        {v.company && <span className="text-sm text-gray-600">{v.company}</span>}
+                        {v.location && (
+                          <span className="text-sm text-gray-400 flex items-center gap-1">
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            </svg>
+                            {v.location}
+                          </span>
+                        )}
+                        {v.salary && <span className="text-sm text-green-700 font-medium">{v.salary}</span>}
+                        {fechaRelativa(v.updated) && <span className="text-xs text-gray-400">{fechaRelativa(v.updated)}</span>}
+                        {v.fuente && (
+                          <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${v.fuente === 'Google Jobs' ? 'bg-blue-50 text-blue-600' : 'bg-gray-100 text-gray-500'}`}>
+                            {v.fuente}
+                          </span>
+                        )}
+                      </div>
+                      {v.snippet && (
+                        <p className="mt-2 text-sm text-gray-500 line-clamp-2"
+                          dangerouslySetInnerHTML={{ __html: v.snippet }} />
+                      )}
+
+                      {/* Panel de compatibilidad */}
+                      {panelAbierto[vid] && cvText ? (
+                        <CompatibilidadPanel
+                          vacante={v}
+                          cvText={cvText}
+                          onGenerarCV={generarCVAdaptado}
+                          onRefreshUsage={refreshUsage}
+                          onSave={() => autoSave(v)}
+                        />
+                      ) : panelAbierto[vid] && !cvText ? (
+                        <p className="mt-3 text-xs text-amber-600">
+                          Selecciona un CV en la parte superior para ver compatibilidad.
+                        </p>
+                      ) : null}
+
+                      {/* Botón toggle compatibilidad */}
+                      {!panelAbierto[vid] && (
+                        <button onClick={() => togglePanel(vid)}
+                          className="mt-3 flex items-center gap-2 text-xs font-medium text-primary hover:underline">
+                          Ver compatibilidad con mi CV →
+                          <span className="flex items-center gap-0.5 bg-amber-50 border border-amber-200 text-amber-600 text-xs px-1.5 py-0.5 rounded-full font-medium">
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            1 crédito
+                          </span>
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="shrink-0 flex flex-col items-stretch gap-2">
+                      {/* Corazón */}
+                      <button onClick={() => toggleLike(v)} title={esGuardada ? 'Quitar de guardados' : 'Guardar vacante'}
+                        className={`flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 border text-xs font-medium transition-colors
+                          ${esGuardada ? 'bg-red-50 border-red-200 text-red-500 hover:bg-red-100' : 'border-gray-200 text-gray-400 hover:border-red-200 hover:text-red-400'}`}>
+                        <svg className="w-4 h-4" fill={esGuardada ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+                        </svg>
+                        {esGuardada ? 'Guardada' : 'Guardar'}
+                      </button>
+                      {/* Ver vacante */}
+                      <a href={v.link} target="_blank" rel="noopener noreferrer"
+                        className="inline-flex flex-col items-center gap-0.5 text-sm font-medium text-primary border border-primary rounded-lg px-4 py-2 hover:bg-primary hover:text-white transition-colors">
+                        <span className="flex items-center gap-1.5">
+                          Ver vacante
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                          </svg>
+                        </span>
+                        {v.via && <span className="text-xs opacity-70 font-normal">{v.via}</span>}
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </>
+      )}
+
+      {!buscado && !loading && (
+        <div className="text-center py-16 text-gray-400">
+          <svg className="w-12 h-12 mx-auto mb-3 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+          </svg>
+          <p className="text-sm">Ingresa un cargo para buscar vacantes,<br/>o analiza tu CV contra una vacante primero.</p>
+        </div>
+      )}
+    </div>
+  )
+}
