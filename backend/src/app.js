@@ -9,8 +9,15 @@ const emailRoutes = require('./routes/email');
 const app = express();
 
 // --- Middlewares globales ---
+const origenesPermitidos = [
+  'http://localhost:5173',
+  'https://gestioncv.netlify.app',
+  'https://cv-optimizer-pro.netlify.app',
+  process.env.FRONTEND_URL,
+].filter(Boolean)
+
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: origenesPermitidos,
   credentials: true,
 }));
 
