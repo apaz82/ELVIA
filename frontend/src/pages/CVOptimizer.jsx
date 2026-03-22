@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useCV } from '../context/CVContext'
@@ -9,24 +9,52 @@ import LanguageSelector from '../components/common/LanguageSelector'
 import EmailField from '../components/common/EmailField'
 import Button from '../components/common/Button'
 
-const LABEL_IDIOMA = { es: 'español', en: 'inglés', pt: 'portugués' }
+const LABEL_IDIOMA = { es: 'Español', en: 'Inglés', pt: 'Portugués' }
+
+const formatFecha = (iso) => {
+  if (!iso) return ''
+  return new Date(iso).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })
+}
+
+const nombreCV = (cv) => {
+  const linea = cv.contenido?.split('\n').find(l => l.trim().length > 2)?.trim()
+  return linea || 'CV optimizado'
+}
 
 export default function CVOptimizer() {
   const { user, refreshUsage } = useAuth()
   const { cvArchivo, setCvArchivo, setResultadoOptimize, resultadoOptimize } = useCV()
   const navigate = useNavigate()
 
-  const [language, setLanguage]   = useState('')
-  const [loading, setLoading]     = useState(false)
-  const [error, setError]         = useState('')
-  const [tabActiva, setTabActiva] = useState('cv')
-  // Confirmación de reemplazo de CV existente
-  const [confirmar, setConfirmar] = useState(null) // null | { cvsPrevios: [], idioma: string }
+  const [language, setLanguage]       = useState('')
+  const [loading, setLoading]         = useState(false)
+  const [error, setError]             = useState('')
+  const [tabActiva, setTabActiva]     = useState('cv')
+  const [cvsExistentes, setCvsExistentes] = useState([])
+  const [descargando, setDescargando] = useState({})
 
-  const ejecutarAnalisis = async () => {
+  // Cargar CVs optimizados existentes del usuario
+  useEffect(() => {
+    if (!user) return
+    supabase
+      .from('cv_results')
+      .select('id, contenido, metadata, created_at')
+      .eq('tipo', 'optimize')
+      .order('created_at', { ascending: false })
+      .then(({ data }) => setCvsExistentes(data || []))
+  }, [user])
+
+  const handleDescargar = async (id, fmt) => {
+    setDescargando(d => ({ ...d, [id]: fmt }))
+    await descargarCV(id, fmt)
+    setDescargando(d => ({ ...d, [id]: null }))
+  }
+
+  const analizar = async () => {
+    if (!cvArchivo) return setError('Selecciona un archivo primero')
+    if (!user)      return navigate('/auth')
     setLoading(true)
     setError('')
-    setConfirmar(null)
     try {
       const data = await optimizarCV(cvArchivo, language)
       if (data.error) {
@@ -35,21 +63,23 @@ export default function CVOptimizer() {
           : data.error)
         return
       }
-      // Eliminar CVs anteriores del mismo idioma (reemplazo automático)
+      // Reemplazar CVs anteriores del mismo idioma
       const idiomaDetectado = data.metadata?.language
       if (idiomaDetectado) {
-        const { data: previos } = await supabase
-          .from('cv_results')
-          .select('id, metadata')
-          .eq('tipo', 'optimize')
-          .neq('id', data.id)
-        const aEliminar = (previos || [])
-          .filter(cv => cv.metadata?.language === idiomaDetectado)
+        const aEliminar = cvsExistentes
+          .filter(cv => cv.metadata?.language === idiomaDetectado && cv.id !== data.id)
           .map(cv => cv.id)
         if (aEliminar.length > 0) {
           await supabase.from('cv_results').delete().in('id', aEliminar)
         }
       }
+      // Recargar lista de CVs existentes
+      const { data: actualizados } = await supabase
+        .from('cv_results')
+        .select('id, contenido, metadata, created_at')
+        .eq('tipo', 'optimize')
+        .order('created_at', { ascending: false })
+      setCvsExistentes(actualizados || [])
       setResultadoOptimize(data)
       setTabActiva('cv')
       refreshUsage()
@@ -60,64 +90,8 @@ export default function CVOptimizer() {
     }
   }
 
-  const analizar = async () => {
-    if (!cvArchivo) return setError('Selecciona un archivo primero')
-    if (!user)      return navigate('/auth')
-
-    // Verificar si ya existe un CV optimizado en el mismo idioma
-    if (language) {
-      const { data: previos } = await supabase
-        .from('cv_results')
-        .select('id, metadata')
-        .eq('tipo', 'optimize')
-      const mismoIdioma = (previos || []).filter(cv => cv.metadata?.language === language)
-      if (mismoIdioma.length > 0) {
-        setConfirmar({ cvsPrevios: mismoIdioma, idioma: language })
-        return
-      }
-    } else {
-      // Sin idioma seleccionado — verificar si hay algún CV anterior
-      const { data: previos } = await supabase
-        .from('cv_results')
-        .select('id, metadata')
-        .eq('tipo', 'optimize')
-      if (previos && previos.length > 0) {
-        setConfirmar({ cvsPrevios: previos, idioma: null })
-        return
-      }
-    }
-
-    await ejecutarAnalisis()
-  }
-
   return (
     <div className="max-w-3xl mx-auto px-6 py-10">
-
-      {/* Modal de confirmación — reemplazo de CV existente */}
-      {confirmar && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-xl p-7 max-w-sm w-full">
-            <h3 className="text-base font-semibold text-gray-900 mb-2">CV existente detectado</h3>
-            <p className="text-sm text-gray-500 mb-5">
-              Ya tienes{' '}
-              {confirmar.idioma
-                ? `un CV optimizado en ${LABEL_IDIOMA[confirmar.idioma] || confirmar.idioma}`
-                : `${confirmar.cvsPrevios.length} CV(s) optimizado(s)`}
-              . Al continuar, {confirmar.cvsPrevios.length === 1 ? 'será reemplazado' : 'serán reemplazados'} por el nuevo.
-            </p>
-            <div className="flex gap-3">
-              <button onClick={() => setConfirmar(null)}
-                className="flex-1 border border-gray-300 text-gray-600 text-sm font-medium py-2.5 rounded-xl hover:border-gray-400 transition-colors">
-                Cancelar
-              </button>
-              <button onClick={ejecutarAnalisis}
-                className="flex-1 bg-primary text-white text-sm font-medium py-2.5 rounded-xl hover:bg-blue-700 transition-colors">
-                Reemplazar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Encabezado */}
       <div className="mb-8">
@@ -125,12 +99,67 @@ export default function CVOptimizer() {
         <p className="text-gray-500">Sube tu CV y obtén una versión optimizada en formato Harvard. Sin inventar información.</p>
       </div>
 
+      {/* CVs optimizados existentes */}
+      {cvsExistentes.length > 0 && (
+        <div className="card mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-base font-semibold text-gray-900">Tus CVs optimizados</h2>
+            <button onClick={() => navigate('/mis-cvs')}
+              className="text-xs text-primary font-medium hover:underline">
+              Ver todos en Mis CVs →
+            </button>
+          </div>
+          <div className="space-y-3">
+            {cvsExistentes.map(cv => (
+              <div key={cv.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-gray-800 truncate">{nombreCV(cv)}</p>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    {cv.metadata?.language && (
+                      <span className="text-xs bg-purple-50 text-purple-600 border border-purple-100 rounded-full px-2 py-0.5">
+                        {LABEL_IDIOMA[cv.metadata.language] || cv.metadata.language}
+                      </span>
+                    )}
+                    <span className="text-xs text-gray-400">{formatFecha(cv.created_at)}</span>
+                  </div>
+                </div>
+                <div className="flex gap-2 shrink-0">
+                  <button onClick={() => handleDescargar(cv.id, 'pdf')} disabled={!!descargando[cv.id]}
+                    className="text-xs border border-gray-300 text-gray-600 hover:border-primary hover:text-primary rounded-lg px-3 py-1.5 transition-colors disabled:opacity-50">
+                    {descargando[cv.id] === 'pdf' ? '...' : '↓ PDF'}
+                  </button>
+                  <button onClick={() => handleDescargar(cv.id, 'word')} disabled={!!descargando[cv.id]}
+                    className="text-xs border border-gray-300 text-gray-600 hover:border-primary hover:text-primary rounded-lg px-3 py-1.5 transition-colors disabled:opacity-50">
+                    {descargando[cv.id] === 'word' ? '...' : '↓ Word'}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Upload */}
       <div className="card mb-6">
-        <h2 className="text-base font-semibold text-gray-900 mb-1">Sube tu CV</h2>
+        <h2 className="text-base font-semibold text-gray-900 mb-1">
+          {cvsExistentes.length > 0 ? 'Subir nuevo CV' : 'Sube tu CV'}
+        </h2>
         <p className="text-sm text-gray-400 mb-5">PDF, DOC o DOCX — máx. 5MB</p>
 
         <FileUpload onFileSelect={setCvArchivo} archivoActual={cvArchivo} />
+
+        {/* Disclaimer de reemplazo — solo si ya hay CVs previos */}
+        {cvsExistentes.length > 0 && (
+          <div className="mt-4 p-3 bg-amber-50 border border-amber-100 rounded-xl flex gap-2">
+            <span className="shrink-0 text-amber-500 text-sm">ℹ</span>
+            <p className="text-xs text-amber-700 leading-relaxed">
+              Al optimizar un nuevo CV, reemplazará el anterior del mismo idioma como tu versión activa.
+              No te preocupes — los podrás encontrar todos en{' '}
+              <button onClick={() => navigate('/mis-cvs')} className="underline font-medium">Mis CVs</button>
+              {' '}ordenados por fecha.
+            </p>
+          </div>
+        )}
 
         <div className="mt-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pt-5 border-t border-gray-100">
           <LanguageSelector value={language} onChange={setLanguage} />
