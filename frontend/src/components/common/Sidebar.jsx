@@ -4,7 +4,7 @@ import { useAuth } from '../../context/AuthContext'
 import {
   FileMagnifyingGlass, MagnifyingGlass, Briefcase,
   Folders, BookmarkSimple, Kanban,
-  UserCircle, SignOut, Coins, X,
+  UserCircle, SignOut, Coins, X, Crown,
 } from '@phosphor-icons/react'
 
 const HERRAMIENTAS = [
@@ -43,7 +43,7 @@ function NavItem({ to, label, Icon, onClick }) {
 }
 
 export default function Sidebar({ open, onClose }) {
-  const { user, logout, creditosRestantes, LIMITE_PLAN } = useAuth()
+  const { user, logout, creditosRestantes, LIMITE_PLAN, perfil } = useAuth()
   const navigate = useNavigate()
 
   const handleLogout = async () => {
@@ -147,6 +147,11 @@ export default function Sidebar({ open, onClose }) {
 
             {/* Mi Perfil */}
             <NavItem to="/perfil" label="Mi Perfil" Icon={UserCircle} onClick={onClose} />
+
+            {/* Admin — solo si es admin */}
+            {perfil?.is_admin && (
+              <NavItem to="/admin" label="Admin Panel" Icon={Crown} onClick={onClose} />
+            )}
 
             {/* Cerrar sesión */}
             <button

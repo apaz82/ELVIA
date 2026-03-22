@@ -12,12 +12,13 @@ import MisVacantes from './pages/MisVacantes'
 import Pipeline from './pages/Pipeline'
 import Perfil from './pages/Perfil'
 import Onboarding from './pages/Onboarding'
+import Admin from './pages/Admin'
 import { useAuth } from './context/AuthContext'
 
 // Rutas que NO muestran sidebar ni header estándar
-const RUTAS_FULL = ['/', '/auth', '/onboarding']
+const RUTAS_FULL = ['/', '/auth', '/onboarding', '/admin']
 // Rutas excluidas del guard de onboarding
-const RUTAS_SIN_GUARD = ['/', '/auth', '/onboarding']
+const RUTAS_SIN_GUARD = ['/', '/auth', '/onboarding', '/admin']
 
 function OnboardingGuard({ children }) {
   const { onboardingPendiente } = useAuth()
@@ -70,6 +71,7 @@ export default function App() {
         <Route path="/pipeline"      element={<Pipeline />} />
         <Route path="/perfil"        element={<Perfil />} />
         <Route path="/onboarding"    element={<Onboarding />} />
+        <Route path="/admin"         element={<Admin />} />
       </Routes>
     </OnboardingGuard>
   )
