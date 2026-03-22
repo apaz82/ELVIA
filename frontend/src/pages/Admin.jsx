@@ -1025,8 +1025,10 @@ export default function Admin() {
   const [refreshing, setRefreshing] = useState(false)
 
   useEffect(() => {
-    if (authLoading) return
-    if (!user || !perfil?.is_admin) navigate('/')
+    if (authLoading) return       // auth aún cargando
+    if (!user) { navigate('/'); return }
+    if (perfil === null) return   // perfil aún cargando — esperar
+    if (!perfil.is_admin) navigate('/')
   }, [user, perfil, authLoading])
 
   const cargarDatos = useCallback(async () => {
@@ -1045,7 +1047,7 @@ export default function Admin() {
     if (!authLoading && perfil?.is_admin) cargarDatos()
   }, [authLoading, perfil])
 
-  if (authLoading || loading) return (
+  if (authLoading || perfil === null || loading) return (
     <div className="min-h-screen bg-surface-container-low flex items-center justify-center">
       <div className="flex flex-col items-center gap-3">
         <CircleNotch size={32} className="animate-spin text-primary" />
