@@ -1,10 +1,10 @@
 // Landing — diseño editorial "The Authoritative Curator"
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate, Link, NavLink } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import {
   FileMagnifyingGlass, MagnifyingGlass, Briefcase, Kanban,
-  ArrowRight, CheckCircle, ChartBar,
+  ArrowRight, CheckCircle, ChartBar, Coins,
 } from '@phosphor-icons/react'
 
 // ── Contador animado ──────────────────────────────────────────────────────────
@@ -38,7 +38,7 @@ function AnimatedCounter({ target, suffix = '', duration = 1600 }) {
 // ── Componente principal ──────────────────────────────────────────────────────
 export default function Landing() {
   const navigate  = useNavigate()
-  const { user }  = useAuth()
+  const { user, perfil, creditosRestantes, LIMITE_PLAN } = useAuth()
 
   const features = [
     {
@@ -82,32 +82,37 @@ export default function Landing() {
 
       {/* ── Nav landing ───────────────────────────────────────────────────── */}
       <nav className="glass-header sticky top-0 z-50 flex items-center justify-between px-6 h-16">
-        <div className="flex items-center gap-8">
-          <Link to="/" className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary to-primary-container flex items-center justify-center shadow-card shrink-0">
-              <span className="text-on-primary font-bold text-[13px]">CV</span>
-            </div>
-            <span className="font-headline font-extrabold text-primary text-[15px] tracking-tight hidden sm:block">
-              CV Optimizer Pro
-            </span>
-          </Link>
-          <div className="hidden md:flex items-center gap-6">
-            {[
-              { to: '/cv-optimizer', label: 'CV Optimizer' },
-              { to: '/jobs',         label: 'Vacantes'     },
-            ].map(({ to, label }) => (
-              <NavLink key={to} to={to}
-                className="text-sm font-medium text-on-surface-variant hover:text-primary transition-colors">
-                {label}
-              </NavLink>
-            ))}
+        {/* Logo */}
+        <Link to="/" className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary to-primary-container flex items-center justify-center shadow-card shrink-0">
+            <span className="text-on-primary font-bold text-[13px]">CV</span>
           </div>
-        </div>
+          <span className="font-headline font-extrabold text-primary text-[15px] tracking-tight hidden sm:block">
+            CV Optimizer Pro
+          </span>
+        </Link>
+
+        {/* Acciones */}
         <div className="flex items-center gap-3">
           {user ? (
-            <button onClick={() => navigate('/cv-optimizer')} className="btn-primary text-sm flex items-center gap-1.5">
-              Ir al optimizador <ArrowRight size={15} weight="bold" />
-            </button>
+            <>
+              {/* Créditos */}
+              <div className={`hidden sm:flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full
+                ${creditosRestantes === 0 ? 'text-error bg-error-container'
+                  : creditosRestantes === 1 ? 'text-amber-700 bg-amber-50'
+                  : 'text-secondary bg-secondary-fixed'}`}>
+                <Coins size={14} weight="duotone" />
+                {creditosRestantes} / {LIMITE_PLAN}
+              </div>
+              {/* Nombre */}
+              <span className="hidden sm:block text-sm font-medium text-on-surface-variant">
+                {perfil?.nombre1 || user.email?.split('@')[0]}
+              </span>
+              {/* CTA */}
+              <button onClick={() => navigate('/cv-optimizer')} className="btn-primary text-sm flex items-center gap-1.5">
+                Empecemos <ArrowRight size={15} weight="bold" />
+              </button>
+            </>
           ) : (
             <>
               <Link to="/auth"

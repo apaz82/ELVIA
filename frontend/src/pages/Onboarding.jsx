@@ -151,7 +151,6 @@ export default function Onboarding() {
           setS1(f => ({
             ...f,
             pais:        f.pais || paisDetectado,
-            ciudad:      f.ciudad || d.city || d.region || '',
             indicativo1: indDetectado,
             indicativo2: indDetectado,
           }))
