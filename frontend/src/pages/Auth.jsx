@@ -1,6 +1,6 @@
 // Página de autenticación — email/password + Google + LinkedIn
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../services/authService'
 
@@ -24,7 +24,8 @@ export default function Auth() {
   const { user, login, register, onboardingPendiente } = useAuth()
   const navigate = useNavigate()
 
-  const [modo, setModo]       = useState('login') // login | register
+  const [searchParams] = useSearchParams()
+  const [modo, setModo]       = useState(searchParams.get('register') ? 'register' : 'login')
   const [email, setEmail]     = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)

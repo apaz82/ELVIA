@@ -109,7 +109,7 @@ export default function Header({ onMenuToggle }) {
             className="text-sm font-medium text-on-surface-variant hover:text-primary transition-colors px-4 py-2 rounded-xl hover:bg-surface-container">
             Iniciar sesión
           </Link>
-          <Link to="/auth" className="btn-primary text-sm">
+          <Link to="/auth?register=true" className="btn-primary text-sm">
             Registrarse gratis
           </Link>
         </div>

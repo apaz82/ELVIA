@@ -118,7 +118,7 @@ export default function Landing() {
               className="text-sm font-medium text-on-surface-variant hover:text-primary transition-colors hidden sm:block px-3 py-2 rounded-xl hover:bg-surface-container">
               Iniciar sesión
             </Link>
-            <Link to="/auth" className="btn-primary text-sm flex items-center gap-1.5">
+            <Link to="/auth?register=true" className="btn-primary text-sm flex items-center gap-1.5">
               Registrarse gratis <ArrowRight size={15} weight="bold" />
             </Link>
           </>
@@ -158,7 +158,7 @@ export default function Landing() {
                 </button>
               ) : (
                 <>
-                  <button onClick={() => navigate('/auth')}
+                  <button onClick={() => navigate('/auth?register=true')}
                     className="flex items-center gap-2 bg-white text-primary font-bold px-8 py-3.5 rounded-xl hover:bg-surface-container-low transition-colors shadow-float text-sm">
                     Empezar gratis <ArrowRight size={16} weight="bold" />
                   </button>

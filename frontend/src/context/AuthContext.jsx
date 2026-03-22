@@ -53,7 +53,7 @@ export const AuthProvider = ({ children }) => {
 
   const creditosRestantes = Math.max(0, LIMITE_PLAN - usageCount)
   // Onboarding pendiente si el usuario está logueado y no tiene nombre1 guardado (nuevo onboarding)
-  const onboardingPendiente = !loading && !!user && !!perfil && !perfil.nombre1
+  const onboardingPendiente = !loading && !!user && (!perfil || !perfil.nombre1)
 
   return (
     <AuthContext.Provider value={{
