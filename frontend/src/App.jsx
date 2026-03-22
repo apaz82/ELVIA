@@ -17,7 +17,7 @@ import { useAuth } from './context/AuthContext'
 // Rutas que NO muestran sidebar ni header estándar
 const RUTAS_FULL = ['/', '/auth', '/onboarding']
 // Rutas excluidas del guard de onboarding
-const RUTAS_SIN_GUARD = ['/auth', '/onboarding']
+const RUTAS_SIN_GUARD = ['/', '/auth', '/onboarding']
 
 function OnboardingGuard({ children }) {
   const { onboardingPendiente } = useAuth()
