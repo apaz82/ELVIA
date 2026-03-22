@@ -13,7 +13,6 @@ const PAISES_LATAM = [
   'Panamá','República Dominicana','Cuba','España','Estados Unidos','Canadá','Brasil','Otro',
 ]
 
-// Indicativos telefónicos por país
 const INDICATIVOS = [
   { code:'MX', label:'México',             ind:'+52'  },
   { code:'CO', label:'Colombia',           ind:'+57'  },
@@ -40,7 +39,6 @@ const INDICATIVOS = [
   { code:'XX', label:'Otro',               ind:''     },
 ]
 
-// Mapa de country_code de ipapi → nombre en PAISES_LATAM
 const PAIS_POR_IPCODE = {
   MX:'México', CO:'Colombia', AR:'Argentina', CL:'Chile', PE:'Perú',
   VE:'Venezuela', EC:'Ecuador', BO:'Bolivia', UY:'Uruguay', PY:'Paraguay',
@@ -97,44 +95,53 @@ const PASOS = ['Información personal','Compensación','Aspiraciones']
 
 // ─── Componente ──────────────────────────────────────────────────────────────
 
+const S1_INICIAL = {
+  pais: '', ciudad: '',
+  nombre1: '', nombre2: '', apellido1: '', apellido2: '',
+  indicativo1: '+52', telefono1: '',
+  indicativo2: '+52', telefono2: '',
+  email_secundario: '', ciudades_busqueda: [], edad: '',
+}
+const S2_INICIAL = { salario_monto: '', moneda: 'MXN', pais: '', prestaciones: [] }
+const S3_INICIAL = { niveles_cargo: [], industrias_deseadas: [], tipo_trabajo: '', area: '' }
+
 export default function Onboarding() {
   const { user, loading: authLoading, refreshPerfil, perfil } = useAuth()
-  const navigate = useNavigate()
+  const navigate   = useNavigate()
   const cvInputRef = useRef(null)
 
-  const [paso, setPaso] = useState(0)
-  const [saving, setSaving] = useState(false)
-  const [error, setError] = useState('')
+  const [paso, setPaso]         = useState(0)
+  const [saving, setSaving]     = useState(false)
+  const [error, setError]       = useState('')
   const [detectando, setDetectando] = useState(false)
+  const [initialized, setInitialized] = useState(false)
 
   const bloqueado = !!(perfil?.nombre1 && perfil?.apellido1)
 
-  // ── Sección 1 ──
-  const [s1, setS1] = useState({
-    pais: '', ciudad: '',
-    nombre1: '', nombre2: '', apellido1: '', apellido2: '',
-    indicativo1: '+52', telefono1: '',
-    indicativo2: '+52', telefono2: '',
-    email_secundario: '',
-    ciudades_busqueda: [],
-    edad: '',
-  })
+  const [s1, setS1] = useState(S1_INICIAL)
+  const [s2, setS2] = useState(S2_INICIAL)
+  const [s3, setS3] = useState(S3_INICIAL)
   const [ciudadInput, setCiudadInput] = useState('')
 
-  // ── Sección 2 ──
-  const [s2, setS2] = useState({ salario_monto: '', moneda: 'MXN', prestaciones: [] })
+  const draftKey = user?.id ? `onboarding_draft_${user.id}` : null
 
-  // ── Sección 3 ──
-  const [s3, setS3] = useState({ nivel_cargo: '', industrias_deseadas: [], tipo_trabajo: '', area: '' })
-
+  // ── Restaurar borrador de localStorage ──
   useEffect(() => {
-    if (authLoading) return
-    if (!user) navigate('/auth')
-  }, [user, authLoading])
-
-  // Detección de país por IP al montar
-  useEffect(() => {
-    if (s1.pais) return // no sobreescribir si ya viene del perfil
+    if (!user?.id) return
+    const key = `onboarding_draft_${user.id}`
+    const raw = localStorage.getItem(key)
+    if (raw) {
+      try {
+        const d = JSON.parse(raw)
+        if (d.s1) setS1(d.s1)
+        if (d.s2) setS2(d.s2)
+        if (d.s3) setS3(d.s3)
+        if (typeof d.paso === 'number') setPaso(d.paso)
+        setInitialized(true)
+        return // No correr IP ni prefill de perfil
+      } catch {}
+    }
+    // Sin borrador — detectar IP
     fetch('https://ipapi.co/json/')
       .then(r => r.json())
       .then(d => {
@@ -143,20 +150,23 @@ export default function Onboarding() {
         if (paisDetectado) {
           setS1(f => ({
             ...f,
-            pais:       f.pais || paisDetectado,
-            ciudad:     f.ciudad || d.region || '',
-            indicativo1: f.indicativo1 === '+52' ? indDetectado : f.indicativo1,
-            indicativo2: f.indicativo2 === '+52' ? indDetectado : f.indicativo2,
+            pais:        f.pais || paisDetectado,
+            ciudad:      f.ciudad || d.city || d.region || '',
+            indicativo1: indDetectado,
+            indicativo2: indDetectado,
           }))
-          setS2(f => ({ ...f, moneda: f.moneda === 'MXN' ? detectarMoneda(paisDetectado) : f.moneda }))
+          setS2(f => ({ ...f, pais: f.pais || paisDetectado, moneda: detectarMoneda(paisDetectado) }))
         }
       })
       .catch(() => {})
-  }, [])
+      .finally(() => setInitialized(true))
+  }, [user?.id])
 
-  // Pre-llenar con datos existentes del perfil
+  // ── Pre-llenar con datos del perfil (solo si no hay borrador) ──
   useEffect(() => {
-    if (!perfil) return
+    if (!perfil || !user?.id) return
+    const raw = localStorage.getItem(`onboarding_draft_${user.id}`)
+    if (raw) return // el borrador tiene prioridad
     const [monto, monedaSaved] = (perfil.salario_esperado || '').split(' ')
     setS1(prev => ({
       ...prev,
@@ -176,25 +186,46 @@ export default function Onboarding() {
     }))
     setS2(prev => ({
       ...prev,
-      prestaciones: perfil.prestaciones || [],
+      pais:          perfil.pais || prev.pais,
+      prestaciones:  perfil.prestaciones || [],
       salario_monto: monto || '',
-      moneda: monedaSaved || detectarMoneda(perfil.pais),
+      moneda:        monedaSaved || detectarMoneda(perfil.pais),
     }))
     setS3(prev => ({
       ...prev,
-      nivel_cargo:         perfil.nivel_cargo || '',
+      niveles_cargo:       perfil.nivel_cargo ? perfil.nivel_cargo.split(', ').filter(Boolean) : [],
       industrias_deseadas: perfil.industrias_deseadas || [],
       tipo_trabajo:        perfil.tipo_trabajo || '',
       area:                perfil.area || '',
     }))
   }, [perfil])
 
-  // Actualizar moneda e indicativos cuando cambia el país
+  // ── Auto-guardar borrador en localStorage ──
+  useEffect(() => {
+    if (!initialized || !draftKey) return
+    localStorage.setItem(draftKey, JSON.stringify({ s1, s2, s3, paso }))
+  }, [s1, s2, s3, paso, initialized, draftKey])
+
+  // ── Redirigir si no hay usuario ──
+  useEffect(() => {
+    if (authLoading) return
+    if (!user) navigate('/auth')
+  }, [user, authLoading])
+
+  // ── Handlers ──────────────────────────────────────────────────────────────
+
+  // Cambia país en sección 1 → actualiza indicativos + moneda + pais de prestaciones
   const handlePaisChange = (e) => {
     const pais = e.target.value
     const ind  = indicativoPorPais(pais)
     setS1(f => ({ ...f, pais, indicativo1: ind, indicativo2: ind }))
-    setS2(f => ({ ...f, moneda: detectarMoneda(pais) }))
+    setS2(f => ({ ...f, pais, moneda: detectarMoneda(pais), prestaciones: [] }))
+  }
+
+  // Cambia país en sección 2 (solo para prestaciones y moneda)
+  const handlePaisCompensacionChange = (e) => {
+    const pais = e.target.value
+    setS2(f => ({ ...f, pais, moneda: detectarMoneda(pais), prestaciones: [] }))
   }
 
   // ── Auto-detección desde CV ──
@@ -235,6 +266,13 @@ export default function Onboarding() {
       : [...f.industrias_deseadas, ind],
   }))
 
+  const toggleNivelCargo = (n) => setS3(f => ({
+    ...f,
+    niveles_cargo: f.niveles_cargo.includes(n)
+      ? f.niveles_cargo.filter(x => x !== n)
+      : [...f.niveles_cargo, n],
+  }))
+
   const togglePrestacion = (p) => setS2(f => ({
     ...f,
     prestaciones: f.prestaciones.includes(p)
@@ -243,15 +281,14 @@ export default function Onboarding() {
   }))
 
   // ── Guardar ──
-  const guardar = async (omitir = false) => {
-    if (!omitir) {
-      if (!s1.pais.trim())     { setError('El país es requerido.'); return }
-      if (!s1.nombre1.trim())  { setError('El primer nombre es requerido.'); return }
-      if (!s1.apellido1.trim()){ setError('El primer apellido es requerido.'); return }
-      if (!s1.telefono1.trim()){ setError('El teléfono principal es requerido.'); return }
-    }
-    setSaving(true)
+  const guardar = async () => {
     setError('')
+    if (!s1.pais.trim())     { setError('El país es requerido.'); return }
+    if (!s1.nombre1.trim())  { setError('El primer nombre es requerido.'); return }
+    if (!s1.apellido1.trim()){ setError('El primer apellido es requerido.'); return }
+    if (!s1.telefono1.trim()){ setError('El teléfono principal es requerido.'); return }
+
+    setSaving(true)
     const nombreCompleto = [s1.nombre1, s1.nombre2, s1.apellido1, s1.apellido2]
       .map(s => s?.trim()).filter(Boolean).join(' ')
     const salario_esperado = s2.salario_monto ? `${s2.salario_monto} ${s2.moneda}` : ''
@@ -265,12 +302,15 @@ export default function Onboarding() {
       ciudades_busqueda: s1.ciudades_busqueda,
       edad: s1.edad ? parseInt(s1.edad) : null,
       salario_esperado, prestaciones: s2.prestaciones,
-      nivel_cargo: s3.nivel_cargo, industrias_deseadas: s3.industrias_deseadas,
+      nivel_cargo: s3.niveles_cargo.join(', '),
+      industrias_deseadas: s3.industrias_deseadas,
       tipo_trabajo: s3.tipo_trabajo, area: s3.area,
       nombre: nombreCompleto,
     }).eq('id', user.id)
     setSaving(false)
     if (err) { setError('Error al guardar. Intenta de nuevo.'); return }
+    // Limpiar borrador y continuar
+    if (draftKey) localStorage.removeItem(draftKey)
     await refreshPerfil()
     navigate('/cv-optimizer')
   }
@@ -291,7 +331,7 @@ export default function Onboarding() {
 
   if (authLoading) return null
 
-  // Componente de selector de indicativo + input teléfono
+  // ── Sub-componente teléfono ──
   const TelefonoInput = ({ indicativoKey, telefonoKey, label, required }) => (
     <div>
       <label className="block text-xs text-gray-500 mb-1">{label}{required ? ' *' : ''}</label>
@@ -316,17 +356,19 @@ export default function Onboarding() {
     </div>
   )
 
+  const paisPrestaciones = s2.pais || s1.pais
+
   return (
-    <div className="min-h-[85vh] flex items-center justify-center px-4 py-8 bg-gradient-to-br from-gray-50 to-white">
+    <div className="min-h-[85vh] flex items-center justify-center px-4 py-8 bg-gradient-to-br from-surface-container-low to-surface">
       <div className="w-full max-w-2xl">
 
         {/* Encabezado */}
         <div className="text-center mb-8">
-          <div className="w-14 h-14 bg-primary rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
-            <span className="text-white font-bold text-xl">CV</span>
+          <div className="w-14 h-14 bg-gradient-to-br from-primary to-primary-container rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-float">
+            <span className="text-on-primary font-bold text-xl">CV</span>
           </div>
-          <h1 className="text-3xl font-bold text-gray-900">¡Bienvenido!</h1>
-          <p className="mt-2 text-gray-500 text-sm">Completa tu perfil para personalizar tu experiencia.</p>
+          <h1 className="font-headline font-black text-3xl text-primary">¡Bienvenido!</h1>
+          <p className="mt-2 text-on-surface-variant text-sm">Completa tu perfil para personalizar tu experiencia.</p>
         </div>
 
         {/* Indicador de pasos */}
@@ -334,75 +376,76 @@ export default function Onboarding() {
           {PASOS.map((label, i) => (
             <div key={i} className="flex items-center gap-2">
               <div className="flex items-center gap-1.5">
-                <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold shrink-0
-                  ${i < paso ? 'bg-green-500 text-white' : i === paso ? 'bg-primary text-white' : 'bg-gray-200 text-gray-400'}`}>
+                <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 transition-colors
+                  ${i < paso ? 'bg-green-500 text-white' : i === paso ? 'bg-primary text-on-primary' : 'bg-surface-container-high text-outline'}`}>
                   {i < paso ? '✓' : i + 1}
                 </div>
-                <span className={`text-xs hidden sm:block ${i === paso ? 'text-gray-700 font-medium' : 'text-gray-400'}`}>{label}</span>
+                <span className={`text-xs hidden sm:block ${i === paso ? 'text-on-surface font-semibold' : 'text-outline'}`}>{label}</span>
               </div>
-              {i < PASOS.length - 1 && <div className={`h-0.5 w-6 shrink-0 ${i < paso ? 'bg-green-400' : 'bg-gray-200'}`} />}
+              {i < PASOS.length - 1 && (
+                <div className={`h-px w-8 shrink-0 ${i < paso ? 'bg-green-400' : 'bg-outline-variant'}`} />
+              )}
             </div>
           ))}
         </div>
 
-        {/* ─── PASO 0 — Sección 1 ────────────────────────────────────────── */}
+        {/* ─── PASO 0 — Información personal ─────────────────────────────── */}
         {paso === 0 && (
-          <div className="bg-white rounded-2xl border border-gray-200 p-7 shadow-sm space-y-6">
+          <div className="bg-surface-container-lowest rounded-2xl shadow-card p-7 space-y-6">
 
             {/* Autocompletar desde CV */}
-            <div className="p-4 bg-purple-50 border border-purple-100 rounded-xl">
-              <p className="text-sm font-medium text-purple-800 mb-1">Autocompletar desde tu CV</p>
-              <p className="text-xs text-purple-600 mb-3">Sube tu CV y detectamos tu nombre, teléfono y ciudad automáticamente.</p>
+            <div className="p-4 bg-primary-fixed/30 border border-primary-fixed rounded-xl">
+              <p className="text-sm font-semibold text-primary mb-1">Autocompletar desde tu CV</p>
+              <p className="text-xs text-on-surface-variant mb-3">Sube tu CV y detectamos tu nombre, teléfono y ciudad automáticamente.</p>
               <input ref={cvInputRef} type="file" accept=".pdf,.doc,.docx" className="hidden"
                 onChange={e => detectarDesdeCv(e.target.files[0])} />
               <button onClick={() => cvInputRef.current.click()} disabled={detectando}
-                className="text-xs font-medium border border-purple-300 text-purple-700 rounded-lg px-4 py-2 hover:bg-purple-100 transition-colors disabled:opacity-50">
+                className="text-xs font-semibold border border-primary/30 text-primary rounded-lg px-4 py-2 hover:bg-primary/5 transition-colors disabled:opacity-50">
                 {detectando ? 'Detectando...' : '📄 Subir CV para autocompletar (opcional)'}
               </button>
             </div>
 
-            {/* País y Ciudad — primero */}
+            {/* País y Ciudad */}
             <div>
-              <h3 className="text-sm font-semibold text-gray-700 mb-3">Ubicación</h3>
+              <h3 className="text-sm font-semibold text-on-surface mb-3">Ubicación</h3>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs text-gray-500 mb-1">País *</label>
+                  <label className="block text-xs text-on-surface-variant mb-1">País *</label>
                   <select value={s1.pais} onChange={handlePaisChange}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary">
+                    className="w-full border border-outline-variant rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary">
                     <option value="">Selecciona</option>
                     {PAISES_LATAM.map(p => <option key={p} value={p}>{p}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs text-gray-500 mb-1">Ciudad de residencia</label>
+                  <label className="block text-xs text-on-surface-variant mb-1">Ciudad de residencia</label>
                   <input type="text" value={s1.ciudad}
                     onChange={e => setS1(f => ({ ...f, ciudad: e.target.value }))}
-                    placeholder=""
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+                    className="w-full border border-outline-variant rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
                 </div>
                 <div className="col-span-2">
-                  <label className="block text-xs text-gray-500 mb-1.5">
-                    Ciudades de búsqueda <span className="text-gray-400">(hasta 5)</span>
+                  <label className="block text-xs text-on-surface-variant mb-1.5">
+                    Ciudades de búsqueda <span className="text-outline">(hasta 5)</span>
                   </label>
                   <div className="flex gap-2">
                     <input type="text" value={ciudadInput}
                       onChange={e => setCiudadInput(e.target.value)}
                       onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), agregarCiudad())}
-                      placeholder="Seleccionar ciudad"
+                      placeholder="Escribe una ciudad y presiona +"
                       disabled={s1.ciudades_busqueda.length >= 5}
-                      className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary disabled:bg-gray-50" />
+                      className="flex-1 border border-outline-variant rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary disabled:bg-surface-container-low" />
                     <button onClick={agregarCiudad}
                       disabled={!ciudadInput.trim() || s1.ciudades_busqueda.length >= 5}
-                      className="border border-gray-300 text-gray-600 rounded-lg px-3 py-2 text-sm hover:border-primary hover:text-primary disabled:opacity-40 transition-colors">
+                      className="border border-outline-variant text-on-surface-variant rounded-lg px-3 py-2 text-sm hover:border-primary hover:text-primary disabled:opacity-40 transition-colors">
                       +
                     </button>
                   </div>
                   {s1.ciudades_busqueda.length > 0 && (
                     <div className="flex flex-wrap gap-1.5 mt-2">
                       {s1.ciudades_busqueda.map(c => (
-                        <span key={c} className="flex items-center gap-1 bg-primary/10 text-primary text-xs rounded-full px-2.5 py-1">
+                        <span key={c} className="flex items-center gap-1 bg-secondary-fixed text-on-secondary-container text-xs rounded-full px-2.5 py-1">
                           {c}
-                          <button onClick={() => quitarCiudad(c)} className="hover:text-red-500">×</button>
+                          <button onClick={() => quitarCiudad(c)} className="hover:text-error">×</button>
                         </span>
                       ))}
                     </div>
@@ -413,35 +456,35 @@ export default function Onboarding() {
 
             {/* Nombres y apellidos */}
             <div>
-              <h3 className="text-sm font-semibold text-gray-700 mb-3">Nombre completo</h3>
+              <h3 className="text-sm font-semibold text-on-surface mb-3">Nombre completo</h3>
               <div className="grid grid-cols-2 gap-3">
                 {[
-                  { key:'nombre1',   label:'Nombre 1 *',  locked: bloqueado },
+                  { key:'nombre1',   label:'Nombre 1 *',   locked: bloqueado },
                   { key:'nombre2',   label:'Nombre 2' },
-                  { key:'apellido1', label:'Apellido 1 *', locked: bloqueado },
+                  { key:'apellido1', label:'Apellido 1 *',  locked: bloqueado },
                   { key:'apellido2', label:'Apellido 2' },
                 ].map(({ key, label, locked }) => (
                   <div key={key}>
-                    <label className="block text-xs text-gray-500 mb-1">{label}</label>
+                    <label className="block text-xs text-on-surface-variant mb-1">{label}</label>
                     <input type="text" value={s1[key]}
                       onChange={e => setS1(f => ({ ...f, [key]: e.target.value }))}
                       disabled={locked}
                       className={`w-full border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary
-                        ${locked ? 'bg-gray-50 text-gray-400 cursor-not-allowed border-gray-200' : 'border-gray-300'}`} />
-                    {locked && <p className="text-xs text-gray-400 mt-0.5">🔒 No modificable</p>}
+                        ${locked ? 'bg-surface-container-low text-outline cursor-not-allowed border-outline-variant/40' : 'border-outline-variant'}`} />
+                    {locked && <p className="text-xs text-outline mt-0.5">🔒 No modificable</p>}
                   </div>
                 ))}
               </div>
               {bloqueado && (
-                <p className="text-xs text-amber-600 mt-2 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+                <p className="text-xs text-amber-700 mt-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
                   Nombre y apellido principal no se pueden modificar — son la llave de validación de tu CV.
                 </p>
               )}
             </div>
 
-            {/* Teléfonos con indicativo */}
+            {/* Teléfonos */}
             <div>
-              <h3 className="text-sm font-semibold text-gray-700 mb-3">Teléfonos</h3>
+              <h3 className="text-sm font-semibold text-on-surface mb-3">Teléfonos</h3>
               <div className="grid grid-cols-2 gap-3">
                 <TelefonoInput indicativoKey="indicativo1" telefonoKey="telefono1" label="Teléfono 1" required />
                 <TelefonoInput indicativoKey="indicativo2" telefonoKey="telefono2" label="Teléfono 2" />
@@ -450,81 +493,92 @@ export default function Onboarding() {
 
             {/* Emails */}
             <div>
-              <h3 className="text-sm font-semibold text-gray-700 mb-3">Correos electrónicos</h3>
+              <h3 className="text-sm font-semibold text-on-surface mb-3">Correos electrónicos</h3>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs text-gray-500 mb-1">Email principal</label>
+                  <label className="block text-xs text-on-surface-variant mb-1">Email principal</label>
                   <input type="email" value={user?.email || ''} disabled
-                    className="w-full border border-gray-200 bg-gray-50 text-gray-400 rounded-lg px-3 py-2.5 text-sm cursor-not-allowed" />
+                    className="w-full border border-outline-variant/40 bg-surface-container-low text-outline rounded-lg px-3 py-2.5 text-sm cursor-not-allowed" />
                 </div>
                 <div>
-                  <label className="block text-xs text-gray-500 mb-1">Email secundario</label>
+                  <label className="block text-xs text-on-surface-variant mb-1">Email secundario</label>
                   <input type="email" value={s1.email_secundario}
                     onChange={e => setS1(f => ({ ...f, email_secundario: e.target.value }))}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+                    placeholder="otro@email.com"
+                    className="w-full border border-outline-variant rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
                 </div>
               </div>
             </div>
 
             {/* Edad */}
             <div className="w-40">
-              <label className="block text-xs text-gray-500 mb-1">Edad</label>
+              <label className="block text-xs text-on-surface-variant mb-1">Edad</label>
               <input type="number" value={s1.edad}
                 onChange={e => setS1(f => ({ ...f, edad: e.target.value }))}
-                min="16" max="80"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+                min="16" max="80" placeholder="35"
+                className="w-full border border-outline-variant rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
             </div>
 
-            {error && <p className="text-sm text-red-500">{error}</p>}
+            {error && <p className="text-sm text-error font-medium">{error}</p>}
 
-            <div className="flex gap-3">
-              <button onClick={() => guardar(true)}
-                className="text-sm text-gray-400 hover:text-gray-600 transition-colors">
-                Omitir por ahora
-              </button>
-              <button onClick={siguiente}
-                className="flex-1 bg-primary text-white font-medium py-3 rounded-xl hover:bg-blue-700 transition-colors">
-                Continuar →
-              </button>
-            </div>
+            <button onClick={siguiente}
+              className="w-full btn-primary py-3 font-semibold">
+              Continuar →
+            </button>
           </div>
         )}
 
-        {/* ─── PASO 1 — Sección 2: Compensación ──────────────────────────── */}
+        {/* ─── PASO 1 — Compensación ──────────────────────────────────────── */}
         {paso === 1 && (
-          <div className="bg-white rounded-2xl border border-gray-200 p-7 shadow-sm space-y-6">
+          <div className="bg-surface-container-lowest rounded-2xl shadow-card p-7 space-y-6">
             <div>
-              <h2 className="text-lg font-semibold text-gray-900 mb-1">Compensación</h2>
-              <p className="text-sm text-gray-500">Ayuda a filtrar vacantes por rango salarial.</p>
+              <h2 className="font-headline font-bold text-xl text-primary mb-1">Compensación</h2>
+              <p className="text-sm text-on-surface-variant">Ayuda a filtrar vacantes por rango salarial.</p>
             </div>
 
+            {/* País para prestaciones */}
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1.5">Salario bruto mensual</label>
+              <label className="block text-xs font-semibold text-on-surface-variant mb-1.5">
+                País (para prestaciones)
+              </label>
+              <select value={paisPrestaciones} onChange={handlePaisCompensacionChange}
+                className="w-full border border-outline-variant rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary">
+                <option value="">Selecciona</option>
+                {PAISES_LATAM.map(p => <option key={p} value={p}>{p}</option>)}
+              </select>
+            </div>
+
+            {/* Salario */}
+            <div>
+              <label className="block text-xs font-semibold text-on-surface-variant mb-1.5">Salario bruto mensual</label>
               <div className="flex gap-2">
                 <select value={s2.moneda} onChange={e => setS2(f => ({ ...f, moneda: e.target.value }))}
-                  className="border border-gray-300 rounded-lg px-2 py-2.5 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary shrink-0">
+                  className="border border-outline-variant rounded-lg px-2 py-2.5 text-sm bg-surface-container-low focus:outline-none focus:ring-2 focus:ring-primary shrink-0">
                   {MONEDAS.map(m => <option key={m.code} value={m.code}>{m.code}</option>)}
                 </select>
                 <div className="relative flex-1">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400 select-none">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-outline select-none">
                     {MONEDAS.find(m => m.code === s2.moneda)?.symbol || '$'}
                   </span>
                   <input type="text" value={s2.salario_monto}
                     onChange={e => setS2(f => ({ ...f, salario_monto: e.target.value }))}
-                    className="w-full border border-gray-300 rounded-lg pl-7 pr-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+                    placeholder="50,000"
+                    className="w-full border border-outline-variant rounded-lg pl-7 pr-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
                 </div>
               </div>
-              {s1.pais && <p className="text-xs text-gray-400 mt-1">Moneda detectada para {s1.pais}: {s2.moneda}</p>}
             </div>
 
+            {/* Prestaciones */}
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-2">
-                Prestaciones{s1.pais ? ` (${s1.pais})` : ''}
+              <label className="block text-xs font-semibold text-on-surface-variant mb-2">
+                Prestaciones{paisPrestaciones ? ` — ${paisPrestaciones}` : ''}
               </label>
               <div className="grid grid-cols-2 gap-1.5">
-                {getPrestaciones(s1.pais).map(p => (
+                {getPrestaciones(paisPrestaciones).map(p => (
                   <label key={p} className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-colors text-xs
-                    ${s2.prestaciones.includes(p) ? 'bg-primary/5 border-primary/30 text-primary' : 'border-gray-200 text-gray-600 hover:border-gray-300'}`}>
+                    ${s2.prestaciones.includes(p)
+                      ? 'bg-secondary-fixed border-secondary/30 text-on-secondary-container font-medium'
+                      : 'border-outline-variant text-on-surface-variant hover:border-outline'}`}>
                     <input type="checkbox" checked={s2.prestaciones.includes(p)} onChange={() => togglePrestacion(p)}
                       className="accent-primary shrink-0" />
                     {p}
@@ -535,111 +589,120 @@ export default function Onboarding() {
 
             <div className="flex gap-3">
               <button onClick={anterior}
-                className="border border-gray-300 text-gray-600 font-medium py-3 px-5 rounded-xl hover:border-gray-400 transition-colors">
+                className="border border-outline-variant text-on-surface-variant font-medium py-3 px-5 rounded-xl hover:border-outline transition-colors">
                 ← Atrás
               </button>
               <button onClick={siguiente}
-                className="flex-1 bg-primary text-white font-medium py-3 rounded-xl hover:bg-blue-700 transition-colors">
+                className="flex-1 btn-primary font-semibold py-3">
                 Continuar →
               </button>
             </div>
           </div>
         )}
 
-        {/* ─── PASO 2 — Sección 3: Aspiraciones ──────────────────────────── */}
+        {/* ─── PASO 2 — Aspiraciones ──────────────────────────────────────── */}
         {paso === 2 && (
-          <div className="bg-white rounded-2xl border border-gray-200 p-7 shadow-sm space-y-6">
+          <div className="bg-surface-container-lowest rounded-2xl shadow-card p-7 space-y-6">
             <div>
-              <h2 className="text-lg font-semibold text-gray-900 mb-1">Aspiraciones y motivaciones</h2>
-              <p className="text-sm text-gray-500">Personaliza las vacantes y el análisis de tu CV.</p>
+              <h2 className="font-headline font-bold text-xl text-primary mb-1">Aspiraciones y motivaciones</h2>
+              <p className="text-sm text-on-surface-variant">Personaliza las vacantes y el análisis de tu CV.</p>
             </div>
 
+            {/* Nivel de cargo — multi-select */}
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-2">Nivel de cargo buscado</label>
+              <label className="block text-xs font-semibold text-on-surface-variant mb-2">
+                Nivel de cargo buscado <span className="text-outline font-normal">(puedes elegir varios)</span>
+              </label>
               <div className="flex flex-wrap gap-2">
                 {NIVELES_CARGO.map(n => (
-                  <button key={n} onClick={() => setS3(f => ({ ...f, nivel_cargo: n }))}
+                  <button key={n} onClick={() => toggleNivelCargo(n)}
                     className={`text-xs font-medium px-3 py-2 rounded-full border transition-colors
-                      ${s3.nivel_cargo === n ? 'bg-primary text-white border-primary' : 'border-gray-300 text-gray-600 hover:border-primary hover:text-primary'}`}>
+                      ${s3.niveles_cargo.includes(n)
+                        ? 'bg-primary text-on-primary border-primary'
+                        : 'border-outline-variant text-on-surface-variant hover:border-primary hover:text-primary'}`}>
                     {n}
                   </button>
                 ))}
               </div>
             </div>
 
+            {/* Área funcional */}
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-2">Área funcional</label>
+              <label className="block text-xs font-semibold text-on-surface-variant mb-2">Área funcional</label>
               <div className="flex flex-wrap gap-2">
                 {AREAS.map(a => (
                   <button key={a} onClick={() => setS3(f => ({ ...f, area: a }))}
                     className={`text-xs font-medium px-3 py-2 rounded-full border transition-colors
-                      ${s3.area === a ? 'bg-teal text-white border-teal' : 'border-gray-300 text-gray-600 hover:border-teal hover:text-teal'}`}>
+                      ${s3.area === a
+                        ? 'bg-secondary text-on-secondary border-secondary'
+                        : 'border-outline-variant text-on-surface-variant hover:border-secondary hover:text-secondary'}`}>
                     {a}
                   </button>
                 ))}
               </div>
             </div>
 
+            {/* Tipo de trabajo */}
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-2">Tipo de trabajo</label>
+              <label className="block text-xs font-semibold text-on-surface-variant mb-2">Tipo de trabajo</label>
               <div className="flex gap-2">
                 {TIPOS_TRABAJO.map(t => (
                   <button key={t} onClick={() => setS3(f => ({ ...f, tipo_trabajo: t }))}
-                    className={`flex-1 text-xs font-medium py-2.5 rounded-xl border transition-colors
-                      ${s3.tipo_trabajo === t ? 'bg-primary text-white border-primary' : 'border-gray-300 text-gray-600 hover:border-primary hover:text-primary'}`}>
+                    className={`flex-1 text-xs font-semibold py-2.5 rounded-xl border transition-colors
+                      ${s3.tipo_trabajo === t
+                        ? 'bg-primary text-on-primary border-primary'
+                        : 'border-outline-variant text-on-surface-variant hover:border-primary hover:text-primary'}`}>
                     {t}
                   </button>
                 ))}
               </div>
             </div>
 
+            {/* Industrias */}
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-2">
-                Industrias de interés <span className="text-gray-400">(múltiple)</span>
+              <label className="block text-xs font-semibold text-on-surface-variant mb-2">
+                Industrias de interés <span className="text-outline font-normal">(múltiple)</span>
               </label>
               <div className="flex flex-wrap gap-1.5 max-h-52 overflow-y-auto pr-1">
                 {INDUSTRIAS_LATAM.map(ind => (
                   <button key={ind} onClick={() => toggleIndustria(ind)}
                     className={`text-xs px-3 py-1.5 rounded-full border transition-colors
                       ${s3.industrias_deseadas.includes(ind)
-                        ? 'bg-primary/10 border-primary/40 text-primary font-medium'
-                        : 'border-gray-200 text-gray-500 hover:border-gray-300'}`}>
+                        ? 'bg-secondary-fixed border-secondary/40 text-on-secondary-container font-semibold'
+                        : 'border-outline-variant text-on-surface-variant hover:border-outline'}`}>
                     {ind}
                   </button>
                 ))}
               </div>
             </div>
 
-            <div className="bg-gray-50 rounded-xl p-4 space-y-2">
+            {/* Beneficios del plan */}
+            <div className="bg-surface-container-low rounded-xl p-4 space-y-2">
               {['2 análisis de CV gratuitos incluidos','Búsqueda de vacantes con IA','Seguimiento de aplicaciones'].map((b, i) => (
-                <div key={i} className="flex items-center gap-2 text-sm text-gray-600">
-                  <span className="w-4 h-4 bg-green-100 text-green-600 rounded-full flex items-center justify-center text-xs font-bold">✓</span>
+                <div key={i} className="flex items-center gap-2 text-sm text-on-surface-variant">
+                  <span className="w-4 h-4 bg-green-100 text-green-700 rounded-full flex items-center justify-center text-xs font-bold shrink-0">✓</span>
                   {b}
                 </div>
               ))}
             </div>
 
-            {error && <p className="text-sm text-red-500">{error}</p>}
+            {error && <p className="text-sm text-error font-medium">{error}</p>}
 
             <div className="flex gap-3">
               <button onClick={anterior}
-                className="border border-gray-300 text-gray-600 font-medium py-3 px-5 rounded-xl hover:border-gray-400 transition-colors">
+                className="border border-outline-variant text-on-surface-variant font-medium py-3 px-5 rounded-xl hover:border-outline transition-colors">
                 ← Atrás
               </button>
-              <button onClick={() => guardar(false)} disabled={saving}
-                className="flex-1 bg-primary text-white font-medium py-3 rounded-xl hover:bg-blue-700 transition-colors disabled:opacity-50">
+              <button onClick={guardar} disabled={saving}
+                className="flex-1 btn-primary font-semibold py-3 disabled:opacity-50">
                 {saving ? 'Guardando...' : '¡Empezar!'}
               </button>
             </div>
-            <button onClick={() => guardar(true)} disabled={saving}
-              className="w-full text-xs text-gray-400 hover:text-gray-600 transition-colors">
-              Omitir y completar después →
-            </button>
           </div>
         )}
 
-        <p className="text-center text-xs text-gray-400 mt-4">
-          Puedes editar toda esta información en <strong>Mi Perfil</strong>.
+        <p className="text-center text-xs text-outline mt-4">
+          Puedes editar toda esta información en <strong className="text-on-surface-variant">Mi Perfil</strong>.
         </p>
       </div>
     </div>
