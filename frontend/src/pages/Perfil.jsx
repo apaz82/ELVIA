@@ -11,6 +11,37 @@ const PAISES_LATAM = [
   'Panamá','República Dominicana','Cuba','España','Estados Unidos','Canadá','Brasil','Otro',
 ]
 
+const INDICATIVOS = [
+  { code:'MX', label:'México',             ind:'+52'  },
+  { code:'CO', label:'Colombia',           ind:'+57'  },
+  { code:'AR', label:'Argentina',          ind:'+54'  },
+  { code:'CL', label:'Chile',              ind:'+56'  },
+  { code:'PE', label:'Perú',               ind:'+51'  },
+  { code:'VE', label:'Venezuela',          ind:'+58'  },
+  { code:'EC', label:'Ecuador',            ind:'+593' },
+  { code:'BO', label:'Bolivia',            ind:'+591' },
+  { code:'UY', label:'Uruguay',            ind:'+598' },
+  { code:'PY', label:'Paraguay',           ind:'+595' },
+  { code:'CR', label:'Costa Rica',         ind:'+506' },
+  { code:'GT', label:'Guatemala',          ind:'+502' },
+  { code:'HN', label:'Honduras',           ind:'+504' },
+  { code:'SV', label:'El Salvador',        ind:'+503' },
+  { code:'NI', label:'Nicaragua',          ind:'+505' },
+  { code:'PA', label:'Panamá',             ind:'+507' },
+  { code:'DO', label:'Rep. Dominicana',    ind:'+1'   },
+  { code:'CU', label:'Cuba',               ind:'+53'  },
+  { code:'ES', label:'España',             ind:'+34'  },
+  { code:'US', label:'Estados Unidos',     ind:'+1'   },
+  { code:'CA', label:'Canadá',             ind:'+1'   },
+  { code:'BR', label:'Brasil',             ind:'+55'  },
+  { code:'XX', label:'Otro',               ind:''     },
+]
+
+const indicativoPorPais = (pais) => {
+  const entry = INDICATIVOS.find(i => i.label === pais || i.label.startsWith(pais?.split(' ')[0] || ''))
+  return entry?.ind || '+1'
+}
+
 const NIVELES_CARGO = ['Asesor externo','Analista','Asistente','Jefe','Coordinador','Gerente','Director','C-Level']
 
 const INDUSTRIAS_LATAM = [
@@ -70,7 +101,7 @@ export default function Perfil() {
   const [form, setForm] = useState({
     // Sección 1
     nombre1: '', nombre2: '', apellido1: '', apellido2: '',
-    telefono1: '', telefono2: '', email_secundario: '',
+    indicativo1: '+52', telefono1: '', indicativo2: '+52', telefono2: '', email_secundario: '',
     pais: '', ciudad: '', ciudades_busqueda: [], edad: '',
     // Sección 2
     salario_monto: '', moneda: 'MXN', prestaciones: [],
@@ -93,7 +124,9 @@ export default function Perfil() {
       nombre2:            perfil.nombre2 || '',
       apellido1:          perfil.apellido1 || '',
       apellido2:          perfil.apellido2 || '',
+      indicativo1:        perfil.indicativo1 || '+52',
       telefono1:          perfil.telefono1 || '',
+      indicativo2:        perfil.indicativo2 || '+52',
       telefono2:          perfil.telefono2 || '',
       email_secundario:   perfil.email_secundario || '',
       pais:               perfil.pais || '',
@@ -117,7 +150,8 @@ export default function Perfil() {
 
   const handlePaisChange = (e) => {
     const pais = e.target.value
-    setForm(f => ({ ...f, pais, moneda: detectarMoneda(pais) }))
+    const ind  = indicativoPorPais(pais)
+    setForm(f => ({ ...f, pais, moneda: detectarMoneda(pais), indicativo1: ind, indicativo2: ind }))
   }
 
   const agregarCiudad = () => {
@@ -151,6 +185,7 @@ export default function Perfil() {
     const { salario_monto, moneda, ...rest } = form
     const { error } = await supabase.from('profiles').update({
       ...rest, salario_esperado, nombre: nombreCompleto,
+      indicativo1: form.indicativo1, indicativo2: form.indicativo2,
     }).eq('id', user.id)
     setSaving(false)
     if (!error) { setGuardado(true); refreshPerfil(); setTimeout(() => setGuardado(false), 3000) }
@@ -257,16 +292,27 @@ export default function Perfil() {
         <div>
           <h3 className="text-sm font-medium text-gray-700 mb-3">Teléfonos</h3>
           <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs text-gray-500 mb-1">Teléfono 1</label>
-              <input type="tel" value={form.telefono1} onChange={set('telefono1')} placeholder="+52 55 1234 5678"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
-            </div>
-            <div>
-              <label className="block text-xs text-gray-500 mb-1">Teléfono 2</label>
-              <input type="tel" value={form.telefono2} onChange={set('telefono2')} placeholder="+52 55 9876 5432"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
-            </div>
+            {[
+              { indKey:'indicativo1', telKey:'telefono1', label:'Teléfono 1' },
+              { indKey:'indicativo2', telKey:'telefono2', label:'Teléfono 2' },
+            ].map(({ indKey, telKey, label }) => (
+              <div key={telKey}>
+                <label className="block text-xs text-gray-500 mb-1">{label}</label>
+                <div className="flex gap-1.5">
+                  <select
+                    value={form[indKey]}
+                    onChange={e => setForm(f => ({ ...f, [indKey]: e.target.value }))}
+                    className="border border-gray-300 rounded-lg px-1.5 py-2.5 text-xs bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary shrink-0 w-24"
+                  >
+                    {INDICATIVOS.map(i => (
+                      <option key={i.code} value={i.ind}>{i.code} {i.ind}</option>
+                    ))}
+                  </select>
+                  <input type="tel" value={form[telKey]} onChange={set(telKey)} placeholder="55 1234 5678"
+                    className="flex-1 border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+                </div>
+              </div>
+            ))}
           </div>
         </div>
 

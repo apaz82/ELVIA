@@ -13,9 +13,48 @@ const PAISES_LATAM = [
   'Panamá','República Dominicana','Cuba','España','Estados Unidos','Canadá','Brasil','Otro',
 ]
 
-const NIVELES_CARGO = [
-  'Asesor externo','Analista','Asistente','Jefe','Coordinador','Gerente','Director','C-Level',
+// Indicativos telefónicos por país
+const INDICATIVOS = [
+  { code:'MX', label:'México',             ind:'+52'  },
+  { code:'CO', label:'Colombia',           ind:'+57'  },
+  { code:'AR', label:'Argentina',          ind:'+54'  },
+  { code:'CL', label:'Chile',              ind:'+56'  },
+  { code:'PE', label:'Perú',               ind:'+51'  },
+  { code:'VE', label:'Venezuela',          ind:'+58'  },
+  { code:'EC', label:'Ecuador',            ind:'+593' },
+  { code:'BO', label:'Bolivia',            ind:'+591' },
+  { code:'UY', label:'Uruguay',            ind:'+598' },
+  { code:'PY', label:'Paraguay',           ind:'+595' },
+  { code:'CR', label:'Costa Rica',         ind:'+506' },
+  { code:'GT', label:'Guatemala',          ind:'+502' },
+  { code:'HN', label:'Honduras',           ind:'+504' },
+  { code:'SV', label:'El Salvador',        ind:'+503' },
+  { code:'NI', label:'Nicaragua',          ind:'+505' },
+  { code:'PA', label:'Panamá',             ind:'+507' },
+  { code:'DO', label:'Rep. Dominicana',    ind:'+1'   },
+  { code:'CU', label:'Cuba',               ind:'+53'  },
+  { code:'ES', label:'España',             ind:'+34'  },
+  { code:'US', label:'Estados Unidos',     ind:'+1'   },
+  { code:'CA', label:'Canadá',             ind:'+1'   },
+  { code:'BR', label:'Brasil',             ind:'+55'  },
+  { code:'XX', label:'Otro',               ind:''     },
 ]
+
+// Mapa de country_code de ipapi → nombre en PAISES_LATAM
+const PAIS_POR_IPCODE = {
+  MX:'México', CO:'Colombia', AR:'Argentina', CL:'Chile', PE:'Perú',
+  VE:'Venezuela', EC:'Ecuador', BO:'Bolivia', UY:'Uruguay', PY:'Paraguay',
+  CR:'Costa Rica', GT:'Guatemala', HN:'Honduras', SV:'El Salvador',
+  NI:'Nicaragua', PA:'Panamá', DO:'República Dominicana', CU:'Cuba',
+  ES:'España', US:'Estados Unidos', CA:'Canadá', BR:'Brasil',
+}
+
+const indicativoPorPais = (pais) => {
+  const entry = INDICATIVOS.find(i => i.label === pais || i.label.startsWith(pais?.split(' ')[0] || ''))
+  return entry?.ind || '+1'
+}
+
+const NIVELES_CARGO = ['Asesor externo','Analista','Asistente','Jefe','Coordinador','Gerente','Director','C-Level']
 
 const INDUSTRIAS_LATAM = [
   'Manufactura e Industria','Tecnología y Software','Banca y Servicios Financieros',
@@ -27,11 +66,7 @@ const INDUSTRIAS_LATAM = [
   'Startups y Emprendimiento','Otro',
 ]
 
-const AREAS = [
-  'Operaciones','Supply Chain','Finanzas','IT','R&D','Recursos Humanos',
-  'Ingeniería','Dirección General','Marketing','Ventas','Legal','Otro',
-]
-
+const AREAS = ['Operaciones','Supply Chain','Finanzas','IT','R&D','Recursos Humanos','Ingeniería','Dirección General','Marketing','Ventas','Legal','Otro']
 const TIPOS_TRABAJO = ['Híbrido','Presencial','Remoto']
 
 const PRESTACIONES_POR_PAIS = {
@@ -44,7 +79,6 @@ const PRESTACIONES_POR_PAIS = {
   'Ecuador': ['IESS','Décimo tercer sueldo','Décimo cuarto sueldo','Fondos de reserva','Vacaciones'],
   'default': ['Seguro médico','Seguro de vida','Bono anual de desempeño','Plan de pensión','Vehículo / viáticos','Vacaciones adicionales','Flexibilidad horaria','Home office','Capacitación y desarrollo'],
 }
-
 const getPrestaciones = (pais) => PRESTACIONES_POR_PAIS[pais] || PRESTACIONES_POR_PAIS['default']
 
 const MONEDAS = [
@@ -73,75 +107,93 @@ export default function Onboarding() {
   const [error, setError] = useState('')
   const [detectando, setDetectando] = useState(false)
 
-  // Determinar si nombre1/apellido1 ya están bloqueados (guardados previamente)
   const bloqueado = !!(perfil?.nombre1 && perfil?.apellido1)
 
   // ── Sección 1 ──
   const [s1, setS1] = useState({
-    nombre1: '', nombre2: '', apellido1: '', apellido2: '',
-    telefono1: '', telefono2: '',
-    email_secundario: '',
     pais: '', ciudad: '',
+    nombre1: '', nombre2: '', apellido1: '', apellido2: '',
+    indicativo1: '+52', telefono1: '',
+    indicativo2: '+52', telefono2: '',
+    email_secundario: '',
     ciudades_busqueda: [],
     edad: '',
   })
   const [ciudadInput, setCiudadInput] = useState('')
 
   // ── Sección 2 ──
-  const [s2, setS2] = useState({
-    salario_monto: '', moneda: 'MXN',
-    prestaciones: [],
-  })
+  const [s2, setS2] = useState({ salario_monto: '', moneda: 'MXN', prestaciones: [] })
 
   // ── Sección 3 ──
-  const [s3, setS3] = useState({
-    nivel_cargo: '',
-    industrias_deseadas: [],
-    tipo_trabajo: '',
-    area: '',
-  })
+  const [s3, setS3] = useState({ nivel_cargo: '', industrias_deseadas: [], tipo_trabajo: '', area: '' })
 
   useEffect(() => {
     if (authLoading) return
     if (!user) navigate('/auth')
   }, [user, authLoading])
 
-  // Pre-llenar con datos existentes si los hay
+  // Detección de país por IP al montar
+  useEffect(() => {
+    if (s1.pais) return // no sobreescribir si ya viene del perfil
+    fetch('https://ipapi.co/json/')
+      .then(r => r.json())
+      .then(d => {
+        const paisDetectado = PAIS_POR_IPCODE[d.country_code] || ''
+        const indDetectado  = INDICATIVOS.find(i => i.code === d.country_code)?.ind || '+52'
+        if (paisDetectado) {
+          setS1(f => ({
+            ...f,
+            pais:       f.pais || paisDetectado,
+            ciudad:     f.ciudad || d.region || '',
+            indicativo1: f.indicativo1 === '+52' ? indDetectado : f.indicativo1,
+            indicativo2: f.indicativo2 === '+52' ? indDetectado : f.indicativo2,
+          }))
+          setS2(f => ({ ...f, moneda: f.moneda === 'MXN' ? detectarMoneda(paisDetectado) : f.moneda }))
+        }
+      })
+      .catch(() => {})
+  }, [])
+
+  // Pre-llenar con datos existentes del perfil
   useEffect(() => {
     if (!perfil) return
+    const [monto, monedaSaved] = (perfil.salario_esperado || '').split(' ')
     setS1(prev => ({
       ...prev,
+      pais:              perfil.pais || prev.pais,
+      ciudad:            perfil.ciudad || prev.ciudad,
       nombre1:           perfil.nombre1 || '',
       nombre2:           perfil.nombre2 || '',
       apellido1:         perfil.apellido1 || '',
       apellido2:         perfil.apellido2 || '',
+      indicativo1:       perfil.indicativo1 || prev.indicativo1,
       telefono1:         perfil.telefono1 || '',
+      indicativo2:       perfil.indicativo2 || prev.indicativo2,
       telefono2:         perfil.telefono2 || '',
       email_secundario:  perfil.email_secundario || '',
-      pais:              perfil.pais || '',
-      ciudad:            perfil.ciudad || '',
       ciudades_busqueda: perfil.ciudades_busqueda || [],
       edad:              perfil.edad || '',
     }))
     setS2(prev => ({
       ...prev,
       prestaciones: perfil.prestaciones || [],
-      salario_monto: perfil.salario_esperado?.split(' ')[0] || '',
-      moneda: perfil.salario_esperado?.split(' ')[1] || (perfil.pais ? detectarMoneda(perfil.pais) : 'MXN'),
+      salario_monto: monto || '',
+      moneda: monedaSaved || detectarMoneda(perfil.pais),
     }))
     setS3(prev => ({
       ...prev,
-      nivel_cargo:        perfil.nivel_cargo || '',
+      nivel_cargo:         perfil.nivel_cargo || '',
       industrias_deseadas: perfil.industrias_deseadas || [],
-      tipo_trabajo:       perfil.tipo_trabajo || '',
-      area:               perfil.area || '',
+      tipo_trabajo:        perfil.tipo_trabajo || '',
+      area:                perfil.area || '',
     }))
   }, [perfil])
 
-  // Actualizar moneda cuando cambia el país
+  // Actualizar moneda e indicativos cuando cambia el país
   const handlePaisChange = (e) => {
     const pais = e.target.value
-    setS1(f => ({ ...f, pais }))
+    const ind  = indicativoPorPais(pais)
+    setS1(f => ({ ...f, pais, indicativo1: ind, indicativo2: ind }))
     setS2(f => ({ ...f, moneda: detectarMoneda(pais) }))
   }
 
@@ -155,13 +207,13 @@ export default function Onboarding() {
       const data = await api.postForm('/api/cv/extract-profile', formData)
       setS1(prev => ({
         ...prev,
-        nombre1:  (bloqueado ? prev.nombre1 : data.nombre1) || prev.nombre1,
-        nombre2:  data.nombre2 || prev.nombre2,
-        apellido1: (bloqueado ? prev.apellido1 : data.apellido1) || prev.apellido1,
+        nombre1:   bloqueado ? prev.nombre1  : (data.nombre1  || prev.nombre1),
+        nombre2:   data.nombre2  || prev.nombre2,
+        apellido1: bloqueado ? prev.apellido1 : (data.apellido1 || prev.apellido1),
         apellido2: data.apellido2 || prev.apellido2,
         telefono1: data.telefono1 || prev.telefono1,
-        ciudad:    data.ciudad || prev.ciudad,
-        edad:      data.edad || prev.edad,
+        ciudad:    data.ciudad    || prev.ciudad,
+        edad:      data.edad      || prev.edad,
       }))
     } catch { /* falla silenciosamente */ }
     finally { setDetectando(false) }
@@ -170,64 +222,53 @@ export default function Onboarding() {
   // ── Ciudades de búsqueda ──
   const agregarCiudad = () => {
     const val = ciudadInput.trim()
-    if (!val || s1.ciudades_busqueda.length >= 5) return
-    if (s1.ciudades_busqueda.includes(val)) { setCiudadInput(''); return }
+    if (!val || s1.ciudades_busqueda.length >= 5 || s1.ciudades_busqueda.includes(val)) { setCiudadInput(''); return }
     setS1(f => ({ ...f, ciudades_busqueda: [...f.ciudades_busqueda, val] }))
     setCiudadInput('')
   }
   const quitarCiudad = (c) => setS1(f => ({ ...f, ciudades_busqueda: f.ciudades_busqueda.filter(x => x !== c) }))
 
-  // ── Toggle industrias ──
-  const toggleIndustria = (ind) => {
-    setS3(f => ({
-      ...f,
-      industrias_deseadas: f.industrias_deseadas.includes(ind)
-        ? f.industrias_deseadas.filter(x => x !== ind)
-        : [...f.industrias_deseadas, ind],
-    }))
-  }
+  const toggleIndustria = (ind) => setS3(f => ({
+    ...f,
+    industrias_deseadas: f.industrias_deseadas.includes(ind)
+      ? f.industrias_deseadas.filter(x => x !== ind)
+      : [...f.industrias_deseadas, ind],
+  }))
 
-  // ── Toggle prestaciones ──
-  const togglePrestacion = (p) => {
-    setS2(f => ({
-      ...f,
-      prestaciones: f.prestaciones.includes(p)
-        ? f.prestaciones.filter(x => x !== p)
-        : [...f.prestaciones, p],
-    }))
-  }
+  const togglePrestacion = (p) => setS2(f => ({
+    ...f,
+    prestaciones: f.prestaciones.includes(p)
+      ? f.prestaciones.filter(x => x !== p)
+      : [...f.prestaciones, p],
+  }))
 
   // ── Guardar ──
   const guardar = async (omitir = false) => {
     if (!omitir) {
-      if (!s1.nombre1.trim())   { setError('El primer nombre es requerido.'); return }
-      if (!s1.apellido1.trim()) { setError('El primer apellido es requerido.'); return }
-      if (!s1.telefono1.trim()) { setError('El teléfono principal es requerido.'); return }
+      if (!s1.pais.trim())     { setError('El país es requerido.'); return }
+      if (!s1.nombre1.trim())  { setError('El primer nombre es requerido.'); return }
+      if (!s1.apellido1.trim()){ setError('El primer apellido es requerido.'); return }
+      if (!s1.telefono1.trim()){ setError('El teléfono principal es requerido.'); return }
     }
     setSaving(true)
     setError('')
     const nombreCompleto = [s1.nombre1, s1.nombre2, s1.apellido1, s1.apellido2]
       .map(s => s?.trim()).filter(Boolean).join(' ')
     const salario_esperado = s2.salario_monto ? `${s2.salario_monto} ${s2.moneda}` : ''
-
     const { error: err } = await supabase.from('profiles').update({
-      // Sección 1
       nombre1: s1.nombre1.trim(), nombre2: s1.nombre2.trim() || null,
       apellido1: s1.apellido1.trim(), apellido2: s1.apellido2.trim() || null,
-      telefono1: s1.telefono1.trim() || null, telefono2: s1.telefono2.trim() || null,
+      indicativo1: s1.indicativo1, telefono1: s1.telefono1.trim() || null,
+      indicativo2: s1.indicativo2, telefono2: s1.telefono2.trim() || null,
       email_secundario: s1.email_secundario.trim() || null,
       pais: s1.pais, ciudad: s1.ciudad,
       ciudades_busqueda: s1.ciudades_busqueda,
       edad: s1.edad ? parseInt(s1.edad) : null,
-      // Sección 2
       salario_esperado, prestaciones: s2.prestaciones,
-      // Sección 3
       nivel_cargo: s3.nivel_cargo, industrias_deseadas: s3.industrias_deseadas,
       tipo_trabajo: s3.tipo_trabajo, area: s3.area,
-      // Compatibilidad con campo legacy
       nombre: nombreCompleto,
     }).eq('id', user.id)
-
     setSaving(false)
     if (err) { setError('Error al guardar. Intenta de nuevo.'); return }
     await refreshPerfil()
@@ -236,9 +277,10 @@ export default function Onboarding() {
 
   const validarPaso = () => {
     if (paso === 0) {
-      if (!s1.nombre1.trim())   { setError('El primer nombre es requerido.'); return false }
-      if (!s1.apellido1.trim()) { setError('El primer apellido es requerido.'); return false }
-      if (!s1.telefono1.trim()) { setError('El teléfono principal es requerido.'); return false }
+      if (!s1.pais.trim())     { setError('El país es requerido.'); return false }
+      if (!s1.nombre1.trim())  { setError('El primer nombre es requerido.'); return false }
+      if (!s1.apellido1.trim()){ setError('El primer apellido es requerido.'); return false }
+      if (!s1.telefono1.trim()){ setError('El teléfono principal es requerido.'); return false }
     }
     setError('')
     return true
@@ -248,6 +290,31 @@ export default function Onboarding() {
   const anterior  = () => { setError(''); setPaso(p => p - 1) }
 
   if (authLoading) return null
+
+  // Componente de selector de indicativo + input teléfono
+  const TelefonoInput = ({ indicativoKey, telefonoKey, label, required }) => (
+    <div>
+      <label className="block text-xs text-gray-500 mb-1">{label}{required ? ' *' : ''}</label>
+      <div className="flex gap-1.5">
+        <select
+          value={s1[indicativoKey]}
+          onChange={e => setS1(f => ({ ...f, [indicativoKey]: e.target.value }))}
+          className="border border-gray-300 rounded-lg px-1.5 py-2.5 text-xs bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary shrink-0 w-24"
+        >
+          {INDICATIVOS.map(i => (
+            <option key={i.code} value={i.ind}>{i.code} {i.ind}</option>
+          ))}
+        </select>
+        <input
+          type="tel"
+          value={s1[telefonoKey]}
+          onChange={e => setS1(f => ({ ...f, [telefonoKey]: e.target.value }))}
+          placeholder="55 1234 5678"
+          className="flex-1 border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+        />
+      </div>
+    </div>
+  )
 
   return (
     <div className="min-h-[85vh] flex items-center justify-center px-4 py-8 bg-gradient-to-br from-gray-50 to-white">
@@ -266,7 +333,7 @@ export default function Onboarding() {
         <div className="flex items-center justify-center gap-2 mb-8">
           {PASOS.map((label, i) => (
             <div key={i} className="flex items-center gap-2">
-              <div className={`flex items-center gap-1.5 transition-colors`}>
+              <div className="flex items-center gap-1.5">
                 <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold shrink-0
                   ${i < paso ? 'bg-green-500 text-white' : i === paso ? 'bg-primary text-white' : 'bg-gray-200 text-gray-400'}`}>
                   {i < paso ? '✓' : i + 1}
@@ -278,13 +345,13 @@ export default function Onboarding() {
           ))}
         </div>
 
-        {/* ─── PASO 0 — Sección 1: Información personal ─────────────────── */}
+        {/* ─── PASO 0 — Sección 1 ────────────────────────────────────────── */}
         {paso === 0 && (
           <div className="bg-white rounded-2xl border border-gray-200 p-7 shadow-sm space-y-6">
 
-            {/* Auto-detección desde CV */}
+            {/* Autocompletar desde CV */}
             <div className="p-4 bg-purple-50 border border-purple-100 rounded-xl">
-              <p className="text-sm font-medium text-purple-800 mb-2">Autocompletar desde tu CV</p>
+              <p className="text-sm font-medium text-purple-800 mb-1">Autocompletar desde tu CV</p>
               <p className="text-xs text-purple-600 mb-3">Sube tu CV y detectamos tu nombre, teléfono y ciudad automáticamente.</p>
               <input ref={cvInputRef} type="file" accept=".pdf,.doc,.docx" className="hidden"
                 onChange={e => detectarDesdeCv(e.target.files[0])} />
@@ -294,36 +361,76 @@ export default function Onboarding() {
               </button>
             </div>
 
+            {/* País y Ciudad — primero */}
+            <div>
+              <h3 className="text-sm font-semibold text-gray-700 mb-3">Ubicación</h3>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">País *</label>
+                  <select value={s1.pais} onChange={handlePaisChange}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary">
+                    <option value="">Selecciona</option>
+                    {PAISES_LATAM.map(p => <option key={p} value={p}>{p}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Ciudad de residencia</label>
+                  <input type="text" value={s1.ciudad}
+                    onChange={e => setS1(f => ({ ...f, ciudad: e.target.value }))}
+                    placeholder=""
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+                </div>
+                <div className="col-span-2">
+                  <label className="block text-xs text-gray-500 mb-1.5">
+                    Ciudades de búsqueda <span className="text-gray-400">(hasta 5)</span>
+                  </label>
+                  <div className="flex gap-2">
+                    <input type="text" value={ciudadInput}
+                      onChange={e => setCiudadInput(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), agregarCiudad())}
+                      placeholder="Seleccionar ciudad"
+                      disabled={s1.ciudades_busqueda.length >= 5}
+                      className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary disabled:bg-gray-50" />
+                    <button onClick={agregarCiudad}
+                      disabled={!ciudadInput.trim() || s1.ciudades_busqueda.length >= 5}
+                      className="border border-gray-300 text-gray-600 rounded-lg px-3 py-2 text-sm hover:border-primary hover:text-primary disabled:opacity-40 transition-colors">
+                      +
+                    </button>
+                  </div>
+                  {s1.ciudades_busqueda.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mt-2">
+                      {s1.ciudades_busqueda.map(c => (
+                        <span key={c} className="flex items-center gap-1 bg-primary/10 text-primary text-xs rounded-full px-2.5 py-1">
+                          {c}
+                          <button onClick={() => quitarCiudad(c)} className="hover:text-red-500">×</button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
             {/* Nombres y apellidos */}
             <div>
               <h3 className="text-sm font-semibold text-gray-700 mb-3">Nombre completo</h3>
               <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs text-gray-500 mb-1">Nombre 1 *</label>
-                  <input type="text" value={s1.nombre1} onChange={e => setS1(f=>({...f,nombre1:e.target.value}))}
-                    disabled={bloqueado} placeholder="Ana"
-                    className={`w-full border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary ${bloqueado ? 'bg-gray-50 text-gray-400 cursor-not-allowed border-gray-200' : 'border-gray-300'}`} />
-                  {bloqueado && <p className="text-xs text-gray-400 mt-1">🔒 No modificable</p>}
-                </div>
-                <div>
-                  <label className="block text-xs text-gray-500 mb-1">Nombre 2</label>
-                  <input type="text" value={s1.nombre2} onChange={e => setS1(f=>({...f,nombre2:e.target.value}))}
-                    placeholder="María"
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
-                </div>
-                <div>
-                  <label className="block text-xs text-gray-500 mb-1">Apellido 1 *</label>
-                  <input type="text" value={s1.apellido1} onChange={e => setS1(f=>({...f,apellido1:e.target.value}))}
-                    disabled={bloqueado} placeholder="González"
-                    className={`w-full border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary ${bloqueado ? 'bg-gray-50 text-gray-400 cursor-not-allowed border-gray-200' : 'border-gray-300'}`} />
-                  {bloqueado && <p className="text-xs text-gray-400 mt-1">🔒 No modificable</p>}
-                </div>
-                <div>
-                  <label className="block text-xs text-gray-500 mb-1">Apellido 2</label>
-                  <input type="text" value={s1.apellido2} onChange={e => setS1(f=>({...f,apellido2:e.target.value}))}
-                    placeholder="Martínez"
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
-                </div>
+                {[
+                  { key:'nombre1',   label:'Nombre 1 *',  locked: bloqueado },
+                  { key:'nombre2',   label:'Nombre 2' },
+                  { key:'apellido1', label:'Apellido 1 *', locked: bloqueado },
+                  { key:'apellido2', label:'Apellido 2' },
+                ].map(({ key, label, locked }) => (
+                  <div key={key}>
+                    <label className="block text-xs text-gray-500 mb-1">{label}</label>
+                    <input type="text" value={s1[key]}
+                      onChange={e => setS1(f => ({ ...f, [key]: e.target.value }))}
+                      disabled={locked}
+                      className={`w-full border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary
+                        ${locked ? 'bg-gray-50 text-gray-400 cursor-not-allowed border-gray-200' : 'border-gray-300'}`} />
+                    {locked && <p className="text-xs text-gray-400 mt-0.5">🔒 No modificable</p>}
+                  </div>
+                ))}
               </div>
               {bloqueado && (
                 <p className="text-xs text-amber-600 mt-2 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
@@ -332,22 +439,12 @@ export default function Onboarding() {
               )}
             </div>
 
-            {/* Teléfonos */}
+            {/* Teléfonos con indicativo */}
             <div>
               <h3 className="text-sm font-semibold text-gray-700 mb-3">Teléfonos</h3>
               <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs text-gray-500 mb-1">Teléfono 1 *</label>
-                  <input type="tel" value={s1.telefono1} onChange={e => setS1(f=>({...f,telefono1:e.target.value}))}
-                    placeholder="+52 55 1234 5678"
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
-                </div>
-                <div>
-                  <label className="block text-xs text-gray-500 mb-1">Teléfono 2</label>
-                  <input type="tel" value={s1.telefono2} onChange={e => setS1(f=>({...f,telefono2:e.target.value}))}
-                    placeholder="+52 55 9876 5432"
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
-                </div>
+                <TelefonoInput indicativoKey="indicativo1" telefonoKey="telefono1" label="Teléfono 1" required />
+                <TelefonoInput indicativoKey="indicativo2" telefonoKey="telefono2" label="Teléfono 2" />
               </div>
             </div>
 
@@ -362,66 +459,20 @@ export default function Onboarding() {
                 </div>
                 <div>
                   <label className="block text-xs text-gray-500 mb-1">Email secundario</label>
-                  <input type="email" value={s1.email_secundario} onChange={e => setS1(f=>({...f,email_secundario:e.target.value}))}
-                    placeholder="otro@email.com"
+                  <input type="email" value={s1.email_secundario}
+                    onChange={e => setS1(f => ({ ...f, email_secundario: e.target.value }))}
                     className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
                 </div>
               </div>
             </div>
 
-            {/* Ubicación */}
-            <div>
-              <h3 className="text-sm font-semibold text-gray-700 mb-3">Ubicación</h3>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs text-gray-500 mb-1">País</label>
-                  <select value={s1.pais} onChange={handlePaisChange}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary">
-                    <option value="">Selecciona</option>
-                    {PAISES_LATAM.map(p => <option key={p} value={p}>{p}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs text-gray-500 mb-1">Ciudad de residencia</label>
-                  <input type="text" value={s1.ciudad} onChange={e => setS1(f=>({...f,ciudad:e.target.value}))}
-                    placeholder="Ciudad de México"
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
-                </div>
-                <div>
-                  <label className="block text-xs text-gray-500 mb-1">Edad</label>
-                  <input type="number" value={s1.edad} onChange={e => setS1(f=>({...f,edad:e.target.value}))}
-                    placeholder="35" min="16" max="80"
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
-                </div>
-              </div>
-
-              {/* Ciudades de búsqueda */}
-              <div className="mt-3">
-                <label className="block text-xs text-gray-500 mb-1.5">
-                  Ciudades de búsqueda <span className="text-gray-400">(hasta 5)</span>
-                </label>
-                <div className="flex gap-2">
-                  <input type="text" value={ciudadInput} onChange={e => setCiudadInput(e.target.value)}
-                    onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), agregarCiudad())}
-                    placeholder="Guadalajara, Monterrey..."
-                    disabled={s1.ciudades_busqueda.length >= 5}
-                    className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary disabled:bg-gray-50" />
-                  <button onClick={agregarCiudad} disabled={!ciudadInput.trim() || s1.ciudades_busqueda.length >= 5}
-                    className="border border-gray-300 text-gray-600 rounded-lg px-3 py-2 text-sm hover:border-primary hover:text-primary disabled:opacity-40 transition-colors">
-                    +
-                  </button>
-                </div>
-                {s1.ciudades_busqueda.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5 mt-2">
-                    {s1.ciudades_busqueda.map(c => (
-                      <span key={c} className="flex items-center gap-1 bg-primary/10 text-primary text-xs rounded-full px-2.5 py-1">
-                        {c}
-                        <button onClick={() => quitarCiudad(c)} className="hover:text-red-500 transition-colors">×</button>
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
+            {/* Edad */}
+            <div className="w-40">
+              <label className="block text-xs text-gray-500 mb-1">Edad</label>
+              <input type="number" value={s1.edad}
+                onChange={e => setS1(f => ({ ...f, edad: e.target.value }))}
+                min="16" max="80"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
             </div>
 
             {error && <p className="text-sm text-red-500">{error}</p>}
@@ -444,14 +495,13 @@ export default function Onboarding() {
           <div className="bg-white rounded-2xl border border-gray-200 p-7 shadow-sm space-y-6">
             <div>
               <h2 className="text-lg font-semibold text-gray-900 mb-1">Compensación</h2>
-              <p className="text-sm text-gray-500">Esta información ayuda a filtrar vacantes por rango salarial.</p>
+              <p className="text-sm text-gray-500">Ayuda a filtrar vacantes por rango salarial.</p>
             </div>
 
-            {/* Salario */}
             <div>
               <label className="block text-xs font-medium text-gray-500 mb-1.5">Salario bruto mensual</label>
               <div className="flex gap-2">
-                <select value={s2.moneda} onChange={e => setS2(f=>({...f,moneda:e.target.value}))}
+                <select value={s2.moneda} onChange={e => setS2(f => ({ ...f, moneda: e.target.value }))}
                   className="border border-gray-300 rounded-lg px-2 py-2.5 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary shrink-0">
                   {MONEDAS.map(m => <option key={m.code} value={m.code}>{m.code}</option>)}
                 </select>
@@ -459,18 +509,17 @@ export default function Onboarding() {
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400 select-none">
                     {MONEDAS.find(m => m.code === s2.moneda)?.symbol || '$'}
                   </span>
-                  <input type="text" value={s2.salario_monto} onChange={e => setS2(f=>({...f,salario_monto:e.target.value}))}
-                    placeholder="50,000"
+                  <input type="text" value={s2.salario_monto}
+                    onChange={e => setS2(f => ({ ...f, salario_monto: e.target.value }))}
                     className="w-full border border-gray-300 rounded-lg pl-7 pr-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
                 </div>
               </div>
               {s1.pais && <p className="text-xs text-gray-400 mt-1">Moneda detectada para {s1.pais}: {s2.moneda}</p>}
             </div>
 
-            {/* Prestaciones */}
             <div>
               <label className="block text-xs font-medium text-gray-500 mb-2">
-                Prestaciones que recibes actualmente{s1.pais ? ` (${s1.pais})` : ''}
+                Prestaciones{s1.pais ? ` (${s1.pais})` : ''}
               </label>
               <div className="grid grid-cols-2 gap-1.5">
                 {getPrestaciones(s1.pais).map(p => (
@@ -502,15 +551,14 @@ export default function Onboarding() {
           <div className="bg-white rounded-2xl border border-gray-200 p-7 shadow-sm space-y-6">
             <div>
               <h2 className="text-lg font-semibold text-gray-900 mb-1">Aspiraciones y motivaciones</h2>
-              <p className="text-sm text-gray-500">Esto personaliza las vacantes y el análisis de tu CV.</p>
+              <p className="text-sm text-gray-500">Personaliza las vacantes y el análisis de tu CV.</p>
             </div>
 
-            {/* Nivel de cargo */}
             <div>
               <label className="block text-xs font-medium text-gray-500 mb-2">Nivel de cargo buscado</label>
               <div className="flex flex-wrap gap-2">
                 {NIVELES_CARGO.map(n => (
-                  <button key={n} onClick={() => setS3(f=>({...f,nivel_cargo:n}))}
+                  <button key={n} onClick={() => setS3(f => ({ ...f, nivel_cargo: n }))}
                     className={`text-xs font-medium px-3 py-2 rounded-full border transition-colors
                       ${s3.nivel_cargo === n ? 'bg-primary text-white border-primary' : 'border-gray-300 text-gray-600 hover:border-primary hover:text-primary'}`}>
                     {n}
@@ -519,12 +567,11 @@ export default function Onboarding() {
               </div>
             </div>
 
-            {/* Área */}
             <div>
               <label className="block text-xs font-medium text-gray-500 mb-2">Área funcional</label>
               <div className="flex flex-wrap gap-2">
                 {AREAS.map(a => (
-                  <button key={a} onClick={() => setS3(f=>({...f,area:a}))}
+                  <button key={a} onClick={() => setS3(f => ({ ...f, area: a }))}
                     className={`text-xs font-medium px-3 py-2 rounded-full border transition-colors
                       ${s3.area === a ? 'bg-teal text-white border-teal' : 'border-gray-300 text-gray-600 hover:border-teal hover:text-teal'}`}>
                     {a}
@@ -533,12 +580,11 @@ export default function Onboarding() {
               </div>
             </div>
 
-            {/* Tipo de trabajo */}
             <div>
               <label className="block text-xs font-medium text-gray-500 mb-2">Tipo de trabajo</label>
               <div className="flex gap-2">
                 {TIPOS_TRABAJO.map(t => (
-                  <button key={t} onClick={() => setS3(f=>({...f,tipo_trabajo:t}))}
+                  <button key={t} onClick={() => setS3(f => ({ ...f, tipo_trabajo: t }))}
                     className={`flex-1 text-xs font-medium py-2.5 rounded-xl border transition-colors
                       ${s3.tipo_trabajo === t ? 'bg-primary text-white border-primary' : 'border-gray-300 text-gray-600 hover:border-primary hover:text-primary'}`}>
                     {t}
@@ -547,10 +593,9 @@ export default function Onboarding() {
               </div>
             </div>
 
-            {/* Industrias deseadas */}
             <div>
               <label className="block text-xs font-medium text-gray-500 mb-2">
-                Industrias de interés <span className="text-gray-400">(selección múltiple)</span>
+                Industrias de interés <span className="text-gray-400">(múltiple)</span>
               </label>
               <div className="flex flex-wrap gap-1.5 max-h-52 overflow-y-auto pr-1">
                 {INDUSTRIAS_LATAM.map(ind => (
@@ -565,9 +610,6 @@ export default function Onboarding() {
               </div>
             </div>
 
-            {error && <p className="text-sm text-red-500">{error}</p>}
-
-            {/* Beneficios rápidos */}
             <div className="bg-gray-50 rounded-xl p-4 space-y-2">
               {['2 análisis de CV gratuitos incluidos','Búsqueda de vacantes con IA','Seguimiento de aplicaciones'].map((b, i) => (
                 <div key={i} className="flex items-center gap-2 text-sm text-gray-600">
@@ -576,6 +618,8 @@ export default function Onboarding() {
                 </div>
               ))}
             </div>
+
+            {error && <p className="text-sm text-red-500">{error}</p>}
 
             <div className="flex gap-3">
               <button onClick={anterior}
