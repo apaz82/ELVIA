@@ -358,7 +358,8 @@ export default function Onboarding() {
         },
       } : {}),
     }
-    const { error: err } = await supabase.from('profiles').update({
+    const { error: err } = await supabase.from('profiles').upsert({
+      id: user.id,
       nombre1: s1.nombre1.trim(), nombre2: s1.nombre2.trim() || null,
       apellido1: s1.apellido1.trim(), apellido2: s1.apellido2.trim() || null,
       indicativo1: s1.indicativo1, telefono1: s1.telefono1.trim() || null,
@@ -372,7 +373,7 @@ export default function Onboarding() {
       industrias_deseadas: s3.industrias_deseadas,
       tipo_trabajo: s3.tipo_trabajo, area: s3.area,
       nombre: nombreCompleto,
-    }).eq('id', user.id)
+    })
     setSaving(false)
     if (err) { setError('Error al guardar. Intenta de nuevo.'); return }
     // Limpiar borrador y continuar
