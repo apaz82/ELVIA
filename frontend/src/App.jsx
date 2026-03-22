@@ -1,6 +1,7 @@
+import { useState } from 'react'
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import Header from './components/common/Header'
-import Footer from './components/common/Footer'
+import Sidebar from './components/common/Sidebar'
 import Landing from './pages/Landing'
 import CVOptimizer from './pages/CVOptimizer'
 import CVvsJob from './pages/CVvsJob'
@@ -13,8 +14,9 @@ import Perfil from './pages/Perfil'
 import Onboarding from './pages/Onboarding'
 import { useAuth } from './context/AuthContext'
 
-// Redirige al onboarding si el usuario está logueado y aún no ha completado su perfil
-// Excluye /auth para evitar loops y /onboarding para no redirigir en bucle
+// Rutas que NO muestran sidebar ni header estándar
+const RUTAS_FULL = ['/', '/auth', '/onboarding']
+// Rutas excluidas del guard de onboarding
 const RUTAS_SIN_GUARD = ['/auth', '/onboarding']
 
 function OnboardingGuard({ children }) {
@@ -26,27 +28,53 @@ function OnboardingGuard({ children }) {
   return children
 }
 
-export default function App() {
+// Layout con sidebar para páginas de app
+function AppLayout({ children }) {
+  const [sidebarOpen, setSidebarOpen] = useState(false)
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header />
-      <main className="flex-1">
-        <OnboardingGuard>
-          <Routes>
-            <Route path="/"           element={<Landing />} />
-            <Route path="/cv-optimizer" element={<CVOptimizer />} />
-            <Route path="/cv-vs-job"  element={<CVvsJob />} />
-            <Route path="/jobs"       element={<JobMatches />} />
-            <Route path="/auth"       element={<Auth />} />
-            <Route path="/mis-cvs"       element={<MisCVs />} />
-            <Route path="/mis-vacantes"  element={<MisVacantes />} />
-            <Route path="/pipeline"      element={<Pipeline />} />
-            <Route path="/perfil"        element={<Perfil />} />
-            <Route path="/onboarding"    element={<Onboarding />} />
-          </Routes>
-        </OnboardingGuard>
-      </main>
-      <Footer />
+    <div className="min-h-screen bg-surface">
+      <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <div className="flex flex-col min-h-screen md:pl-64">
+        <Header onMenuToggle={() => setSidebarOpen(o => !o)} />
+        <main className="flex-1 bg-surface">
+          {children}
+        </main>
+      </div>
     </div>
   )
+}
+
+// Layout limpio para Landing, Auth y Onboarding
+function FullLayout({ children }) {
+  return (
+    <div className="min-h-screen flex flex-col bg-surface">
+      {children}
+    </div>
+  )
+}
+
+export default function App() {
+  const location = useLocation()
+  const isFullLayout = RUTAS_FULL.includes(location.pathname)
+
+  const routes = (
+    <OnboardingGuard>
+      <Routes>
+        <Route path="/"              element={<Landing />} />
+        <Route path="/cv-optimizer"  element={<CVOptimizer />} />
+        <Route path="/cv-vs-job"     element={<CVvsJob />} />
+        <Route path="/jobs"          element={<JobMatches />} />
+        <Route path="/auth"          element={<Auth />} />
+        <Route path="/mis-cvs"       element={<MisCVs />} />
+        <Route path="/mis-vacantes"  element={<MisVacantes />} />
+        <Route path="/pipeline"      element={<Pipeline />} />
+        <Route path="/perfil"        element={<Perfil />} />
+        <Route path="/onboarding"    element={<Onboarding />} />
+      </Routes>
+    </OnboardingGuard>
+  )
+
+  return isFullLayout
+    ? <FullLayout>{routes}</FullLayout>
+    : <AppLayout>{routes}</AppLayout>
 }

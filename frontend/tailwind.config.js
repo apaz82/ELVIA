@@ -4,35 +4,89 @@ export default {
   theme: {
     extend: {
       colors: {
-        surface:    '#0A0D1A',       // fondo principal
-        card:       '#111527',       // cards
-        card2:      '#161B30',       // cards secundarias
-        line:       '#1E2440',       // bordes
-        muted:      '#8B92A9',       // texto secundario
-        primary:    '#7B5CF0',       // violeta CTA
-        'primary-dark': '#6347d4',
-        teal:       '#00D4B4',       // acento teal
-        ink:        '#1C1C1E',
+        // ── Primarios ─────────────────────────────────────────────────────────
+        'primary':                    '#002650',
+        'primary-container':          '#1b3c69',
+        'on-primary':                 '#ffffff',
+        'on-primary-container':       '#8aa7db',
+        'on-primary-fixed':           '#001b3c',
+        'on-primary-fixed-variant':   '#284775',
+        'primary-fixed':              '#d6e3ff',
+        'primary-fixed-dim':          '#aac8fd',
+        'inverse-primary':            '#aac8fd',
+        // ── Secundarios ───────────────────────────────────────────────────────
+        'secondary':                  '#1461a2',
+        'secondary-container':        '#7bb7fe',
+        'secondary-fixed':            '#d2e4ff',
+        'secondary-fixed-dim':        '#a0c9ff',
+        'on-secondary':               '#ffffff',
+        'on-secondary-container':     '#00477d',
+        'on-secondary-fixed':         '#001c37',
+        'on-secondary-fixed-variant': '#00487f',
+        // ── Superficie ────────────────────────────────────────────────────────
+        'surface':                    '#faf9f8',
+        'surface-bright':             '#faf9f8',
+        'surface-dim':                '#dbdad9',
+        'surface-variant':            '#e3e2e1',
+        'surface-container':          '#efeeed',
+        'surface-container-low':      '#f4f3f2',
+        'surface-container-high':     '#e9e8e7',
+        'surface-container-highest':  '#e3e2e1',
+        'surface-container-lowest':   '#ffffff',
+        'surface-tint':               '#415f8e',
+        'on-surface':                 '#1a1c1c',
+        'on-surface-variant':         '#43474f',
+        'inverse-surface':            '#2f3130',
+        'inverse-on-surface':         '#f1f0ef',
+        'background':                 '#faf9f8',
+        'on-background':              '#1a1c1c',
+        // ── Contornos ────────────────────────────────────────────────────────
+        'outline':                    '#747780',
+        'outline-variant':            '#c4c6d0',
+        // ── Terciarios (acento dorado) ────────────────────────────────────────
+        'tertiary':                   '#352300',
+        'tertiary-container':         '#513700',
+        'tertiary-fixed':             '#ffdeaa',
+        'tertiary-fixed-dim':         '#f7bd54',
+        'on-tertiary':                '#ffffff',
+        'on-tertiary-container':      '#d39d37',
+        'on-tertiary-fixed':          '#271900',
+        'on-tertiary-fixed-variant':  '#5f4100',
+        // ── Error ─────────────────────────────────────────────────────────────
+        'error':                      '#ba1a1a',
+        'error-container':            '#ffdad6',
+        'on-error':                   '#ffffff',
+        'on-error-container':         '#93000a',
       },
       fontFamily: {
-        sans: ['"Plus Jakarta Sans"', 'Inter', 'system-ui', 'sans-serif'],
+        sans:     ['Inter', 'system-ui', 'sans-serif'],
+        headline: ['"Public Sans"', 'system-ui', 'sans-serif'],
+        body:     ['Inter', 'system-ui', 'sans-serif'],
+        label:    ['Inter', 'system-ui', 'sans-serif'],
       },
       borderRadius: {
-        pill: '999px',
+        DEFAULT: '0.125rem',   // 2px  — casi cuadrado
+        sm:      '0.125rem',
+        md:      '0.375rem',   // 6px
+        lg:      '0.25rem',    // 4px  — muy sutil
+        xl:      '0.5rem',     // 8px
+        '2xl':   '0.75rem',    // 12px — máximo en cards/botones
+        '3xl':   '1rem',
+        full:    '9999px',     // círculos reales (avatares)
+        pill:    '9999px',     // alias legacy
       },
       boxShadow: {
-        'glow-teal':   '0 0 80px 20px rgba(0,212,180,0.12)',
-        'glow-purple': '0 0 40px 10px rgba(123,92,240,0.2)',
-        card:          '0 2px 8px rgba(0,0,0,0.3)',
-        'card-hover':  '0 8px 32px rgba(0,0,0,0.4)',
+        'ambient': '0 8px 32px rgba(26,28,28,0.05)',
+        'float':   '0 4px 20px rgba(26,28,28,0.08)',
+        'card':    '0 2px 8px rgba(26,28,28,0.06)',
       },
       animation: {
-        'fade-in':  'fadeIn 0.4s ease-out',
-        'slide-up': 'slideUp 0.5s cubic-bezier(0.16,1,0.3,1)',
+        'fade-in':  'fadeIn 0.2s ease-out',
+        'slide-in': 'slideIn 0.25s cubic-bezier(0.16,1,0.3,1)',
       },
       keyframes: {
-        fadeIn:  { from: { opacity: 0 }, to: { opacity: 1 } },
-        slideUp: { from: { opacity: 0, transform: 'translateY(12px)' }, to: { opacity: 1, transform: 'translateY(0)' } },
+        fadeIn:  { from: { opacity: 0 },                       to: { opacity: 1 } },
+        slideIn: { from: { opacity: 0, transform: 'translateX(-12px)' }, to: { opacity: 1, transform: 'translateX(0)' } },
       },
     },
   },

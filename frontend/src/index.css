@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,45 +6,65 @@
 
 @layer base {
   body {
-    background-color: #ffffff;
-    color: #1C1C1E;
-    letter-spacing: 0.3px;
-    font-family: 'Plus Jakarta Sans', Inter, system-ui, sans-serif;
+    background-color: #faf9f8;
+    color: #1a1c1c;
+    font-family: 'Inter', system-ui, sans-serif;
     font-size: 1rem;
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
 
-  h1, h2, h3, h4 {
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Public Sans', system-ui, sans-serif;
     font-weight: 700;
     letter-spacing: -0.01em;
+    color: #1a1c1c;
   }
 }
 
 @layer components {
+  /* Botón primario — gradiente institucional */
+  .btn-primary {
+    background: linear-gradient(135deg, #002650, #1b3c69);
+    color: #ffffff;
+    font-weight: 600;
+    padding: 0.625rem 1.5rem;
+    border-radius: 0.5rem;
+    transition: opacity 0.15s, transform 0.1s;
+  }
+  .btn-primary:hover  { opacity: 0.92; }
+  .btn-primary:active { transform: scale(0.97); }
+
+  /* Botón secundario */
+  .btn-secondary {
+    background-color: #e3e2e1;
+    color: #284775;
+    font-weight: 600;
+    padding: 0.625rem 1.5rem;
+    border-radius: 0.5rem;
+    transition: background-color 0.15s;
+  }
+  .btn-secondary:hover { background-color: #e9e8e7; }
+
+  /* Card editorial — sin borde visible */
   .card {
     background-color: #ffffff;
-    border-radius: 16px;
-    border: 1px solid #e5e7eb;
+    border-radius: 0.75rem;
     padding: 1.5rem;
-    transition: border-color 0.2s, box-shadow 0.2s;
-  }
-  .card:hover {
-    box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+    transition: box-shadow 0.2s;
   }
 
-  .badge-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    border: 1px solid rgba(0,0,0,0.12);
-    background-color: rgba(0,0,0,0.03);
-    color: #6b7280;
-    font-size: 0.75rem;
-    font-weight: 500;
-    padding: 0.375rem 1rem;
-    border-radius: 999px;
-    letter-spacing: 0.05em;
+  /* Glassmorphism para el header */
+  .glass-header {
+    background: rgba(250, 249, 248, 0.85);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-bottom: 1px solid rgba(196, 198, 208, 0.4);
+  }
+
+  /* Accent bar izquierda en cards destacadas */
+  .card-accent {
+    border-left: 3px solid #002650;
   }
 }
