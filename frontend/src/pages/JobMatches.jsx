@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useCV } from '../context/CVContext'
 import { useAuth } from '../context/AuthContext'
@@ -120,6 +120,18 @@ export default function JobMatches() {
   const [cvsSaved, setCvsSaved]         = useState([])   // lista de CVs de Supabase
   const [cvSeleccionado, setCvSeleccionado] = useState(null) // { id, nombre, contenido }
   const [mostrarSelector, setMostrarSelector] = useState(false)
+  const selectorRef = useRef(null)
+
+  // Cerrar dropdown al hacer click fuera
+  useEffect(() => {
+    const handleClickFuera = (e) => {
+      if (selectorRef.current && !selectorRef.current.contains(e.target)) {
+        setMostrarSelector(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickFuera)
+    return () => document.removeEventListener('mousedown', handleClickFuera)
+  }, [])
 
   const cvText = cvTextContexto || cvSeleccionado?.contenido || ''
 
@@ -355,7 +367,7 @@ export default function JobMatches() {
               CV de sesión actual en uso para compatibilidad
             </div>
           ) : cvSeleccionado ? (
-            <div className="relative">
+            <div className="relative" ref={selectorRef}>
               <button onClick={() => setMostrarSelector(!mostrarSelector)}
                 className="flex items-center gap-2 text-xs bg-white border border-gray-200 rounded-lg px-3 py-2 hover:border-primary transition-colors">
                 <svg className="w-3.5 h-3.5 text-primary shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
