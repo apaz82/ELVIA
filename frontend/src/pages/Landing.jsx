@@ -80,10 +80,10 @@ export default function Landing() {
   return (
     <div className="min-h-screen bg-surface font-body">
 
-      {/* ── Nav landing ───────────────────────────────────────────────────── */}
-      <nav className="glass-header sticky top-0 z-50 flex items-center justify-between px-6 h-16">
+      {/* ── Nav landing — centrada ────────────────────────────────────────── */}
+      <nav className="glass-header sticky top-0 z-50 flex items-center justify-center gap-4 sm:gap-6 px-6 h-16">
         {/* Logo */}
-        <Link to="/" className="flex items-center gap-2.5">
+        <Link to="/" className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary to-primary-container flex items-center justify-center shadow-card shrink-0">
             <span className="text-on-primary font-bold text-[13px]">CV</span>
           </div>
@@ -92,50 +92,53 @@ export default function Landing() {
           </span>
         </Link>
 
+        {/* Separador */}
+        <div className="hidden sm:block h-5 w-px bg-outline-variant/40" />
+
         {/* Acciones */}
-        <div className="flex items-center gap-3">
-          {user ? (
-            <>
-              {/* Créditos */}
-              <div className={`hidden sm:flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full
-                ${creditosRestantes === 0 ? 'text-error bg-error-container'
-                  : creditosRestantes === 1 ? 'text-amber-700 bg-amber-50'
-                  : 'text-secondary bg-secondary-fixed'}`}>
-                <Coins size={14} weight="duotone" />
-                {creditosRestantes} / {LIMITE_PLAN}
-              </div>
-              {/* Nombre */}
-              <span className="hidden sm:block text-sm font-medium text-on-surface-variant">
-                {perfil?.nombre1 || user.email?.split('@')[0]}
-              </span>
-              {/* CTA */}
-              <button onClick={() => navigate('/cv-optimizer')} className="btn-primary text-sm flex items-center gap-1.5">
-                Empecemos <ArrowRight size={15} weight="bold" />
-              </button>
-            </>
-          ) : (
-            <>
-              <Link to="/auth"
-                className="text-sm font-medium text-on-surface-variant hover:text-primary transition-colors hidden sm:block px-3 py-2 rounded-xl hover:bg-surface-container">
-                Iniciar sesión
-              </Link>
-              <Link to="/auth" className="btn-primary text-sm flex items-center gap-1.5">
-                Registrarse gratis <ArrowRight size={15} weight="bold" />
-              </Link>
-            </>
-          )}
-        </div>
+        {user ? (
+          <>
+            <div className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full
+              ${creditosRestantes === 0 ? 'text-error bg-error-container'
+                : creditosRestantes === 1 ? 'text-amber-700 bg-amber-50'
+                : 'text-secondary bg-secondary-fixed'}`}>
+              <Coins size={14} weight="duotone" />
+              {creditosRestantes} / {LIMITE_PLAN}
+            </div>
+            <span className="hidden sm:block text-sm font-medium text-on-surface-variant">
+              {perfil?.nombre1 || user.email?.split('@')[0]}
+            </span>
+            <button onClick={() => navigate('/cv-optimizer')} className="btn-primary text-sm flex items-center gap-1.5">
+              Empecemos <ArrowRight size={15} weight="bold" />
+            </button>
+          </>
+        ) : (
+          <>
+            <Link to="/auth"
+              className="text-sm font-medium text-on-surface-variant hover:text-primary transition-colors hidden sm:block px-3 py-2 rounded-xl hover:bg-surface-container">
+              Iniciar sesión
+            </Link>
+            <Link to="/auth" className="btn-primary text-sm flex items-center gap-1.5">
+              Registrarse gratis <ArrowRight size={15} weight="bold" />
+            </Link>
+          </>
+        )}
       </nav>
 
       {/* ── Hero ──────────────────────────────────────────────────────────── */}
-      <section className="relative min-h-[82vh] flex items-center overflow-hidden bg-primary">
-        {/* Textura de gradiente */}
-        <div className="absolute inset-0 bg-gradient-to-tr from-primary via-primary/90 to-primary-container" />
-        {/* Patrón decorativo */}
-        <div className="absolute top-0 right-0 w-[600px] h-[600px] rounded-full bg-white/[0.03] -mr-64 -mt-64 pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-[400px] h-[400px] rounded-full bg-white/[0.03] -ml-32 -mb-32 pointer-events-none" />
+      <section className="py-16 px-6 bg-surface flex justify-center">
+        <div className="relative w-full max-w-5xl rounded-3xl overflow-hidden min-h-[72vh] flex items-center shadow-float">
+          {/* Foto profesional difuminada */}
+          <img
+            src="https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=1400&q=80&fit=crop"
+            alt="Profesional de carrera"
+            className="absolute inset-0 w-full h-full object-cover object-top"
+          />
+          {/* Overlay degradado — preserva legibilidad del texto */}
+          <div className="absolute inset-0 bg-gradient-to-r from-primary/92 via-primary/80 to-primary/30" />
+          <div className="absolute inset-0 bg-gradient-to-t from-primary/60 via-transparent to-transparent" />
 
-        <div className="relative z-10 container mx-auto px-6 py-20 grid md:grid-cols-2 gap-12 items-center">
+        <div className="relative z-10 w-full px-8 py-16 grid md:grid-cols-2 gap-12 items-center">
           {/* Copy */}
           <div className="space-y-8">
             <span className="inline-block px-3 py-1 bg-tertiary-fixed text-on-tertiary-fixed-variant font-bold text-[10px] rounded-full uppercase tracking-widest">
@@ -220,6 +223,7 @@ export default function Landing() {
               </div>
             </div>
           </div>
+        </div>
         </div>
       </section>
 

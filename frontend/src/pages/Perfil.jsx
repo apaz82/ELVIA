@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../services/authService'
 
@@ -62,7 +62,7 @@ const EXPERIENCIAS = [
 ]
 
 const PRESTACIONES_POR_PAIS = {
-  'México': ['IMSS','INFONAVIT','AFORE','Aguinaldo (30 días)','Prima vacacional','Seguro de gastos médicos','Seguro de vida','Vales de despensa','Fondo de ahorro','Auto de empresa','Caja de ahorro'],
+  'México': ['IMSS','INFONAVIT','AFORE','Aguinaldo (30 días)','Prima vacacional','Seguro de gastos médicos','Seguro de vida','Vales de despensa','Fondo de ahorro','Auto de empresa','Caja de ahorro','Car allowance','House allowance','Viáticos'],
   'Colombia': ['EPS (salud)','Pensión','ARL','Prima de servicios','Cesantías','Vacaciones adicionales','Dotación','Caja de compensación','Seguro de vida'],
   'Argentina': ['Obra social','ART','SAC (aguinaldo)','Jubilación','Vacaciones legales','Plan médico privado','Seguro de vida'],
   'Chile': ['AFP','Isapre / Fonasa','Seguro de cesantía','Gratificación legal','Seguro de accidentes'],
@@ -72,6 +72,18 @@ const PRESTACIONES_POR_PAIS = {
   'default': ['Seguro médico','Seguro de vida','Bono anual de desempeño','Plan de pensión','Vehículo / viáticos','Vacaciones adicionales','Flexibilidad horaria','Home office','Capacitación y desarrollo'],
 }
 const getPrestaciones = (pais) => PRESTACIONES_POR_PAIS[pais] || PRESTACIONES_POR_PAIS['default']
+
+const MEXICO_DETALLE = {
+  'Aguinaldo (30 días)':     { tipo: 'dias',     label: 'Días',          default: '30'      },
+  'Prima vacacional':        { tipo: 'pct',      label: '% prima',       default: '25'      },
+  'Seguro de gastos médicos':{ tipo: 'selector', label: 'Cobertura',     opciones: ['Personal','Familiar'], default: 'Personal' },
+  'Vales de despensa':       { tipo: 'monto',    label: 'Monto mensual', default: ''        },
+  'Fondo de ahorro':         { tipo: 'pct',      label: '% fondo',       default: ''        },
+  'Auto de empresa':         { tipo: 'monto',    label: 'Valor / mes',   default: ''        },
+  'Car allowance':           { tipo: 'monto',    label: 'Monto mensual', default: ''        },
+  'House allowance':         { tipo: 'monto',    label: 'Monto mensual', default: ''        },
+  'Viáticos':                { tipo: 'monto',    label: 'Monto mensual', default: ''        },
+}
 
 const MONEDAS = [
   { code:'MXN',symbol:'$' },{ code:'COP',symbol:'$' },{ code:'ARS',symbol:'$' },
@@ -105,6 +117,9 @@ export default function Perfil() {
     pais: '', ciudad: '', ciudades_busqueda: [], edad: '',
     // Sección 2
     salario_monto: '', moneda: 'MXN', prestaciones: [],
+    prestaciones_detalle: {},
+    bono_activo: false, bono_tipo: '', bono_frecuencia: '',
+    bono_monto: '', bono_pct: '', variable_monto: '',
     // Sección 3
     nivel_cargo: '', industrias_deseadas: [], tipo_trabajo: '', area: '',
     // Campos legacy
@@ -136,6 +151,15 @@ export default function Perfil() {
       salario_monto:      monto || '',
       moneda:             monedaSaved || detectarMoneda(perfil.pais),
       prestaciones:       perfil.prestaciones || [],
+      prestaciones_detalle: perfil.prestaciones_detalle
+        ? { ...perfil.prestaciones_detalle, __bono: undefined }
+        : {},
+      bono_activo:     !!(perfil.prestaciones_detalle?.__bono),
+      bono_tipo:       perfil.prestaciones_detalle?.__bono?.tipo || '',
+      bono_frecuencia: perfil.prestaciones_detalle?.__bono?.frecuencia || '',
+      bono_monto:      perfil.prestaciones_detalle?.__bono?.tipo === 'Bono' ? (perfil.prestaciones_detalle?.__bono?.monto || '') : '',
+      bono_pct:        perfil.prestaciones_detalle?.__bono?.pct || '',
+      variable_monto:  perfil.prestaciones_detalle?.__bono?.tipo === 'Variable mensual' ? (perfil.prestaciones_detalle?.__bono?.monto || '') : '',
       nivel_cargo:        perfil.nivel_cargo || '',
       industrias_deseadas: perfil.industrias_deseadas || [],
       tipo_trabajo:       perfil.tipo_trabajo || '',
@@ -169,11 +193,18 @@ export default function Perfil() {
       : [...f.industrias_deseadas, ind],
   }))
 
-  const togglePrestacion = (p) => setForm(f => ({
+  const togglePrestacion = (p) => setForm(f => {
+    const isChecked = f.prestaciones.includes(p)
+    const nuevas = isChecked ? f.prestaciones.filter(x => x !== p) : [...f.prestaciones, p]
+    const detalle = { ...f.prestaciones_detalle }
+    if (isChecked) delete detalle[p]
+    else if (MEXICO_DETALLE[p]) detalle[p] = MEXICO_DETALLE[p].default
+    return { ...f, prestaciones: nuevas, prestaciones_detalle: detalle }
+  })
+
+  const updateDetalle = (prestacion, valor) => setForm(f => ({
     ...f,
-    prestaciones: f.prestaciones.includes(p)
-      ? f.prestaciones.filter(x => x !== p)
-      : [...f.prestaciones, p],
+    prestaciones_detalle: { ...f.prestaciones_detalle, [prestacion]: valor },
   }))
 
   const guardar = async () => {
@@ -182,9 +213,20 @@ export default function Perfil() {
     const nombreCompleto = [form.nombre1, form.nombre2, form.apellido1, form.apellido2]
       .map(s => s?.trim()).filter(Boolean).join(' ')
     const salario_esperado = form.salario_monto ? `${form.salario_monto} ${form.moneda}` : ''
-    const { salario_monto, moneda, ...rest } = form
+    const prestaciones_detalle = {
+      ...form.prestaciones_detalle,
+      ...(form.bono_activo && form.bono_tipo ? {
+        __bono: {
+          tipo: form.bono_tipo,
+          frecuencia: form.bono_tipo === 'Bono' ? form.bono_frecuencia : null,
+          monto: form.bono_tipo === 'Bono' ? form.bono_monto : form.variable_monto,
+          pct: form.bono_tipo === 'Bono' ? form.bono_pct : null,
+        },
+      } : {}),
+    }
+    const { salario_monto, moneda, bono_activo, bono_tipo, bono_frecuencia, bono_monto, bono_pct, variable_monto, ...rest } = form
     const { error } = await supabase.from('profiles').update({
-      ...rest, salario_esperado, nombre: nombreCompleto,
+      ...rest, salario_esperado, prestaciones_detalle, nombre: nombreCompleto,
       indicativo1: form.indicativo1, indicativo2: form.indicativo2,
     }).eq('id', user.id)
     setSaving(false)
@@ -210,6 +252,20 @@ export default function Perfil() {
         <h1 className="text-3xl font-bold text-gray-900">Mi Perfil</h1>
         <p className="mt-1 text-gray-500 text-sm">{user?.email}</p>
       </div>
+
+      {/* Alerta si no ha hecho el onboarding */}
+      {!perfil?.nombre1 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3">
+          <span className="text-amber-500 text-xl shrink-0 mt-0.5">⚠</span>
+          <div>
+            <p className="text-sm font-semibold text-amber-800">Completa tu configuración inicial</p>
+            <p className="text-xs text-amber-700 mt-0.5">Para acceder a todas las funciones necesitas completar el onboarding con tu nombre, teléfono y preferencias.</p>
+            <Link to="/onboarding" className="text-xs font-semibold text-primary underline mt-2 inline-block">
+              Ir al onboarding →
+            </Link>
+          </div>
+        </div>
+      )}
 
       {/* Plan y créditos */}
       <div className="bg-white rounded-2xl border border-gray-200 p-6">
@@ -410,14 +466,104 @@ export default function Perfil() {
             Prestaciones{form.pais ? ` (${form.pais})` : ''}
           </label>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
-            {getPrestaciones(form.pais).map(p => (
-              <label key={p} className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-colors text-xs
-                ${form.prestaciones.includes(p) ? 'bg-primary/5 border-primary/30 text-primary' : 'border-gray-200 text-gray-600 hover:border-gray-300'}`}>
-                <input type="checkbox" checked={form.prestaciones.includes(p)} onChange={() => togglePrestacion(p)} className="accent-primary shrink-0" />
-                {p}
-              </label>
-            ))}
+            {getPrestaciones(form.pais).map(p => {
+              const detailCfg = form.pais === 'México' ? MEXICO_DETALLE[p] : null
+              const isChecked = form.prestaciones.includes(p)
+              return (
+                <div key={p}>
+                  <label className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-colors text-xs
+                    ${isChecked ? 'bg-primary/5 border-primary/30 text-primary font-medium' : 'border-gray-200 text-gray-600 hover:border-gray-300'}`}>
+                    <input type="checkbox" checked={isChecked} onChange={() => togglePrestacion(p)} className="accent-primary shrink-0" />
+                    {p}
+                  </label>
+                  {isChecked && detailCfg && (
+                    <div className="mt-1 px-1">
+                      {detailCfg.tipo === 'selector' ? (
+                        <select
+                          value={form.prestaciones_detalle[p] ?? detailCfg.default}
+                          onChange={e => updateDetalle(p, e.target.value)}
+                          className="w-full border border-gray-300 rounded-md px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+                        >
+                          {detailCfg.opciones.map(o => <option key={o} value={o}>{o}</option>)}
+                        </select>
+                      ) : (
+                        <div className="flex items-center gap-1">
+                          <input
+                            type={detailCfg.tipo === 'pct' || detailCfg.tipo === 'dias' ? 'number' : 'text'}
+                            value={form.prestaciones_detalle[p] ?? detailCfg.default}
+                            onChange={e => updateDetalle(p, e.target.value)}
+                            placeholder={detailCfg.label}
+                            className="flex-1 border border-gray-300 rounded-md px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+                          />
+                          {detailCfg.tipo === 'pct'  && <span className="text-xs text-gray-400 shrink-0">%</span>}
+                          {detailCfg.tipo === 'dias' && <span className="text-xs text-gray-400 shrink-0">días</span>}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
           </div>
+        </div>
+
+        {/* Variable o Bono */}
+        <div>
+          <div className="flex items-center gap-3 mb-2">
+            <label className="text-xs font-medium text-gray-500">Variable o Bono</label>
+            <button
+              onClick={() => setForm(f => ({ ...f, bono_activo: !f.bono_activo, bono_tipo: '', bono_frecuencia: '', bono_monto: '', bono_pct: '', variable_monto: '' }))}
+              className={`text-xs font-medium px-3 py-1.5 rounded-full border transition-colors
+                ${form.bono_activo ? 'bg-primary text-white border-primary' : 'border-gray-300 text-gray-600 hover:border-primary hover:text-primary'}`}
+            >
+              {form.bono_activo ? '✓ Aplica' : '+ Agregar'}
+            </button>
+          </div>
+          {form.bono_activo && (
+            <div className="space-y-3 p-4 bg-gray-50 rounded-xl border border-gray-200">
+              <div className="flex gap-2">
+                {['Bono', 'Variable mensual'].map(t => (
+                  <button key={t} onClick={() => setForm(f => ({ ...f, bono_tipo: t }))}
+                    className={`flex-1 text-xs font-semibold py-2 rounded-lg border transition-colors
+                      ${form.bono_tipo === t ? 'bg-primary text-white border-primary' : 'border-gray-300 text-gray-600 hover:border-primary'}`}>
+                    {t}
+                  </button>
+                ))}
+              </div>
+              {form.bono_tipo === 'Bono' && (
+                <div className="grid grid-cols-3 gap-2">
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">Frecuencia</label>
+                    <select value={form.bono_frecuencia} onChange={e => setForm(f => ({ ...f, bono_frecuencia: e.target.value }))}
+                      className="w-full border border-gray-300 rounded-lg px-2 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary">
+                      <option value="">Selecciona</option>
+                      {['Mensual','Trimestral','Semestral','Anual'].map(frq => <option key={frq} value={frq}>{frq}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">Monto ({form.moneda})</label>
+                    <input type="text" value={form.bono_monto} onChange={e => setForm(f => ({ ...f, bono_monto: e.target.value }))}
+                      placeholder="50,000"
+                      className="w-full border border-gray-300 rounded-lg px-2 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary" />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">%</label>
+                    <input type="number" value={form.bono_pct} onChange={e => setForm(f => ({ ...f, bono_pct: e.target.value }))}
+                      placeholder="10" min="0" max="200"
+                      className="w-full border border-gray-300 rounded-lg px-2 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary" />
+                  </div>
+                </div>
+              )}
+              {form.bono_tipo === 'Variable mensual' && (
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Monto mensual ({form.moneda})</label>
+                  <input type="text" value={form.variable_monto} onChange={e => setForm(f => ({ ...f, variable_monto: e.target.value }))}
+                    placeholder="10,000"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary" />
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
@@ -446,7 +592,7 @@ export default function Perfil() {
             {AREAS.map(a => (
               <button key={a} onClick={() => setForm(f=>({...f,area:a}))}
                 className={`text-xs font-medium px-3 py-2 rounded-full border transition-colors
-                  ${form.area === a ? 'bg-teal text-white border-teal' : 'border-gray-300 text-gray-600 hover:border-teal hover:text-teal'}`}>
+                  ${form.area === a ? 'bg-secondary text-on-secondary border-secondary' : 'border-gray-300 text-gray-600 hover:border-secondary hover:text-secondary'}`}>
                 {a}
               </button>
             ))}
