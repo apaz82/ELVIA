@@ -188,10 +188,10 @@ FORTALEZAS:
 - [punto fuerte del candidato que coincide con la vacante]
 - [otro punto fuerte]
 BRECHAS:
-- [requisito de la vacante que el candidato NO cumple o cumple parcialmente]
-- [otra brecha]
+- [habla directamente al candidato en segunda persona, suaviza el lenguaje: en vez de "no tiene experiencia" di "no cuentas explícitamente con experiencia en X", en vez de "el candidato carece de" di "aún no evidencias"]
+- [otra brecha en segunda persona, sin juicios duros]
 CONCLUSION:
-[2-3 oraciones explicando el score: qué lo sube, qué lo baja, y qué debería mejorar el candidato para aumentar su compatibilidad]
+[2-3 oraciones en segunda persona dirigidas directamente al candidato: explica qué sube el score, qué lo baja, y qué podrías mejorar para aumentar tu compatibilidad]
 </ANALISIS>
 <CAMBIOS>
 - ajuste realizado 1 (en ${idioma})

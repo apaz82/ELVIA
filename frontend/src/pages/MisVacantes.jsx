@@ -17,6 +17,11 @@ const badgeScore = (score) => {
 
 const ESTADOS = ['Por aplicar', 'Aplicada', 'En proceso', 'Oferta recibida', 'Descartada']
 
+const formatFecha = (iso) => {
+  if (!iso) return ''
+  return new Date(iso).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })
+}
+
 const colorEstado = (estado) => {
   if (estado === 'Oferta recibida') return 'bg-green-100 text-green-700'
   if (estado === 'En proceso')      return 'bg-blue-100 text-blue-700'
@@ -29,9 +34,11 @@ export default function MisVacantes() {
   const { user, loading: authLoading } = useAuth()
   const navigate = useNavigate()
 
-  const [vacantes, setVacantes] = useState([])
-  const [loading, setLoading]   = useState(true)
-  const [tab, setTab]           = useState('todas')
+  const [vacantes, setVacantes]   = useState([])
+  const [loading, setLoading]     = useState(true)
+  const [tab, setTab]             = useState('todas')
+  const [ordenFecha, setOrdenFecha] = useState('desc') // desc = más recientes primero
+  const [filtroEstado, setFiltroEstado] = useState('')
 
   useEffect(() => {
     if (authLoading) return
@@ -74,11 +81,17 @@ export default function MisVacantes() {
     navigate('/cv-vs-job')
   }
 
-  const filtradas = vacantes.filter(v => {
-    if (tab === 'liked')          return v.liked
-    if (tab === 'compatibilidad') return !!v.check
-    return true
-  })
+  const filtradas = vacantes
+    .filter(v => {
+      if (tab === 'liked')          return v.liked
+      if (tab === 'compatibilidad') return !!v.check
+      return true
+    })
+    .filter(v => !filtroEstado || v.estado === filtroEstado)
+    .sort((a, b) => {
+      const da = new Date(a.created_at), db = new Date(b.created_at)
+      return ordenFecha === 'desc' ? db - da : da - db
+    })
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
@@ -98,6 +111,27 @@ export default function MisVacantes() {
           </button>
         </div>
       </div>
+
+      {/* Filtros (solo en tabs liked y compatibilidad) */}
+      {(tab === 'liked' || tab === 'compatibilidad') && (
+        <div className="flex flex-wrap gap-3 mb-4 items-center">
+          <select value={ordenFecha} onChange={e => setOrdenFecha(e.target.value)}
+            className="text-xs border border-gray-200 rounded-lg px-3 py-1.5 text-gray-600 focus:outline-none focus:ring-2 focus:ring-primary">
+            <option value="desc">Más recientes primero</option>
+            <option value="asc">Más antiguas primero</option>
+          </select>
+          <select value={filtroEstado} onChange={e => setFiltroEstado(e.target.value)}
+            className="text-xs border border-gray-200 rounded-lg px-3 py-1.5 text-gray-600 focus:outline-none focus:ring-2 focus:ring-primary">
+            <option value="">Todos los estados</option>
+            {ESTADOS.map(e => <option key={e} value={e}>{e}</option>)}
+          </select>
+          {filtroEstado && (
+            <button onClick={() => setFiltroEstado('')} className="text-xs text-gray-400 hover:text-red-500 transition-colors">
+              Limpiar filtro
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="flex gap-1 mb-6 bg-gray-100 rounded-xl p-1 w-fit">
@@ -149,6 +183,9 @@ export default function MisVacantes() {
                             {item.job_data.location}
                           </span>
                         )}
+                        {item.created_at && (
+                          <span className="text-xs text-gray-400">Descubierta: {formatFecha(item.created_at)}</span>
+                        )}
                         {item.liked && (
                           <span className="text-xs text-red-500 flex items-center gap-0.5">
                             <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
@@ -162,7 +199,7 @@ export default function MisVacantes() {
                     {item.check && (
                       <div className={`flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full border shrink-0 ${badgeScore(item.check.score)}`}>
                         <span className="text-base font-bold">{item.check.score}%</span>
-                        <span className="font-normal">match</span>
+                        <span className="font-normal">Compatibilidad</span>
                       </div>
                     )}
                   </div>

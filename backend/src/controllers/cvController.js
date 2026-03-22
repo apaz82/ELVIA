@@ -117,6 +117,28 @@ const matchToJob = async (req, res, next) => {
   }
 };
 
+// Genera nombre de archivo con nomenclatura: "CV Optimizado Nombre MMDDAA" o "Optimized CV Name MMDDAA"
+const generarNombreArchivo = (contenido, metadata, tipo, extension) => {
+  const nombre = contenido?.split('\n')[0]?.trim() || 'CV';
+  const lang = metadata?.language || 'es';
+  const ahora = new Date();
+  const mm = String(ahora.getMonth() + 1).padStart(2, '0');
+  const dd = String(ahora.getDate()).padStart(2, '0');
+  const aa = String(ahora.getFullYear()).slice(-2);
+  const fecha = `${mm}${dd}${aa}`;
+
+  if (tipo === 'match') {
+    const vacante = metadata?.jobData?.title || 'Vacante';
+    return lang === 'en'
+      ? `CV ${nombre} – Opt ${vacante} ${fecha}.${extension}`
+      : `CV ${nombre} – Opt ${vacante} ${fecha}.${extension}`;
+  }
+
+  return lang === 'en'
+    ? `Optimized CV ${nombre} ${fecha} Eng.${extension}`
+    : `CV Optimizado ${nombre} ${fecha} Esp.${extension}`;
+};
+
 // GET /api/cv/download/:id?format=pdf|word
 const download = async (req, res, next) => {
   try {
@@ -126,7 +148,7 @@ const download = async (req, res, next) => {
 
     const { data, error } = await db
       .from('cv_results')
-      .select('contenido, user_id')
+      .select('contenido, metadata, tipo, user_id')
       .eq('id', id)
       .single();
 
@@ -140,15 +162,16 @@ const download = async (req, res, next) => {
 
     if (format === 'word') {
       const buffer = await generarWord(data.contenido);
+      const nombre = generarNombreArchivo(data.contenido, data.metadata, data.tipo, 'docx');
       res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
-      res.setHeader('Content-Disposition', `attachment; filename="cv-optimizado.docx"`);
+      res.setHeader('Content-Disposition', `attachment; filename="${nombre}"`);
       return res.send(buffer);
     }
 
-    // Default: PDF
     const buffer = await generarPDF(data.contenido);
+    const nombre = generarNombreArchivo(data.contenido, data.metadata, data.tipo, 'pdf');
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="cv-optimizado.pdf"`);
+    res.setHeader('Content-Disposition', `attachment; filename="${nombre}"`);
     return res.send(buffer);
   } catch (err) {
     next(err);

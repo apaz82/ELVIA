@@ -27,7 +27,7 @@ const colorScore = (score) => {
   return { text: 'text-red-500', bg: 'bg-red-50 border-red-200' }
 }
 
-function CompatibilidadPanel({ vacante, cvText, onGenerarCV, onRefreshUsage, onSave }) {
+function CompatibilidadPanel({ vacante, cvText, onGenerarCV, onRefreshUsage, onSave, onVerMisVacantes }) {
   const [loading, setLoading]   = useState(false)
   const [resultado, setResultado] = useState(null)
   const [error, setError]       = useState('')
@@ -89,14 +89,23 @@ function CompatibilidadPanel({ vacante, cvText, onGenerarCV, onRefreshUsage, onS
           </li>
         ))}
       </ul>
-      {resultado.score >= 80 && (
-        <button
-          onClick={() => onGenerarCV(vacante)}
-          className="w-full text-xs font-semibold bg-primary text-white py-1.5 rounded-md hover:bg-blue-700 transition-colors"
-        >
-          Generar CV adaptado para esta vacante →
-        </button>
+      {resultado.score >= 70 && (
+        <>
+          <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-2">
+            💡 Tienes un {resultado.score}% de compatibilidad. Ten en cuenta que puedes aumentar tus posibilidades si tienes experiencia relevante que aún no has escrito en tu CV.
+          </p>
+          <button
+            onClick={() => onGenerarCV(vacante)}
+            className="w-full text-xs font-semibold bg-primary text-white py-1.5 rounded-md hover:bg-primary-dark transition-colors"
+          >
+            Generar CV adaptado para esta vacante →
+          </button>
+        </>
       )}
+      <button onClick={onVerMisVacantes}
+        className="mt-2 w-full text-xs font-medium border border-gray-200 text-gray-600 py-1.5 rounded-md hover:border-primary hover:text-primary transition-colors">
+        Ver en Mis Vacantes →
+      </button>
     </div>
   )
 }
@@ -158,8 +167,27 @@ export default function JobMatches() {
   const [loading, setLoading]               = useState(false)
   const [error, setError]                   = useState('')
   const [buscado, setBuscado]               = useState(false)
-  const [mostrarFiltros, setMostrarFiltros] = useState(false)
+  const [mostrarFiltros, setMostrarFiltros] = useState(true) // visibles al inicio
   const [panelAbierto, setPanelAbierto]     = useState({})
+  const [ciudadSugerencias, setCiudadSugerencias] = useState([])
+
+  const CIUDADES_LATAM = [
+    'Ciudad de México, México', 'Guadalajara, México', 'Monterrey, México', 'Puebla, México', 'Querétaro, México',
+    'Bogotá, Colombia', 'Medellín, Colombia', 'Cali, Colombia', 'Barranquilla, Colombia',
+    'Buenos Aires, Argentina', 'Córdoba, Argentina', 'Rosario, Argentina',
+    'Santiago, Chile', 'Valparaíso, Chile',
+    'Lima, Perú', 'Arequipa, Perú',
+    'São Paulo, Brasil', 'Rio de Janeiro, Brasil', 'Brasília, Brasil',
+    'Miami, USA', 'Houston, USA', 'Los Angeles, USA', 'New York, USA', 'Dallas, USA',
+    'Madrid, España', 'Barcelona, España',
+    'Remote', 'Remoto',
+  ]
+
+  const filtrarCiudades = (texto) => {
+    if (!texto || texto.length < 2) { setCiudadSugerencias([]); return }
+    const matches = CIUDADES_LATAM.filter(c => c.toLowerCase().includes(texto.toLowerCase())).slice(0, 6)
+    setCiudadSugerencias(matches)
+  }
   const [savedKeys, setSavedKeys]           = useState(new Set()) // job_keys con liked=true
   const [busquedasGuardadas, setBusquedasGuardadas] = useState(cargarBusquedasGuardadas)
 
@@ -266,6 +294,7 @@ export default function JobMatches() {
       setVacantes(data.vacantes || [])
       setTotal(data.total || 0)
       setBuscado(true)
+      setMostrarFiltros(false) // ocultar filtros después de buscar
       persistirBusqueda(titulo, ubicacion, filtros)
       recargarSavedKeys() // sincronizar likes con Supabase
     } catch {
@@ -371,12 +400,24 @@ export default function JobMatches() {
               placeholder="ej. Director Comercial, Gerente de RH..."
               className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
           </div>
-          <div className="sm:w-56">
+          <div className="sm:w-56 relative">
             <label className="block text-xs font-medium text-gray-500 mb-1">Ubicación</label>
-            <input type="text" value={ubicacion} onChange={e => setUbicacion(e.target.value)}
+            <input type="text" value={ubicacion}
+              onChange={e => { setUbicacion(e.target.value); filtrarCiudades(e.target.value) }}
               onKeyDown={e => e.key === 'Enter' && buscar()}
+              onBlur={() => setTimeout(() => setCiudadSugerencias([]), 150)}
               placeholder="ej. Ciudad de México"
               className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+            {ciudadSugerencias.length > 0 && (
+              <div className="absolute left-0 top-full mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-lg z-20 overflow-hidden">
+                {ciudadSugerencias.map(c => (
+                  <button key={c} onMouseDown={() => { setUbicacion(c); setCiudadSugerencias([]) }}
+                    className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+                    {c}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
           <div className="sm:self-end">
             <Button onClick={buscar} loading={loading} disabled={!titulo.trim()}>Buscar</Button>
@@ -495,6 +536,7 @@ export default function JobMatches() {
                           onGenerarCV={generarCVAdaptado}
                           onRefreshUsage={refreshUsage}
                           onSave={() => autoSave(v)}
+                          onVerMisVacantes={() => navigate('/mis-vacantes')}
                         />
                       ) : panelAbierto[vid] && !cvText ? (
                         <p className="mt-3 text-xs text-amber-600">

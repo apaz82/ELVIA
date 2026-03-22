@@ -129,6 +129,25 @@ const searchGoogleJobs = async ({ title, location, datecreated }) => {
   } catch { return []; }
 };
 
+// Expande el título del cargo con sinónimos usando Claude
+const expandirCargo = async (title) => {
+  try {
+    const resp = await client.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 150,
+      messages: [{
+        role: 'user',
+        content: `Para el cargo "${title}", genera una lista de 4-6 títulos sinónimos o equivalentes en el mercado laboral de LATAM y USA (en español e inglés). Responde SOLO con los títulos separados por comas, sin explicaciones. Ejemplo para "Country Manager": Director General, General Manager, Managing Director, CEO, Gerente General, Country Director`,
+      }],
+    });
+    const sinonimos = resp.content[0].text.trim().split(',').map(s => s.trim()).filter(Boolean);
+    // Combinar cargo original con sinónimos, máx 4 términos para no saturar la búsqueda
+    return [title, ...sinonimos.slice(0, 3)].join(' OR ');
+  } catch {
+    return title;
+  }
+};
+
 // GET /api/jobs/similar
 router.get('/similar', async (req, res) => {
   const { title, location, datecreated, employment_type, experience, radius, salary, page } = req.query;
@@ -136,10 +155,14 @@ router.get('/similar', async (req, res) => {
   if (!title) return res.status(400).json({ error: 'Se requiere el título del cargo' });
 
   try {
-    // Buscar en ambas fuentes en paralelo
+    // Expandir el cargo con sinónimos
+    const titleExpandido = await expandirCargo(title);
+    console.log(`[jobs/similar] Búsqueda expandida: "${titleExpandido}"`);
+
+    // Buscar en ambas fuentes en paralelo con el cargo expandido
     const [joobleResults, googleResults] = await Promise.all([
-      searchJooble({ title, location, datecreated, employment_type, experience, radius, salary, page }),
-      searchGoogleJobs({ title, location, datecreated }),
+      searchJooble({ title: titleExpandido, location, datecreated, employment_type, experience, radius, salary, page }),
+      searchGoogleJobs({ title: titleExpandido, location, datecreated }),
     ]);
 
     console.log(`[jobs/similar] Jooble: ${joobleResults.length} | Google Jobs: ${googleResults.length}`);

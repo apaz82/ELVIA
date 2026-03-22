@@ -48,6 +48,8 @@ export const AuthProvider = ({ children }) => {
   const logout   = () => supabase.auth.signOut()
 
   const creditosRestantes = Math.max(0, LIMITE_PLAN - usageCount)
+  // Onboarding pendiente si el usuario está logueado y no tiene nombre guardado
+  const onboardingPendiente = !loading && !!user && !!perfil && !perfil.nombre
 
   return (
     <AuthContext.Provider value={{
@@ -56,6 +58,7 @@ export const AuthProvider = ({ children }) => {
       usageCount, creditosRestantes, LIMITE_PLAN,
       perfil, refreshPerfil: (uid) => fetchPerfil(uid || user?.id),
       refreshUsage: () => user && fetchPerfil(user.id),
+      onboardingPendiente,
     }}>
       {children}
     </AuthContext.Provider>

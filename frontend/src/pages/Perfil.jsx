@@ -19,6 +19,74 @@ const EXPERIENCIAS = [
   { value: 11, label: 'Más de 10 años' },
 ]
 
+// Monedas disponibles
+const MONEDAS = [
+  { code: 'MXN', symbol: '$',  label: 'Peso mexicano (MXN)' },
+  { code: 'COP', symbol: '$',  label: 'Peso colombiano (COP)' },
+  { code: 'ARS', symbol: '$',  label: 'Peso argentino (ARS)' },
+  { code: 'CLP', symbol: '$',  label: 'Peso chileno (CLP)' },
+  { code: 'PEN', symbol: 'S/', label: 'Sol peruano (PEN)' },
+  { code: 'UYU', symbol: '$',  label: 'Peso uruguayo (UYU)' },
+  { code: 'USD', symbol: '$',  label: 'Dólar estadounidense (USD)' },
+  { code: 'EUR', symbol: '€',  label: 'Euro (EUR)' },
+  { code: 'BOB', symbol: 'Bs', label: 'Boliviano (BOB)' },
+  { code: 'PYG', symbol: '₲',  label: 'Guaraní paraguayo (PYG)' },
+  { code: 'GTQ', symbol: 'Q',  label: 'Quetzal guatemalteco (GTQ)' },
+  { code: 'CRC', symbol: '₡',  label: 'Colón costarricense (CRC)' },
+  { code: 'HNL', symbol: 'L',  label: 'Lempira hondureño (HNL)' },
+  { code: 'DOP', symbol: '$',  label: 'Peso dominicano (DOP)' },
+  { code: 'GBP', symbol: '£',  label: 'Libra esterlina (GBP)' },
+  { code: 'CAD', symbol: '$',  label: 'Dólar canadiense (CAD)' },
+  { code: 'BRL', symbol: 'R$', label: 'Real brasileño (BRL)' },
+]
+
+// Detección de moneda por país (normalizado a minúsculas sin tildes)
+const MONEDA_POR_PAIS = {
+  'mexico': 'MXN', 'méxico': 'MXN',
+  'colombia': 'COP',
+  'argentina': 'ARS',
+  'chile': 'CLP',
+  'peru': 'PEN', 'perú': 'PEN',
+  'uruguay': 'UYU',
+  'venezuela': 'USD',
+  'ecuador': 'USD',
+  'el salvador': 'USD',
+  'panama': 'USD', 'panamá': 'USD',
+  'usa': 'USD', 'estados unidos': 'USD', 'united states': 'USD',
+  'espana': 'EUR', 'españa': 'EUR', 'spain': 'EUR',
+  'bolivia': 'BOB',
+  'paraguay': 'PYG',
+  'guatemala': 'GTQ',
+  'costa rica': 'CRC',
+  'honduras': 'HNL',
+  'nicaragua': 'NIO',
+  'republica dominicana': 'DOP', 'república dominicana': 'DOP',
+  'reino unido': 'GBP', 'uk': 'GBP',
+  'canada': 'CAD', 'canadá': 'CAD',
+  'brasil': 'BRL', 'brazil': 'BRL',
+}
+
+const detectarMoneda = (pais) => {
+  if (!pais) return 'MXN'
+  const key = pais.toLowerCase().trim()
+  return MONEDA_POR_PAIS[key] || 'USD'
+}
+
+const simboloMoneda = (code) => MONEDAS.find(m => m.code === code)?.symbol || '$'
+
+// Parsea "50000 MXN" → { monto: '50000', moneda: 'MXN' }
+const parseSalario = (salario) => {
+  if (!salario) return { monto: '', moneda: '' }
+  const parts = salario.trim().split(' ')
+  if (parts.length >= 2) {
+    const posibleMoneda = parts[parts.length - 1]
+    if (MONEDAS.find(m => m.code === posibleMoneda)) {
+      return { monto: parts.slice(0, -1).join(' '), moneda: posibleMoneda }
+    }
+  }
+  return { monto: salario, moneda: '' }
+}
+
 export default function Perfil() {
   const { user, loading: authLoading, perfil, refreshPerfil, creditosRestantes, LIMITE_PLAN, usageCount } = useAuth()
   const navigate = useNavigate()
@@ -26,7 +94,7 @@ export default function Perfil() {
   const [form, setForm] = useState({
     nombre: '', pais: '', ciudad: '',
     industria: '', cargo_actual: '', cargo_objetivo: '',
-    experiencia_anos: '', salario_esperado: '', modalidad: '',
+    experiencia_anos: '', salario_monto: '', moneda: 'MXN', modalidad: '',
   })
   const [saving, setSaving]       = useState(false)
   const [guardado, setGuardado]   = useState(false)
@@ -40,27 +108,45 @@ export default function Perfil() {
   // Cargar datos del perfil cuando lleguen
   useEffect(() => {
     if (!perfil) return
+    const { monto, moneda: monedaParsed } = parseSalario(perfil.salario_esperado)
+    const paisCargado = perfil.pais || ''
     setForm({
       nombre:           perfil.nombre || '',
-      pais:             perfil.pais || '',
+      pais:             paisCargado,
       ciudad:           perfil.ciudad || '',
       industria:        perfil.industria || '',
       cargo_actual:     perfil.cargo_actual || '',
       cargo_objetivo:   perfil.cargo_objetivo || '',
       experiencia_anos: perfil.experiencia_anos ?? '',
-      salario_esperado: perfil.salario_esperado || '',
+      salario_monto:    monto,
+      moneda:           monedaParsed || detectarMoneda(paisCargado),
       modalidad:        perfil.modalidad || '',
     })
   }, [perfil])
+
+  // Auto-detectar moneda cuando cambia el país (solo si el usuario no ha elegido manualmente)
+  const handlePaisChange = (e) => {
+    const nuevoPais = e.target.value
+    setForm(f => ({
+      ...f,
+      pais: nuevoPais,
+      moneda: detectarMoneda(nuevoPais),
+    }))
+  }
 
   const set = (key) => (e) => setForm(f => ({ ...f, [key]: e.target.value }))
 
   const guardar = async () => {
     setSaving(true)
     setGuardado(false)
+    // Combinar monto y moneda en salario_esperado para guardar
+    const salario_esperado = form.salario_monto
+      ? `${form.salario_monto} ${form.moneda}`.trim()
+      : ''
+    const { salario_monto, moneda, ...rest } = form
     const { error } = await supabase
       .from('profiles')
-      .update(form)
+      .update({ ...rest, salario_esperado })
       .eq('id', user.id)
     setSaving(false)
     if (!error) {
@@ -159,7 +245,7 @@ export default function Perfil() {
           </div>
           <div>
             <label className="block text-xs font-medium text-gray-500 mb-1">País</label>
-            <input type="text" value={form.pais} onChange={set('pais')} placeholder="México"
+            <input type="text" value={form.pais} onChange={handlePaisChange} placeholder="México"
               className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
           </div>
           <div className="sm:col-span-2">
@@ -208,8 +294,33 @@ export default function Perfil() {
 
           <div>
             <label className="block text-xs font-medium text-gray-500 mb-1">Expectativa salarial</label>
-            <input type="text" value={form.salario_esperado} onChange={set('salario_esperado')} placeholder="ej. $50,000 MXN / mes"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+            <div className="flex gap-2">
+              {/* Selector de moneda */}
+              <select value={form.moneda} onChange={set('moneda')}
+                className="border border-gray-300 rounded-lg px-2 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary bg-gray-50 text-gray-700 shrink-0">
+                {MONEDAS.map(m => (
+                  <option key={m.code} value={m.code}>{m.code}</option>
+                ))}
+              </select>
+              {/* Campo de monto con símbolo */}
+              <div className="relative flex-1">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400 select-none">
+                  {simboloMoneda(form.moneda)}
+                </span>
+                <input
+                  type="text"
+                  value={form.salario_monto}
+                  onChange={set('salario_monto')}
+                  placeholder="50,000"
+                  className="w-full border border-gray-300 rounded-lg pl-7 pr-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+              </div>
+            </div>
+            {form.pais && (
+              <p className="text-xs text-gray-400 mt-1">
+                Moneda detectada para {form.pais}: {form.moneda}
+              </p>
+            )}
           </div>
 
           <div>
