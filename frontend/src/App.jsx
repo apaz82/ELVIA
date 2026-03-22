@@ -13,11 +13,14 @@ import Perfil from './pages/Perfil'
 import Onboarding from './pages/Onboarding'
 import { useAuth } from './context/AuthContext'
 
-// Redirige al onboarding si el usuario aún no ha completado su perfil inicial
+// Redirige al onboarding si el usuario está logueado y aún no ha completado su perfil
+// Excluye /auth para evitar loops y /onboarding para no redirigir en bucle
+const RUTAS_SIN_GUARD = ['/auth', '/onboarding']
+
 function OnboardingGuard({ children }) {
   const { onboardingPendiente } = useAuth()
   const location = useLocation()
-  if (onboardingPendiente && location.pathname !== '/onboarding') {
+  if (onboardingPendiente && !RUTAS_SIN_GUARD.includes(location.pathname)) {
     return <Navigate to="/onboarding" replace />
   }
   return children

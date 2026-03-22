@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext'
 import Button from '../components/common/Button'
 
 export default function Auth() {
-  const { user, login, register } = useAuth()
+  const { user, login, register, onboardingPendiente } = useAuth()
   const navigate = useNavigate()
 
   const [modo, setModo] = useState('login') // login | register
@@ -14,10 +14,12 @@ export default function Auth() {
   const [error, setError] = useState('')
   const [mensaje, setMensaje] = useState('')
 
-  // Si ya está autenticado, redirigir al inicio
+  // Si ya está autenticado, redirigir: al onboarding si no lo ha completado, si no al inicio
   useEffect(() => {
-    if (user) navigate('/')
-  }, [user])
+    if (!user) return
+    if (onboardingPendiente) navigate('/onboarding')
+    else navigate('/')
+  }, [user, onboardingPendiente])
 
   const handleSubmit = async (e) => {
     e.preventDefault()

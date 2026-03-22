@@ -1,8 +1,10 @@
 import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
 import StatsSection from '../components/cv-optimizer/StatsSection'
 
 export default function Landing() {
   const navigate = useNavigate()
+  const { user } = useAuth()
 
   return (
     <div className="min-h-screen">
@@ -30,16 +32,27 @@ export default function Landing() {
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-6">
-            <button
-              onClick={() => navigate('/cv-optimizer')}
-              className="bg-primary text-white font-semibold px-8 py-3.5 rounded-pill hover:bg-primary-dark transition-colors shadow-glow-purple text-sm">
-              Optimizar mi CV gratis →
-            </button>
-            <button
-              onClick={() => navigate('/cv-vs-job')}
-              className="border border-gray-200 text-gray-700 font-medium px-8 py-3.5 rounded-pill hover:border-gray-300 hover:bg-gray-50 transition-colors text-sm">
-              CV vs Vacante
-            </button>
+            {user ? (
+              // Usuario ya logueado — ir directo a la herramienta
+              <button
+                onClick={() => navigate('/cv-optimizer')}
+                className="bg-primary text-white font-semibold px-8 py-3.5 rounded-pill hover:bg-primary-dark transition-colors shadow-glow-purple text-sm">
+                Ir al optimizador →
+              </button>
+            ) : (
+              <>
+                <button
+                  onClick={() => navigate('/auth')}
+                  className="bg-primary text-white font-semibold px-8 py-3.5 rounded-pill hover:bg-primary-dark transition-colors shadow-glow-purple text-sm">
+                  Regístrate gratis →
+                </button>
+                <button
+                  onClick={() => navigate('/auth')}
+                  className="border border-gray-200 text-gray-700 font-medium px-8 py-3.5 rounded-pill hover:border-gray-300 hover:bg-gray-50 transition-colors text-sm">
+                  Ya tengo cuenta
+                </button>
+              </>
+            )}
           </div>
 
           <div className="flex items-center justify-center gap-6 text-sm text-gray-400">
