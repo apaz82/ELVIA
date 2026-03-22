@@ -1,228 +1,601 @@
-// Página de bienvenida — se muestra una sola vez después del primer registro
-import { useState, useEffect } from 'react'
+// Onboarding — se muestra una sola vez después del primer registro
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../services/authService'
+import { api } from '../services/api'
+
+// ─── Catálogos ───────────────────────────────────────────────────────────────
 
 const PAISES_LATAM = [
-  'México', 'Colombia', 'Argentina', 'Chile', 'Perú', 'Venezuela',
-  'Ecuador', 'Bolivia', 'Uruguay', 'Paraguay', 'Costa Rica', 'Guatemala',
-  'Honduras', 'El Salvador', 'Nicaragua', 'Panamá', 'República Dominicana',
-  'Cuba', 'España', 'Estados Unidos', 'Canadá', 'Brasil', 'Otro',
+  'México','Colombia','Argentina','Chile','Perú','Venezuela','Ecuador','Bolivia',
+  'Uruguay','Paraguay','Costa Rica','Guatemala','Honduras','El Salvador','Nicaragua',
+  'Panamá','República Dominicana','Cuba','España','Estados Unidos','Canadá','Brasil','Otro',
 ]
 
-const PASOS = ['Nombre', 'Ubicación', 'Objetivo']
+const NIVELES_CARGO = [
+  'Asesor externo','Analista','Asistente','Jefe','Coordinador','Gerente','Director','C-Level',
+]
+
+const INDUSTRIAS_LATAM = [
+  'Manufactura e Industria','Tecnología y Software','Banca y Servicios Financieros',
+  'Seguros','Comercio y Retail','Salud y Farmacéutica','Agroindustria y Alimentos',
+  'Construcción e Infraestructura','Energía y Petróleo','Telecomunicaciones',
+  'Logística y Transporte','Consultoría','Educación','Gobierno y Sector Público',
+  'Medios y Entretenimiento','Turismo y Hospitalidad','Automotriz','Minería',
+  'Bienes Raíces','Marketing y Publicidad','Legal y Jurídico','Recursos Humanos',
+  'Startups y Emprendimiento','Otro',
+]
+
+const AREAS = [
+  'Operaciones','Supply Chain','Finanzas','IT','R&D','Recursos Humanos',
+  'Ingeniería','Dirección General','Marketing','Ventas','Legal','Otro',
+]
+
+const TIPOS_TRABAJO = ['Híbrido','Presencial','Remoto']
+
+const PRESTACIONES_POR_PAIS = {
+  'México': ['IMSS','INFONAVIT','AFORE','Aguinaldo (30 días)','Prima vacacional','Seguro de gastos médicos','Seguro de vida','Vales de despensa','Fondo de ahorro','Auto de empresa','Caja de ahorro'],
+  'Colombia': ['EPS (salud)','Pensión','ARL','Prima de servicios','Cesantías','Vacaciones adicionales','Dotación','Caja de compensación','Seguro de vida'],
+  'Argentina': ['Obra social','ART','SAC (aguinaldo)','Jubilación','Vacaciones legales','Plan médico privado','Seguro de vida'],
+  'Chile': ['AFP','Isapre / Fonasa','Seguro de cesantía','Gratificación legal','Seguro de accidentes'],
+  'Perú': ['EsSalud','AFP / ONP','Gratificación','CTS','Seguro de vida ley','Vacaciones'],
+  'Venezuela': ['IVSS','Bono de alimentación','Utilidades','Cesta ticket','Seguro médico'],
+  'Ecuador': ['IESS','Décimo tercer sueldo','Décimo cuarto sueldo','Fondos de reserva','Vacaciones'],
+  'default': ['Seguro médico','Seguro de vida','Bono anual de desempeño','Plan de pensión','Vehículo / viáticos','Vacaciones adicionales','Flexibilidad horaria','Home office','Capacitación y desarrollo'],
+}
+
+const getPrestaciones = (pais) => PRESTACIONES_POR_PAIS[pais] || PRESTACIONES_POR_PAIS['default']
+
+const MONEDAS = [
+  { code:'MXN',symbol:'$' },{ code:'COP',symbol:'$' },{ code:'ARS',symbol:'$' },
+  { code:'CLP',symbol:'$' },{ code:'PEN',symbol:'S/' },{ code:'USD',symbol:'$' },
+  { code:'EUR',symbol:'€' },{ code:'BRL',symbol:'R$' },{ code:'UYU',symbol:'$' },
+]
+const MONEDA_POR_PAIS = {
+  'México':'MXN','Colombia':'COP','Argentina':'ARS','Chile':'CLP','Perú':'PEN',
+  'Uruguay':'UYU','Venezuela':'USD','Ecuador':'USD','El Salvador':'USD','Panamá':'USD',
+  'España':'EUR','Estados Unidos':'USD','Canadá':'CAD','Brasil':'BRL',
+}
+const detectarMoneda = (pais) => MONEDA_POR_PAIS[pais] || 'USD'
+
+const PASOS = ['Información personal','Compensación','Aspiraciones']
+
+// ─── Componente ──────────────────────────────────────────────────────────────
 
 export default function Onboarding() {
-  const { user, loading: authLoading, refreshPerfil } = useAuth()
+  const { user, loading: authLoading, refreshPerfil, perfil } = useAuth()
   const navigate = useNavigate()
+  const cvInputRef = useRef(null)
 
   const [paso, setPaso] = useState(0)
-  const [form, setForm] = useState({
-    nombre: '',
-    apellido: '',
-    pais: '',
-    ciudad: '',
-    cargo_objetivo: '',
-  })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [detectando, setDetectando] = useState(false)
+
+  // Determinar si nombre1/apellido1 ya están bloqueados (guardados previamente)
+  const bloqueado = !!(perfil?.nombre1 && perfil?.apellido1)
+
+  // ── Sección 1 ──
+  const [s1, setS1] = useState({
+    nombre1: '', nombre2: '', apellido1: '', apellido2: '',
+    telefono1: '', telefono2: '',
+    email_secundario: '',
+    pais: '', ciudad: '',
+    ciudades_busqueda: [],
+    edad: '',
+  })
+  const [ciudadInput, setCiudadInput] = useState('')
+
+  // ── Sección 2 ──
+  const [s2, setS2] = useState({
+    salario_monto: '', moneda: 'MXN',
+    prestaciones: [],
+  })
+
+  // ── Sección 3 ──
+  const [s3, setS3] = useState({
+    nivel_cargo: '',
+    industrias_deseadas: [],
+    tipo_trabajo: '',
+    area: '',
+  })
 
   useEffect(() => {
     if (authLoading) return
     if (!user) navigate('/auth')
   }, [user, authLoading])
 
-  const set = (key) => (e) => setForm(f => ({ ...f, [key]: e.target.value }))
+  // Pre-llenar con datos existentes si los hay
+  useEffect(() => {
+    if (!perfil) return
+    setS1(prev => ({
+      ...prev,
+      nombre1:           perfil.nombre1 || '',
+      nombre2:           perfil.nombre2 || '',
+      apellido1:         perfil.apellido1 || '',
+      apellido2:         perfil.apellido2 || '',
+      telefono1:         perfil.telefono1 || '',
+      telefono2:         perfil.telefono2 || '',
+      email_secundario:  perfil.email_secundario || '',
+      pais:              perfil.pais || '',
+      ciudad:            perfil.ciudad || '',
+      ciudades_busqueda: perfil.ciudades_busqueda || [],
+      edad:              perfil.edad || '',
+    }))
+    setS2(prev => ({
+      ...prev,
+      prestaciones: perfil.prestaciones || [],
+      salario_monto: perfil.salario_esperado?.split(' ')[0] || '',
+      moneda: perfil.salario_esperado?.split(' ')[1] || (perfil.pais ? detectarMoneda(perfil.pais) : 'MXN'),
+    }))
+    setS3(prev => ({
+      ...prev,
+      nivel_cargo:        perfil.nivel_cargo || '',
+      industrias_deseadas: perfil.industrias_deseadas || [],
+      tipo_trabajo:       perfil.tipo_trabajo || '',
+      area:               perfil.area || '',
+    }))
+  }, [perfil])
 
-  const siguiente = () => setPaso(p => p + 1)
-  const anterior  = () => setPaso(p => p - 1)
+  // Actualizar moneda cuando cambia el país
+  const handlePaisChange = (e) => {
+    const pais = e.target.value
+    setS1(f => ({ ...f, pais }))
+    setS2(f => ({ ...f, moneda: detectarMoneda(pais) }))
+  }
 
-  const guardar = async () => {
-    if (!form.nombre.trim()) { setError('El nombre es requerido.'); return }
+  // ── Auto-detección desde CV ──
+  const detectarDesdeCv = async (file) => {
+    if (!file) return
+    setDetectando(true)
+    try {
+      const formData = new FormData()
+      formData.append('cv', file)
+      const data = await api.postForm('/api/cv/extract-profile', formData)
+      setS1(prev => ({
+        ...prev,
+        nombre1:  (bloqueado ? prev.nombre1 : data.nombre1) || prev.nombre1,
+        nombre2:  data.nombre2 || prev.nombre2,
+        apellido1: (bloqueado ? prev.apellido1 : data.apellido1) || prev.apellido1,
+        apellido2: data.apellido2 || prev.apellido2,
+        telefono1: data.telefono1 || prev.telefono1,
+        ciudad:    data.ciudad || prev.ciudad,
+        edad:      data.edad || prev.edad,
+      }))
+    } catch { /* falla silenciosamente */ }
+    finally { setDetectando(false) }
+  }
+
+  // ── Ciudades de búsqueda ──
+  const agregarCiudad = () => {
+    const val = ciudadInput.trim()
+    if (!val || s1.ciudades_busqueda.length >= 5) return
+    if (s1.ciudades_busqueda.includes(val)) { setCiudadInput(''); return }
+    setS1(f => ({ ...f, ciudades_busqueda: [...f.ciudades_busqueda, val] }))
+    setCiudadInput('')
+  }
+  const quitarCiudad = (c) => setS1(f => ({ ...f, ciudades_busqueda: f.ciudades_busqueda.filter(x => x !== c) }))
+
+  // ── Toggle industrias ──
+  const toggleIndustria = (ind) => {
+    setS3(f => ({
+      ...f,
+      industrias_deseadas: f.industrias_deseadas.includes(ind)
+        ? f.industrias_deseadas.filter(x => x !== ind)
+        : [...f.industrias_deseadas, ind],
+    }))
+  }
+
+  // ── Toggle prestaciones ──
+  const togglePrestacion = (p) => {
+    setS2(f => ({
+      ...f,
+      prestaciones: f.prestaciones.includes(p)
+        ? f.prestaciones.filter(x => x !== p)
+        : [...f.prestaciones, p],
+    }))
+  }
+
+  // ── Guardar ──
+  const guardar = async (omitir = false) => {
+    if (!omitir) {
+      if (!s1.nombre1.trim())   { setError('El primer nombre es requerido.'); return }
+      if (!s1.apellido1.trim()) { setError('El primer apellido es requerido.'); return }
+      if (!s1.telefono1.trim()) { setError('El teléfono principal es requerido.'); return }
+    }
     setSaving(true)
     setError('')
-    const nombreCompleto = [form.nombre.trim(), form.apellido.trim()].filter(Boolean).join(' ')
-    const { error: err } = await supabase
-      .from('profiles')
-      .update({
-        nombre:         nombreCompleto,
-        pais:           form.pais,
-        ciudad:         form.ciudad,
-        cargo_objetivo: form.cargo_objetivo,
-      })
-      .eq('id', user.id)
+    const nombreCompleto = [s1.nombre1, s1.nombre2, s1.apellido1, s1.apellido2]
+      .map(s => s?.trim()).filter(Boolean).join(' ')
+    const salario_esperado = s2.salario_monto ? `${s2.salario_monto} ${s2.moneda}` : ''
+
+    const { error: err } = await supabase.from('profiles').update({
+      // Sección 1
+      nombre1: s1.nombre1.trim(), nombre2: s1.nombre2.trim() || null,
+      apellido1: s1.apellido1.trim(), apellido2: s1.apellido2.trim() || null,
+      telefono1: s1.telefono1.trim() || null, telefono2: s1.telefono2.trim() || null,
+      email_secundario: s1.email_secundario.trim() || null,
+      pais: s1.pais, ciudad: s1.ciudad,
+      ciudades_busqueda: s1.ciudades_busqueda,
+      edad: s1.edad ? parseInt(s1.edad) : null,
+      // Sección 2
+      salario_esperado, prestaciones: s2.prestaciones,
+      // Sección 3
+      nivel_cargo: s3.nivel_cargo, industrias_deseadas: s3.industrias_deseadas,
+      tipo_trabajo: s3.tipo_trabajo, area: s3.area,
+      // Compatibilidad con campo legacy
+      nombre: nombreCompleto,
+    }).eq('id', user.id)
+
     setSaving(false)
     if (err) { setError('Error al guardar. Intenta de nuevo.'); return }
     await refreshPerfil()
     navigate('/cv-optimizer')
   }
 
+  const validarPaso = () => {
+    if (paso === 0) {
+      if (!s1.nombre1.trim())   { setError('El primer nombre es requerido.'); return false }
+      if (!s1.apellido1.trim()) { setError('El primer apellido es requerido.'); return false }
+      if (!s1.telefono1.trim()) { setError('El teléfono principal es requerido.'); return false }
+    }
+    setError('')
+    return true
+  }
+
+  const siguiente = () => { if (validarPaso()) setPaso(p => p + 1) }
+  const anterior  = () => { setError(''); setPaso(p => p - 1) }
+
   if (authLoading) return null
 
   return (
-    <div className="min-h-[85vh] flex items-center justify-center px-4 bg-gradient-to-br from-gray-50 to-white">
-      <div className="w-full max-w-lg">
+    <div className="min-h-[85vh] flex items-center justify-center px-4 py-8 bg-gradient-to-br from-gray-50 to-white">
+      <div className="w-full max-w-2xl">
 
         {/* Encabezado */}
         <div className="text-center mb-8">
           <div className="w-14 h-14 bg-primary rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
             <span className="text-white font-bold text-xl">CV</span>
           </div>
-          <h1 className="text-3xl font-bold text-gray-900">¡Hola, bienvenido!</h1>
-          <p className="mt-2 text-gray-500 text-sm">Cuéntanos un poco sobre ti para personalizar tu experiencia.</p>
+          <h1 className="text-3xl font-bold text-gray-900">¡Bienvenido!</h1>
+          <p className="mt-2 text-gray-500 text-sm">Completa tu perfil para personalizar tu experiencia.</p>
         </div>
 
         {/* Indicador de pasos */}
         <div className="flex items-center justify-center gap-2 mb-8">
           {PASOS.map((label, i) => (
             <div key={i} className="flex items-center gap-2">
-              <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold transition-colors
-                ${i < paso ? 'bg-green-500 text-white' : i === paso ? 'bg-primary text-white' : 'bg-gray-200 text-gray-400'}`}>
-                {i < paso ? '✓' : i + 1}
+              <div className={`flex items-center gap-1.5 transition-colors`}>
+                <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold shrink-0
+                  ${i < paso ? 'bg-green-500 text-white' : i === paso ? 'bg-primary text-white' : 'bg-gray-200 text-gray-400'}`}>
+                  {i < paso ? '✓' : i + 1}
+                </div>
+                <span className={`text-xs hidden sm:block ${i === paso ? 'text-gray-700 font-medium' : 'text-gray-400'}`}>{label}</span>
               </div>
-              {i < PASOS.length - 1 && (
-                <div className={`h-0.5 w-8 transition-colors ${i < paso ? 'bg-green-400' : 'bg-gray-200'}`} />
-              )}
+              {i < PASOS.length - 1 && <div className={`h-0.5 w-6 shrink-0 ${i < paso ? 'bg-green-400' : 'bg-gray-200'}`} />}
             </div>
           ))}
         </div>
 
-        {/* Tarjeta del paso */}
-        <div className="bg-white rounded-2xl border border-gray-200 p-8 shadow-sm">
+        {/* ─── PASO 0 — Sección 1: Información personal ─────────────────── */}
+        {paso === 0 && (
+          <div className="bg-white rounded-2xl border border-gray-200 p-7 shadow-sm space-y-6">
 
-          {/* Paso 0: Nombre */}
-          {paso === 0 && (
-            <div className="space-y-5">
-              <div>
-                <h2 className="text-lg font-semibold text-gray-900 mb-1">¿Cómo te llamas?</h2>
-                <p className="text-sm text-gray-500">Este nombre se usará para validar que el CV que subes es tuyo.</p>
+            {/* Auto-detección desde CV */}
+            <div className="p-4 bg-purple-50 border border-purple-100 rounded-xl">
+              <p className="text-sm font-medium text-purple-800 mb-2">Autocompletar desde tu CV</p>
+              <p className="text-xs text-purple-600 mb-3">Sube tu CV y detectamos tu nombre, teléfono y ciudad automáticamente.</p>
+              <input ref={cvInputRef} type="file" accept=".pdf,.doc,.docx" className="hidden"
+                onChange={e => detectarDesdeCv(e.target.files[0])} />
+              <button onClick={() => cvInputRef.current.click()} disabled={detectando}
+                className="text-xs font-medium border border-purple-300 text-purple-700 rounded-lg px-4 py-2 hover:bg-purple-100 transition-colors disabled:opacity-50">
+                {detectando ? 'Detectando...' : '📄 Subir CV para autocompletar (opcional)'}
+              </button>
+            </div>
+
+            {/* Nombres y apellidos */}
+            <div>
+              <h3 className="text-sm font-semibold text-gray-700 mb-3">Nombre completo</h3>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Nombre 1 *</label>
+                  <input type="text" value={s1.nombre1} onChange={e => setS1(f=>({...f,nombre1:e.target.value}))}
+                    disabled={bloqueado} placeholder="Ana"
+                    className={`w-full border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary ${bloqueado ? 'bg-gray-50 text-gray-400 cursor-not-allowed border-gray-200' : 'border-gray-300'}`} />
+                  {bloqueado && <p className="text-xs text-gray-400 mt-1">🔒 No modificable</p>}
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Nombre 2</label>
+                  <input type="text" value={s1.nombre2} onChange={e => setS1(f=>({...f,nombre2:e.target.value}))}
+                    placeholder="María"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Apellido 1 *</label>
+                  <input type="text" value={s1.apellido1} onChange={e => setS1(f=>({...f,apellido1:e.target.value}))}
+                    disabled={bloqueado} placeholder="González"
+                    className={`w-full border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary ${bloqueado ? 'bg-gray-50 text-gray-400 cursor-not-allowed border-gray-200' : 'border-gray-300'}`} />
+                  {bloqueado && <p className="text-xs text-gray-400 mt-1">🔒 No modificable</p>}
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Apellido 2</label>
+                  <input type="text" value={s1.apellido2} onChange={e => setS1(f=>({...f,apellido2:e.target.value}))}
+                    placeholder="Martínez"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+                </div>
               </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1.5">Nombre *</label>
-                <input
-                  type="text"
-                  value={form.nombre}
-                  onChange={set('nombre')}
-                  placeholder="Ana"
-                  autoFocus
-                  className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                />
+              {bloqueado && (
+                <p className="text-xs text-amber-600 mt-2 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+                  Nombre y apellido principal no se pueden modificar — son la llave de validación de tu CV.
+                </p>
+              )}
+            </div>
+
+            {/* Teléfonos */}
+            <div>
+              <h3 className="text-sm font-semibold text-gray-700 mb-3">Teléfonos</h3>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Teléfono 1 *</label>
+                  <input type="tel" value={s1.telefono1} onChange={e => setS1(f=>({...f,telefono1:e.target.value}))}
+                    placeholder="+52 55 1234 5678"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Teléfono 2</label>
+                  <input type="tel" value={s1.telefono2} onChange={e => setS1(f=>({...f,telefono2:e.target.value}))}
+                    placeholder="+52 55 9876 5432"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+                </div>
               </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1.5">Apellido</label>
-                <input
-                  type="text"
-                  value={form.apellido}
-                  onChange={set('apellido')}
-                  placeholder="García"
-                  className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                />
+            </div>
+
+            {/* Emails */}
+            <div>
+              <h3 className="text-sm font-semibold text-gray-700 mb-3">Correos electrónicos</h3>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Email principal</label>
+                  <input type="email" value={user?.email || ''} disabled
+                    className="w-full border border-gray-200 bg-gray-50 text-gray-400 rounded-lg px-3 py-2.5 text-sm cursor-not-allowed" />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Email secundario</label>
+                  <input type="email" value={s1.email_secundario} onChange={e => setS1(f=>({...f,email_secundario:e.target.value}))}
+                    placeholder="otro@email.com"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+                </div>
               </div>
-              {error && <p className="text-sm text-red-500">{error}</p>}
-              <button
-                onClick={() => { if (!form.nombre.trim()) { setError('El nombre es requerido.'); return }; setError(''); siguiente() }}
-                className="w-full bg-primary text-white font-medium py-3 rounded-xl hover:bg-blue-700 transition-colors">
+            </div>
+
+            {/* Ubicación */}
+            <div>
+              <h3 className="text-sm font-semibold text-gray-700 mb-3">Ubicación</h3>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">País</label>
+                  <select value={s1.pais} onChange={handlePaisChange}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary">
+                    <option value="">Selecciona</option>
+                    {PAISES_LATAM.map(p => <option key={p} value={p}>{p}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Ciudad de residencia</label>
+                  <input type="text" value={s1.ciudad} onChange={e => setS1(f=>({...f,ciudad:e.target.value}))}
+                    placeholder="Ciudad de México"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Edad</label>
+                  <input type="number" value={s1.edad} onChange={e => setS1(f=>({...f,edad:e.target.value}))}
+                    placeholder="35" min="16" max="80"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+                </div>
+              </div>
+
+              {/* Ciudades de búsqueda */}
+              <div className="mt-3">
+                <label className="block text-xs text-gray-500 mb-1.5">
+                  Ciudades de búsqueda <span className="text-gray-400">(hasta 5)</span>
+                </label>
+                <div className="flex gap-2">
+                  <input type="text" value={ciudadInput} onChange={e => setCiudadInput(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), agregarCiudad())}
+                    placeholder="Guadalajara, Monterrey..."
+                    disabled={s1.ciudades_busqueda.length >= 5}
+                    className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary disabled:bg-gray-50" />
+                  <button onClick={agregarCiudad} disabled={!ciudadInput.trim() || s1.ciudades_busqueda.length >= 5}
+                    className="border border-gray-300 text-gray-600 rounded-lg px-3 py-2 text-sm hover:border-primary hover:text-primary disabled:opacity-40 transition-colors">
+                    +
+                  </button>
+                </div>
+                {s1.ciudades_busqueda.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mt-2">
+                    {s1.ciudades_busqueda.map(c => (
+                      <span key={c} className="flex items-center gap-1 bg-primary/10 text-primary text-xs rounded-full px-2.5 py-1">
+                        {c}
+                        <button onClick={() => quitarCiudad(c)} className="hover:text-red-500 transition-colors">×</button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {error && <p className="text-sm text-red-500">{error}</p>}
+
+            <div className="flex gap-3">
+              <button onClick={() => guardar(true)}
+                className="text-sm text-gray-400 hover:text-gray-600 transition-colors">
+                Omitir por ahora
+              </button>
+              <button onClick={siguiente}
+                className="flex-1 bg-primary text-white font-medium py-3 rounded-xl hover:bg-blue-700 transition-colors">
                 Continuar →
               </button>
             </div>
-          )}
+          </div>
+        )}
 
-          {/* Paso 1: Ubicación */}
-          {paso === 1 && (
-            <div className="space-y-5">
-              <div>
-                <h2 className="text-lg font-semibold text-gray-900 mb-1">¿Dónde estás?</h2>
-                <p className="text-sm text-gray-500">Esto nos ayuda a mostrarte vacantes y monedas relevantes para tu región.</p>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1.5">País</label>
-                <select
-                  value={form.pais}
-                  onChange={set('pais')}
-                  className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary">
-                  <option value="">Selecciona tu país</option>
-                  {PAISES_LATAM.map(p => <option key={p} value={p}>{p}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1.5">Ciudad</label>
-                <input
-                  type="text"
-                  value={form.ciudad}
-                  onChange={set('ciudad')}
-                  placeholder="Ciudad de México"
-                  className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-              </div>
-              <div className="flex gap-3">
-                <button onClick={anterior}
-                  className="flex-1 border border-gray-300 text-gray-600 font-medium py-3 rounded-xl hover:border-gray-400 transition-colors">
-                  ← Atrás
-                </button>
-                <button onClick={siguiente}
-                  className="flex-1 bg-primary text-white font-medium py-3 rounded-xl hover:bg-blue-700 transition-colors">
-                  Continuar →
-                </button>
-              </div>
+        {/* ─── PASO 1 — Sección 2: Compensación ──────────────────────────── */}
+        {paso === 1 && (
+          <div className="bg-white rounded-2xl border border-gray-200 p-7 shadow-sm space-y-6">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900 mb-1">Compensación</h2>
+              <p className="text-sm text-gray-500">Esta información ayuda a filtrar vacantes por rango salarial.</p>
             </div>
-          )}
 
-          {/* Paso 2: Objetivo profesional */}
-          {paso === 2 && (
-            <div className="space-y-5">
-              <div>
-                <h2 className="text-lg font-semibold text-gray-900 mb-1">¿A qué posición aspiras?</h2>
-                <p className="text-sm text-gray-500">Tu cargo objetivo nos ayuda a encontrar las vacantes más relevantes para ti.</p>
+            {/* Salario */}
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1.5">Salario bruto mensual</label>
+              <div className="flex gap-2">
+                <select value={s2.moneda} onChange={e => setS2(f=>({...f,moneda:e.target.value}))}
+                  className="border border-gray-300 rounded-lg px-2 py-2.5 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary shrink-0">
+                  {MONEDAS.map(m => <option key={m.code} value={m.code}>{m.code}</option>)}
+                </select>
+                <div className="relative flex-1">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400 select-none">
+                    {MONEDAS.find(m => m.code === s2.moneda)?.symbol || '$'}
+                  </span>
+                  <input type="text" value={s2.salario_monto} onChange={e => setS2(f=>({...f,salario_monto:e.target.value}))}
+                    placeholder="50,000"
+                    className="w-full border border-gray-300 rounded-lg pl-7 pr-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+                </div>
               </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1.5">Cargo objetivo</label>
-                <input
-                  type="text"
-                  value={form.cargo_objetivo}
-                  onChange={set('cargo_objetivo')}
-                  placeholder="ej. Gerente de Marketing, Director de RH..."
-                  autoFocus
-                  className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-              </div>
+              {s1.pais && <p className="text-xs text-gray-400 mt-1">Moneda detectada para {s1.pais}: {s2.moneda}</p>}
+            </div>
 
-              {/* Beneficios rápidos */}
-              <div className="bg-gray-50 rounded-xl p-4 space-y-2">
-                {[
-                  '2 análisis de CV gratuitos',
-                  'Búsqueda de vacantes con IA',
-                  'Seguimiento de aplicaciones',
-                ].map((b, i) => (
-                  <div key={i} className="flex items-center gap-2 text-sm text-gray-600">
-                    <span className="w-4 h-4 bg-green-100 text-green-600 rounded-full flex items-center justify-center text-xs font-bold">✓</span>
-                    {b}
-                  </div>
+            {/* Prestaciones */}
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-2">
+                Prestaciones que recibes actualmente{s1.pais ? ` (${s1.pais})` : ''}
+              </label>
+              <div className="grid grid-cols-2 gap-1.5">
+                {getPrestaciones(s1.pais).map(p => (
+                  <label key={p} className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-colors text-xs
+                    ${s2.prestaciones.includes(p) ? 'bg-primary/5 border-primary/30 text-primary' : 'border-gray-200 text-gray-600 hover:border-gray-300'}`}>
+                    <input type="checkbox" checked={s2.prestaciones.includes(p)} onChange={() => togglePrestacion(p)}
+                      className="accent-primary shrink-0" />
+                    {p}
+                  </label>
                 ))}
               </div>
+            </div>
 
-              {error && <p className="text-sm text-red-500">{error}</p>}
-              <div className="flex gap-3">
-                <button onClick={anterior}
-                  className="flex-1 border border-gray-300 text-gray-600 font-medium py-3 rounded-xl hover:border-gray-400 transition-colors">
-                  ← Atrás
-                </button>
-                <button onClick={guardar} disabled={saving}
-                  className="flex-1 bg-primary text-white font-medium py-3 rounded-xl hover:bg-blue-700 transition-colors disabled:opacity-50">
-                  {saving ? 'Guardando...' : '¡Empezar!'}
-                </button>
-              </div>
-              <button onClick={guardar} disabled={saving}
-                className="w-full text-xs text-gray-400 hover:text-gray-600 transition-colors pt-1">
-                Omitir este paso →
+            <div className="flex gap-3">
+              <button onClick={anterior}
+                className="border border-gray-300 text-gray-600 font-medium py-3 px-5 rounded-xl hover:border-gray-400 transition-colors">
+                ← Atrás
+              </button>
+              <button onClick={siguiente}
+                className="flex-1 bg-primary text-white font-medium py-3 rounded-xl hover:bg-blue-700 transition-colors">
+                Continuar →
               </button>
             </div>
-          )}
-        </div>
+          </div>
+        )}
 
-        {/* Footer info */}
+        {/* ─── PASO 2 — Sección 3: Aspiraciones ──────────────────────────── */}
+        {paso === 2 && (
+          <div className="bg-white rounded-2xl border border-gray-200 p-7 shadow-sm space-y-6">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900 mb-1">Aspiraciones y motivaciones</h2>
+              <p className="text-sm text-gray-500">Esto personaliza las vacantes y el análisis de tu CV.</p>
+            </div>
+
+            {/* Nivel de cargo */}
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-2">Nivel de cargo buscado</label>
+              <div className="flex flex-wrap gap-2">
+                {NIVELES_CARGO.map(n => (
+                  <button key={n} onClick={() => setS3(f=>({...f,nivel_cargo:n}))}
+                    className={`text-xs font-medium px-3 py-2 rounded-full border transition-colors
+                      ${s3.nivel_cargo === n ? 'bg-primary text-white border-primary' : 'border-gray-300 text-gray-600 hover:border-primary hover:text-primary'}`}>
+                    {n}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Área */}
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-2">Área funcional</label>
+              <div className="flex flex-wrap gap-2">
+                {AREAS.map(a => (
+                  <button key={a} onClick={() => setS3(f=>({...f,area:a}))}
+                    className={`text-xs font-medium px-3 py-2 rounded-full border transition-colors
+                      ${s3.area === a ? 'bg-teal text-white border-teal' : 'border-gray-300 text-gray-600 hover:border-teal hover:text-teal'}`}>
+                    {a}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Tipo de trabajo */}
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-2">Tipo de trabajo</label>
+              <div className="flex gap-2">
+                {TIPOS_TRABAJO.map(t => (
+                  <button key={t} onClick={() => setS3(f=>({...f,tipo_trabajo:t}))}
+                    className={`flex-1 text-xs font-medium py-2.5 rounded-xl border transition-colors
+                      ${s3.tipo_trabajo === t ? 'bg-primary text-white border-primary' : 'border-gray-300 text-gray-600 hover:border-primary hover:text-primary'}`}>
+                    {t}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Industrias deseadas */}
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-2">
+                Industrias de interés <span className="text-gray-400">(selección múltiple)</span>
+              </label>
+              <div className="flex flex-wrap gap-1.5 max-h-52 overflow-y-auto pr-1">
+                {INDUSTRIAS_LATAM.map(ind => (
+                  <button key={ind} onClick={() => toggleIndustria(ind)}
+                    className={`text-xs px-3 py-1.5 rounded-full border transition-colors
+                      ${s3.industrias_deseadas.includes(ind)
+                        ? 'bg-primary/10 border-primary/40 text-primary font-medium'
+                        : 'border-gray-200 text-gray-500 hover:border-gray-300'}`}>
+                    {ind}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {error && <p className="text-sm text-red-500">{error}</p>}
+
+            {/* Beneficios rápidos */}
+            <div className="bg-gray-50 rounded-xl p-4 space-y-2">
+              {['2 análisis de CV gratuitos incluidos','Búsqueda de vacantes con IA','Seguimiento de aplicaciones'].map((b, i) => (
+                <div key={i} className="flex items-center gap-2 text-sm text-gray-600">
+                  <span className="w-4 h-4 bg-green-100 text-green-600 rounded-full flex items-center justify-center text-xs font-bold">✓</span>
+                  {b}
+                </div>
+              ))}
+            </div>
+
+            <div className="flex gap-3">
+              <button onClick={anterior}
+                className="border border-gray-300 text-gray-600 font-medium py-3 px-5 rounded-xl hover:border-gray-400 transition-colors">
+                ← Atrás
+              </button>
+              <button onClick={() => guardar(false)} disabled={saving}
+                className="flex-1 bg-primary text-white font-medium py-3 rounded-xl hover:bg-blue-700 transition-colors disabled:opacity-50">
+                {saving ? 'Guardando...' : '¡Empezar!'}
+              </button>
+            </div>
+            <button onClick={() => guardar(true)} disabled={saving}
+              className="w-full text-xs text-gray-400 hover:text-gray-600 transition-colors">
+              Omitir y completar después →
+            </button>
+          </div>
+        )}
+
         <p className="text-center text-xs text-gray-400 mt-4">
-          Puedes completar o editar tu perfil en cualquier momento desde <strong>Mi Perfil</strong>.
+          Puedes editar toda esta información en <strong>Mi Perfil</strong>.
         </p>
       </div>
     </div>

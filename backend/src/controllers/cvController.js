@@ -178,4 +178,47 @@ const download = async (req, res, next) => {
   }
 };
 
-module.exports = { optimize, matchToJob, download };
+// POST /api/cv/extract-profile — extrae datos personales del CV para pre-llenar onboarding
+const extractProfile = async (req, res, next) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'No se recibió ningún archivo' });
+
+    const Anthropic = require('@anthropic-ai/sdk');
+    const anthropic = new Anthropic();
+
+    const cvText = await parseCV(req.file.buffer, req.file.mimetype);
+    const fragmento = cvText.substring(0, 3000);
+
+    const response = await anthropic.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 400,
+      messages: [{
+        role: 'user',
+        content: `Extrae la siguiente información del CV. Responde SOLO con JSON válido, sin texto adicional. Si no encuentras un dato, usa null.
+
+CV:
+${fragmento}
+
+Formato de respuesta:
+{
+  "nombre1": "primer nombre",
+  "nombre2": "segundo nombre o null",
+  "apellido1": "primer apellido",
+  "apellido2": "segundo apellido o null",
+  "telefono1": "teléfono principal o null",
+  "ciudad": "ciudad de residencia o null",
+  "edad": número entero o null
+}`,
+      }],
+    });
+
+    const jsonText = response.content[0].text.trim();
+    const perfil = JSON.parse(jsonText);
+    res.json(perfil);
+  } catch (err) {
+    // Si Claude falla, devolver objeto vacío sin romper el flujo
+    res.json({ nombre1: null, nombre2: null, apellido1: null, apellido2: null, telefono1: null, ciudad: null, edad: null });
+  }
+};
+
+module.exports = { optimize, matchToJob, download, extractProfile };
