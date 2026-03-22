@@ -68,7 +68,7 @@ const AREAS = ['Operaciones','Supply Chain','Finanzas','IT','R&D','Recursos Huma
 const TIPOS_TRABAJO = ['Híbrido','Presencial','Remoto']
 
 const PRESTACIONES_POR_PAIS = {
-  'México': ['IMSS','INFONAVIT','AFORE','Aguinaldo (30 días)','Prima vacacional','Seguro de gastos médicos','Seguro de vida','Vales de despensa','Fondo de ahorro','Auto de empresa','Caja de ahorro'],
+  'México': ['IMSS','INFONAVIT','AFORE','Aguinaldo (30 días)','Prima vacacional','Seguro de gastos médicos','Seguro de vida','Vales de despensa','Fondo de ahorro','Auto de empresa','Caja de ahorro','Car allowance','House allowance','Viáticos'],
   'Colombia': ['EPS (salud)','Pensión','ARL','Prima de servicios','Cesantías','Vacaciones adicionales','Dotación','Caja de compensación','Seguro de vida'],
   'Argentina': ['Obra social','ART','SAC (aguinaldo)','Jubilación','Vacaciones legales','Plan médico privado','Seguro de vida'],
   'Chile': ['AFP','Isapre / Fonasa','Seguro de cesantía','Gratificación legal','Seguro de accidentes'],
@@ -78,6 +78,19 @@ const PRESTACIONES_POR_PAIS = {
   'default': ['Seguro médico','Seguro de vida','Bono anual de desempeño','Plan de pensión','Vehículo / viáticos','Vacaciones adicionales','Flexibilidad horaria','Home office','Capacitación y desarrollo'],
 }
 const getPrestaciones = (pais) => PRESTACIONES_POR_PAIS[pais] || PRESTACIONES_POR_PAIS['default']
+
+// Campos de detalle para prestaciones de México
+const MEXICO_DETALLE = {
+  'Aguinaldo (30 días)':     { tipo: 'dias',     label: 'Días',            default: '30'      },
+  'Prima vacacional':        { tipo: 'pct',      label: '% prima',         default: '25'      },
+  'Seguro de gastos médicos':{ tipo: 'selector', label: 'Cobertura',       opciones: ['Personal','Familiar'], default: 'Personal' },
+  'Vales de despensa':       { tipo: 'monto',    label: 'Monto mensual',   default: ''        },
+  'Fondo de ahorro':         { tipo: 'pct',      label: '% fondo',         default: ''        },
+  'Auto de empresa':         { tipo: 'monto',    label: 'Valor / mes',     default: ''        },
+  'Car allowance':           { tipo: 'monto',    label: 'Monto mensual',   default: ''        },
+  'House allowance':         { tipo: 'monto',    label: 'Monto mensual',   default: ''        },
+  'Viáticos':                { tipo: 'monto',    label: 'Monto mensual',   default: ''        },
+}
 
 const MONEDAS = [
   { code:'MXN',symbol:'$' },{ code:'COP',symbol:'$' },{ code:'ARS',symbol:'$' },
@@ -93,6 +106,33 @@ const detectarMoneda = (pais) => MONEDA_POR_PAIS[pais] || 'USD'
 
 const PASOS = ['Información personal','Compensación','Aspiraciones']
 
+// ─── Sub-componente teléfono — DEBE estar fuera del componente principal para evitar remount ───
+function TelefonoInput({ indicativoKey, telefonoKey, label, required, s1, setS1 }) {
+  return (
+    <div>
+      <label className="block text-xs text-on-surface-variant mb-1">{label}{required ? ' *' : ''}</label>
+      <div className="flex gap-1.5">
+        <select
+          value={s1[indicativoKey]}
+          onChange={e => setS1(f => ({ ...f, [indicativoKey]: e.target.value }))}
+          className="border border-outline-variant rounded-lg px-1.5 py-2.5 text-xs bg-surface-container-low focus:outline-none focus:ring-2 focus:ring-primary shrink-0 w-24"
+        >
+          {INDICATIVOS.map(i => (
+            <option key={i.code} value={i.ind}>{i.code} {i.ind}</option>
+          ))}
+        </select>
+        <input
+          type="tel"
+          value={s1[telefonoKey]}
+          onChange={e => setS1(f => ({ ...f, [telefonoKey]: e.target.value }))}
+          placeholder="55 1234 5678"
+          className="flex-1 border border-outline-variant rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+        />
+      </div>
+    </div>
+  )
+}
+
 // ─── Componente ──────────────────────────────────────────────────────────────
 
 const S1_INICIAL = {
@@ -102,7 +142,12 @@ const S1_INICIAL = {
   indicativo2: '+52', telefono2: '',
   email_secundario: '', ciudades_busqueda: [], edad: '',
 }
-const S2_INICIAL = { salario_monto: '', moneda: 'MXN', pais: '', prestaciones: [] }
+const S2_INICIAL = {
+  salario_monto: '', moneda: 'MXN', pais: '', prestaciones: [],
+  prestaciones_detalle: {},
+  bono_activo: false, bono_tipo: '', bono_frecuencia: '',
+  bono_monto: '', bono_pct: '', variable_monto: '',
+}
 const S3_INICIAL = { niveles_cargo: [], industrias_deseadas: [], tipo_trabajo: '', area: '' }
 
 export default function Onboarding() {
@@ -185,8 +230,9 @@ export default function Onboarding() {
     }))
     setS2(prev => ({
       ...prev,
-      pais:          perfil.pais || prev.pais,
-      prestaciones:  perfil.prestaciones || [],
+      pais:                  perfil.pais || prev.pais,
+      prestaciones:          perfil.prestaciones || [],
+      prestaciones_detalle:  perfil.prestaciones_detalle || {},
       salario_monto: monto || '',
       moneda:        monedaSaved || detectarMoneda(perfil.pais),
     }))
@@ -272,11 +318,21 @@ export default function Onboarding() {
       : [...f.niveles_cargo, n],
   }))
 
-  const togglePrestacion = (p) => setS2(f => ({
+  const togglePrestacion = (p) => setS2(f => {
+    const isChecked = f.prestaciones.includes(p)
+    const nuevas = isChecked ? f.prestaciones.filter(x => x !== p) : [...f.prestaciones, p]
+    const detalle = { ...f.prestaciones_detalle }
+    if (isChecked) {
+      delete detalle[p]
+    } else if (MEXICO_DETALLE[p]) {
+      detalle[p] = MEXICO_DETALLE[p].default
+    }
+    return { ...f, prestaciones: nuevas, prestaciones_detalle: detalle }
+  })
+
+  const updateDetalle = (prestacion, valor) => setS2(f => ({
     ...f,
-    prestaciones: f.prestaciones.includes(p)
-      ? f.prestaciones.filter(x => x !== p)
-      : [...f.prestaciones, p],
+    prestaciones_detalle: { ...f.prestaciones_detalle, [prestacion]: valor },
   }))
 
   // ── Guardar ──
@@ -291,6 +347,17 @@ export default function Onboarding() {
     const nombreCompleto = [s1.nombre1, s1.nombre2, s1.apellido1, s1.apellido2]
       .map(s => s?.trim()).filter(Boolean).join(' ')
     const salario_esperado = s2.salario_monto ? `${s2.salario_monto} ${s2.moneda}` : ''
+    const prestaciones_detalle = {
+      ...s2.prestaciones_detalle,
+      ...(s2.bono_activo && s2.bono_tipo ? {
+        __bono: {
+          tipo: s2.bono_tipo,
+          frecuencia: s2.bono_tipo === 'Bono' ? s2.bono_frecuencia : null,
+          monto: s2.bono_tipo === 'Bono' ? s2.bono_monto : s2.variable_monto,
+          pct: s2.bono_tipo === 'Bono' ? s2.bono_pct : null,
+        },
+      } : {}),
+    }
     const { error: err } = await supabase.from('profiles').update({
       nombre1: s1.nombre1.trim(), nombre2: s1.nombre2.trim() || null,
       apellido1: s1.apellido1.trim(), apellido2: s1.apellido2.trim() || null,
@@ -300,7 +367,7 @@ export default function Onboarding() {
       pais: s1.pais, ciudad: s1.ciudad,
       ciudades_busqueda: s1.ciudades_busqueda,
       edad: s1.edad ? parseInt(s1.edad) : null,
-      salario_esperado, prestaciones: s2.prestaciones,
+      salario_esperado, prestaciones: s2.prestaciones, prestaciones_detalle,
       nivel_cargo: s3.niveles_cargo.join(', '),
       industrias_deseadas: s3.industrias_deseadas,
       tipo_trabajo: s3.tipo_trabajo, area: s3.area,
@@ -329,31 +396,6 @@ export default function Onboarding() {
   const anterior  = () => { setError(''); setPaso(p => p - 1) }
 
   if (authLoading) return null
-
-  // ── Sub-componente teléfono ──
-  const TelefonoInput = ({ indicativoKey, telefonoKey, label, required }) => (
-    <div>
-      <label className="block text-xs text-gray-500 mb-1">{label}{required ? ' *' : ''}</label>
-      <div className="flex gap-1.5">
-        <select
-          value={s1[indicativoKey]}
-          onChange={e => setS1(f => ({ ...f, [indicativoKey]: e.target.value }))}
-          className="border border-gray-300 rounded-lg px-1.5 py-2.5 text-xs bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary shrink-0 w-24"
-        >
-          {INDICATIVOS.map(i => (
-            <option key={i.code} value={i.ind}>{i.code} {i.ind}</option>
-          ))}
-        </select>
-        <input
-          type="tel"
-          value={s1[telefonoKey]}
-          onChange={e => setS1(f => ({ ...f, [telefonoKey]: e.target.value }))}
-          placeholder="55 1234 5678"
-          className="flex-1 border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-        />
-      </div>
-    </div>
-  )
 
   const paisPrestaciones = s2.pais || s1.pais
 
@@ -485,8 +527,8 @@ export default function Onboarding() {
             <div>
               <h3 className="text-sm font-semibold text-on-surface mb-3">Teléfonos</h3>
               <div className="grid grid-cols-2 gap-3">
-                <TelefonoInput indicativoKey="indicativo1" telefonoKey="telefono1" label="Teléfono 1" required />
-                <TelefonoInput indicativoKey="indicativo2" telefonoKey="telefono2" label="Teléfono 2" />
+                <TelefonoInput indicativoKey="indicativo1" telefonoKey="telefono1" label="Teléfono 1" required s1={s1} setS1={setS1} />
+                <TelefonoInput indicativoKey="indicativo2" telefonoKey="telefono2" label="Teléfono 2" s1={s1} setS1={setS1} />
               </div>
             </div>
 
@@ -573,17 +615,111 @@ export default function Onboarding() {
                 Prestaciones{paisPrestaciones ? ` — ${paisPrestaciones}` : ''}
               </label>
               <div className="grid grid-cols-2 gap-1.5">
-                {getPrestaciones(paisPrestaciones).map(p => (
-                  <label key={p} className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-colors text-xs
-                    ${s2.prestaciones.includes(p)
-                      ? 'bg-secondary-fixed border-secondary/30 text-on-secondary-container font-medium'
-                      : 'border-outline-variant text-on-surface-variant hover:border-outline'}`}>
-                    <input type="checkbox" checked={s2.prestaciones.includes(p)} onChange={() => togglePrestacion(p)}
-                      className="accent-primary shrink-0" />
-                    {p}
-                  </label>
-                ))}
+                {getPrestaciones(paisPrestaciones).map(p => {
+                  const detailCfg = paisPrestaciones === 'México' ? MEXICO_DETALLE[p] : null
+                  const isChecked = s2.prestaciones.includes(p)
+                  return (
+                    <div key={p}>
+                      <label className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-colors text-xs
+                        ${isChecked
+                          ? 'bg-secondary-fixed border-secondary/30 text-on-secondary-container font-medium'
+                          : 'border-outline-variant text-on-surface-variant hover:border-outline'}`}>
+                        <input type="checkbox" checked={isChecked} onChange={() => togglePrestacion(p)}
+                          className="accent-primary shrink-0" />
+                        {p}
+                      </label>
+                      {isChecked && detailCfg && (
+                        <div className="mt-1 px-1">
+                          {detailCfg.tipo === 'selector' ? (
+                            <select
+                              value={s2.prestaciones_detalle[p] ?? detailCfg.default}
+                              onChange={e => updateDetalle(p, e.target.value)}
+                              className="w-full border border-outline-variant rounded-md px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+                            >
+                              {detailCfg.opciones.map(o => <option key={o} value={o}>{o}</option>)}
+                            </select>
+                          ) : (
+                            <div className="flex items-center gap-1">
+                              <input
+                                type={detailCfg.tipo === 'pct' || detailCfg.tipo === 'dias' ? 'number' : 'text'}
+                                value={s2.prestaciones_detalle[p] ?? detailCfg.default}
+                                onChange={e => updateDetalle(p, e.target.value)}
+                                placeholder={detailCfg.label}
+                                className="flex-1 border border-outline-variant rounded-md px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
+                              />
+                              {detailCfg.tipo === 'pct'  && <span className="text-xs text-outline shrink-0">%</span>}
+                              {detailCfg.tipo === 'dias' && <span className="text-xs text-outline shrink-0">días</span>}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
               </div>
+            </div>
+
+            {/* Variable o Bono */}
+            <div>
+              <div className="flex items-center gap-3 mb-2">
+                <label className="text-xs font-semibold text-on-surface-variant">Variable o Bono</label>
+                <button
+                  onClick={() => setS2(f => ({ ...f, bono_activo: !f.bono_activo, bono_tipo: '', bono_frecuencia: '', bono_monto: '', bono_pct: '', variable_monto: '' }))}
+                  className={`text-xs font-medium px-3 py-1.5 rounded-full border transition-colors
+                    ${s2.bono_activo ? 'bg-primary text-on-primary border-primary' : 'border-outline-variant text-on-surface-variant hover:border-primary hover:text-primary'}`}
+                >
+                  {s2.bono_activo ? '✓ Aplica' : '+ Agregar'}
+                </button>
+              </div>
+
+              {s2.bono_activo && (
+                <div className="space-y-3 p-4 bg-surface-container-low rounded-xl border border-outline-variant/40">
+                  {/* Tipo */}
+                  <div className="flex gap-2">
+                    {['Bono', 'Variable mensual'].map(t => (
+                      <button key={t} onClick={() => setS2(f => ({ ...f, bono_tipo: t }))}
+                        className={`flex-1 text-xs font-semibold py-2 rounded-lg border transition-colors
+                          ${s2.bono_tipo === t ? 'bg-primary text-on-primary border-primary' : 'border-outline-variant text-on-surface-variant hover:border-primary'}`}>
+                        {t}
+                      </button>
+                    ))}
+                  </div>
+
+                  {s2.bono_tipo === 'Bono' && (
+                    <div className="grid grid-cols-3 gap-2">
+                      <div>
+                        <label className="block text-xs text-on-surface-variant mb-1">Frecuencia</label>
+                        <select value={s2.bono_frecuencia} onChange={e => setS2(f => ({ ...f, bono_frecuencia: e.target.value }))}
+                          className="w-full border border-outline-variant rounded-lg px-2 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary">
+                          <option value="">Selecciona</option>
+                          {['Mensual','Trimestral','Semestral','Anual'].map(frq => <option key={frq} value={frq}>{frq}</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs text-on-surface-variant mb-1">Monto ({s2.moneda})</label>
+                        <input type="text" value={s2.bono_monto} onChange={e => setS2(f => ({ ...f, bono_monto: e.target.value }))}
+                          placeholder="50,000"
+                          className="w-full border border-outline-variant rounded-lg px-2 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary" />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-on-surface-variant mb-1">%</label>
+                        <input type="number" value={s2.bono_pct} onChange={e => setS2(f => ({ ...f, bono_pct: e.target.value }))}
+                          placeholder="10" min="0" max="200"
+                          className="w-full border border-outline-variant rounded-lg px-2 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary" />
+                      </div>
+                    </div>
+                  )}
+
+                  {s2.bono_tipo === 'Variable mensual' && (
+                    <div>
+                      <label className="block text-xs text-on-surface-variant mb-1">Monto mensual ({s2.moneda})</label>
+                      <input type="text" value={s2.variable_monto} onChange={e => setS2(f => ({ ...f, variable_monto: e.target.value }))}
+                        placeholder="10,000"
+                        className="w-full border border-outline-variant rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary" />
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="flex gap-3">
