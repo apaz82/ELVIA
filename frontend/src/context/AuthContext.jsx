@@ -13,7 +13,7 @@ export const AuthProvider = ({ children }) => {
   const [usageCount, setUsageCount] = useState(0)
   const [perfil, setPerfil]         = useState(null)
 
-  const fetchPerfil = async (userId) => {
+  const fetchPerfil = async (userId, email) => {
     const { data } = await supabase
       .from('profiles')
       .select('*')
@@ -22,6 +22,10 @@ export const AuthProvider = ({ children }) => {
     if (data) {
       setUsageCount(data.usage_count || 0)
       setPerfil(data)
+      // Guardar email en profiles para que el admin pueda verlo
+      if (email && !data.email_principal) {
+        await supabase.from('profiles').update({ email_principal: email }).eq('id', userId)
+      }
     }
   }
 
@@ -29,14 +33,14 @@ export const AuthProvider = ({ children }) => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session)
       setUser(session?.user ?? null)
-      if (session?.user) fetchPerfil(session.user.id)
+      if (session?.user) fetchPerfil(session.user.id, session.user.email)
       setLoading(false)
     })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session)
       setUser(session?.user ?? null)
-      if (session?.user) fetchPerfil(session.user.id)
+      if (session?.user) fetchPerfil(session.user.id, session.user.email)
       else { setUsageCount(0); setPerfil(null) }
     })
 

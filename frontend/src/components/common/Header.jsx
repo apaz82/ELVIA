@@ -1,11 +1,12 @@
 // Header superior — glassmorphism, hamburger + usuario + créditos
 import { useState, useRef, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
-import { List, Coins, UserCircle, CaretDown } from '@phosphor-icons/react'
+import { List, Coins, UserCircle, CaretDown, SignOut } from '@phosphor-icons/react'
 
 export default function Header({ onMenuToggle }) {
-  const { user, creditosRestantes, LIMITE_PLAN, perfil } = useAuth()
+  const { user, creditosRestantes, LIMITE_PLAN, perfil, logout } = useAuth()
+  const navigate = useNavigate()
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const dropdownRef = useRef(null)
 
@@ -81,7 +82,7 @@ export default function Header({ onMenuToggle }) {
 
             {/* Dropdown */}
             {dropdownOpen && (
-              <div className="absolute right-0 top-full mt-1.5 bg-surface-container-lowest rounded-xl shadow-float border border-outline-variant/20 py-1.5 w-44 z-50">
+              <div className="absolute right-0 top-full mt-1.5 bg-surface-container-lowest rounded-xl shadow-float border border-outline-variant/20 py-1.5 w-48 z-50">
                 <Link
                   to="/perfil"
                   onClick={() => setDropdownOpen(false)}
@@ -90,6 +91,14 @@ export default function Header({ onMenuToggle }) {
                   <UserCircle size={16} weight="duotone" className="text-primary" />
                   Mi Perfil
                 </Link>
+                <div className="h-px bg-outline-variant/20 mx-2 my-1" />
+                <button
+                  onClick={async () => { setDropdownOpen(false); await logout(); navigate('/') }}
+                  className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-error hover:bg-error-container/30 transition-colors"
+                >
+                  <SignOut size={16} />
+                  Cerrar sesión
+                </button>
               </div>
             )}
           </div>
