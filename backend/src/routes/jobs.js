@@ -149,25 +149,30 @@ const expandirCargo = async (title) => {
 };
 
 // GET /api/jobs/similar
+// Soporta dos modos:
+//   ?title=  → búsqueda por cargo (expande con sinónimos)
+//   ?keywords= → búsqueda por palabras clave/frases (sin expansión)
 router.get('/similar', async (req, res) => {
-  const { title, location, datecreated, employment_type, experience, radius, salary, page } = req.query;
+  const { title, keywords, location, datecreated, employment_type, experience, radius, salary, page } = req.query;
 
-  if (!title) return res.status(400).json({ error: 'Se requiere el título del cargo' });
+  const modoKeywords = !!keywords && !title;
+  const queryOriginal = keywords || title;
+
+  if (!queryOriginal) return res.status(400).json({ error: 'Se requiere el cargo o palabras clave' });
 
   try {
-    // Expandir el cargo con sinónimos
-    const titleExpandido = await expandirCargo(title);
-    console.log(`[jobs/similar] Búsqueda expandida: "${titleExpandido}"`);
+    // Modo cargo: expandir con sinónimos. Modo keywords: usar directo.
+    const queryBusqueda = modoKeywords ? queryOriginal : await expandirCargo(title);
+    console.log(`[jobs/similar] Modo: ${modoKeywords ? 'keywords' : 'cargo'} | Query: "${queryBusqueda}"`);
 
-    // Buscar en ambas fuentes en paralelo con el cargo expandido
     const [joobleResults, googleResults] = await Promise.all([
-      searchJooble({ title: titleExpandido, location, datecreated, employment_type, experience, radius, salary, page }),
-      searchGoogleJobs({ title: titleExpandido, location, datecreated }),
+      searchJooble({ title: queryBusqueda, location, datecreated, employment_type, experience, radius, salary, page }),
+      searchGoogleJobs({ title: queryBusqueda, location, datecreated }),
     ]);
 
     console.log(`[jobs/similar] Jooble: ${joobleResults.length} | Google Jobs: ${googleResults.length}`);
 
-    // Combinar y deduplicar por título+empresa
+    // Combinar y deduplicar
     const vistos = new Set();
     const rawVacantes = [...joobleResults, ...googleResults].filter(v => {
       const key = `${v.title?.toLowerCase().trim()}|${v.company?.toLowerCase().trim()}`;
@@ -178,23 +183,22 @@ router.get('/similar', async (req, res) => {
 
     if (rawVacantes.length === 0) return res.json({ vacantes: [], total: 0 });
 
-    // Filtrar con Claude: eliminar irrelevantes
+    // Filtrar con Claude según el modo de búsqueda
     const listaParaFiltrar = rawVacantes
       .map((v, i) => `${i}. ${v.title} | ${v.company || ''}`)
       .join('\n');
 
+    const promptFiltro = modoKeywords
+      ? `Se buscó con las palabras clave: "${queryOriginal}". De esta lista, devuelve los índices de vacantes que estén relacionadas con estas palabras clave. Incluye vacantes que coincidan aunque sea parcialmente. Responde únicamente con los índices separados por comas.\n\n${listaParaFiltrar}`
+      : `Se buscó el cargo: "${title}". De esta lista, devuelve SOLO los índices de vacantes relevantes para ese cargo. Excluye solo las que sean de un área completamente distinta. Responde únicamente con los índices separados por comas.\n\n${listaParaFiltrar}`;
+
     const filtroResp = await client.messages.create({
       model: 'claude-haiku-4-5-20251001',
       max_tokens: 512,
-      messages: [{
-        role: 'user',
-        content: `Se buscó el cargo: "${title}". De esta lista, devuelve SOLO los índices de vacantes relevantes para ese cargo. Excluye solo las que sean de un área completamente distinta. Si la mayoría aplican, inclúyelas todas. Responde únicamente con los índices separados por comas.\n\n${listaParaFiltrar}`,
-      }],
+      messages: [{ role: 'user', content: promptFiltro }],
     });
 
     const indicesTexto = filtroResp.content[0].text.trim();
-    console.log(`[jobs/similar] Claude filtró: "${indicesTexto}"`);
-
     const indicesValidos = new Set(
       indicesTexto.split(',').map(n => parseInt(n.trim())).filter(n => !isNaN(n))
     );

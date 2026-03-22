@@ -167,7 +167,9 @@ export default function JobMatches() {
     setBusquedasGuardadas(actualizadas)
   }
 
+  const [modoBusqueda, setModoBusqueda] = useState('cargo') // 'cargo' | 'keywords'
   const [titulo, setTitulo]     = useState(resultadoMatch?.jobData?.title || '')
+  const [keywords, setKeywords] = useState('')
   const [ubicacion, setUbicacion] = useState(
     [resultadoMatch?.jobData?.location, resultadoMatch?.jobData?.country].filter(Boolean).join(', ')
   )
@@ -292,13 +294,16 @@ export default function JobMatches() {
   }, [])
 
   const buscar = async () => {
-    if (!titulo.trim()) return setError('Ingresa el cargo a buscar')
+    const queryActual = modoBusqueda === 'keywords' ? keywords : titulo
+    if (!queryActual.trim()) return setError(modoBusqueda === 'keywords' ? 'Ingresa palabras clave' : 'Ingresa el cargo a buscar')
     setLoading(true)
     setError('')
     setBuscado(false)
     setPanelAbierto({})
     try {
-      const params = new URLSearchParams({ title: titulo })
+      const params = new URLSearchParams()
+      if (modoBusqueda === 'keywords') params.append('keywords', keywords)
+      else params.append('title', titulo)
       if (ubicacion) params.append('location', ubicacion)
       Object.entries(filtros).forEach(([k, v]) => { if (v) params.append(k, v) })
       const data = await api.get(`/api/jobs/similar?${params}`)
@@ -306,9 +311,9 @@ export default function JobMatches() {
       setVacantes(data.vacantes || [])
       setTotal(data.total || 0)
       setBuscado(true)
-      setMostrarFiltros(false) // ocultar filtros después de buscar
-      persistirBusqueda(titulo, ubicacion, filtros)
-      recargarSavedKeys() // sincronizar likes con Supabase
+      setMostrarFiltros(false)
+      persistirBusqueda(titulo || keywords, ubicacion, filtros)
+      recargarSavedKeys()
     } catch {
       setError('Error al buscar vacantes')
     } finally {
@@ -320,7 +325,6 @@ export default function JobMatches() {
     setTitulo(b.titulo)
     setUbicacion(b.ubicacion)
     setFiltros(b.filtros)
-    // Ejecutar búsqueda con los parámetros del guardado
     setTimeout(() => buscarCon(b.titulo, b.ubicacion, b.filtros), 0)
   }
 
@@ -404,13 +408,43 @@ export default function JobMatches() {
 
       {/* Buscador */}
       <div className="bg-white rounded-2xl border border-gray-200 p-6 mb-6">
+
+        {/* Toggle modo búsqueda */}
+        <div className="flex gap-1 bg-gray-100 rounded-lg p-1 w-fit mb-4">
+          {[
+            { key: 'cargo',    label: 'Por cargo' },
+            { key: 'keywords', label: 'Por palabras clave' },
+          ].map(m => (
+            <button key={m.key} onClick={() => setModoBusqueda(m.key)}
+              className={`text-xs font-medium py-1.5 px-4 rounded-md transition-colors
+                ${modoBusqueda === m.key ? 'bg-white text-primary shadow-sm' : 'text-gray-500 hover:text-gray-800'}`}>
+              {m.label}
+            </button>
+          ))}
+        </div>
+
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="flex-1">
-            <label className="block text-xs font-medium text-gray-500 mb-1">Cargo</label>
-            <input type="text" value={titulo} onChange={e => setTitulo(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && buscar()}
-              placeholder="ej. Director Comercial, Gerente de RH..."
-              className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+            {modoBusqueda === 'cargo' ? (
+              <>
+                <label className="block text-xs font-medium text-gray-500 mb-1">Cargo</label>
+                <input type="text" value={titulo} onChange={e => setTitulo(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && buscar()}
+                  placeholder="ej. Director Comercial, Gerente de RH..."
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+              </>
+            ) : (
+              <>
+                <label className="block text-xs font-medium text-gray-500 mb-1">
+                  Palabras clave o frases
+                </label>
+                <input type="text" value={keywords} onChange={e => setKeywords(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && buscar()}
+                  placeholder="ej. transformación digital, liderazgo de equipos, SAP, supply chain..."
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+                <p className="text-xs text-gray-400 mt-1">Puedes combinar palabras, habilidades o frases separadas por coma.</p>
+              </>
+            )}
           </div>
           <div className="sm:w-56 relative">
             <label className="block text-xs font-medium text-gray-500 mb-1">Ubicación</label>
