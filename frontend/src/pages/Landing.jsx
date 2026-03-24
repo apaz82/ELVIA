@@ -83,13 +83,8 @@ export default function Landing() {
       {/* ── Nav landing — centrada ────────────────────────────────────────── */}
       <nav className="glass-header sticky top-0 z-50 flex items-center justify-center gap-4 sm:gap-6 px-6 h-16">
         {/* Logo */}
-        <Link to="/" className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary to-primary-container flex items-center justify-center shadow-card shrink-0">
-            <span className="text-on-primary font-bold text-[13px]">CV</span>
-          </div>
-          <span className="font-headline font-extrabold text-primary text-[15px] tracking-tight hidden sm:block">
-            CV Optimizer Pro
-          </span>
+        <Link to="/" className="flex items-center">
+          <img src="/optima-cv-horizontal-1400_4.svg" alt="CV Optimizer Pro" className="h-10 w-auto object-contain" />
         </Link>
 
         {/* Separador */}
@@ -331,11 +326,8 @@ export default function Landing() {
       <footer className="bg-surface-container border-t border-outline-variant/20">
         <div className="container mx-auto max-w-6xl px-6 py-14 grid grid-cols-1 md:grid-cols-4 gap-10">
           <div className="md:col-span-2 space-y-3">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary to-primary-container flex items-center justify-center shrink-0">
-                <span className="text-on-primary font-bold text-[13px]">CV</span>
-              </div>
-              <span className="font-headline font-extrabold text-primary text-[15px]">CV Optimizer Pro</span>
+            <div className="flex items-center">
+              <img src="/optima-cv-horizontal-1400_4.svg" alt="CV Optimizer Pro" className="h-10 w-auto object-contain" />
             </div>
             <p className="text-on-surface-variant text-sm leading-relaxed max-w-xs">
               Potenciando carreras de alto nivel a través de IA y conocimiento estratégico del mercado laboral en LATAM.

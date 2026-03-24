@@ -78,13 +78,8 @@ export default function Sidebar({ open, onClose }) {
 
         {/* Logo */}
         <div className="flex items-center justify-between px-5 h-16 border-b border-outline-variant/20 shrink-0">
-          <Link to="/" onClick={onClose} className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary to-primary-container flex items-center justify-center shadow-card shrink-0">
-              <span className="text-on-primary font-bold text-[13px]">CV</span>
-            </div>
-            <span className="font-headline font-extrabold text-primary text-[15px] tracking-tight">
-              CV Optimizer Pro
-            </span>
+          <Link to="/" onClick={onClose} className="flex items-center">
+            <img src="/optima-cv-horizontal-1400_4.svg" alt="CV Optimizer Pro" className="h-10 w-auto object-contain" />
           </Link>
           {/* Cerrar en móvil */}
           <button onClick={onClose} className="md:hidden p-1 rounded-lg text-on-surface-variant hover:bg-surface-container transition-colors">

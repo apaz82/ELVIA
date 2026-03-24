@@ -104,9 +104,7 @@ export default function Auth() {
 
           {/* Logo + título */}
           <div className="text-center mb-7">
-            <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center mx-auto mb-3">
-              <span className="text-white font-bold text-lg">CV</span>
-            </div>
+            <img src="/optima-cv-horizontal-1400_4.svg" alt="CV Optimizer Pro" className="h-12 w-auto mx-auto mb-4 object-contain" />
             <h1 className="text-2xl font-bold text-gray-900">
               {modo === 'login' ? 'Iniciar sesión' : 'Crear cuenta gratis'}
             </h1>

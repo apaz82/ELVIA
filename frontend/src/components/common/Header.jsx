@@ -44,12 +44,7 @@ export default function Header({ onMenuToggle }) {
 
       {/* Logo — solo en móvil */}
       <Link to="/" className="flex items-center gap-2 md:hidden">
-        <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-primary to-primary-container flex items-center justify-center shrink-0">
-          <span className="text-on-primary font-bold text-xs">CV</span>
-        </div>
-        <span className="font-headline font-extrabold text-primary text-sm tracking-tight">
-          CV Optimizer Pro
-        </span>
+        <img src="/optima-cv-horizontal-1400_4.svg" alt="CV Optimizer Pro" className="h-8 w-auto object-contain" />
       </Link>
 
       <div className="flex-1" />
