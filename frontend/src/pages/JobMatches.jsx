@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext'
 import { supabase } from '../services/authService'
 import { api } from '../services/api'
 import Button from '../components/common/Button'
+import JobActionPanel from '../components/common/JobActionPanel'
 
 const extraerNombre = (contenido) => {
   if (!contenido) return 'CV sin nombre'
@@ -27,88 +28,7 @@ const colorScore = (score) => {
   return { text: 'text-red-500', bg: 'bg-red-50 border-red-200' }
 }
 
-function CompatibilidadPanel({ vacante, cvText, onGenerarCV, onRefreshUsage, onSave, onVerMisVacantes }) {
-  const [loading, setLoading]   = useState(false)
-  const [resultado, setResultado] = useState(null)
-  const [error, setError]       = useState('')
 
-  const verificar = async () => {
-    setLoading(true)
-    setError('')
-    try {
-      const data = await api.post('/api/jobs/compatibility', {
-        cvText,
-        jobTitle:    vacante.title,
-        jobCompany:  vacante.company,
-        jobSnippet:  vacante.snippet,
-        jobLink:     vacante.link,
-        jobLocation: vacante.location,
-        jobVia:      vacante.via,
-      })
-      if (data.error) return setError(data.error)
-      setResultado(data)
-      if (!data.fromCache && onRefreshUsage) onRefreshUsage()
-      // Auto-guardar vacante cuando se verifica compatibilidad
-      if (onSave) onSave()
-    } catch {
-      setError('Error al calcular compatibilidad')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  if (!resultado) {
-    return (
-      <div className="mt-3 flex items-center gap-2">
-        <Button variant="outline" onClick={verificar} loading={loading}>
-          {loading ? 'Calculando...' : 'Ver compatibilidad'}
-        </Button>
-        {error && <span className="text-xs text-red-500">{error}</span>}
-      </div>
-    )
-  }
-
-  const { text, bg } = colorScore(resultado.score)
-
-  return (
-    <div className={`mt-3 rounded-lg border p-3 ${bg}`}>
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-medium text-gray-600">Compatibilidad con tu CV</span>
-          {resultado.fromCache && (
-            <span className="text-xs bg-white text-gray-400 px-1.5 py-0.5 rounded-full border">Ya verificado</span>
-          )}
-        </div>
-        <span className={`text-lg font-bold ${text}`}>{resultado.score}%</span>
-      </div>
-      <ul className="space-y-1 mb-3">
-        {resultado.motivos.map((m, i) => (
-          <li key={i} className="text-xs text-gray-600 flex gap-1.5">
-            <span className="shrink-0">{resultado.score >= 50 ? '•' : '·'}</span>
-            {m}
-          </li>
-        ))}
-      </ul>
-      {resultado.score >= 70 && (
-        <>
-          <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-2">
-            💡 Tienes un {resultado.score}% de compatibilidad. Ten en cuenta que puedes aumentar tus posibilidades si tienes experiencia relevante que aún no has escrito en tu CV.
-          </p>
-          <button
-            onClick={() => onGenerarCV(vacante)}
-            className="w-full text-xs font-semibold bg-primary text-white py-1.5 rounded-md hover:bg-primary-dark transition-colors"
-          >
-            Generar CV adaptado para esta vacante →
-          </button>
-        </>
-      )}
-      <button onClick={onVerMisVacantes}
-        className="mt-2 w-full text-xs font-medium border border-gray-200 text-gray-600 py-1.5 rounded-md hover:border-primary hover:text-primary transition-colors">
-        Ver en Mis Vacantes →
-      </button>
-    </div>
-  )
-}
 
 export default function JobMatches() {
   const { resultadoMatch, resultadoOptimize } = useCV()
@@ -185,21 +105,33 @@ export default function JobMatches() {
   const [panelAbierto, setPanelAbierto]     = useState({})
   const [ciudadSugerencias, setCiudadSugerencias] = useState([])
 
-  const CIUDADES_LATAM = [
+  const UBICACIONES_SUGERIDAS = [
+    // Países principales
+    'México', 'Colombia', 'Argentina', 'Chile', 'Perú', 'España', 'Estados Unidos', 
+    'Ecuador', 'Uruguay', 'Panamá', 'Costa Rica', 'Dominicana',
+    // Ciudades México
     'Ciudad de México, México', 'Guadalajara, México', 'Monterrey, México', 'Puebla, México', 'Querétaro, México',
+    // Ciudades Colombia
     'Bogotá, Colombia', 'Medellín, Colombia', 'Cali, Colombia', 'Barranquilla, Colombia',
+    // Ciudades Argentina
     'Buenos Aires, Argentina', 'Córdoba, Argentina', 'Rosario, Argentina',
+    // Chile
     'Santiago, Chile', 'Valparaíso, Chile',
+    // Perú
     'Lima, Perú', 'Arequipa, Perú',
-    'São Paulo, Brasil', 'Rio de Janeiro, Brasil', 'Brasília, Brasil',
-    'Miami, USA', 'Houston, USA', 'Los Angeles, USA', 'New York, USA', 'Dallas, USA',
-    'Madrid, España', 'Barcelona, España',
+    // Brasil
+    'São Paulo, Brasil', 'Rio de Janeiro, Brasil',
+    // USA
+    'Miami, USA', 'Houston, USA', 'Los Angeles, USA', 'New York, USA', 'Dallas, USA', 'Austin, USA',
+    // España
+    'Madrid, España', 'Barcelona, España', 'Valencia, España',
+    // Otros
     'Remote', 'Remoto',
   ]
 
-  const filtrarCiudades = (texto) => {
+  const filtrarUbicaciones = (texto) => {
     if (!texto || texto.length < 2) { setCiudadSugerencias([]); return }
-    const matches = CIUDADES_LATAM.filter(c => c.toLowerCase().includes(texto.toLowerCase())).slice(0, 6)
+    const matches = UBICACIONES_SUGERIDAS.filter(c => c.toLowerCase().includes(texto.toLowerCase())).slice(0, 8)
     setCiudadSugerencias(matches)
   }
   const [savedKeys, setSavedKeys]           = useState(new Set()) // job_keys con liked=true
@@ -449,7 +381,7 @@ export default function JobMatches() {
           <div className="sm:w-56 relative">
             <label className="block text-xs font-medium text-gray-500 mb-1">Ubicación</label>
             <input type="text" value={ubicacion}
-              onChange={e => { setUbicacion(e.target.value); filtrarCiudades(e.target.value) }}
+              onChange={e => { setUbicacion(e.target.value); filtrarUbicaciones(e.target.value) }}
               onKeyDown={e => e.key === 'Enter' && buscar()}
               onBlur={() => setTimeout(() => setCiudadSugerencias([]), 150)}
               placeholder="ej. Ciudad de México"
@@ -574,31 +506,24 @@ export default function JobMatches() {
                           dangerouslySetInnerHTML={{ __html: v.snippet }} />
                       )}
 
-                      {/* Panel de compatibilidad */}
-                      {panelAbierto[vid] && cvText ? (
-                        <CompatibilidadPanel
+                      {/* Panel de acciones IA */}
+                      {(panelAbierto[vid] || esGuardada) && (
+                        <JobActionPanel 
                           vacante={v}
+                          cvId={cvSeleccionado?.id || (resultadoOptimize ? 'context' : null)}
                           cvText={cvText}
-                          onGenerarCV={generarCVAdaptado}
+                          compatibilidadInicial={null} // El componente buscará en cache automáticamente
                           onRefreshUsage={refreshUsage}
                           onSave={() => autoSave(v)}
-                          onVerMisVacantes={() => navigate('/mis-vacantes')}
                         />
-                      ) : panelAbierto[vid] && !cvText ? (
-                        <p className="mt-3 text-xs text-amber-600">
-                          Selecciona un CV en la parte superior para ver compatibilidad.
-                        </p>
-                      ) : null}
+                      )}
 
-                      {/* Botón toggle compatibilidad */}
-                      {!panelAbierto[vid] && (
+                      {/* Botón toggle compatibilidad (solo si no está abierto) */}
+                      {!panelAbierto[vid] && !esGuardada && (
                         <button onClick={() => togglePanel(vid)}
-                          className="mt-3 flex items-center gap-2 text-xs font-medium text-primary hover:underline">
+                          className="mt-3 flex items-center gap-2 text-xs font-medium text-primary hover:underline transition-all">
                           Ver compatibilidad con mi CV →
-                          <span className="flex items-center gap-0.5 bg-amber-50 border border-amber-200 text-amber-600 text-xs px-1.5 py-0.5 rounded-full font-medium">
-                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                            </svg>
+                          <span className="flex items-center gap-0.5 bg-amber-50 border border-amber-200 text-amber-600 text-[10px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-tight">
                             1 crédito
                           </span>
                         </button>

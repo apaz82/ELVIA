@@ -56,6 +56,9 @@ const INDUSTRIAS_LATAM = [
 
 const AREAS = ['Operaciones','Supply Chain','Finanzas','IT','R&D','Recursos Humanos','Ingeniería','Dirección General','Marketing','Ventas','Legal','Otro']
 const TIPOS_TRABAJO = ['Híbrido','Presencial','Remoto']
+const IDIOMAS = ['Español','Inglés','Francés','Portugués','Alemán','Italiano','Chino Mandarín','Japonés','Árabe','Coreano','Ruso','Otro']
+const NIVELES_CEFR = ['Nativo','C2','C1','B2','B1','A2','A1']
+const NIVELES_EDUCACION = ['Preparatoria / Bachillerato','Técnico / Tecnólogo','Universidad / Licenciatura','Especialización','Maestría','Doctorado','Certificación Profesional']
 const EXPERIENCIAS = [
   { value: 0, label: 'Sin experiencia' },{ value: 1, label: '1-2 años' },
   { value: 3, label: '3-5 años' },{ value: 6, label: '6-10 años' },{ value: 11, label: 'Más de 10 años' },
@@ -109,6 +112,7 @@ export default function Perfil() {
   const [guardado, setGuardado] = useState(false)
   const [copiado, setCopiado]   = useState(false)
   const [ciudadInput, setCiudadInput] = useState('')
+  const [tab, setTab]           = useState('personal')
 
   const [form, setForm] = useState({
     // Sección 1
@@ -120,8 +124,11 @@ export default function Perfil() {
     prestaciones_detalle: {},
     bono_activo: false, bono_tipo: '', bono_frecuencia: '',
     bono_monto: '', bono_pct: '', variable_monto: '',
+    prestaciones_otros: '',
     // Sección 3
     nivel_cargo: '', industrias_deseadas: [], tipo_trabajo: '', area: '',
+    areas: [],
+    idiomas: [], educacion: [],
     // Campos legacy
     cargo_actual: '', cargo_objetivo: '', experiencia_anos: '',
   })
@@ -152,8 +159,9 @@ export default function Perfil() {
       moneda:             monedaSaved || detectarMoneda(perfil.pais),
       prestaciones:       perfil.prestaciones || [],
       prestaciones_detalle: perfil.prestaciones_detalle
-        ? { ...perfil.prestaciones_detalle, __bono: undefined }
+        ? { ...perfil.prestaciones_detalle, __bono: undefined, __otros: undefined }
         : {},
+      prestaciones_otros:  perfil.prestaciones_detalle?.__otros || '',
       bono_activo:     !!(perfil.prestaciones_detalle?.__bono),
       bono_tipo:       perfil.prestaciones_detalle?.__bono?.tipo || '',
       bono_frecuencia: perfil.prestaciones_detalle?.__bono?.frecuencia || '',
@@ -164,6 +172,9 @@ export default function Perfil() {
       industrias_deseadas: perfil.industrias_deseadas || [],
       tipo_trabajo:       perfil.tipo_trabajo || '',
       area:               perfil.area || '',
+      areas:              perfil.area ? perfil.area.split(', ').filter(Boolean) : [],
+      idiomas:            Array.isArray(perfil.idiomas)   ? perfil.idiomas   : [],
+      educacion:          Array.isArray(perfil.educacion) ? perfil.educacion : [],
       cargo_actual:       perfil.cargo_actual || '',
       cargo_objetivo:     perfil.cargo_objetivo || '',
       experiencia_anos:   perfil.experiencia_anos ?? '',
@@ -191,6 +202,37 @@ export default function Perfil() {
     industrias_deseadas: f.industrias_deseadas.includes(ind)
       ? f.industrias_deseadas.filter(x => x !== ind)
       : [...f.industrias_deseadas, ind],
+  }))
+
+  const toggleArea = (a) => setForm(f => ({
+    ...f,
+    areas: f.areas.includes(a) ? f.areas.filter(x => x !== a) : [...f.areas, a],
+  }))
+
+  const toggleIdioma = (idioma) => setForm(f => {
+    const existe = f.idiomas.find(i => i.idioma === idioma)
+    if (existe) return { ...f, idiomas: f.idiomas.filter(i => i.idioma !== idioma) }
+    return { ...f, idiomas: [...f.idiomas, { idioma, nivel: 'B2' }] }
+  })
+
+  const updateNivelIdioma = (idioma, nivel) => setForm(f => ({
+    ...f,
+    idiomas: f.idiomas.map(i => i.idioma === idioma ? { ...i, nivel } : i),
+  }))
+
+  const agregarEducacion = () => setForm(f => ({
+    ...f,
+    educacion: [...f.educacion, { nivel: '', titulo: '', institucion: '', anio: '' }],
+  }))
+
+  const quitarEducacion = (idx) => setForm(f => ({
+    ...f,
+    educacion: f.educacion.filter((_, i) => i !== idx),
+  }))
+
+  const updateEducacion = (idx, field, value) => setForm(f => ({
+    ...f,
+    educacion: f.educacion.map((e, i) => i === idx ? { ...e, [field]: value } : e),
   }))
 
   const togglePrestacion = (p) => setForm(f => {
@@ -223,10 +265,15 @@ export default function Perfil() {
           pct: form.bono_tipo === 'Bono' ? form.bono_pct : null,
         },
       } : {}),
+      ...(form.prestaciones_otros?.trim() ? { __otros: form.prestaciones_otros.trim() } : {}),
     }
-    const { salario_monto, moneda, bono_activo, bono_tipo, bono_frecuencia, bono_monto, bono_pct, variable_monto, ...rest } = form
+    const { salario_monto, moneda, bono_activo, bono_tipo, bono_frecuencia, bono_monto, bono_pct, variable_monto, areas, prestaciones_otros, ...rest } = form
     const { error } = await supabase.from('profiles').update({
-      ...rest, salario_esperado, prestaciones_detalle, nombre: nombreCompleto,
+      ...rest,
+      area: form.areas.join(', '),
+      idiomas: form.idiomas,
+      educacion: form.educacion,
+      salario_esperado, prestaciones_detalle, nombre: nombreCompleto,
       indicativo1: form.indicativo1, indicativo2: form.indicativo2,
     }).eq('id', user.id)
     setSaving(false)
@@ -246,423 +293,536 @@ export default function Perfil() {
 
   if (authLoading) return null
 
+  const TABS = [
+    { id: 'personal',      label: 'Datos personales' },
+    { id: 'compensacion',  label: 'Compensación' },
+    { id: 'aspiraciones',  label: 'Aspiraciones' },
+    { id: 'plan',          label: 'Plan' },
+  ]
+
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8 space-y-6">
-      <div className="mb-2">
-        <h1 className="text-3xl font-bold text-gray-900">Mi Perfil</h1>
-        <p className="mt-1 text-gray-500 text-sm">{user?.email}</p>
+    <div className="max-w-3xl mx-auto px-4 py-8">
+      {/* Header */}
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-gray-900">Mi Perfil</h1>
+        <p className="mt-0.5 text-gray-500 text-sm">{user?.email}</p>
       </div>
 
-      {/* Alerta si no ha hecho el onboarding */}
+      {/* Alerta onboarding */}
       {!perfil?.nombre1 && (
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3">
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3 mb-6">
           <span className="text-amber-500 text-xl shrink-0 mt-0.5">⚠</span>
           <div>
             <p className="text-sm font-semibold text-amber-800">Completa tu configuración inicial</p>
-            <p className="text-xs text-amber-700 mt-0.5">Para acceder a todas las funciones necesitas completar el onboarding con tu nombre, teléfono y preferencias.</p>
-            <Link to="/onboarding" className="text-xs font-semibold text-primary underline mt-2 inline-block">
-              Ir al onboarding →
-            </Link>
+            <p className="text-xs text-amber-700 mt-0.5">Para acceder a todas las funciones necesitas completar el onboarding.</p>
+            <Link to="/onboarding" className="text-xs font-semibold text-primary underline mt-2 inline-block">Ir al onboarding →</Link>
           </div>
         </div>
       )}
 
-      {/* Plan y créditos */}
-      <div className="bg-white rounded-2xl border border-gray-200 p-6">
-        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">Plan actual</h2>
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      {/* Tab bar */}
+      <div className="flex gap-1 bg-gray-100 rounded-xl p-1 mb-6 overflow-x-auto">
+        {TABS.map(t => (
+          <button key={t.id} onClick={() => setTab(t.id)}
+            className={`flex-1 text-xs sm:text-sm font-semibold py-2 px-3 rounded-lg whitespace-nowrap transition-colors
+              ${tab === t.id ? 'bg-white text-primary shadow-sm' : 'text-gray-500 hover:text-gray-800'}`}>
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {/* ── TAB: Datos personales ── */}
+      {tab === 'personal' && (
+        <div className="bg-white rounded-2xl border border-gray-200 p-6 space-y-5">
+
+          {/* Nombre y apellidos */}
           <div>
-            <div className="flex items-baseline gap-2">
-              <span className="text-3xl font-bold text-gray-900">{creditosRestantes}</span>
-              <span className="text-gray-400">/ {LIMITE_PLAN} créditos disponibles</span>
-            </div>
-            <p className="text-sm text-gray-500 mt-1">Plan gratuito · {usageCount} utilizados</p>
-            <div className="w-48 bg-gray-100 rounded-full h-1.5 mt-2">
-              <div className={`h-1.5 rounded-full ${creditosRestantes === 0 ? 'bg-red-400' : creditosRestantes === 1 ? 'bg-amber-400' : 'bg-green-500'}`}
-                style={{ width: `${(creditosRestantes / LIMITE_PLAN) * 100}%` }} />
-            </div>
-          </div>
-          <div className="flex flex-col items-start gap-2">
-            <button className="bg-primary text-white text-sm font-medium px-5 py-2.5 rounded-xl hover:bg-blue-700 transition-colors">
-              Mejorar plan — Próximamente
-            </button>
-            <p className="text-xs text-gray-400">Planes desde $9 USD/mes</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Referidos */}
-      <div className="bg-white rounded-2xl border border-gray-200 p-6">
-        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-1">Programa de referidos</h2>
-        <p className="text-sm text-gray-500 mb-4">Comparte tu código y gana <strong>2 créditos</strong> por cada persona que se registre.</p>
-        {perfil?.referral_code ? (
-          <div className="flex flex-col sm:flex-row gap-3">
-            <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 flex-1">
-              <span className="text-xs text-gray-400 font-medium">Tu código:</span>
-              <span className="font-mono font-bold text-gray-900 tracking-widest text-sm">{perfil.referral_code.toUpperCase()}</span>
-            </div>
-            <button onClick={copiarCodigo} className="text-sm font-medium border border-gray-300 rounded-xl px-4 py-2.5 hover:border-primary hover:text-primary transition-colors">
-              {copiado ? '✓ Copiado' : 'Copiar código'}
-            </button>
-            <button onClick={compartirLink} className="text-sm font-medium bg-primary text-white rounded-xl px-4 py-2.5 hover:bg-blue-700 transition-colors">
-              Compartir link
-            </button>
-          </div>
-        ) : <div className="text-sm text-gray-400">Cargando código...</div>}
-        {perfil?.bonus_credits > 0 && (
-          <p className="mt-3 text-sm text-green-600 font-medium">🎉 Has ganado {perfil.bonus_credits} créditos por referidos</p>
-        )}
-      </div>
-
-      {/* ── Sección 1: Datos personales ── */}
-      <div className="bg-white rounded-2xl border border-gray-200 p-6 space-y-5">
-        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Sección 1 — Datos personales</h2>
-
-        {/* Nombre y apellidos */}
-        <div>
-          <h3 className="text-sm font-medium text-gray-700 mb-3">Nombre completo</h3>
-          <div className="grid grid-cols-2 gap-3">
-            {[
-              { key:'nombre1', label:'Nombre 1 *', placeholder:'Ana', locked: bloqueado },
-              { key:'nombre2', label:'Nombre 2',   placeholder:'María' },
-              { key:'apellido1', label:'Apellido 1 *', placeholder:'González', locked: bloqueado },
-              { key:'apellido2', label:'Apellido 2',   placeholder:'Martínez' },
-            ].map(({ key, label, placeholder, locked }) => (
-              <div key={key}>
-                <label className="block text-xs text-gray-500 mb-1">{label}</label>
-                <input type="text" value={form[key]} onChange={set(key)}
-                  disabled={locked} placeholder={placeholder}
-                  className={`w-full border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary ${locked ? 'bg-gray-50 text-gray-400 cursor-not-allowed border-gray-200' : 'border-gray-300'}`} />
-                {locked && <p className="text-xs text-gray-400 mt-0.5">🔒 No modificable</p>}
-              </div>
-            ))}
-          </div>
-          {bloqueado && (
-            <p className="text-xs text-amber-600 mt-2 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
-              Nombre y apellido principal no se pueden modificar — son la llave de validación de tu CV.
-            </p>
-          )}
-        </div>
-
-        {/* Teléfonos */}
-        <div>
-          <h3 className="text-sm font-medium text-gray-700 mb-3">Teléfonos</h3>
-          <div className="grid grid-cols-2 gap-3">
-            {[
-              { indKey:'indicativo1', telKey:'telefono1', label:'Teléfono 1' },
-              { indKey:'indicativo2', telKey:'telefono2', label:'Teléfono 2' },
-            ].map(({ indKey, telKey, label }) => (
-              <div key={telKey}>
-                <label className="block text-xs text-gray-500 mb-1">{label}</label>
-                <div className="flex gap-1.5">
-                  <select
-                    value={form[indKey]}
-                    onChange={e => setForm(f => ({ ...f, [indKey]: e.target.value }))}
-                    className="border border-gray-300 rounded-lg px-1.5 py-2.5 text-xs bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary shrink-0 w-24"
-                  >
-                    {INDICATIVOS.map(i => (
-                      <option key={i.code} value={i.ind}>{i.code} {i.ind}</option>
-                    ))}
-                  </select>
-                  <input type="tel" value={form[telKey]} onChange={set(telKey)} placeholder="55 1234 5678"
-                    className="flex-1 border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+            <h3 className="text-sm font-semibold text-gray-700 mb-3">Nombre completo</h3>
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                { key:'nombre1',   label:'Nombre 1 *',   placeholder:'Ana',       locked: bloqueado },
+                { key:'nombre2',   label:'Nombre 2',     placeholder:'María' },
+                { key:'apellido1', label:'Apellido 1 *', placeholder:'González',  locked: bloqueado },
+                { key:'apellido2', label:'Apellido 2',   placeholder:'Martínez' },
+              ].map(({ key, label, placeholder, locked }) => (
+                <div key={key}>
+                  <label className="block text-xs text-gray-500 mb-1">{label}</label>
+                  <input type="text" value={form[key]} onChange={set(key)} disabled={locked} placeholder={placeholder}
+                    className={`w-full border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary ${locked ? 'bg-gray-50 text-gray-400 cursor-not-allowed border-gray-200' : 'border-gray-300'}`} />
+                  {locked && <p className="text-xs text-gray-400 mt-0.5">🔒 No modificable</p>}
                 </div>
+              ))}
+            </div>
+            {bloqueado && (
+              <p className="text-xs text-amber-600 mt-2 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+                Nombre y apellido principal no se pueden modificar — son la llave de validación de tu CV.
+              </p>
+            )}
+          </div>
+
+          {/* Teléfonos */}
+          <div>
+            <h3 className="text-sm font-semibold text-gray-700 mb-3">Teléfonos</h3>
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                { indKey:'indicativo1', telKey:'telefono1', label:'Teléfono 1' },
+                { indKey:'indicativo2', telKey:'telefono2', label:'Teléfono 2' },
+              ].map(({ indKey, telKey, label }) => (
+                <div key={telKey}>
+                  <label className="block text-xs text-gray-500 mb-1">{label}</label>
+                  <div className="flex gap-1.5">
+                    <select value={form[indKey]} onChange={e => setForm(f => ({ ...f, [indKey]: e.target.value }))}
+                      className="border border-gray-300 rounded-lg px-1.5 py-2.5 text-xs bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary shrink-0 w-24">
+                      {INDICATIVOS.map(i => <option key={i.code} value={i.ind}>{i.code} {i.ind}</option>)}
+                    </select>
+                    <input type="tel" value={form[telKey]} onChange={set(telKey)} placeholder="55 1234 5678"
+                      className="flex-1 border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Emails */}
+          <div>
+            <h3 className="text-sm font-semibold text-gray-700 mb-3">Correos electrónicos</h3>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Email principal</label>
+                <input type="email" value={user?.email || ''} disabled
+                  className="w-full border border-gray-200 bg-gray-50 text-gray-400 rounded-lg px-3 py-2.5 text-sm cursor-not-allowed" />
               </div>
-            ))}
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Email secundario</label>
+                <input type="email" value={form.email_secundario} onChange={set('email_secundario')} placeholder="otro@email.com"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+              </div>
+            </div>
+          </div>
+
+          {/* Ubicación */}
+          <div>
+            <h3 className="text-sm font-semibold text-gray-700 mb-3">Ubicación</h3>
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">País</label>
+                <select value={form.pais} onChange={handlePaisChange}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary">
+                  <option value="">Selecciona</option>
+                  {PAISES_LATAM.map(p => <option key={p} value={p}>{p}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Ciudad</label>
+                <input type="text" value={form.ciudad} onChange={set('ciudad')} placeholder="Ciudad de México"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Edad</label>
+                <input type="number" value={form.edad} onChange={set('edad')} placeholder="35" min="16" max="80"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+              </div>
+            </div>
+            <div className="mt-3">
+              <label className="block text-xs text-gray-500 mb-1.5">Ciudades de búsqueda <span className="text-gray-400">(hasta 5)</span></label>
+              <div className="flex gap-2">
+                <input type="text" value={ciudadInput} onChange={e => setCiudadInput(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), agregarCiudad())}
+                  placeholder="Guadalajara, Monterrey..."
+                  disabled={form.ciudades_busqueda.length >= 5}
+                  className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary disabled:bg-gray-50" />
+                <button onClick={agregarCiudad} disabled={!ciudadInput.trim() || form.ciudades_busqueda.length >= 5}
+                  className="border border-gray-300 text-gray-600 rounded-lg px-3 py-2 text-sm hover:border-primary hover:text-primary disabled:opacity-40 transition-colors">+</button>
+              </div>
+              {form.ciudades_busqueda.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mt-2">
+                  {form.ciudades_busqueda.map(c => (
+                    <span key={c} className="flex items-center gap-1 bg-primary/10 text-primary text-xs rounded-full px-2.5 py-1">
+                      {c}<button onClick={() => quitarCiudad(c)} className="hover:text-red-500">×</button>
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
+      )}
 
-        {/* Emails */}
-        <div>
-          <h3 className="text-sm font-medium text-gray-700 mb-3">Correos electrónicos</h3>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs text-gray-500 mb-1">Email principal</label>
-              <input type="email" value={user?.email || ''} disabled
-                className="w-full border border-gray-200 bg-gray-50 text-gray-400 rounded-lg px-3 py-2.5 text-sm cursor-not-allowed" />
-            </div>
-            <div>
-              <label className="block text-xs text-gray-500 mb-1">Email secundario</label>
-              <input type="email" value={form.email_secundario} onChange={set('email_secundario')} placeholder="otro@email.com"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
-            </div>
-          </div>
-        </div>
+      {/* ── TAB: Compensación ── */}
+      {tab === 'compensacion' && (
+        <div className="bg-white rounded-2xl border border-gray-200 p-6 space-y-5">
 
-        {/* Ubicación */}
-        <div>
-          <h3 className="text-sm font-medium text-gray-700 mb-3">Ubicación</h3>
-          <div className="grid grid-cols-3 gap-3">
-            <div>
-              <label className="block text-xs text-gray-500 mb-1">País</label>
-              <select value={form.pais} onChange={handlePaisChange}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary">
-                <option value="">Selecciona</option>
-                {PAISES_LATAM.map(p => <option key={p} value={p}>{p}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs text-gray-500 mb-1">Ciudad de residencia</label>
-              <input type="text" value={form.ciudad} onChange={set('ciudad')} placeholder="Ciudad de México"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
-            </div>
-            <div>
-              <label className="block text-xs text-gray-500 mb-1">Edad</label>
-              <input type="number" value={form.edad} onChange={set('edad')} placeholder="35" min="16" max="80"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
-            </div>
-          </div>
-
-          {/* Ciudades de búsqueda */}
-          <div className="mt-3">
-            <label className="block text-xs text-gray-500 mb-1.5">Ciudades de búsqueda <span className="text-gray-400">(hasta 5)</span></label>
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 mb-1.5">Salario bruto mensual</label>
             <div className="flex gap-2">
-              <input type="text" value={ciudadInput} onChange={e => setCiudadInput(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), agregarCiudad())}
-                placeholder="Guadalajara, Monterrey..."
-                disabled={form.ciudades_busqueda.length >= 5}
-                className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary disabled:bg-gray-50" />
-              <button onClick={agregarCiudad} disabled={!ciudadInput.trim() || form.ciudades_busqueda.length >= 5}
-                className="border border-gray-300 text-gray-600 rounded-lg px-3 py-2 text-sm hover:border-primary hover:text-primary disabled:opacity-40 transition-colors">+</button>
+              <select value={form.moneda} onChange={set('moneda')}
+                className="border border-gray-300 rounded-lg px-2 py-2.5 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary shrink-0">
+                {MONEDAS.map(m => <option key={m.code} value={m.code}>{m.code}</option>)}
+              </select>
+              <div className="relative flex-1">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400 select-none">
+                  {MONEDAS.find(m => m.code === form.moneda)?.symbol || '$'}
+                </span>
+                <input type="text" value={form.salario_monto} onChange={set('salario_monto')} placeholder="50,000"
+                  className="w-full border border-gray-300 rounded-lg pl-7 pr-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+              </div>
             </div>
-            {form.ciudades_busqueda.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 mt-2">
-                {form.ciudades_busqueda.map(c => (
-                  <span key={c} className="flex items-center gap-1 bg-primary/10 text-primary text-xs rounded-full px-2.5 py-1">
-                    {c}
-                    <button onClick={() => quitarCiudad(c)} className="hover:text-red-500 transition-colors">×</button>
-                  </span>
+            {form.pais && <p className="text-xs text-gray-400 mt-1">Moneda para {form.pais}: {form.moneda}</p>}
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 mb-2">
+              Prestaciones{form.pais ? ` — ${form.pais}` : ''}
+            </label>
+            <div className="grid grid-cols-2 gap-1.5">
+              {getPrestaciones(form.pais).map(p => {
+                const detailCfg = form.pais === 'México' ? MEXICO_DETALLE[p] : null
+                const isChecked = form.prestaciones.includes(p)
+                return (
+                  <div key={p}>
+                    <label className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-colors text-xs
+                      ${isChecked ? 'bg-primary/5 border-primary/30 text-primary font-medium' : 'border-gray-200 text-gray-600 hover:border-gray-300'}`}>
+                      <input type="checkbox" checked={isChecked} onChange={() => togglePrestacion(p)} className="accent-primary shrink-0" />
+                      {p}
+                    </label>
+                    {isChecked && detailCfg && (
+                      <div className="mt-1 px-1">
+                        {detailCfg.tipo === 'selector' ? (
+                          <select value={form.prestaciones_detalle[p] ?? detailCfg.default} onChange={e => updateDetalle(p, e.target.value)}
+                            className="w-full border border-gray-300 rounded-md px-2 py-1 text-xs focus:outline-none">
+                            {detailCfg.opciones.map(o => <option key={o} value={o}>{o}</option>)}
+                          </select>
+                        ) : (
+                          <div className="flex items-center gap-1">
+                            <input
+                              type={detailCfg.tipo === 'pct' || detailCfg.tipo === 'dias' ? 'number' : 'text'}
+                              value={form.prestaciones_detalle[p] ?? detailCfg.default}
+                              onChange={e => updateDetalle(p, e.target.value)}
+                              placeholder={detailCfg.label}
+                              className="flex-1 border border-gray-300 rounded-md px-2 py-1 text-xs focus:outline-none"
+                            />
+                            {detailCfg.tipo === 'pct'  && <span className="text-xs text-gray-400 shrink-0">%</span>}
+                            {detailCfg.tipo === 'dias' && <span className="text-xs text-gray-400 shrink-0">días</span>}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Variable o Bono */}
+          <div>
+            <div className="flex items-center gap-3 mb-2">
+              <label className="text-xs font-semibold text-gray-500">Variable o Bono</label>
+              <button
+                onClick={() => setForm(f => ({ ...f, bono_activo: !f.bono_activo, bono_tipo: '', bono_frecuencia: '', bono_monto: '', bono_pct: '', variable_monto: '' }))}
+                className={`text-xs font-medium px-3 py-1.5 rounded-full border transition-colors
+                  ${form.bono_activo ? 'bg-primary text-white border-primary' : 'border-gray-300 text-gray-600 hover:border-primary hover:text-primary'}`}>
+                {form.bono_activo ? '✓ Aplica' : '+ Agregar'}
+              </button>
+            </div>
+            {form.bono_activo && (
+              <div className="space-y-3 p-4 bg-gray-50 rounded-xl border border-gray-200">
+                <div className="flex gap-2">
+                  {['Bono', 'Variable mensual'].map(t => (
+                    <button key={t} onClick={() => setForm(f => ({ ...f, bono_tipo: t }))}
+                      className={`flex-1 text-xs font-semibold py-2 rounded-lg border transition-colors
+                        ${form.bono_tipo === t ? 'bg-primary text-white border-primary' : 'border-gray-300 text-gray-600 hover:border-primary'}`}>
+                      {t}
+                    </button>
+                  ))}
+                </div>
+                {form.bono_tipo === 'Bono' && (
+                  <div className="grid grid-cols-3 gap-2">
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Frecuencia</label>
+                      <select value={form.bono_frecuencia} onChange={e => setForm(f => ({ ...f, bono_frecuencia: e.target.value }))}
+                        className="w-full border border-gray-300 rounded-lg px-2 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary">
+                        <option value="">Selecciona</option>
+                        {['Mensual','Trimestral','Semestral','Anual'].map(frq => <option key={frq} value={frq}>{frq}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Monto ({form.moneda})</label>
+                      <input type="text" value={form.bono_monto} onChange={e => setForm(f => ({ ...f, bono_monto: e.target.value }))} placeholder="50,000"
+                        className="w-full border border-gray-300 rounded-lg px-2 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary" />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">%</label>
+                      <input type="number" value={form.bono_pct} onChange={e => setForm(f => ({ ...f, bono_pct: e.target.value }))} placeholder="10" min="0" max="200"
+                        className="w-full border border-gray-300 rounded-lg px-2 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary" />
+                    </div>
+                  </div>
+                )}
+                {form.bono_tipo === 'Variable mensual' && (
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">Monto mensual ({form.moneda})</label>
+                    <input type="text" value={form.variable_monto} onChange={e => setForm(f => ({ ...f, variable_monto: e.target.value }))} placeholder="10,000"
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary" />
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Otras prestaciones — texto libre */}
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 mb-1.5">
+              Otras prestaciones o beneficios
+              <span className="ml-1 font-normal text-gray-400">(texto libre)</span>
+            </label>
+            <textarea
+              value={form.prestaciones_otros}
+              onChange={set('prestaciones_otros')}
+              rows={3}
+              placeholder="Ej. seguro dental, días adicionales de vacaciones, acciones de la empresa..."
+              className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+            />
+          </div>
+        </div>
+      )}
+
+      {/* ── TAB: Aspiraciones ── */}
+      {tab === 'aspiraciones' && (
+        <div className="bg-white rounded-2xl border border-gray-200 p-6 space-y-5">
+
+          {/* Cargo actual / objetivo / experiencia */}
+          <div>
+            <h3 className="text-sm font-semibold text-gray-700 mb-3">Perfil profesional</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Cargo actual</label>
+                <input type="text" value={form.cargo_actual} onChange={set('cargo_actual')} placeholder="Gerente de RH"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Cargo objetivo</label>
+                <input type="text" value={form.cargo_objetivo} onChange={set('cargo_objetivo')} placeholder="Director de RH"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Años de experiencia</label>
+                <select value={form.experiencia_anos} onChange={set('experiencia_anos')}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary">
+                  <option value="">Selecciona</option>
+                  {EXPERIENCIAS.map(e => <option key={e.value} value={e.value}>{e.label}</option>)}
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Nivel de cargo */}
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 mb-2">Nivel de cargo buscado</label>
+            <div className="flex flex-wrap gap-2">
+              {NIVELES_CARGO.map(n => (
+                <button key={n} onClick={() => setForm(f=>({...f,nivel_cargo:n}))}
+                  className={`text-xs font-medium px-3 py-2 rounded-full border transition-colors
+                    ${form.nivel_cargo === n ? 'bg-primary text-white border-primary' : 'border-gray-300 text-gray-600 hover:border-primary hover:text-primary'}`}>
+                  {n}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Área funcional — multi-select */}
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 mb-2">Área funcional <span className="text-gray-400 font-normal">(múltiple)</span></label>
+            <div className="flex flex-wrap gap-2">
+              {AREAS.map(a => (
+                <button key={a} onClick={() => toggleArea(a)}
+                  className={`text-xs font-medium px-3 py-2 rounded-full border transition-colors
+                    ${form.areas.includes(a) ? 'bg-secondary text-on-secondary border-secondary' : 'border-gray-300 text-gray-600 hover:border-secondary hover:text-secondary'}`}>
+                  {a}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Tipo de trabajo */}
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 mb-2">Tipo de trabajo</label>
+            <div className="flex gap-2">
+              {TIPOS_TRABAJO.map(t => (
+                <button key={t} onClick={() => setForm(f=>({...f,tipo_trabajo:t}))}
+                  className={`flex-1 text-xs font-medium py-2.5 rounded-xl border transition-colors
+                    ${form.tipo_trabajo === t ? 'bg-primary text-white border-primary' : 'border-gray-300 text-gray-600 hover:border-primary hover:text-primary'}`}>
+                  {t}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Industrias */}
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 mb-2">Industrias de interés <span className="text-gray-400 font-normal">(múltiple)</span></label>
+            <div className="flex flex-wrap gap-1.5 max-h-48 overflow-y-auto pr-1">
+              {INDUSTRIAS_LATAM.map(ind => (
+                <button key={ind} onClick={() => toggleIndustria(ind)}
+                  className={`text-xs px-3 py-1.5 rounded-full border transition-colors
+                    ${form.industrias_deseadas.includes(ind)
+                      ? 'bg-primary/10 border-primary/40 text-primary font-medium'
+                      : 'border-gray-200 text-gray-500 hover:border-gray-300'}`}>
+                  {ind}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Idiomas */}
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 mb-2">
+              Idiomas <span className="text-gray-400 font-normal">(selecciona y asigna nivel CEFR)</span>
+            </label>
+            <div className="flex flex-wrap gap-1.5 mb-3">
+              {IDIOMAS.map(idioma => {
+                const sel = form.idiomas.find(i => i.idioma === idioma)
+                return (
+                  <button key={idioma} onClick={() => toggleIdioma(idioma)}
+                    className={`text-xs px-3 py-1.5 rounded-full border transition-colors
+                      ${sel
+                        ? 'bg-primary text-white border-primary'
+                        : 'border-gray-200 text-gray-500 hover:border-primary hover:text-primary'}`}>
+                    {idioma}
+                  </button>
+                )
+              })}
+            </div>
+            {form.idiomas.length > 0 && (
+              <div className="space-y-2">
+                {form.idiomas.map(({ idioma, nivel }) => (
+                  <div key={idioma} className="flex items-center gap-3 p-2.5 bg-primary/5 rounded-lg border border-primary/20">
+                    <span className="text-xs font-medium text-gray-800 flex-1">{idioma}</span>
+                    <select value={nivel} onChange={e => updateNivelIdioma(idioma, e.target.value)}
+                      className="border border-gray-300 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-primary bg-white">
+                      {NIVELES_CEFR.map(n => <option key={n} value={n}>{n}</option>)}
+                    </select>
+                    <button onClick={() => toggleIdioma(idioma)} className="text-gray-400 hover:text-red-500 text-base leading-none">×</button>
+                  </div>
                 ))}
               </div>
             )}
           </div>
-        </div>
-      </div>
 
-      {/* ── Sección 2: Compensación ── */}
-      <div className="bg-white rounded-2xl border border-gray-200 p-6 space-y-5">
-        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Sección 2 — Compensación</h2>
-
-        <div>
-          <label className="block text-xs font-medium text-gray-500 mb-1.5">Salario bruto mensual</label>
-          <div className="flex gap-2">
-            <select value={form.moneda} onChange={set('moneda')}
-              className="border border-gray-300 rounded-lg px-2 py-2.5 text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary shrink-0">
-              {MONEDAS.map(m => <option key={m.code} value={m.code}>{m.code}</option>)}
-            </select>
-            <div className="relative flex-1">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400 select-none">
-                {MONEDAS.find(m => m.code === form.moneda)?.symbol || '$'}
-              </span>
-              <input type="text" value={form.salario_monto} onChange={set('salario_monto')} placeholder="50,000"
-                className="w-full border border-gray-300 rounded-lg pl-7 pr-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+          {/* Educación */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-xs font-semibold text-gray-500">Educación</label>
+              <button onClick={agregarEducacion}
+                className="text-xs font-medium text-primary border border-primary/30 rounded-lg px-3 py-1.5 hover:bg-primary/5 transition-colors">
+                + Agregar
+              </button>
             </div>
-          </div>
-          {form.pais && <p className="text-xs text-gray-400 mt-1">Moneda detectada para {form.pais}: {form.moneda}</p>}
-        </div>
-
-        <div>
-          <label className="block text-xs font-medium text-gray-500 mb-2">
-            Prestaciones{form.pais ? ` (${form.pais})` : ''}
-          </label>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
-            {getPrestaciones(form.pais).map(p => {
-              const detailCfg = form.pais === 'México' ? MEXICO_DETALLE[p] : null
-              const isChecked = form.prestaciones.includes(p)
-              return (
-                <div key={p}>
-                  <label className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-colors text-xs
-                    ${isChecked ? 'bg-primary/5 border-primary/30 text-primary font-medium' : 'border-gray-200 text-gray-600 hover:border-gray-300'}`}>
-                    <input type="checkbox" checked={isChecked} onChange={() => togglePrestacion(p)} className="accent-primary shrink-0" />
-                    {p}
-                  </label>
-                  {isChecked && detailCfg && (
-                    <div className="mt-1 px-1">
-                      {detailCfg.tipo === 'selector' ? (
-                        <select
-                          value={form.prestaciones_detalle[p] ?? detailCfg.default}
-                          onChange={e => updateDetalle(p, e.target.value)}
-                          className="w-full border border-gray-300 rounded-md px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
-                        >
-                          {detailCfg.opciones.map(o => <option key={o} value={o}>{o}</option>)}
-                        </select>
-                      ) : (
-                        <div className="flex items-center gap-1">
-                          <input
-                            type={detailCfg.tipo === 'pct' || detailCfg.tipo === 'dias' ? 'number' : 'text'}
-                            value={form.prestaciones_detalle[p] ?? detailCfg.default}
-                            onChange={e => updateDetalle(p, e.target.value)}
-                            placeholder={detailCfg.label}
-                            className="flex-1 border border-gray-300 rounded-md px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
-                          />
-                          {detailCfg.tipo === 'pct'  && <span className="text-xs text-gray-400 shrink-0">%</span>}
-                          {detailCfg.tipo === 'dias' && <span className="text-xs text-gray-400 shrink-0">días</span>}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )
-            })}
-          </div>
-        </div>
-
-        {/* Variable o Bono */}
-        <div>
-          <div className="flex items-center gap-3 mb-2">
-            <label className="text-xs font-medium text-gray-500">Variable o Bono</label>
-            <button
-              onClick={() => setForm(f => ({ ...f, bono_activo: !f.bono_activo, bono_tipo: '', bono_frecuencia: '', bono_monto: '', bono_pct: '', variable_monto: '' }))}
-              className={`text-xs font-medium px-3 py-1.5 rounded-full border transition-colors
-                ${form.bono_activo ? 'bg-primary text-white border-primary' : 'border-gray-300 text-gray-600 hover:border-primary hover:text-primary'}`}
-            >
-              {form.bono_activo ? '✓ Aplica' : '+ Agregar'}
-            </button>
-          </div>
-          {form.bono_activo && (
-            <div className="space-y-3 p-4 bg-gray-50 rounded-xl border border-gray-200">
-              <div className="flex gap-2">
-                {['Bono', 'Variable mensual'].map(t => (
-                  <button key={t} onClick={() => setForm(f => ({ ...f, bono_tipo: t }))}
-                    className={`flex-1 text-xs font-semibold py-2 rounded-lg border transition-colors
-                      ${form.bono_tipo === t ? 'bg-primary text-white border-primary' : 'border-gray-300 text-gray-600 hover:border-primary'}`}>
-                    {t}
-                  </button>
-                ))}
-              </div>
-              {form.bono_tipo === 'Bono' && (
-                <div className="grid grid-cols-3 gap-2">
+            {form.educacion.length === 0 && (
+              <p className="text-xs text-gray-400 py-1">Agrega tu formación académica (opcional)</p>
+            )}
+            <div className="space-y-3">
+              {form.educacion.map((edu, idx) => (
+                <div key={idx} className="p-3 bg-gray-50 rounded-xl border border-gray-200 space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs font-semibold text-gray-500">Educación {idx + 1}</span>
+                    <button onClick={() => quitarEducacion(idx)} className="text-xs text-gray-400 hover:text-red-500 transition-colors">✕ Eliminar</button>
+                  </div>
                   <div>
-                    <label className="block text-xs text-gray-500 mb-1">Frecuencia</label>
-                    <select value={form.bono_frecuencia} onChange={e => setForm(f => ({ ...f, bono_frecuencia: e.target.value }))}
+                    <label className="block text-xs text-gray-500 mb-1">Nivel académico</label>
+                    <select value={edu.nivel} onChange={e => updateEducacion(idx, 'nivel', e.target.value)}
                       className="w-full border border-gray-300 rounded-lg px-2 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary">
                       <option value="">Selecciona</option>
-                      {['Mensual','Trimestral','Semestral','Anual'].map(frq => <option key={frq} value={frq}>{frq}</option>)}
+                      {NIVELES_EDUCACION.map(n => <option key={n} value={n}>{n}</option>)}
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs text-gray-500 mb-1">Monto ({form.moneda})</label>
-                    <input type="text" value={form.bono_monto} onChange={e => setForm(f => ({ ...f, bono_monto: e.target.value }))}
-                      placeholder="50,000"
+                    <label className="block text-xs text-gray-500 mb-1">Título / Programa</label>
+                    <input type="text" value={edu.titulo} onChange={e => updateEducacion(idx, 'titulo', e.target.value)}
+                      placeholder="Ej. Ingeniería Industrial"
                       className="w-full border border-gray-300 rounded-lg px-2 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary" />
                   </div>
-                  <div>
-                    <label className="block text-xs text-gray-500 mb-1">%</label>
-                    <input type="number" value={form.bono_pct} onChange={e => setForm(f => ({ ...f, bono_pct: e.target.value }))}
-                      placeholder="10" min="0" max="200"
-                      className="w-full border border-gray-300 rounded-lg px-2 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary" />
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Institución</label>
+                      <input type="text" value={edu.institucion} onChange={e => updateEducacion(idx, 'institucion', e.target.value)}
+                        placeholder="Ej. UNAM"
+                        className="w-full border border-gray-300 rounded-lg px-2 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary" />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Año de graduación</label>
+                      <input type="text" value={edu.anio} onChange={e => updateEducacion(idx, 'anio', e.target.value.replace(/[^0-9]/g, ''))}
+                        placeholder="2020" maxLength={4}
+                        className="w-full border border-gray-300 rounded-lg px-2 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary" />
+                    </div>
                   </div>
                 </div>
-              )}
-              {form.bono_tipo === 'Variable mensual' && (
-                <div>
-                  <label className="block text-xs text-gray-500 mb-1">Monto mensual ({form.moneda})</label>
-                  <input type="text" value={form.variable_monto} onChange={e => setForm(f => ({ ...f, variable_monto: e.target.value }))}
-                    placeholder="10,000"
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary" />
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── TAB: Plan ── */}
+      {tab === 'plan' && (
+        <div className="space-y-5">
+          {/* Plan y créditos */}
+          <div className="bg-white rounded-2xl border border-gray-200 p-6">
+            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">Plan actual</h2>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-3xl font-bold text-gray-900">{creditosRestantes}</span>
+                  <span className="text-gray-400">/ {LIMITE_PLAN} créditos disponibles</span>
                 </div>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* ── Sección 3: Aspiraciones ── */}
-      <div className="bg-white rounded-2xl border border-gray-200 p-6 space-y-5">
-        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Sección 3 — Aspiraciones</h2>
-
-        {/* Nivel de cargo */}
-        <div>
-          <label className="block text-xs font-medium text-gray-500 mb-2">Nivel de cargo buscado</label>
-          <div className="flex flex-wrap gap-2">
-            {NIVELES_CARGO.map(n => (
-              <button key={n} onClick={() => setForm(f=>({...f,nivel_cargo:n}))}
-                className={`text-xs font-medium px-3 py-2 rounded-full border transition-colors
-                  ${form.nivel_cargo === n ? 'bg-primary text-white border-primary' : 'border-gray-300 text-gray-600 hover:border-primary hover:text-primary'}`}>
-                {n}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Área */}
-        <div>
-          <label className="block text-xs font-medium text-gray-500 mb-2">Área funcional</label>
-          <div className="flex flex-wrap gap-2">
-            {AREAS.map(a => (
-              <button key={a} onClick={() => setForm(f=>({...f,area:a}))}
-                className={`text-xs font-medium px-3 py-2 rounded-full border transition-colors
-                  ${form.area === a ? 'bg-secondary text-on-secondary border-secondary' : 'border-gray-300 text-gray-600 hover:border-secondary hover:text-secondary'}`}>
-                {a}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Tipo de trabajo */}
-        <div>
-          <label className="block text-xs font-medium text-gray-500 mb-2">Tipo de trabajo</label>
-          <div className="flex gap-2">
-            {TIPOS_TRABAJO.map(t => (
-              <button key={t} onClick={() => setForm(f=>({...f,tipo_trabajo:t}))}
-                className={`flex-1 text-xs font-medium py-2.5 rounded-xl border transition-colors
-                  ${form.tipo_trabajo === t ? 'bg-primary text-white border-primary' : 'border-gray-300 text-gray-600 hover:border-primary hover:text-primary'}`}>
-                {t}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Industrias */}
-        <div>
-          <label className="block text-xs font-medium text-gray-500 mb-2">Industrias de interés <span className="text-gray-400">(múltiple)</span></label>
-          <div className="flex flex-wrap gap-1.5">
-            {INDUSTRIAS_LATAM.map(ind => (
-              <button key={ind} onClick={() => toggleIndustria(ind)}
-                className={`text-xs px-3 py-1.5 rounded-full border transition-colors
-                  ${form.industrias_deseadas.includes(ind)
-                    ? 'bg-primary/10 border-primary/40 text-primary font-medium'
-                    : 'border-gray-200 text-gray-500 hover:border-gray-300'}`}>
-                {ind}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Campos profesionales legacy */}
-        <div className="border-t border-gray-100 pt-4">
-          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Perfil profesional adicional</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs text-gray-500 mb-1">Cargo actual</label>
-              <input type="text" value={form.cargo_actual} onChange={set('cargo_actual')} placeholder="Gerente de RH"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
-            </div>
-            <div>
-              <label className="block text-xs text-gray-500 mb-1">Cargo objetivo</label>
-              <input type="text" value={form.cargo_objetivo} onChange={set('cargo_objetivo')} placeholder="Director de RH"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
-            </div>
-            <div>
-              <label className="block text-xs text-gray-500 mb-1">Años de experiencia</label>
-              <select value={form.experiencia_anos} onChange={set('experiencia_anos')}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary">
-                <option value="">Selecciona</option>
-                {EXPERIENCIAS.map(e => <option key={e.value} value={e.value}>{e.label}</option>)}
-              </select>
+                <p className="text-sm text-gray-500 mt-1">Plan gratuito · {usageCount} utilizados</p>
+                <div className="w-48 bg-gray-100 rounded-full h-1.5 mt-2">
+                  <div className={`h-1.5 rounded-full ${creditosRestantes === 0 ? 'bg-red-400' : creditosRestantes === 1 ? 'bg-amber-400' : 'bg-green-500'}`}
+                    style={{ width: `${(creditosRestantes / LIMITE_PLAN) * 100}%` }} />
+                </div>
+              </div>
+              <div className="flex flex-col items-start gap-2">
+                <button className="bg-primary text-white text-sm font-medium px-5 py-2.5 rounded-xl hover:bg-blue-700 transition-colors">
+                  Mejorar plan — Próximamente
+                </button>
+                <p className="text-xs text-gray-400">Planes desde $9 USD/mes</p>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* Botón guardar */}
-      <div className="flex items-center gap-3 pb-8">
-        <button onClick={guardar} disabled={saving}
-          className="bg-primary text-white text-sm font-medium px-6 py-2.5 rounded-xl hover:bg-blue-700 transition-colors disabled:opacity-50">
-          {saving ? 'Guardando...' : 'Guardar cambios'}
-        </button>
-        {guardado && <span className="text-sm text-green-600">✓ Guardado correctamente</span>}
-      </div>
+          {/* Referidos */}
+          <div className="bg-white rounded-2xl border border-gray-200 p-6">
+            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-1">Programa de referidos</h2>
+            <p className="text-sm text-gray-500 mb-4">Comparte tu código y gana <strong>2 créditos</strong> por cada persona que se registre.</p>
+            {perfil?.referral_code ? (
+              <div className="flex flex-col sm:flex-row gap-3">
+                <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 flex-1">
+                  <span className="text-xs text-gray-400 font-medium">Tu código:</span>
+                  <span className="font-mono font-bold text-gray-900 tracking-widest text-sm">{perfil.referral_code.toUpperCase()}</span>
+                </div>
+                <button onClick={copiarCodigo} className="text-sm font-medium border border-gray-300 rounded-xl px-4 py-2.5 hover:border-primary hover:text-primary transition-colors">
+                  {copiado ? '✓ Copiado' : 'Copiar código'}
+                </button>
+                <button onClick={compartirLink} className="text-sm font-medium bg-primary text-white rounded-xl px-4 py-2.5 hover:bg-blue-700 transition-colors">
+                  Compartir link
+                </button>
+              </div>
+            ) : <div className="text-sm text-gray-400">Cargando código...</div>}
+            {perfil?.bonus_credits > 0 && (
+              <p className="mt-3 text-sm text-green-600 font-medium">🎉 Has ganado {perfil.bonus_credits} créditos por referidos</p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Botón guardar (no en tab Plan) */}
+      {tab !== 'plan' && (
+        <div className="flex items-center gap-3 mt-5 pb-8">
+          <button onClick={guardar} disabled={saving}
+            className="bg-primary text-white text-sm font-medium px-6 py-2.5 rounded-xl hover:bg-blue-700 transition-colors disabled:opacity-50">
+            {saving ? 'Guardando...' : 'Guardar cambios'}
+          </button>
+          {guardado && <span className="text-sm text-green-600">✓ Guardado correctamente</span>}
+        </div>
+      )}
     </div>
   )
 }

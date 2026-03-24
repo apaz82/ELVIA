@@ -4,8 +4,12 @@ import { useAuth } from '../../context/AuthContext'
 import {
   FileMagnifyingGlass, MagnifyingGlass, Briefcase,
   Folders, BookmarkSimple, Kanban,
-  UserCircle, SignOut, Coins, X, Crown,
+  UserCircle, SignOut, Coins, X, Crown, House,
 } from '@phosphor-icons/react'
+
+const INICIO = [
+  { to: '/dashboard', label: 'Dashboard', Icon: House },
+]
 
 const HERRAMIENTAS = [
   { to: '/cv-optimizer', label: 'CV Optimizer',  Icon: FileMagnifyingGlass },
@@ -77,9 +81,9 @@ export default function Sidebar({ open, onClose }) {
       `}>
 
         {/* Logo */}
-        <div className="flex items-center justify-between px-5 h-16 border-b border-outline-variant/20 shrink-0">
+        <div className="flex items-center justify-between px-5 py-4 h-24 border-b border-outline-variant/20 shrink-0">
           <Link to="/" onClick={onClose} className="flex items-center">
-            <img src="/optima-cv-horizontal-1400_4.svg" alt="CV Optimizer Pro" className="h-10 w-auto object-contain" />
+            <img src="/optima_logo_full.png" alt="OPTIMA-CV" className="h-[4.5rem] w-auto object-contain" />
           </Link>
           {/* Cerrar en móvil */}
           <button onClick={onClose} className="md:hidden p-1 rounded-lg text-on-surface-variant hover:bg-surface-container transition-colors">
@@ -89,6 +93,15 @@ export default function Sidebar({ open, onClose }) {
 
         {/* Nav scrollable */}
         <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-6">
+
+          {/* Inicio */}
+          <div>
+            <div className="space-y-0.5">
+              {INICIO.map(item => (
+                <NavItem key={item.to} {...item} onClick={onClose} />
+              ))}
+            </div>
+          </div>
 
           {/* Herramientas */}
           <div>

@@ -214,4 +214,41 @@ pais: [país]
   return parsearRespuestaMatch(response.content[0].text);
 };
 
-module.exports = { optimizeCV, matchCVtoJob };
+/**
+ * Genera respuesta conversacional para el AI Copilot
+ */
+const generateChatResponse = async (message, history, context) => {
+  const systemPrompt = `Eres "OPTIMA", la asistente y mentora experta en crecimiento profesional y reclutamiento para la plataforma "OPTIMA-CV".
+
+Tu personalidad es empoderadora, profesional y cercana. Tu objetivo es guiar a los usuarios en su carrera.
+
+REGLAS DE INTERACCIÓN:
+1. Responde siempre con entusiasmo pero manteniendo el profesionalismo de una experta en RRHH.
+2. Si un usuario usa un botón de acción rápida:
+   - "Preguntas sobre la app": Explica brevemente que pueden optimizar CVs en la sección "CV Optimizer", comparar vacantes en "CV vs Vacante" o buscar empleos en "Buscar Vacantes". Menciona que pueden ver su historial en "Mis CVs".
+   - "Sobre procesos de selección": Da consejos clave sobre cómo prepararse para una entrevista, qué buscan los reclutadores en LinkedIn o cómo manejar negociaciones salariales.
+   - "Quieres una frase motivadora": Genera una frase corta e inspiradora relacionada con el éxito profesional o la perseverancia.
+3. Mantén el enfoque: No hables de temas ajenos a la carrera profesional o el uso de la app.
+4. Usa formato Markdown (negritas, listas) para que tus respuestas sean fáciles de leer.
+
+Contexto actual: ${context || 'Navegando en la plataforma'}
+`;
+
+  const formattedHistory = history.map(msg => ({
+    role: msg.role === 'user' ? 'user' : 'assistant',
+    content: msg.content
+  }));
+
+  formattedHistory.push({ role: 'user', content: message });
+
+  const response = await client.messages.create({
+    model: 'claude-haiku-4-5-20251001',
+    max_tokens: 600,
+    system: systemPrompt,
+    messages: formattedHistory,
+  });
+
+  return response.content[0].text;
+};
+
+module.exports = { optimizeCV, matchCVtoJob, generateChatResponse };

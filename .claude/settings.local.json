@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run:*)",
+      "WebFetch(domain:www.yeldra.com)",
+      "Bash(npm list:*)",
+      "Bash(npm install:*)"
+    ]
+  }
+}

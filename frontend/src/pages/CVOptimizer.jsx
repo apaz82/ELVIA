@@ -22,16 +22,19 @@ const nombreCV = (cv) => {
 }
 
 export default function CVOptimizer() {
-  const { user, refreshUsage } = useAuth()
+  const { user, refreshUsage, perfil } = useAuth()
   const { cvArchivo, setCvArchivo, setResultadoOptimize, resultadoOptimize } = useCV()
   const navigate = useNavigate()
 
-  const [language, setLanguage]       = useState('')
-  const [loading, setLoading]         = useState(false)
-  const [error, setError]             = useState('')
-  const [tabActiva, setTabActiva]     = useState('cv')
+  const [language, setLanguage]           = useState('')
+  const [loading, setLoading]             = useState(false)
+  const [error, setError]                 = useState('')
+  const [tabActiva, setTabActiva]         = useState('cv')
   const [cvsExistentes, setCvsExistentes] = useState([])
-  const [descargando, setDescargando] = useState({})
+  const [descargando, setDescargando]     = useState({})
+  const [cargandoPerfil, setCargandoPerfil] = useState(false)
+  // null = sin decidir, 'perfil' = usar CV del perfil, 'nuevo' = subir nuevo
+  const [cvDecision, setCvDecision] = useState(null)
 
   // Cargar CVs optimizados existentes del usuario
   useEffect(() => {
@@ -48,6 +51,29 @@ export default function CVOptimizer() {
     setDescargando(d => ({ ...d, [id]: fmt }))
     await descargarCV(id, fmt)
     setDescargando(d => ({ ...d, [id]: null }))
+  }
+
+  // Carga el CV guardado en Storage desde el onboarding
+  const usarCvDePerfil = async () => {
+    if (!perfil?.cv_path) return
+    setCargandoPerfil(true)
+    setError('')
+    try {
+      const { data, error: dlErr } = await supabase.storage
+        .from('cvs')
+        .download(perfil.cv_path)
+      if (dlErr) throw dlErr
+      const ext      = perfil.cv_path.split('.').pop()
+      const mimeMap  = { pdf: 'application/pdf', doc: 'application/msword', docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' }
+      const file     = new File([data], perfil.cv_filename || `cv.${ext}`, { type: mimeMap[ext] || 'application/octet-stream' })
+      setCvArchivo(file)
+      setCvDecision('perfil')
+    } catch (err) {
+      setError('No se pudo cargar el CV del perfil. Sube el archivo manualmente.')
+      setCvDecision('nuevo')
+    } finally {
+      setCargandoPerfil(false)
+    }
   }
 
   const analizar = async () => {
@@ -146,7 +172,64 @@ export default function CVOptimizer() {
         </h2>
         <p className="text-sm text-gray-400 mb-5">PDF, DOC o DOCX — máx. 5MB</p>
 
-        <FileUpload onFileSelect={setCvArchivo} archivoActual={cvArchivo} />
+        {/* Pregunta: ¿usar CV del perfil? — se muestra solo si hay CV guardado y aún no se ha decidido */}
+        {perfil?.cv_path && cvDecision === null ? (
+          <div className="mb-2 p-5 bg-primary/5 border border-primary/20 rounded-2xl">
+            <div className="flex items-start gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                <span className="text-xl">📄</span>
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-gray-800">
+                  Tienes un CV guardado en tu perfil
+                </p>
+                <p className="text-xs text-gray-500 mt-0.5 truncate">
+                  {perfil.cv_filename || 'CV de mi perfil'}
+                </p>
+              </div>
+            </div>
+            <p className="text-sm text-gray-700 mb-4">
+              ¿Quieres optimizar ese CV o prefieres subir uno diferente?
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={usarCvDePerfil}
+                disabled={cargandoPerfil}
+                className="flex-1 bg-primary text-white text-sm font-semibold py-2.5 rounded-xl hover:bg-primary/90 transition-colors disabled:opacity-50">
+                {cargandoPerfil ? 'Cargando...' : 'Sí, usar este CV'}
+              </button>
+              <button
+                onClick={() => setCvDecision('nuevo')}
+                disabled={cargandoPerfil}
+                className="flex-1 border border-gray-300 text-gray-700 text-sm font-semibold py-2.5 rounded-xl hover:border-primary hover:text-primary transition-colors disabled:opacity-50">
+                No, subir otro
+              </button>
+            </div>
+          </div>
+        ) : null}
+
+        {/* CV cargado del perfil — resumen */}
+        {cvDecision === 'perfil' && cvArchivo && (
+          <div className="mb-4 flex items-center justify-between gap-3 p-3 bg-primary/5 border border-primary/20 rounded-xl">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="text-primary text-base shrink-0">📄</span>
+              <div className="min-w-0">
+                <p className="text-xs font-semibold text-gray-800 truncate">{cvArchivo.name}</p>
+                <p className="text-xs text-gray-400">CV cargado desde tu perfil</p>
+              </div>
+            </div>
+            <button
+              onClick={() => { setCvArchivo(null); setCvDecision('nuevo') }}
+              className="shrink-0 text-xs text-gray-400 hover:text-red-500 border border-gray-200 rounded-lg px-3 py-1.5 transition-colors">
+              Cambiar
+            </button>
+          </div>
+        )}
+
+        {/* Upload normal — solo si decidió subir nuevo o no hay CV en perfil */}
+        {(cvDecision === 'nuevo' || !perfil?.cv_path) && (
+          <FileUpload onFileSelect={setCvArchivo} archivoActual={cvArchivo} />
+        )}
 
         {/* Disclaimer de reemplazo — solo si ya hay CVs previos */}
         {cvsExistentes.length > 0 && (

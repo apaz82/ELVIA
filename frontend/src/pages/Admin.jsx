@@ -79,7 +79,7 @@ function AdminLogin({ onLogin }) {
             <span className="text-white font-black text-xl">A</span>
           </div>
           <h1 className="text-white text-2xl font-black tracking-tight">Admin Panel</h1>
-          <p className="text-gray-400 text-sm mt-1">CV Optimizer Pro — Acceso restringido</p>
+          <p className="text-gray-400 text-sm mt-1">OPTIMA-CV — Acceso restringido</p>
         </div>
 
         <form onSubmit={handleSubmit} className="bg-gray-900 rounded-2xl p-6 border border-gray-800 space-y-4">
@@ -559,7 +559,7 @@ function Dashboard({ adminUser, onLogout }) {
           <span className="text-white font-black text-xs">A</span>
         </div>
         <span className="text-white font-bold text-sm tracking-tight">Admin Panel</span>
-        <span className="text-gray-600 text-xs hidden sm:block">/ CV Optimizer Pro</span>
+        <span className="text-gray-600 text-xs hidden sm:block">/ OPTIMA-CV</span>
         <div className="flex-1" />
         <div className="flex items-center gap-3">
           <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center shrink-0">

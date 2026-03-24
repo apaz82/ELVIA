@@ -4,8 +4,10 @@ import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import {
   FileMagnifyingGlass, MagnifyingGlass, Briefcase, Kanban,
-  ArrowRight, CheckCircle, ChartBar, Coins,
+  ArrowRight, CheckCircle, ChartBar, Coins, SignOut, Warning,
+  Sparkle
 } from '@phosphor-icons/react'
+import { supabase } from '../services/authService'
 
 // ── Contador animado ──────────────────────────────────────────────────────────
 function useInView(threshold = 0.15) {
@@ -39,6 +41,9 @@ function AnimatedCounter({ target, suffix = '', duration = 1600 }) {
 export default function Landing() {
   const navigate  = useNavigate()
   const { user, perfil, creditosRestantes, LIMITE_PLAN } = useAuth()
+
+  // Detectar onboarding incompleto: usuario logueado sin nombre1 en perfil
+  const onboardingIncompleto = user && !perfil?.nombre1
 
   const features = [
     {
@@ -81,14 +86,14 @@ export default function Landing() {
     <div className="min-h-screen bg-surface font-body">
 
       {/* ── Nav landing — centrada ────────────────────────────────────────── */}
-      <nav className="glass-header sticky top-0 z-50 flex items-center justify-center gap-4 sm:gap-6 px-6 h-16">
+      <nav className="sticky top-0 z-50 flex items-center justify-center gap-4 sm:gap-6 px-6 h-24 bg-gradient-to-r from-[#0A3D2A] to-[#0D2B4E] shadow-md border-none">
         {/* Logo */}
         <Link to="/" className="flex items-center">
-          <img src="/optima-cv-horizontal-1400_4.svg" alt="CV Optimizer Pro" className="h-10 w-auto object-contain" />
+          <img src="/optima_logo_full.png" alt="OPTIMA-CV" className="h-[4.5rem] py-1 w-auto object-contain brightness-0 invert" />
         </Link>
 
-        {/* Separador */}
-        <div className="hidden sm:block h-5 w-px bg-outline-variant/40" />
+        {/* Spacer — empuja los botones a la derecha */}
+        <div className="flex-1" />
 
         {/* Acciones */}
         {user ? (
@@ -96,131 +101,55 @@ export default function Landing() {
             <div className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full
               ${creditosRestantes === 0 ? 'text-error bg-error-container'
                 : creditosRestantes === 1 ? 'text-amber-700 bg-amber-50'
-                : 'text-secondary bg-secondary-fixed'}`}>
+                : 'text-white/90 bg-white/20'}`}>
               <Coins size={14} weight="duotone" />
               {creditosRestantes} / {LIMITE_PLAN}
             </div>
-            <span className="hidden sm:block text-sm font-medium text-on-surface-variant">
+            <span className="hidden sm:block text-sm font-medium text-white/90">
               {perfil?.nombre1 || user.email?.split('@')[0]}
             </span>
-            <button onClick={() => navigate('/cv-optimizer')} className="btn-primary text-sm flex items-center gap-1.5">
+            <button onClick={() => navigate('/cv-optimizer')}
+              className="text-sm font-bold flex items-center gap-2 bg-white text-[#E8541A] px-5 py-2.5 rounded-xl hover:bg-orange-50 transition-colors shadow-md">
               Empecemos <ArrowRight size={15} weight="bold" />
+            </button>
+            <button
+              onClick={() => supabase.auth.signOut().then(() => navigate('/'))}
+              title="Cerrar sesión"
+              className="flex items-center gap-1.5 text-sm font-medium text-white/80 hover:text-white hover:bg-white/10 px-3 py-2.5 rounded-xl transition-colors">
+              <SignOut size={16} weight="bold" />
+              <span className="hidden sm:block">Salir</span>
             </button>
           </>
         ) : (
           <>
             <Link to="/auth"
-              className="text-sm font-medium text-on-surface-variant hover:text-primary transition-colors hidden sm:block px-3 py-2 rounded-xl hover:bg-surface-container">
+              className="text-sm font-medium text-white/90 hidden sm:flex items-center px-4 py-2.5 rounded-xl hover:bg-white/10 transition-colors">
               Iniciar sesión
             </Link>
-            <Link to="/auth?register=true" className="btn-primary text-sm flex items-center gap-1.5">
+            <Link to="/auth?register=true"
+              className="text-sm font-bold flex items-center gap-2 bg-white text-[#E8541A] px-5 py-2.5 rounded-xl hover:bg-orange-50 transition-colors shadow-md">
               Registrarse gratis <ArrowRight size={15} weight="bold" />
             </Link>
           </>
         )}
       </nav>
 
-      {/* ── Hero ──────────────────────────────────────────────────────────── */}
-      <section className="py-16 px-6 bg-surface flex justify-center">
-        <div className="relative w-full max-w-5xl rounded-3xl overflow-hidden min-h-[72vh] flex items-center shadow-float">
-          {/* Foto profesional difuminada */}
-          <img
-            src="https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=1400&q=80&fit=crop"
-            alt="Profesional de carrera"
-            className="absolute inset-0 w-full h-full object-cover object-top"
-          />
-          {/* Overlay degradado — preserva legibilidad del texto */}
-          <div className="absolute inset-0 bg-gradient-to-r from-primary/92 via-primary/80 to-primary/30" />
-          <div className="absolute inset-0 bg-gradient-to-t from-primary/60 via-transparent to-transparent" />
-
-        <div className="relative z-10 w-full px-8 py-16 grid md:grid-cols-2 gap-12 items-center">
-          {/* Copy */}
-          <div className="space-y-8">
-            <span className="inline-block px-3 py-1 bg-tertiary-fixed text-on-tertiary-fixed-variant font-bold text-[10px] rounded-full uppercase tracking-widest">
-              IA sin bias · Formato Harvard · LATAM
-            </span>
-            <h1 className="font-headline font-black text-5xl md:text-6xl text-on-primary leading-[1.08] tracking-tight">
-              Forja tu futuro<br />profesional
-            </h1>
-            <p className="text-on-primary-container text-lg leading-relaxed max-w-md">
-              Optimiza tu CV con inteligencia artificial y conecta con las vacantes que realmente impulsarán tu carrera. Sin inventar información.
+      {/* ── Banner onboarding incompleto ──────────────────────────────────── */}
+      {onboardingIncompleto && (
+        <div className="bg-amber-50 border-b border-amber-200 px-6 py-3 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <Warning size={20} weight="duotone" className="text-amber-600" />
+            <p className="text-sm text-amber-800 font-medium">
+              Tu perfil está incompleto — complétalo para desbloquear todas las funcionalidades.
             </p>
-            <div className="flex flex-col sm:flex-row gap-3 pt-2">
-              {user ? (
-                <button onClick={() => navigate('/cv-optimizer')}
-                  className="flex items-center gap-2 bg-white text-primary font-bold px-8 py-3.5 rounded-xl hover:bg-surface-container-low transition-colors shadow-float text-sm">
-                  Ir al optimizador <ArrowRight size={16} weight="bold" />
-                </button>
-              ) : (
-                <>
-                  <button onClick={() => navigate('/auth?register=true')}
-                    className="flex items-center gap-2 bg-white text-primary font-bold px-8 py-3.5 rounded-xl hover:bg-surface-container-low transition-colors shadow-float text-sm">
-                    Empezar gratis <ArrowRight size={16} weight="bold" />
-                  </button>
-                  <button onClick={() => navigate('/auth')}
-                    className="flex items-center gap-2 bg-white/10 backdrop-blur border border-white/20 text-on-primary font-medium px-8 py-3.5 rounded-xl hover:bg-white/20 transition-colors text-sm">
-                    Ya tengo cuenta
-                  </button>
-                </>
-              )}
-            </div>
-            <div className="flex flex-wrap items-center gap-5 text-sm text-on-primary-container">
-              {['2 análisis gratis', 'Sin tarjeta de crédito', 'Resultado inmediato'].map(t => (
-                <span key={t} className="flex items-center gap-1.5">
-                  <CheckCircle size={15} weight="fill" className="text-tertiary-fixed" />
-                  {t}
-                </span>
-              ))}
-            </div>
           </div>
-
-          {/* Widget IA — desktop */}
-          <div className="hidden md:block">
-            <div className="bg-white/[0.07] backdrop-blur-xl border border-white/10 p-8 rounded-2xl shadow-float relative overflow-hidden">
-              <div className="absolute -top-10 -right-10 w-40 h-40 bg-secondary/20 blur-3xl rounded-full pointer-events-none" />
-              <div className="relative z-10 space-y-6">
-                <div className="flex items-center gap-4 border-b border-white/10 pb-5">
-                  <div className="w-12 h-12 rounded-xl bg-tertiary-fixed/20 flex items-center justify-center shrink-0">
-                    <ChartBar size={24} weight="duotone" className="text-tertiary-fixed" />
-                  </div>
-                  <div>
-                    <p className="text-on-primary font-bold font-headline">IA Resume Score</p>
-                    <p className="text-on-primary-container text-sm">Análisis en tiempo real</p>
-                  </div>
-                </div>
-                <div>
-                  <div className="flex justify-between text-xs font-bold mb-2">
-                    <span className="text-on-primary-container">Compatibilidad con la vacante</span>
-                    <span className="text-tertiary-fixed">92%</span>
-                  </div>
-                  <div className="w-full bg-white/10 h-2.5 rounded-full overflow-hidden">
-                    <div className="bg-tertiary-fixed h-full rounded-full" style={{ width: '92%' }} />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  {[
-                    { label: 'Palabras clave ATS', pct: 88 },
-                    { label: 'Formato Harvard',    pct: 100 },
-                    { label: 'Logros cuantificados', pct: 75 },
-                  ].map(({ label, pct }) => (
-                    <div key={label} className="flex items-center gap-3">
-                      <span className="text-xs text-on-primary-container w-40 shrink-0">{label}</span>
-                      <div className="flex-1 bg-white/10 h-1.5 rounded-full overflow-hidden">
-                        <div className="bg-secondary-fixed h-full rounded-full" style={{ width: `${pct}%` }} />
-                      </div>
-                      <span className="text-xs font-bold text-on-primary w-8 text-right">{pct}%</span>
-                    </div>
-                  ))}
-                </div>
-                <p className="text-on-primary-container text-xs italic border-t border-white/10 pt-4">
-                  "Tu perfil tiene un 92% de coincidencia con puestos de Senior Project Manager."
-                </p>
-              </div>
-            </div>
-          </div>
+          <button
+            onClick={() => navigate('/onboarding')}
+            className="shrink-0 text-sm font-bold bg-amber-500 text-white px-4 py-2 rounded-xl hover:bg-amber-600 transition-colors flex items-center gap-2">
+            Continuar perfil <ArrowRight size={14} weight="bold" />
+          </button>
         </div>
-        </div>
-      </section>
+      )}
 
       {/* ── Stats bar ─────────────────────────────────────────────────────── */}
       <section className="bg-surface-container-low py-10">
@@ -261,36 +190,28 @@ export default function Landing() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-            {features.map(({ Icon, title, desc, cta, href, size, accent, dark }) => (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            {features.map(({ Icon, title, desc, cta, href }) => (
               <div
                 key={href}
                 onClick={() => navigate(href)}
-                className={`${size} group cursor-pointer p-8 rounded-2xl transition-all duration-300 flex flex-col justify-between gap-6
-                  ${dark
-                    ? 'bg-primary text-on-primary hover:bg-primary-container'
-                    : accent
-                    ? 'bg-surface-container-lowest shadow-card hover:shadow-float border-l-4 border-secondary'
-                    : 'bg-surface-container-low hover:bg-surface-container-lowest hover:shadow-card'
-                  }`}
+                className="group cursor-pointer p-8 rounded-2xl bg-surface-container-lowest border border-outline-variant/30
+                  shadow-card hover:shadow-float hover:border-[#E8541A]/40 hover:bg-orange-50/30
+                  transition-all duration-300 flex flex-col justify-between gap-6 min-h-[220px]"
               >
                 <div>
-                  <Icon
-                    size={40}
-                    weight="duotone"
-                    className={`mb-5 transition-transform group-hover:scale-110 ${
-                      dark ? 'text-tertiary-fixed' : 'text-secondary'
-                    }`}
-                  />
-                  <h3 className={`font-headline font-bold text-xl mb-3 ${dark ? 'text-on-primary' : 'text-primary'}`}>
+                  <div className="w-12 h-12 rounded-xl bg-[#E8541A]/10 flex items-center justify-center mb-5
+                    group-hover:bg-[#E8541A]/20 transition-colors duration-300">
+                    <Icon size={26} weight="duotone" className="text-[#E8541A]" />
+                  </div>
+                  <h3 className="font-headline font-bold text-xl mb-3 text-primary group-hover:text-[#E8541A] transition-colors duration-300">
                     {title}
                   </h3>
-                  <p className={`text-sm leading-relaxed ${dark ? 'text-on-primary-container' : 'text-on-surface-variant'}`}>
+                  <p className="text-sm leading-relaxed text-on-surface-variant">
                     {desc}
                   </p>
                 </div>
-                <span className={`text-sm font-bold flex items-center gap-2 group-hover:gap-3 transition-all
-                  ${dark ? 'text-tertiary-fixed' : 'text-secondary'}`}>
+                <span className="text-sm font-bold flex items-center gap-2 text-[#E8541A] group-hover:gap-3 transition-all duration-300">
                   {cta} <ArrowRight size={15} weight="bold" />
                 </span>
               </div>
@@ -322,19 +243,118 @@ export default function Landing() {
         </section>
       )}
 
+      {/* ── Hero ──────────────────────────────────────────────────────────── */}
+      <section className="py-16 px-6 bg-surface flex justify-center">
+        <div className="relative w-full max-w-5xl rounded-3xl overflow-hidden min-h-[72vh] flex items-center shadow-float bg-primary">
+          <div className="relative z-10 w-full px-8 py-16 grid md:grid-cols-2 gap-12 items-center">
+            {/* Copy */}
+            <div className="space-y-8">
+              <span className="inline-block px-3 py-1 bg-tertiary-fixed text-on-tertiary-fixed-variant font-bold text-[10px] rounded-full uppercase tracking-widest">
+                IA sin bias · Formato Harvard · LATAM
+              </span>
+              <h1 className="font-headline font-black text-5xl md:text-6xl text-on-primary leading-[1.08] tracking-tight">
+                Forja tu futuro<br />profesional
+              </h1>
+              <p className="text-on-primary-container text-lg leading-relaxed max-w-md">
+                Optimiza tu CV con inteligencia artificial y conecta con las vacantes que realmente impulsarán tu carrera. Sin inventar información.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                {user ? (
+                  !perfil?.nombre1 ? (
+                    <button onClick={() => navigate('/onboarding')}
+                      className="flex items-center gap-2 bg-[#E8541A] text-white font-bold px-8 py-3.5 rounded-xl hover:brightness-110 transition-colors shadow-float text-sm hover:-translate-y-1">
+                      ¡Completar Onboarding para empezar! <ArrowRight size={16} weight="bold" />
+                    </button>
+                  ) : (
+                    <button onClick={() => navigate('/cv-optimizer')}
+                      className="flex items-center gap-2 bg-white text-primary font-bold px-8 py-3.5 rounded-xl hover:bg-surface-container-low transition-colors shadow-float text-sm">
+                      Ir al optimizador <ArrowRight size={16} weight="bold" />
+                    </button>
+                  )
+                ) : (
+                  <>
+                    <button onClick={() => navigate('/auth?register=true')}
+                      className="flex items-center gap-2 bg-white text-primary font-bold px-8 py-3.5 rounded-xl hover:bg-surface-container-low transition-colors shadow-float text-sm">
+                      Empezar gratis <ArrowRight size={16} weight="bold" />
+                    </button>
+                    <button onClick={() => navigate('/auth')}
+                      className="flex items-center gap-2 bg-white/10 backdrop-blur border border-white/20 text-on-primary font-medium px-8 py-3.5 rounded-xl hover:bg-white/20 transition-colors text-sm">
+                      Ya tengo cuenta
+                    </button>
+                  </>
+                )}
+              </div>
+              <div className="flex flex-wrap items-center gap-5 text-sm text-on-primary-container">
+                {['2 análisis gratis', 'Sin tarjeta de crédito', 'Resultado inmediato'].map(t => (
+                  <span key={t} className="flex items-center gap-1.5">
+                    <CheckCircle size={15} weight="fill" className="text-tertiary-fixed" />
+                    {t}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* Widget IA — desktop */}
+            <div className="hidden md:block">
+              <div className="bg-white/[0.07] backdrop-blur-xl border border-white/10 p-8 rounded-2xl shadow-float relative overflow-hidden">
+                <div className="absolute -top-10 -right-10 w-40 h-40 bg-secondary/20 blur-3xl rounded-full pointer-events-none" />
+                <div className="relative z-10 space-y-6">
+                  <div className="flex items-center gap-4 border-b border-white/10 pb-5">
+                    <div className="w-12 h-12 rounded-xl bg-tertiary-fixed/20 flex items-center justify-center shrink-0">
+                      <ChartBar size={24} weight="duotone" className="text-tertiary-fixed" />
+                    </div>
+                    <div>
+                      <p className="text-on-primary font-bold font-headline">IA Resume Score</p>
+                      <p className="text-on-primary-container text-sm">Análisis en tiempo real</p>
+                    </div>
+                  </div>
+                  <div>
+                    <div className="flex justify-between text-xs font-bold mb-2">
+                      <span className="text-on-primary-container">Compatibilidad con la vacante</span>
+                      <span className="text-tertiary-fixed">92%</span>
+                    </div>
+                    <div className="w-full bg-white/10 h-2.5 rounded-full overflow-hidden">
+                      <div className="bg-tertiary-fixed h-full rounded-full" style={{ width: '92%' }} />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    {[
+                      { label: 'Palabras clave ATS', pct: 88 },
+                      { label: 'Formato Harvard',    pct: 100 },
+                      { label: 'Logros cuantificados', pct: 75 },
+                    ].map(({ label, pct }) => (
+                      <div key={label} className="flex items-center gap-3">
+                        <span className="text-xs text-on-primary-container w-40 shrink-0">{label}</span>
+                        <div className="flex-1 bg-white/10 h-1.5 rounded-full overflow-hidden">
+                          <div className="bg-secondary-fixed h-full rounded-full" style={{ width: `${pct}%` }} />
+                        </div>
+                        <span className="text-xs font-bold text-on-primary w-8 text-right">{pct}%</span>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-on-primary-container text-xs italic border-t border-white/10 pt-4">
+                    "Tu perfil tiene un 92% de coincidencia con puestos de Senior Project Manager."
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ── Footer ────────────────────────────────────────────────────────── */}
-      <footer className="bg-surface-container border-t border-outline-variant/20">
+      <footer className="bg-gradient-to-r from-[#0A3D2A] to-[#0D2B4E]">
         <div className="container mx-auto max-w-6xl px-6 py-14 grid grid-cols-1 md:grid-cols-4 gap-10">
           <div className="md:col-span-2 space-y-3">
             <div className="flex items-center">
-              <img src="/optima-cv-horizontal-1400_4.svg" alt="CV Optimizer Pro" className="h-10 w-auto object-contain" />
+              <img src="/optima_logo_full.png" alt="OPTIMA-CV" className="h-12 w-auto object-contain" />
             </div>
-            <p className="text-on-surface-variant text-sm leading-relaxed max-w-xs">
+            <p className="text-white/80 text-sm leading-relaxed max-w-xs">
               Potenciando carreras de alto nivel a través de IA y conocimiento estratégico del mercado laboral en LATAM.
             </p>
           </div>
           <div>
-            <h5 className="text-xs font-bold uppercase tracking-widest text-outline mb-5">Plataforma</h5>
+            <h5 className="text-xs font-bold uppercase tracking-widest text-white/60 mb-5">Plataforma</h5>
             <ul className="space-y-3">
               {[
                 { to: '/cv-optimizer', label: 'CV Optimizer' },
@@ -342,13 +362,13 @@ export default function Landing() {
                 { to: '/jobs',         label: 'Vacantes' },
               ].map(({ to, label }) => (
                 <li key={to}>
-                  <Link to={to} className="text-sm text-on-surface-variant hover:text-primary transition-colors">{label}</Link>
+                  <Link to={to} className="text-sm text-white/80 hover:text-white transition-colors">{label}</Link>
                 </li>
               ))}
             </ul>
           </div>
           <div>
-            <h5 className="text-xs font-bold uppercase tracking-widest text-outline mb-5">Cuenta</h5>
+            <h5 className="text-xs font-bold uppercase tracking-widest text-white/60 mb-5">Cuenta</h5>
             <ul className="space-y-3">
               {[
                 { to: '/auth',    label: 'Iniciar sesión' },
@@ -356,17 +376,17 @@ export default function Landing() {
                 { to: '/perfil',  label: 'Mi Perfil' },
               ].map(({ to, label }, i) => (
                 <li key={i}>
-                  <Link to={to} className="text-sm text-on-surface-variant hover:text-primary transition-colors">{label}</Link>
+                  <Link to={to} className="text-sm text-white/80 hover:text-white transition-colors">{label}</Link>
                 </li>
               ))}
             </ul>
           </div>
         </div>
-        <div className="border-t border-outline-variant/20 px-6 py-5 max-w-6xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-2">
-          <p className="text-[11px] text-outline uppercase tracking-wide font-semibold">
-            © 2025 CV Optimizer Pro. Todos los derechos reservados.
+        <div className="border-t border-white/20 px-6 py-5 max-w-6xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-2">
+          <p className="text-[11px] text-white/60 uppercase tracking-wide font-semibold">
+            © 2025 OPTIMA-CV. Todos los derechos reservados.
           </p>
-          <p className="text-[11px] text-outline">Hecho para profesionales en LATAM y USA hispanohablante</p>
+          <p className="text-[11px] text-white/60">Hecho para profesionales en LATAM y USA hispanohablante</p>
         </div>
       </footer>
 

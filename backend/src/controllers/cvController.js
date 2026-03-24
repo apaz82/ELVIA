@@ -117,9 +117,12 @@ const matchToJob = async (req, res, next) => {
   }
 };
 
-// Genera nombre de archivo con nomenclatura: "CV Optimizado Nombre MMDDAA" o "Optimized CV Name MMDDAA"
+// Genera nombre de archivo con nomenclatura: "CV Optimizado - Nombre Apellido - MMDDAA"
 const generarNombreArchivo = (contenido, metadata, tipo, extension) => {
-  const nombre = contenido?.split('\n')[0]?.trim() || 'CV';
+  let nombre = contenido?.split('\n')[0]?.trim() || 'Candidato';
+  // Limpiar el nombre de caracteres que no deberían ir en un filename (ej: |)
+  nombre = nombre.split('|')[0].trim();
+  
   const lang = metadata?.language || 'es';
   const ahora = new Date();
   const mm = String(ahora.getMonth() + 1).padStart(2, '0');
@@ -127,16 +130,14 @@ const generarNombreArchivo = (contenido, metadata, tipo, extension) => {
   const aa = String(ahora.getFullYear()).slice(-2);
   const fecha = `${mm}${dd}${aa}`;
 
+  // Formato: CV Adaptado - [Nombre Vacante] - [Nombre Usuario] - MMDDAA
   if (tipo === 'match') {
     const vacante = metadata?.jobData?.title || 'Vacante';
-    return lang === 'en'
-      ? `CV ${nombre} – Opt ${vacante} ${fecha}.${extension}`
-      : `CV ${nombre} – Opt ${vacante} ${fecha}.${extension}`;
+    return `CV Adaptado - ${vacante} - ${nombre} - ${fecha}.${extension}`;
   }
 
-  return lang === 'en'
-    ? `Optimized CV ${nombre} ${fecha} Eng.${extension}`
-    : `CV Optimizado ${nombre} ${fecha} Esp.${extension}`;
+  // Formato: CV Optimizado - Nombre Apellido - MMDDAA
+  return `CV Optimizado - ${nombre} - ${fecha}.${extension}`;
 };
 
 // GET /api/cv/download/:id?format=pdf|word
@@ -160,18 +161,20 @@ const download = async (req, res, next) => {
       return res.status(403).json({ error: 'Sin permiso para acceder a este recurso' });
     }
 
-    if (format === 'word') {
+    if (req.query.format === 'word') {
       const buffer = await generarWord(data.contenido);
       const nombre = generarNombreArchivo(data.contenido, data.metadata, data.tipo, 'docx');
       res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
-      res.setHeader('Content-Disposition', `attachment; filename="${nombre}"`);
+      // RFC 6266 for UTF-8 filenames
+      res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(nombre)}`);
       return res.send(buffer);
     }
 
     const buffer = await generarPDF(data.contenido);
     const nombre = generarNombreArchivo(data.contenido, data.metadata, data.tipo, 'pdf');
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="${nombre}"`);
+    // RFC 6266 for UTF-8 filenames
+    res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(nombre)}`);
     return res.send(buffer);
   } catch (err) {
     next(err);
@@ -187,14 +190,20 @@ const extractProfile = async (req, res, next) => {
     const anthropic = new Anthropic();
 
     const cvText = await parseCV(req.file.buffer, req.file.mimetype);
-    const fragmento = cvText.substring(0, 3000);
+    const fragmento = cvText.substring(0, 4000);
 
     const response = await anthropic.messages.create({
       model: 'claude-haiku-4-5-20251001',
-      max_tokens: 400,
+      max_tokens: 800,
       messages: [{
         role: 'user',
-        content: `Extrae la siguiente información del CV. Responde SOLO con JSON válido, sin texto adicional. Si no encuentras un dato, usa null.
+        content: `Extrae la siguiente información del CV. Responde SOLO con JSON válido, sin texto adicional. Si no encuentras un dato, usa null o array vacío según corresponda.
+
+Para el campo "pais", devuelve el nombre completo del país en español (ej: "México", "Colombia", "Argentina", "España"). Infiere el país a partir de la ciudad, dirección, código de área telefónico, o cualquier otra pista en el CV.
+
+Para "idiomas": extrae todos los idiomas mencionados con su nivel CEFR (A1,A2,B1,B2,C1,C2,Nativo). Si el CV dice "fluido", "avanzado" → C1; "intermedio" → B2; "básico" → A2; "nativo" o idioma materno → Nativo.
+
+Para "educacion": extrae todas las entradas de educación (máximo 4). El campo "nivel" debe ser uno de: "Preparatoria / Bachillerato", "Técnico / Tecnólogo", "Universidad / Licenciatura", "Especialización", "Maestría", "Doctorado", "Certificación Profesional".
 
 CV:
 ${fragmento}
@@ -207,17 +216,25 @@ Formato de respuesta:
   "apellido2": "segundo apellido o null",
   "telefono1": "teléfono principal o null",
   "ciudad": "ciudad de residencia o null",
-  "edad": número entero o null
+  "pais": "país inferido en español o null",
+  "edad": número entero o null,
+  "idiomas": [{ "idioma": "Inglés", "nivel": "B2" }],
+  "educacion": [{ "nivel": "Universidad / Licenciatura", "titulo": "Ingeniería Industrial", "institucion": "UNAM", "anio": "2018" }]
 }`,
       }],
     });
 
-    const jsonText = response.content[0].text.trim();
+    let jsonText = response.content[0].text.trim();
+    // Limpiar markdown si Claude lo envuelve en ```json ... ```
+    jsonText = jsonText.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
     const perfil = JSON.parse(jsonText);
+    // Garantizar arrays aunque Claude devuelva null
+    if (!Array.isArray(perfil.idiomas))   perfil.idiomas   = [];
+    if (!Array.isArray(perfil.educacion)) perfil.educacion = [];
     res.json(perfil);
   } catch (err) {
-    // Si Claude falla, devolver objeto vacío sin romper el flujo
-    res.json({ nombre1: null, nombre2: null, apellido1: null, apellido2: null, telefono1: null, ciudad: null, edad: null });
+    console.error('Error en extractProfile:', err.message);
+    res.json({ nombre1: null, nombre2: null, apellido1: null, apellido2: null, telefono1: null, ciudad: null, pais: null, edad: null, idiomas: [], educacion: [] });
   }
 };
 

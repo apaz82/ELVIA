@@ -14,6 +14,8 @@ export default {
         'primary-fixed':              '#d6e3ff',
         'primary-fixed-dim':          '#aac8fd',
         'inverse-primary':            '#aac8fd',
+        'brand-blue':                 '#0D2B4E',
+        'brand-orange':               '#E8541A',
         // ── Secundarios ───────────────────────────────────────────────────────
         'secondary':                  '#1461a2',
         'secondary-container':        '#7bb7fe',

@@ -11,8 +11,11 @@ import MisCVs from './pages/MisCVs'
 import MisVacantes from './pages/MisVacantes'
 import Pipeline from './pages/Pipeline'
 import Perfil from './pages/Perfil'
+import MiPlan from './pages/MiPlan'
+import Dashboard from './pages/Dashboard'
 import Onboarding from './pages/Onboarding'
 import Admin from './pages/Admin'
+import AiChatBot from './components/chat/AiChatBot'
 import { useAuth } from './context/AuthContext'
 
 // Rutas que NO muestran sidebar ni header estándar
@@ -41,6 +44,7 @@ function AppLayout({ children }) {
           {children}
         </main>
       </div>
+      <AiChatBot />
     </div>
   )
 }
@@ -50,6 +54,7 @@ function FullLayout({ children }) {
   return (
     <div className="min-h-screen flex flex-col bg-surface">
       {children}
+      <AiChatBot />
     </div>
   )
 }
@@ -70,6 +75,8 @@ export default function App() {
         <Route path="/mis-vacantes"  element={<MisVacantes />} />
         <Route path="/pipeline"      element={<Pipeline />} />
         <Route path="/perfil"        element={<Perfil />} />
+        <Route path="/mi-plan"       element={<MiPlan />} />
+        <Route path="/dashboard"     element={<Dashboard />} />
         <Route path="/onboarding"    element={<Onboarding />} />
         <Route path="/admin"         element={<Admin />} />
       </Routes>

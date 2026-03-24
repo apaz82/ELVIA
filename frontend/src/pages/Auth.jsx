@@ -69,18 +69,18 @@ export default function Auth() {
     return (
       <div className="min-h-[80vh] flex items-center justify-center px-4">
         <div className="w-full max-w-md text-center">
-          <div className="bg-white rounded-2xl border border-gray-200 p-10">
-            <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-10">
+            <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
               </svg>
             </div>
-            <h2 className="text-xl font-bold text-gray-900 mb-2">Revisa tu email</h2>
-            <p className="text-gray-500 text-sm mb-2">
+            <h2 className="text-xl font-bold text-on-surface mb-2">Revisa tu email</h2>
+            <p className="text-on-surface-variant text-sm mb-2">
               Enviamos un enlace de verificación a:
             </p>
-            <p className="font-semibold text-gray-800 mb-5">{email}</p>
-            <p className="text-gray-400 text-xs mb-6">
+            <p className="font-semibold text-on-surface mb-5">{email}</p>
+            <p className="text-on-surface-variant/70 text-xs mb-6">
               Haz clic en el enlace del correo para activar tu cuenta. Después podrás iniciar sesión.
             </p>
             <button
@@ -100,15 +100,15 @@ export default function Auth() {
   return (
     <div className="min-h-[80vh] flex items-center justify-center px-4 py-10">
       <div className="w-full max-w-md">
-        <div className="bg-white rounded-2xl border border-gray-200 p-8 shadow-sm">
+        <div className="bg-surface-container-lowest rounded-2xl border border-outline-variant/30 p-8 shadow-sm">
 
           {/* Logo + título */}
           <div className="text-center mb-7">
-            <img src="/optima-cv-horizontal-1400_4.svg" alt="CV Optimizer Pro" className="h-12 w-auto mx-auto mb-4 object-contain" />
-            <h1 className="text-2xl font-bold text-gray-900">
+            <img src="/optima_logo_full.png" alt="OPTIMA-CV" className="h-14 w-auto mx-auto mb-4 object-contain" />
+            <h1 className="text-2xl font-bold text-on-surface">
               {modo === 'login' ? 'Iniciar sesión' : 'Crear cuenta gratis'}
             </h1>
-            <p className="text-sm text-gray-500 mt-1">
+            <p className="text-sm text-on-surface-variant mt-1">
               {modo === 'login' ? 'Bienvenido de nuevo' : '2 análisis gratuitos al registrarte'}
             </p>
           </div>
@@ -117,28 +117,28 @@ export default function Auth() {
           {/* Formulario email/password */}
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+              <label className="block text-sm font-medium text-on-surface-variant mb-1">Email</label>
               <input
                 type="email" value={email} onChange={e => setEmail(e.target.value)} required
                 placeholder="tu@email.com"
-                className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors"
+                className="w-full border border-outline-variant/50 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors bg-transparent text-on-surface"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Contraseña</label>
+              <label className="block text-sm font-medium text-on-surface-variant mb-1">Contraseña</label>
               <input
                 type="password" value={password} onChange={e => setPassword(e.target.value)} required
                 placeholder="••••••••" minLength={6}
-                className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors"
+                className="w-full border border-outline-variant/50 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-colors bg-transparent text-on-surface"
               />
               {modo === 'register' && (
-                <p className="text-xs text-gray-400 mt-1">Mínimo 6 caracteres</p>
+                <p className="text-xs text-on-surface-variant/70 mt-1">Mínimo 6 caracteres</p>
               )}
             </div>
 
             {error && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">
+              <div className="p-3 bg-error-container/30 border border-error-container rounded-xl text-sm text-error">
                 {error}
               </div>
             )}

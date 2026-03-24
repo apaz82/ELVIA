@@ -1,4 +1,4 @@
-# CV Optimizer Pro — CLAUDE.md
+# OPTIMA-CV — CLAUDE.md
 
 ## Descripción del producto
 SaaS de optimización de CV para profesionales en transición laboral en LATAM.

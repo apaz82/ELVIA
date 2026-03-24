@@ -7,9 +7,10 @@ const AuthContext = createContext(null)
 const LIMITE_PLAN = 2 // Plan gratuito — actualizar cuando haya planes de pago
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser]       = useState(null)
-  const [session, setSession] = useState(null)
-  const [loading, setLoading] = useState(true)
+  const [user, setUser]             = useState(null)
+  const [session, setSession]       = useState(null)
+  const [loading, setLoading]       = useState(true)
+  const [perfilCargado, setPerfilCargado] = useState(false)
   const [usageCount, setUsageCount] = useState(0)
   const [perfil, setPerfil]         = useState(null)
 
@@ -22,26 +23,35 @@ export const AuthProvider = ({ children }) => {
     if (data) {
       setUsageCount(data.usage_count || 0)
       setPerfil(data)
-      // Guardar email en profiles para que el admin pueda verlo
       if (email && !data.email_principal) {
         await supabase.from('profiles').update({ email_principal: email }).eq('id', userId)
       }
     }
+    // Marcar perfil como cargado independientemente de si hay datos o no
+    setPerfilCargado(true)
   }
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session)
       setUser(session?.user ?? null)
-      if (session?.user) fetchPerfil(session.user.id, session.user.email)
+      if (session?.user) {
+        fetchPerfil(session.user.id, session.user.email)
+      } else {
+        setPerfilCargado(true) // sin sesión no hay perfil que esperar
+      }
       setLoading(false)
     })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session)
       setUser(session?.user ?? null)
-      if (session?.user) fetchPerfil(session.user.id, session.user.email)
-      else { setUsageCount(0); setPerfil(null) }
+      if (session?.user) {
+        setPerfilCargado(false)
+        fetchPerfil(session.user.id, session.user.email)
+      } else {
+        setUsageCount(0); setPerfil(null); setPerfilCargado(true)
+      }
     })
 
     return () => subscription.unsubscribe()
@@ -52,8 +62,8 @@ export const AuthProvider = ({ children }) => {
   const logout   = () => supabase.auth.signOut()
 
   const creditosRestantes = Math.max(0, LIMITE_PLAN - usageCount)
-  // Onboarding pendiente si el usuario está logueado y no tiene nombre1 guardado (nuevo onboarding)
-  const onboardingPendiente = !loading && !!user && (!perfil || !perfil.nombre1)
+  // Onboarding pendiente: esperar a que el perfil esté cargado antes de decidir
+  const onboardingPendiente = !loading && perfilCargado && !!user && (!perfil || !perfil.nombre1)
 
   return (
     <AuthContext.Provider value={{

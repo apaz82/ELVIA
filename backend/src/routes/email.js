@@ -51,20 +51,20 @@ router.post('/send', auth, async (req, res) => {
       : `CV Optimizado ${nombre} ${fecha}.${extension}`;
 
     await resend.emails.send({
-      from: 'CV Optimizer Pro <noreply@gestioncv.netlify.app>',
+      from: 'onboarding@resend.dev',
       to: [to],
       subject: lang === 'en' ? 'Your Optimized CV is ready' : 'Tu CV optimizado está listo',
       html: `
         <div style="font-family: sans-serif; max-width: 500px; margin: 0 auto; padding: 32px;">
           <h2 style="color: #1C1C1E;">Tu CV optimizado está listo</h2>
           <p style="color: #6b7280;">Adjunto encontrarás tu CV en formato ${format === 'word' ? 'Word' : 'PDF'}, listo para enviar a reclutadores.</p>
-          <p style="color: #6b7280; font-size: 13px;">Generado con <strong>CV Optimizer Pro</strong> — sin inventar información, solo mejoramos lo que ya tienes.</p>
+          <p style="color: #6b7280; font-size: 13px;">Generado con <strong>OPTIMA-CV</strong> — sin inventar información, solo mejoramos lo que ya tienes.</p>
         </div>
       `,
       attachments: [
         {
           filename: nombreArchivo,
-          content: buffer.toString('base64'),
+          content: buffer,
         },
       ],
     });

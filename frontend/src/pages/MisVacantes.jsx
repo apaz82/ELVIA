@@ -1,44 +1,62 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { useCV } from '../context/CVContext'
 import { supabase } from '../services/authService'
-
-const colorScore = (score) => {
-  if (score >= 75) return 'text-green-600'
-  if (score >= 50) return 'text-amber-500'
-  return 'text-red-400'
-}
-
-const badgeScore = (score) => {
-  if (score >= 75) return 'bg-green-50 border-green-200 text-green-700'
-  if (score >= 50) return 'bg-amber-50 border-amber-200 text-amber-700'
-  return 'bg-red-50 border-red-200 text-red-600'
-}
-
-const ESTADOS = ['Por aplicar', 'Aplicada', 'En proceso', 'Oferta recibida', 'Descartada']
+import JobActionPanel from '../components/common/JobActionPanel'
 
 const formatFecha = (iso) => {
   if (!iso) return ''
   return new Date(iso).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
-const colorEstado = (estado) => {
-  if (estado === 'Oferta recibida') return 'bg-green-100 text-green-700'
-  if (estado === 'En proceso')      return 'bg-blue-100 text-blue-700'
-  if (estado === 'Aplicada')        return 'bg-purple-100 text-purple-700'
-  if (estado === 'Descartada')      return 'bg-gray-100 text-gray-500'
-  return 'bg-yellow-50 text-yellow-700'
-}
-
 export default function MisVacantes() {
-  const { user, loading: authLoading } = useAuth()
+  const { user, refreshUsage, loading: authLoading } = useAuth()
+  const { resultadoOptimize, resultadoMatch } = useCV()
   const navigate = useNavigate()
+
+  const [cvsSaved, setCvsSaved]         = useState([])   // lista de CVs de Supabase
+  const [cvSeleccionado, setCvSeleccionado] = useState(null) // { id, nombre, contenido }
+  const [mostrarSelector, setMostrarSelector] = useState(false)
+  const selectorRef = useRef(null)
 
   const [vacantes, setVacantes]   = useState([])
   const [loading, setLoading]     = useState(true)
   const [tab, setTab]             = useState('todas')
   const [ordenFecha, setOrdenFecha] = useState('desc') // desc = más recientes primero
-  const [filtroEstado, setFiltroEstado] = useState('')
+
+  const extraerNombre = (contenido) => {
+    if (!contenido) return 'CV sin nombre'
+    return contenido.split('\n').find(l => l.trim().length > 2)?.trim() || 'CV sin nombre'
+  }
+
+  const cvTextContexto = resultadoOptimize?.optimizedCV || resultadoMatch?.tailoredCV || ''
+  const cvText = cvTextContexto || cvSeleccionado?.contenido || ''
+
+  // Cargar CVs guardados si no hay CV en contexto
+  useEffect(() => {
+    if (cvTextContexto || !user) return
+    supabase.from('cv_results')
+      .select('id, contenido, tipo, created_at')
+      .order('created_at', { ascending: false })
+      .limit(10)
+      .then(({ data }) => {
+        if (!data?.length) return
+        setCvsSaved(data)
+        setCvSeleccionado({ id: data[0].id, nombre: extraerNombre(data[0].contenido), contenido: data[0].contenido })
+      })
+  }, [user, cvTextContexto])
+
+  // Cerrar dropdown al hacer click fuera
+  useEffect(() => {
+    const handleClickFuera = (e) => {
+      if (selectorRef.current && !selectorRef.current.contains(e.target)) {
+        setMostrarSelector(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickFuera)
+    return () => document.removeEventListener('mousedown', handleClickFuera)
+  }, [])
 
   useEffect(() => {
     if (authLoading) return
@@ -64,21 +82,9 @@ export default function MisVacantes() {
     setVacantes(prev => prev.map(v => v.id === item.id ? { ...v, liked: nuevoLiked } : v))
   }
 
-  const actualizarEstado = async (item, estado) => {
-    await supabase.from('saved_jobs').update({ estado }).eq('id', item.id)
-    setVacantes(prev => prev.map(v => v.id === item.id ? { ...v, estado } : v))
-  }
-
   const eliminar = async (item) => {
     await supabase.from('saved_jobs').delete().eq('id', item.id)
     setVacantes(prev => prev.filter(v => v.id !== item.id))
-  }
-
-  const irCVvsJob = (item) => {
-    sessionStorage.setItem('vacante_prefill', JSON.stringify({
-      texto: `${item.job_data?.title || ''}\n${item.job_data?.company || ''}\n${item.job_data?.location || ''}\n\n${item.job_data?.snippet || ''}`,
-    }))
-    navigate('/cv-vs-job')
   }
 
   const filtradas = vacantes
@@ -87,7 +93,6 @@ export default function MisVacantes() {
       if (tab === 'compatibilidad') return !!v.check
       return true
     })
-    .filter(v => !filtroEstado || v.estado === filtroEstado)
     .sort((a, b) => {
       const da = new Date(a.created_at), db = new Date(b.created_at)
       return ordenFecha === 'desc' ? db - da : da - db
@@ -112,23 +117,48 @@ export default function MisVacantes() {
         </div>
       </div>
 
-      {/* Filtros (solo en tabs liked y compatibilidad) */}
-      {(tab === 'liked' || tab === 'compatibilidad') && (
-        <div className="flex flex-wrap gap-3 mb-4 items-center">
-          <select value={ordenFecha} onChange={e => setOrdenFecha(e.target.value)}
-            className="text-xs border border-gray-200 rounded-lg px-3 py-1.5 text-gray-600 focus:outline-none focus:ring-2 focus:ring-primary">
-            <option value="desc">Más recientes primero</option>
-            <option value="asc">Más antiguas primero</option>
-          </select>
-          <select value={filtroEstado} onChange={e => setFiltroEstado(e.target.value)}
-            className="text-xs border border-gray-200 rounded-lg px-3 py-1.5 text-gray-600 focus:outline-none focus:ring-2 focus:ring-primary">
-            <option value="">Todos los estados</option>
-            {ESTADOS.map(e => <option key={e} value={e}>{e}</option>)}
-          </select>
-          {filtroEstado && (
-            <button onClick={() => setFiltroEstado('')} className="text-xs text-gray-400 hover:text-red-500 transition-colors">
-              Limpiar filtro
-            </button>
+      {/* CV en uso para compatibilidad */}
+      {user && (
+        <div className="mb-6">
+          {cvTextContexto ? (
+            <div className="flex items-center gap-2 text-xs text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2 w-fit">
+              <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              CV de sesión actual en uso para compatibilidad
+            </div>
+          ) : cvSeleccionado ? (
+            <div className="relative" ref={selectorRef}>
+              <button onClick={() => setMostrarSelector(!mostrarSelector)}
+                className="flex items-center gap-2 text-xs bg-white border border-gray-200 rounded-lg px-3 py-2 hover:border-primary transition-colors">
+                <svg className="w-3.5 h-3.5 text-primary shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <span className="text-gray-700">CV para comparar: <strong>{cvSeleccionado.nombre}</strong></span>
+                <svg className={`w-3.5 h-3.5 text-gray-400 transition-transform ${mostrarSelector ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              {mostrarSelector && (
+                <div className="absolute left-0 top-full mt-1 w-80 bg-white border border-gray-200 rounded-xl shadow-lg z-10 overflow-hidden">
+                  <p className="text-xs text-gray-400 px-3 pt-2 pb-1">Selecciona el CV para comparar:</p>
+                  {cvsSaved.map(cv => (
+                    <button key={cv.id} onClick={() => { setCvSeleccionado({ id: cv.id, nombre: extraerNombre(cv.contenido), contenido: cv.contenido }); setMostrarSelector(false) }}
+                      className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 flex items-center justify-between gap-2 ${cvSeleccionado?.id === cv.id ? 'bg-blue-50 text-primary' : 'text-gray-700'}`}>
+                      <span className="truncate">{extraerNombre(cv.contenido)}</span>
+                      <span className="text-xs text-gray-400 shrink-0">{cv.tipo === 'match' ? 'vs Vacante' : 'Optimizado'}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 w-fit">
+              <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              No tienes CVs guardados para comparar.
+            </div>
           )}
         </div>
       )}
@@ -164,15 +194,15 @@ export default function MisVacantes() {
           </button>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-4">
           {filtradas.map(item => (
             <div key={item.id} className="bg-white rounded-xl border border-gray-200 p-5 hover:border-gray-300 transition-colors">
               <div className="flex flex-col sm:flex-row sm:items-start gap-4">
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-start justify-between gap-4">
                     <div className="min-w-0">
                       <h3 className="font-semibold text-gray-900 text-base leading-snug">{item.job_data?.title}</h3>
-                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1">
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1">
                         {item.job_data?.company && <span className="text-sm text-gray-600">{item.job_data.company}</span>}
                         {item.job_data?.location && (
                           <span className="text-xs text-gray-400 flex items-center gap-1">
@@ -183,52 +213,31 @@ export default function MisVacantes() {
                             {item.job_data.location}
                           </span>
                         )}
-                        {item.created_at && (
-                          <span className="text-xs text-gray-400">Descubierta: {formatFecha(item.created_at)}</span>
-                        )}
-                        {item.liked && (
-                          <span className="text-xs text-red-500 flex items-center gap-0.5">
-                            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
-                              <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
-                            </svg>
-                            Favorita
-                          </span>
-                        )}
+                        <span className="text-xs text-gray-400">Descubierta: {formatFecha(item.created_at)}</span>
                       </div>
                     </div>
-                    {item.check && (
-                      <div className={`flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full border shrink-0 ${badgeScore(item.check.score)}`}>
-                        <span className="text-base font-bold">{item.check.score}%</span>
-                        <span className="font-normal">Compatibilidad</span>
-                      </div>
-                    )}
                   </div>
 
-                  {item.check?.motivos?.length > 0 && (
-                    <ul className="mt-2 space-y-0.5">
-                      {item.check.motivos.slice(0, 2).map((m, i) => (
-                        <li key={i} className="text-xs text-gray-500 flex gap-1.5">
-                          <span className="shrink-0">•</span>{m}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-
-                  <div className="mt-3 flex flex-wrap items-center gap-2">
-                    <select value={item.estado || 'Por aplicar'}
-                      onChange={e => actualizarEstado(item, e.target.value)}
-                      className={`text-xs font-medium rounded-full px-2.5 py-1 border-0 cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary ${colorEstado(item.estado || 'Por aplicar')}`}>
-                      {ESTADOS.map(e => <option key={e} value={e}>{e}</option>)}
-                    </select>
-                    <button onClick={() => irCVvsJob(item)} className="text-xs text-primary font-medium hover:underline">
-                      Generar CV adaptado →
-                    </button>
-                  </div>
+                  {/* Panel de acciones IA */}
+                  <JobActionPanel 
+                    vacante={{
+                      title: item.job_data?.title,
+                      company: item.job_data?.company,
+                      location: item.job_data?.location,
+                      snippet: item.job_data?.snippet,
+                      link: item.job_data?.link,
+                      via: item.job_data?.via
+                    }}
+                    cvId={cvSeleccionado?.id}
+                    cvText={cvText}
+                    compatibilidadInicial={item.check}
+                    onRefreshUsage={refreshUsage}
+                  />
                 </div>
 
-                <div className="shrink-0 flex flex-col gap-2 items-stretch min-w-[120px]">
+                <div className="shrink-0 flex flex-col gap-2 items-stretch min-w-[140px]">
                   <button onClick={() => toggleLike(item)}
-                    className={`flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 border text-xs font-medium transition-colors
+                    className={`flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 border text-xs font-semibold transition-colors
                       ${item.liked ? 'bg-red-50 border-red-200 text-red-500 hover:bg-red-100' : 'border-gray-200 text-gray-400 hover:border-red-200 hover:text-red-400'}`}>
                     <svg className="w-3.5 h-3.5" fill={item.liked ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
@@ -237,16 +246,16 @@ export default function MisVacantes() {
                   </button>
                   {item.job_data?.link && (
                     <a href={item.job_data.link} target="_blank" rel="noopener noreferrer"
-                      className="flex items-center justify-center gap-1.5 text-xs font-medium text-primary border border-primary rounded-lg px-3 py-2 hover:bg-primary hover:text-white transition-colors">
+                      className="flex items-center justify-center gap-1.5 text-xs font-semibold text-primary border border-primary rounded-lg px-3 py-2 hover:bg-primary hover:text-white transition-colors">
                       Ver vacante
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
                       </svg>
                     </a>
                   )}
                   <button onClick={() => eliminar(item)}
-                    className="text-xs text-gray-300 hover:text-red-400 transition-colors text-center py-1">
-                    Eliminar
+                    className="text-xs text-gray-400 hover:text-red-500 transition-colors text-center py-2 border border-transparent hover:border-red-100 rounded-lg">
+                    Eliminar de la lista
                   </button>
                 </div>
               </div>
