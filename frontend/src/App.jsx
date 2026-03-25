@@ -15,6 +15,7 @@ import MiPlan from './pages/MiPlan'
 import Dashboard from './pages/Dashboard'
 import Onboarding from './pages/Onboarding'
 import Admin from './pages/Admin'
+import Entrevista from './pages/Entrevista'
 import AiChatBot from './components/chat/AiChatBot'
 import { useAuth } from './context/AuthContext'
 
@@ -79,6 +80,7 @@ export default function App() {
         <Route path="/dashboard"     element={<Dashboard />} />
         <Route path="/onboarding"    element={<Onboarding />} />
         <Route path="/admin"         element={<Admin />} />
+        <Route path="/entrevista"    element={<Entrevista />} />
       </Routes>
     </OnboardingGuard>
   )

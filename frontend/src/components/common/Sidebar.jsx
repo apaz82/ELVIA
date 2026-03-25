@@ -4,7 +4,7 @@ import { useAuth } from '../../context/AuthContext'
 import {
   FileMagnifyingGlass, MagnifyingGlass, Briefcase,
   Folders, BookmarkSimple, Kanban,
-  UserCircle, SignOut, Coins, X, Crown, House,
+  UserCircle, SignOut, Coins, X, Crown, House, MicrophoneStage,
 } from '@phosphor-icons/react'
 
 const INICIO = [
@@ -15,6 +15,7 @@ const HERRAMIENTAS = [
   { to: '/cv-optimizer', label: 'CV Optimizer',  Icon: FileMagnifyingGlass },
   { to: '/cv-vs-job',    label: 'CV vs Vacante', Icon: MagnifyingGlass     },
   { to: '/jobs',         label: 'Vacantes',       Icon: Briefcase           },
+  { to: '/entrevista',   label: 'Entrevista',     Icon: MicrophoneStage, premium: true },
 ]
 
 const MI_CARRERA = [
@@ -23,7 +24,7 @@ const MI_CARRERA = [
   { to: '/pipeline',     label: 'Pipeline',       Icon: Kanban          },
 ]
 
-function NavItem({ to, label, Icon, onClick }) {
+function NavItem({ to, label, Icon, onClick, premium }) {
   return (
     <NavLink
       to={to}
@@ -39,7 +40,12 @@ function NavItem({ to, label, Icon, onClick }) {
       {({ isActive }) => (
         <>
           <Icon size={19} weight={isActive ? 'duotone' : 'regular'} />
-          <span>{label}</span>
+          <span className="flex-1">{label}</span>
+          {premium && (
+            <span className="text-[9px] font-bold uppercase tracking-widest bg-amber-400/20 text-amber-600 border border-amber-300 rounded-full px-1.5 py-0.5">
+              Pro
+            </span>
+          )}
         </>
       )}
     </NavLink>

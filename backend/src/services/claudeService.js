@@ -251,4 +251,93 @@ Contexto actual: ${context || 'Navegando en la plataforma'}
   return response.content[0].text;
 };
 
-module.exports = { optimizeCV, matchCVtoJob, generateChatResponse };
+/**
+ * Genera preguntas de entrevista mixtas (técnicas + soft skills)
+ */
+const generarPreguntasEntrevista = async ({ empresa, cargo, entrevistador, descripcion, numPreguntas }) => {
+  const tecnicas = Math.ceil(numPreguntas * 0.5)
+  const soft     = numPreguntas - tecnicas
+
+  const prompt = `Eres un experto en procesos de selección en LATAM. Genera exactamente ${numPreguntas} preguntas de entrevista para el siguiente perfil:
+
+Empresa: ${empresa}
+Cargo: ${cargo}
+Tipo de entrevistador: ${entrevistador}
+Descripción de la vacante: ${descripcion || 'No proporcionada'}
+
+DISTRIBUCIÓN OBLIGATORIA:
+- ${tecnicas} preguntas técnicas (conocimientos, experiencia, habilidades del cargo)
+- ${soft} preguntas de soft skills (liderazgo, trabajo en equipo, manejo de conflictos, etc.)
+
+REGLAS:
+- Las preguntas deben ser abiertas (no sí/no)
+- Adapta la dificultad al nivel del cargo
+- Si el entrevistador es Headhunter, enfócate más en logros y propuesta de valor
+- Si es HR, incluye preguntas de cultura y motivación
+- Si es Hiring Manager, enfócate en habilidades técnicas y casos prácticos
+- Las preguntas deben ser en español
+
+Responde ÚNICAMENTE con un JSON array con este formato exacto (sin texto extra):
+[
+  { "id": 1, "pregunta": "...", "tipo": "tecnica" },
+  { "id": 2, "pregunta": "...", "tipo": "soft" }
+]`
+
+  const response = await client.messages.create({
+    model: 'claude-haiku-4-5-20251001',
+    max_tokens: 1500,
+    messages: [{ role: 'user', content: prompt }],
+  })
+
+  const text = response.content[0].text.trim()
+  const jsonMatch = text.match(/\[[\s\S]*\]/)
+  if (!jsonMatch) throw new Error('No se pudo parsear las preguntas')
+  return JSON.parse(jsonMatch[0])
+}
+
+/**
+ * Evalúa las respuestas de la entrevista y genera feedback
+ */
+const evaluarEntrevista = async ({ empresa, cargo, entrevistador, preguntas, respuestas, feedbackPorPregunta }) => {
+  const pares = preguntas.map((p, i) => `P${i + 1} [${p.tipo}]: ${p.pregunta}\nR: ${respuestas[i] || '(sin respuesta)'}`).join('\n\n')
+
+  const prompt = `Eres un experto evaluador de entrevistas en LATAM. Evalúa las respuestas de esta entrevista:
+
+Cargo: ${cargo} en ${empresa}
+Tipo de entrevistador: ${entrevistador}
+
+PREGUNTAS Y RESPUESTAS:
+${pares}
+
+Genera una evaluación profesional y constructiva. Responde con un JSON con esta estructura exacta:
+{
+  "puntuacion": <número 0-100>,
+  "resumen": "<párrafo de 2-3 oraciones con evaluación general>",
+  "fortalezas": ["<fortaleza 1>", "<fortaleza 2>", "<fortaleza 3>"],
+  "areas_mejora": ["<área 1>", "<área 2>", "<área 3>"],
+  "recomendaciones": ["<recomendación práctica 1>", "<recomendación 2>", "<recomendación 3>"],
+  ${feedbackPorPregunta ? `"detalle": [
+    { "id": <número>, "pregunta": "<pregunta>", "calificacion": <1-5>, "comentario": "<feedback específico>" }
+  ]` : '"detalle": []'}
+}
+
+CRITERIOS DE PUNTUACIÓN:
+- Relevancia y profundidad de las respuestas
+- Uso de ejemplos concretos y métricas
+- Estructura y claridad de la comunicación
+- Alineación con el cargo y la empresa
+- Deducir puntos por respuestas vacías o muy cortas`
+
+  const response = await client.messages.create({
+    model: MODELO,
+    max_tokens: 2000,
+    messages: [{ role: 'user', content: prompt }],
+  })
+
+  const text = response.content[0].text.trim()
+  const jsonMatch = text.match(/\{[\s\S]*\}/)
+  if (!jsonMatch) throw new Error('No se pudo parsear la evaluación')
+  return JSON.parse(jsonMatch[0])
+}
+
+module.exports = { optimizeCV, matchCVtoJob, generateChatResponse, generarPreguntasEntrevista, evaluarEntrevista };

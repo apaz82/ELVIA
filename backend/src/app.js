@@ -5,7 +5,8 @@ const cors = require('cors');
 const cvRoutes = require('./routes/cv');
 const jobsRoutes = require('./routes/jobs');
 const emailRoutes = require('./routes/email');
-const chatRoutes = require('./routes/chat');
+const chatRoutes      = require('./routes/chat')
+const interviewRoutes = require('./routes/interview')
 
 const app = express();
 
@@ -28,7 +29,8 @@ app.get('/', (req, res) => {
 app.use('/api/cv', cvRoutes);
 app.use('/api/jobs', jobsRoutes);
 app.use('/api/email', emailRoutes);
-app.use('/api/chat', chatRoutes);
+app.use('/api/chat',      chatRoutes)
+app.use('/api/interview', interviewRoutes)
 
 // --- Manejo global de errores ---
 app.use((err, req, res, next) => {
