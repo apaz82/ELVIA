@@ -15,6 +15,7 @@ export default function Auth() {
   const [loading, setLoading] = useState(false)
   const [error, setError]     = useState('')
   const [verificando, setVerificando] = useState(false) // pantalla "revisa tu email"
+  const [aceptaPolitica, setAceptaPolitica] = useState(false)
 
   // Redirigir si ya está autenticado
   useEffect(() => {
@@ -35,6 +36,11 @@ export default function Auth() {
         const { error } = await login(email, password)
         if (error) setError(traducirError(error.message))
       } else {
+        if (!aceptaPolitica) {
+          setError('Debes aceptar la política de tratamiento de datos para registrarte.')
+          setLoading(false)
+          return
+        }
         const { error } = await register(email, password)
         if (error) {
           setError(traducirError(error.message))
@@ -137,6 +143,30 @@ export default function Auth() {
               )}
             </div>
 
+            {/* Checkbox política — solo en registro */}
+            {modo === 'register' && (
+              <label className="flex items-start gap-3 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={aceptaPolitica}
+                  onChange={e => { setAceptaPolitica(e.target.checked); setError('') }}
+                  className="mt-0.5 w-4 h-4 accent-teal-600 shrink-0 cursor-pointer"
+                />
+                <span className="text-xs text-gray-500 leading-relaxed">
+                  He leído y acepto la{' '}
+                  <a
+                    href="/privacidad"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-teal-600 font-semibold hover:underline"
+                  >
+                    Política de Privacidad y Tratamiento de Datos
+                  </a>
+                  {' '}de OPTIMA | CV.
+                </span>
+              </label>
+            )}
+
             {error && (
               <div className="p-3 bg-error-container/30 border border-error-container rounded-xl text-sm text-error">
                 {error}
@@ -144,7 +174,7 @@ export default function Auth() {
             )}
 
             <button
-              type="submit" disabled={loading}
+              type="submit" disabled={loading || (modo === 'register' && !aceptaPolitica)}
               className="btn-primary w-full disabled:opacity-60"
             >
               {loading

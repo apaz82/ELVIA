@@ -18,13 +18,14 @@ import Admin from './pages/Admin'
 import Entrevista from './pages/Entrevista'
 import Biblioteca from './pages/Biblioteca'
 import LinkedinOptima from './pages/LinkedinOptima'
+import Privacidad from './pages/Privacidad'
 import AiChatBot from './components/chat/AiChatBot'
 import { useAuth } from './context/AuthContext'
 
 // Rutas que NO muestran sidebar ni header estándar
-const RUTAS_FULL = ['/', '/auth', '/onboarding', '/admin']
+const RUTAS_FULL = ['/', '/auth', '/onboarding', '/admin', '/privacidad']
 // Rutas excluidas del guard de onboarding
-const RUTAS_SIN_GUARD = ['/', '/auth', '/onboarding', '/admin']
+const RUTAS_SIN_GUARD = ['/', '/auth', '/onboarding', '/admin', '/privacidad']
 
 function OnboardingGuard({ children }) {
   const { onboardingPendiente } = useAuth()
@@ -85,6 +86,7 @@ export default function App() {
         <Route path="/entrevista"      element={<Entrevista />} />
         <Route path="/biblioteca"      element={<Biblioteca />} />
         <Route path="/linkedin-optima" element={<LinkedinOptima />} />
+        <Route path="/privacidad"      element={<Privacidad />} />
       </Routes>
     </OnboardingGuard>
   )
