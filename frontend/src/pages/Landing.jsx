@@ -114,7 +114,7 @@ export default function Landing() {
       {/* ── Nav landing ────────────────────────────────────────────────────── */}
       <nav className="sticky top-0 z-50 flex items-center justify-between px-6 h-24 bg-white/80 backdrop-blur-xl border-b border-gray-200/80 transition-all duration-300">
         <Link to="/" className="flex items-center">
-          <img src="/optima_logo_full.png" alt="OPTIMA-CV" className="h-[4.5rem] py-1 w-auto object-contain" />
+          <img src="/optima_logo_v3_clean_1.png" alt="OPTIMA-CV" className="h-[4.5rem] py-1 w-auto object-contain" />
         </Link>
 
         {/* Acciones nav */}
@@ -458,7 +458,7 @@ export default function Landing() {
         <div className="container mx-auto max-w-6xl px-6 py-16 grid grid-cols-1 md:grid-cols-4 gap-12">
           <div className="md:col-span-2 space-y-6">
             <Link to="/">
-              <img src="/optima_logo_full.png" alt="OPTIMA-CV" className="h-10 w-auto object-contain brightness-0 invert opacity-90" />
+              <img src="/optima_logo_v3_clean_1.png" alt="OPTIMA-CV" className="h-10 w-auto object-contain brightness-0 invert opacity-90" />
             </Link>
             <p className="text-white/50 text-sm leading-relaxed max-w-sm">
               Potenciando carreras de alto nivel a través de Inteligencia Artificial y conocimiento estratégico del mercado laboral corporativo en LATAM y Estados Unidos.

@@ -89,7 +89,7 @@ export default function Sidebar({ open, onClose }) {
         {/* Logo */}
         <div className="flex items-center justify-between px-5 py-4 h-24 border-b border-outline-variant/20 shrink-0">
           <Link to="/" onClick={onClose} className="flex items-center">
-            <img src="/optima_logo_full.png" alt="OPTIMA-CV" className="h-[4.5rem] w-auto object-contain" />
+            <img src="/optima_logo_v3_clean_1.png" alt="OPTIMA-CV" className="h-[4.5rem] w-auto object-contain" />
           </Link>
           {/* Cerrar en móvil */}
           <button onClick={onClose} className="md:hidden p-1 rounded-lg text-on-surface-variant hover:bg-surface-container transition-colors">

@@ -104,7 +104,7 @@ export default function Auth() {
 
           {/* Logo + título */}
           <div className="text-center mb-7">
-            <img src="/optima_logo_full.png" alt="OPTIMA-CV" className="h-14 w-auto mx-auto mb-4 object-contain" />
+            <img src="/optima_logo_v3_clean_1.png" alt="OPTIMA-CV" className="h-14 w-auto mx-auto mb-4 object-contain" />
             <h1 className="text-2xl font-bold text-on-surface">
               {modo === 'login' ? 'Iniciar sesión' : 'Crear cuenta gratis'}
             </h1>
