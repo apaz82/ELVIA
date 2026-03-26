@@ -5,6 +5,37 @@ const auth = require('../middleware/auth');
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
+// ── Rate limiter en memoria para endpoints públicos de email ──────────────────
+// Evita abuso de relay de correo: máx 3 requests por IP cada 10 minutos
+const emailRateMap = new Map();
+const emailRateLimit = (req, res, next) => {
+  const ip = req.headers['x-forwarded-for']?.split(',')[0].trim() || req.socket.remoteAddress || 'unknown';
+  const now = Date.now();
+  const windowMs = 10 * 60 * 1000; // 10 minutos
+  const maxReqs = 3;
+
+  const entry = emailRateMap.get(ip) || { count: 0, firstRequest: now };
+  if (now - entry.firstRequest > windowMs) {
+    entry.count = 1;
+    entry.firstRequest = now;
+  } else {
+    entry.count++;
+  }
+  emailRateMap.set(ip, entry);
+
+  if (entry.count > maxReqs) {
+    return res.status(429).json({ error: 'Demasiadas solicitudes. Intenta más tarde.' });
+  }
+  next();
+};
+
+// ── Dominios permitidos para resetUrl ────────────────────────────────────────
+const ALLOWED_RESET_ORIGINS = [
+  process.env.FRONTEND_URL || 'https://gestioncv.netlify.app',
+  'http://localhost:5173',
+  'http://localhost:4173',
+];
+
 // POST /api/email/send
 router.post('/send', auth, async (req, res) => {
   const { to, cvId, format = 'pdf' } = req.body;
@@ -260,10 +291,12 @@ const htmlRecuperacion = (email, resetUrl) => `
 </body>
 </html>`
 
-// ── POST /api/email/bienvenida — sin autenticación requerida ─────────────────
-router.post('/bienvenida', async (req, res) => {
+// ── POST /api/email/bienvenida — rate-limited, sin auth (se llama post-registro) ──
+router.post('/bienvenida', emailRateLimit, async (req, res) => {
   const { email } = req.body
-  if (!email) return res.status(400).json({ error: 'Email requerido' })
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return res.status(400).json({ error: 'Email inválido' })
+  }
 
   try {
     await resend.emails.send({
@@ -279,10 +312,17 @@ router.post('/bienvenida', async (req, res) => {
   }
 })
 
-// ── POST /api/email/recuperacion — notificación de reset enviada ──────────────
-router.post('/recuperacion', async (req, res) => {
+// ── POST /api/email/recuperacion — rate-limited, valida dominio del resetUrl ──
+router.post('/recuperacion', emailRateLimit, async (req, res) => {
   const { email, resetUrl } = req.body
   if (!email || !resetUrl) return res.status(400).json({ error: 'Faltan datos' })
+
+  // Validar que resetUrl pertenezca a un origen permitido (anti-phishing)
+  const origenPermitido = ALLOWED_RESET_ORIGINS.some(origin => resetUrl.startsWith(origin))
+  if (!origenPermitido) {
+    console.warn('[email/recuperacion] resetUrl bloqueada:', resetUrl)
+    return res.status(400).json({ error: 'URL de restablecimiento inválida' })
+  }
 
   try {
     await resend.emails.send({

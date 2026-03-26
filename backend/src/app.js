@@ -12,8 +12,21 @@ const linkedinRoutes  = require('./routes/linkedin')
 const app = express();
 
 // --- Middlewares globales ---
+const ALLOWED_ORIGINS = [
+  process.env.FRONTEND_URL || 'https://gestioncv.netlify.app',
+  'http://localhost:5173',
+  'http://localhost:4173',
+];
+
 app.use(cors({
-  origin: true,
+  origin: (origin, callback) => {
+    // Permitir requests sin origin (mobile apps, Postman, Railway health checks)
+    if (!origin || ALLOWED_ORIGINS.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error(`CORS bloqueado: ${origin}`));
+    }
+  },
   credentials: true,
   exposedHeaders: ['Content-Disposition'],
 }));

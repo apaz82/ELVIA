@@ -10,7 +10,7 @@ const generarJobKey = (title, company) =>
   `${(title || '').toLowerCase().trim()}|${(company || '').toLowerCase().trim()}`;
 
 // POST /api/jobs/fetch-url — obtiene el texto de una página de vacante
-router.post('/fetch-url', async (req, res) => {
+router.post('/fetch-url', auth, async (req, res) => {
   const { url } = req.body;
 
   if (!url || !url.startsWith('http')) {
@@ -259,7 +259,7 @@ router.post('/compatibility', auth, async (req, res) => {
       .eq('id', req.user.id)
       .maybeSingle();
 
-    const LIMITE = 999; // Cambiar a 2 en producción
+    const LIMITE = 2;
     if (perfil && perfil.usage_count >= LIMITE) {
       return res.status(403).json({ error: 'LIMIT_REACHED' });
     }

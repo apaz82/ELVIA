@@ -1,6 +1,5 @@
 // Middleware de control freemium — núcleo del modelo de negocio
-// TODO: cambiar a 2 antes de ir a producción
-const LIMITE_GRATUITO = 999;
+const LIMITE_GRATUITO = 2;
 
 const usageLimit = async (req, res, next) => {
   const userId = req.user.id;
