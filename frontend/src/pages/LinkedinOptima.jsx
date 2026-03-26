@@ -1,6 +1,7 @@
 // LinkedIn Optima — Validador y optimizador de perfil LinkedIn con IA
 import { useState } from 'react'
 import { useAuth } from '../context/AuthContext'
+import { supabase } from '../services/authService'
 import {
   LinkedinLogo, Sparkle, CheckCircle, WarningCircle,
   CaretDown, CaretUp, ArrowRight, Trophy, Star, LightbulbFilament,
@@ -168,9 +169,8 @@ export default function LinkedinOptima() {
     setResultado(null)
 
     try {
-      const token = (await import('../lib/supabaseClient')).supabase.auth.getSession()
-        .then(r => r.data.session?.access_token)
-      const accessToken = await token
+      const { data: { session } } = await supabase.auth.getSession()
+      const accessToken = session?.access_token
 
       const res = await fetch(`${API}/api/linkedin/analizar`, {
         method: 'POST',
