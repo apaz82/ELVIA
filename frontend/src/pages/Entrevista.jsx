@@ -92,8 +92,11 @@ export default function Entrevista() {
   // Feedback final
   const [evaluacion, setEvaluacion] = useState(null)
 
+  const [respuestaCorta, setRespuestaCorta] = useState(false)
+  const [confirmSalir, setConfirmSalir]     = useState(false)
   const recognitionRef = useRef(null)
   const textareaRef    = useRef(null)
+  const vocesRef       = useRef([])
 
   // Cargar vacantes guardadas
   useEffect(() => {
@@ -111,14 +114,30 @@ export default function Entrevista() {
     setDescripcion(v.descripcion || '')
   }
 
-  // ── TTS: leer pregunta en voz alta ─────────────────────────────────────
+  // ── Cargar voces disponibles ───────────────────────────────────────────
+  useEffect(() => {
+    const cargarVoces = () => { vocesRef.current = window.speechSynthesis?.getVoices() || [] }
+    cargarVoces()
+    window.speechSynthesis?.addEventListener('voiceschanged', cargarVoces)
+    return () => window.speechSynthesis?.removeEventListener('voiceschanged', cargarVoces)
+  }, [])
+
+  // ── TTS: voz femenina en español ───────────────────────────────────────
   const leerEnVoz = (texto) => {
     if (!window.speechSynthesis) return
     window.speechSynthesis.cancel()
     const utt = new SpeechSynthesisUtterance(texto)
     utt.lang  = 'es-MX'
-    utt.rate  = 0.88
-    utt.pitch = 1.05
+    utt.rate  = 0.82
+    utt.pitch = 1.2
+
+    // Buscar voz femenina en español (Google o del sistema)
+    const voces = vocesRef.current
+    const vozFem = voces.find(v => /es/i.test(v.lang) && /female|mujer|paulina|mónica|monica|lucia|lucía|helena|jorge|sabina/i.test(v.name))
+      || voces.find(v => /es-MX|es-US|es-ES/i.test(v.lang))
+      || voces.find(v => /es/i.test(v.lang))
+    if (vozFem) utt.voice = vozFem
+
     utt.onstart = () => setHablando(true)
     utt.onend   = () => setHablando(false)
     utt.onerror = () => setHablando(false)
@@ -134,17 +153,36 @@ export default function Entrevista() {
     }
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition
     if (!SR) { setError('Tu navegador no soporta reconocimiento de voz. Usa Chrome o Edge.'); return }
+
+    // Detener TTS antes de escuchar
+    window.speechSynthesis.cancel()
+    setHablando(false)
+
     const rec = new SR()
     rec.lang = 'es-MX'
     rec.continuous = true
     rec.interimResults = true
-    rec.onstart  = () => setEscuchando(true)
+    rec.onstart  = () => { setEscuchando(true); setError('') }
     rec.onresult = (e) => {
-      const transcript = Array.from(e.results).map(r => r[0].transcript).join('')
-      setInputRespuesta(transcript)
+      // Acumular parciales + finales sobre el texto existente
+      let parcial = ''
+      let final   = ''
+      for (let i = 0; i < e.results.length; i++) {
+        if (e.results[i].isFinal) final   += e.results[i][0].transcript + ' '
+        else                       parcial += e.results[i][0].transcript
+      }
+      setInputRespuesta(prev => {
+        // Si ya hay texto escrito antes de grabar, mantenerlo y agregar
+        const base = prev.endsWith('…') ? prev.slice(0, -1) : prev
+        return (final || (base + parcial)).trim()
+      })
     }
     rec.onend   = () => setEscuchando(false)
-    rec.onerror = () => setEscuchando(false)
+    rec.onerror = (e) => {
+      setEscuchando(false)
+      if (e.error === 'not-allowed') setError('Permiso de micrófono denegado. Actívalo en la configuración del navegador.')
+      else if (e.error === 'no-speech') setError('No se detectó voz. Intenta de nuevo.')
+    }
     rec.start()
     recognitionRef.current = rec
   }
@@ -171,6 +209,17 @@ export default function Entrevista() {
     }
   }
 
+  // ── Validar respuesta antes de avanzar ────────────────────────────────
+  const MIN_CHARS = 30
+  const validarRespuesta = () => {
+    const txt = inputRespuesta.trim()
+    if (!txt) { setError('Debes responder antes de continuar.'); return false }
+    if (txt.length < MIN_CHARS) { setRespuestaCorta(true); return false }
+    setRespuestaCorta(false)
+    setError('')
+    return true
+  }
+
   // ── Guardar respuesta actual ───────────────────────────────────────────
   const guardarRespuesta = () => {
     recognitionRef.current?.stop()
@@ -182,6 +231,7 @@ export default function Entrevista() {
 
   // ── Siguiente pregunta ────────────────────────────────────────────────
   const siguientePregunta = async () => {
+    if (!validarRespuesta()) return
     const nuevas = guardarRespuesta()
     setFeedbackInmediato(null)
 
@@ -263,6 +313,26 @@ export default function Entrevista() {
   return (
     <div className="max-w-3xl mx-auto px-4 py-8">
 
+      {/* Modal confirmación salir */}
+      {confirmSalir && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center px-4">
+          <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl space-y-4">
+            <h3 className="text-base font-bold text-gray-900">¿Salir de la entrevista?</h3>
+            <p className="text-sm text-gray-500">Se perderá todo el progreso de esta sesión, incluyendo tus respuestas.</p>
+            <div className="flex gap-3 pt-1">
+              <button onClick={() => setConfirmSalir(false)}
+                className="flex-1 border border-gray-300 text-gray-700 font-semibold py-2.5 rounded-xl hover:border-gray-400 transition-colors text-sm">
+                Continuar entrevista
+              </button>
+              <button onClick={reiniciar}
+                className="flex-1 bg-red-500 text-white font-semibold py-2.5 rounded-xl hover:bg-red-600 transition-colors text-sm">
+                Sí, salir
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-start justify-between mb-8">
         <div>
@@ -274,6 +344,12 @@ export default function Entrevista() {
           </div>
           <p className="text-sm text-gray-500">Practica con OPTIMA y recibe feedback profesional en tiempo real.</p>
         </div>
+        {paso === 'entrevista' && (
+          <button onClick={() => setConfirmSalir(true)}
+            className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-red-500 border border-gray-200 hover:border-red-300 rounded-xl px-3 py-2 transition-colors">
+            <ArrowLeft size={13} weight="bold" /> Salir
+          </button>
+        )}
       </div>
 
       {/* ── PASO 1: SETUP ────────────────────────────────────────────────── */}
@@ -489,12 +565,21 @@ export default function Entrevista() {
               </div>
 
               <textarea ref={textareaRef} value={inputRespuesta}
-                onChange={e => setInputRespuesta(e.target.value)} rows={5}
+                onChange={e => { setInputRespuesta(e.target.value); setRespuestaCorta(false) }} rows={5}
                 placeholder="Habla o escribe tu respuesta aquí..."
-                className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary resize-none bg-gray-50" />
+                className={`w-full border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary resize-none bg-gray-50
+                  ${respuestaCorta ? 'border-amber-400 ring-1 ring-amber-300' : 'border-gray-200'}`} />
+
+              {respuestaCorta && (
+                <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 flex items-start gap-1.5">
+                  <span className="shrink-0 mt-0.5">⚠</span>
+                  Tu respuesta es muy corta. Intenta dar más detalle (al menos {MIN_CHARS} caracteres) para recibir feedback útil.
+                </p>
+              )}
 
               <div className="flex gap-2 pt-1">
                 <button onClick={() => {
+                  if (!validarRespuesta()) return
                   const nuevas = guardarRespuesta()
                   if (preguntaIdx + 1 >= preguntas.length) finalizarEntrevista(nuevas)
                   else { setPreguntaIdx(i => i + 1); setInputRespuesta(nuevas[preguntaIdx + 1] || ''); setTimeout(() => leerEnVoz(preguntas[preguntaIdx + 1].pregunta), 300) }
