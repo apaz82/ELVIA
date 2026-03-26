@@ -174,7 +174,7 @@ export default function Landing() {
       )}
 
       {/* ── Hero Section ──────────────────────────────────────────────────── */}
-      <section className="relative z-10 pt-20 pb-32 px-6 lg:min-h-[85vh] flex items-center">
+      <section className="relative z-10 pt-12 pb-20 md:pt-20 md:pb-32 px-6 lg:min-h-[85vh] flex items-center">
         <div className="container mx-auto max-w-7xl grid lg:grid-cols-2 gap-16 items-center">
           
           <motion.div 
@@ -286,7 +286,7 @@ export default function Landing() {
             <motion.div
               animate={{ y: [0, 10, 0] }}
               transition={{ repeat: Infinity, duration: 5, ease: "easeInOut", delay: 1 }}
-              className="absolute -right-8 -bottom-10 bg-[#0A1A14]/90 backdrop-blur-xl border border-white/10 p-5 rounded-2xl shadow-2xl z-30 flex items-center gap-4"
+              className="absolute right-0 -bottom-10 bg-[#0A1A14]/90 backdrop-blur-xl border border-white/10 p-5 rounded-2xl shadow-2xl z-30 flex items-center gap-4"
             >
               <div className="w-10 h-10 rounded-full bg-[#E8541A]/20 border border-[#E8541A]/50 flex items-center justify-center">
                 <CheckCircle size={20} weight="fill" className="text-[#E8541A]" />
@@ -326,7 +326,7 @@ export default function Landing() {
       {/* ── Features Bento Grid ───────────────────────────────────────────── */}
       <section className="relative z-10 py-32 px-6">
         <div className="container mx-auto max-w-6xl">
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-100px" }}
@@ -341,8 +341,9 @@ export default function Landing() {
             </p>
           </motion.div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-3 gap-6">
-            {features.map((feature, idx) => (
+          {/* Fila 1: CV Optimizer (ancho) + CV vs Vacante */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+            {features.slice(0, 2).map((feature, idx) => (
               <motion.div
                 key={feature.href}
                 initial={{ opacity: 0, y: 30 }}
@@ -350,24 +351,48 @@ export default function Landing() {
                 viewport={{ once: true, margin: "-50px" }}
                 transition={{ delay: idx * 0.1 }}
                 onClick={() => navigate(feature.href)}
-                className={`group cursor-pointer relative overflow-hidden rounded-3xl border border-white/10 bg-white/5 backdrop-blur-sm p-10 transition-all duration-500 hover:bg-white/10 hover:border-white/20 hover:scale-[1.02] ${feature.size}`}
+                className={`group cursor-pointer relative overflow-hidden rounded-3xl border border-white/10 bg-white/5 backdrop-blur-sm p-10 transition-all duration-500 hover:bg-white/10 hover:border-white/20 hover:scale-[1.02]
+                  ${idx === 0 ? 'md:col-span-2' : 'md:col-span-1'}`}
               >
-                {/* Glow effect on hover */}
                 {feature.accent && <div className="absolute inset-0 bg-gradient-to-br from-[#E8541A]/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />}
-                
                 <div className="relative z-10 h-full flex flex-col justify-between">
                   <div>
                     <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-8 transition-transform duration-500 group-hover:-translate-y-2 ${feature.accent ? 'bg-[#E8541A]/20 text-[#E8541A] shadow-[0_0_20px_rgba(232,84,26,0.3)]' : 'bg-white/10 text-teal-300 shadow-lg'}`}>
                       <feature.Icon size={28} weight="duotone" />
                     </div>
-                    <h3 className="font-headline font-bold text-2xl mb-4 text-white">
-                      {feature.title}
-                    </h3>
-                    <p className="text-white/60 leading-relaxed group-hover:text-white/80 transition-colors">
-                      {feature.desc}
-                    </p>
+                    <h3 className="font-headline font-bold text-2xl mb-4 text-white">{feature.title}</h3>
+                    <p className="text-white/60 leading-relaxed group-hover:text-white/80 transition-colors">{feature.desc}</p>
                   </div>
-                  
+                  <div className="mt-12 flex items-center gap-2 text-sm font-bold text-white/50 group-hover:text-white transition-colors">
+                    {feature.cta} <ArrowRight size={16} weight="bold" className="opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300" />
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+
+          {/* Fila 2: Vacantes + Pipeline (ancho) */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {features.slice(2).map((feature, idx) => (
+              <motion.div
+                key={feature.href}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-50px" }}
+                transition={{ delay: idx * 0.1 }}
+                onClick={() => navigate(feature.href)}
+                className={`group cursor-pointer relative overflow-hidden rounded-3xl border border-white/10 bg-white/5 backdrop-blur-sm p-10 transition-all duration-500 hover:bg-white/10 hover:border-white/20 hover:scale-[1.02]
+                  ${idx === 0 ? 'md:col-span-1' : 'md:col-span-2'}`}
+              >
+                {feature.accent && <div className="absolute inset-0 bg-gradient-to-br from-[#E8541A]/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />}
+                <div className="relative z-10 h-full flex flex-col justify-between">
+                  <div>
+                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-8 transition-transform duration-500 group-hover:-translate-y-2 ${feature.accent ? 'bg-[#E8541A]/20 text-[#E8541A] shadow-[0_0_20px_rgba(232,84,26,0.3)]' : 'bg-white/10 text-teal-300 shadow-lg'}`}>
+                      <feature.Icon size={28} weight="duotone" />
+                    </div>
+                    <h3 className="font-headline font-bold text-2xl mb-4 text-white">{feature.title}</h3>
+                    <p className="text-white/60 leading-relaxed group-hover:text-white/80 transition-colors">{feature.desc}</p>
+                  </div>
                   <div className="mt-12 flex items-center gap-2 text-sm font-bold text-white/50 group-hover:text-white transition-colors">
                     {feature.cta} <ArrowRight size={16} weight="bold" className="opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300" />
                   </div>
@@ -379,17 +404,34 @@ export default function Landing() {
       </section>
 
       {/* ── CTA Final ─────────────────────────────────────────────────────── */}
-      {!user && (
-        <section className="relative z-10 py-24 px-6 border-t border-white/10 bg-gradient-to-b from-transparent to-[#0A3D2A]/50">
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.95 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true }}
-            className="container mx-auto max-w-4xl text-center bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-12 hover:border-white/20 transition-colors shadow-2xl relative overflow-hidden"
-          >
-            {/* Background glowing orb */}
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-teal-500/20 blur-[100px] rounded-full point-events-none" />
-            
+      <section className="relative z-10 py-24 px-6 border-t border-white/10 bg-gradient-to-b from-transparent to-[#0A3D2A]/50">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          whileInView={{ opacity: 1, scale: 1 }}
+          viewport={{ once: true }}
+          className="container mx-auto max-w-4xl text-center bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-12 hover:border-white/20 transition-colors shadow-2xl relative overflow-hidden"
+        >
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-teal-500/20 blur-[100px] rounded-full pointer-events-none" />
+
+          {user ? (
+            <div className="relative z-10 space-y-8">
+              <span className="inline-block px-4 py-1.5 bg-teal-500/20 border border-teal-500/30 text-teal-300 font-bold text-xs rounded-full uppercase tracking-widest">
+                Bienvenido de vuelta, {perfil?.nombre1 || user.email?.split('@')[0]}
+              </span>
+              <h2 className="font-headline font-black text-4xl md:text-5xl tracking-tight leading-tight">
+                Tu siguiente paso<br className="hidden md:block" /> te está esperando.
+              </h2>
+              <p className="text-white/60 max-w-xl mx-auto leading-relaxed text-lg">
+                Tienes <strong className="text-white">{creditosRestantes} créditos</strong> disponibles. Úsalos para optimizar tu CV o medir tu match con una vacante.
+              </p>
+              <button
+                onClick={() => navigate(perfil?.nombre1 ? '/cv-optimizer' : '/onboarding')}
+                className="inline-flex items-center justify-center gap-3 text-base font-bold bg-[#E8541A] hover:bg-[#E8541A]/90 text-white px-10 py-5 rounded-2xl shadow-[0_10px_30px_rgba(232,84,26,0.4)] hover:shadow-[0_15px_40px_rgba(232,84,26,0.6)] hover:-translate-y-1 transition-all"
+              >
+                Ir al optimizador <ArrowRight size={18} weight="bold" />
+              </button>
+            </div>
+          ) : (
             <div className="relative z-10 space-y-8">
               <span className="inline-block px-4 py-1.5 bg-[#E8541A]/20 border border-[#E8541A]/30 text-[#E8541A] font-bold text-xs rounded-full uppercase tracking-widest shadow-[0_0_15px_rgba(232,84,26,0.2)]">
                 2 Análisis Gratuitos
@@ -402,14 +444,14 @@ export default function Landing() {
               </p>
               <button
                 onClick={() => navigate('/auth?register=true')}
-                className="btn-primary inline-flex items-center justify-center gap-3 text-base font-bold bg-[#E8541A] hover:bg-[#E8541A]/90 text-white px-10 py-5 rounded-2xl shadow-[0_10px_30px_rgba(232,84,26,0.4)] hover:shadow-[0_15px_40px_rgba(232,84,26,0.6)] hover:-translate-y-1 transition-all"
+                className="inline-flex items-center justify-center gap-3 text-base font-bold bg-[#E8541A] hover:bg-[#E8541A]/90 text-white px-10 py-5 rounded-2xl shadow-[0_10px_30px_rgba(232,84,26,0.4)] hover:shadow-[0_15px_40px_rgba(232,84,26,0.6)] hover:-translate-y-1 transition-all"
               >
                 Crear cuenta gratis ahora <ArrowRight size={18} weight="bold" />
               </button>
             </div>
-          </motion.div>
-        </section>
-      )}
+          )}
+        </motion.div>
+      </section>
 
       {/* ── Footer ────────────────────────────────────────────────────────── */}
       <footer className="relative z-10 border-t border-white/10 bg-[#0A1A14]">
