@@ -1,6 +1,7 @@
 // Configuración principal de Express
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
 
 const cvRoutes = require('./routes/cv');
 const jobsRoutes = require('./routes/jobs');
@@ -12,6 +13,7 @@ const linkedinRoutes  = require('./routes/linkedin')
 const app = express();
 
 // --- Middlewares globales ---
+app.use(helmet());
 const ALLOWED_ORIGINS = [
   process.env.FRONTEND_URL || 'https://gestioncv.netlify.app',
   'http://localhost:5173',
