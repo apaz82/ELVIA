@@ -7,6 +7,7 @@ const jobsRoutes = require('./routes/jobs');
 const emailRoutes = require('./routes/email');
 const chatRoutes      = require('./routes/chat')
 const interviewRoutes = require('./routes/interview')
+const linkedinRoutes  = require('./routes/linkedin')
 
 const app = express();
 
@@ -31,6 +32,7 @@ app.use('/api/jobs', jobsRoutes);
 app.use('/api/email', emailRoutes);
 app.use('/api/chat',      chatRoutes)
 app.use('/api/interview', interviewRoutes)
+app.use('/api/linkedin',  linkedinRoutes)
 
 // --- Manejo global de errores ---
 app.use((err, req, res, next) => {

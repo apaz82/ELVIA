@@ -4,7 +4,8 @@ import { useAuth } from '../../context/AuthContext'
 import {
   FileMagnifyingGlass, MagnifyingGlass, Briefcase,
   Folders, BookmarkSimple, Kanban,
-  UserCircle, SignOut, Coins, X, Crown, House, MicrophoneStage,
+  UserCircle, SignOut, Coins, X, Crown, House,
+  MicrophoneStage, Books, LinkedinLogo,
 } from '@phosphor-icons/react'
 
 const INICIO = [
@@ -15,13 +16,18 @@ const HERRAMIENTAS = [
   { to: '/cv-optimizer', label: 'CV Optimizer',  Icon: FileMagnifyingGlass },
   { to: '/cv-vs-job',    label: 'CV vs Vacante', Icon: MagnifyingGlass     },
   { to: '/jobs',         label: 'Vacantes',       Icon: Briefcase           },
-  { to: '/entrevista',   label: 'Entrevista',     Icon: MicrophoneStage, premium: true },
 ]
 
 const MI_CARRERA = [
   { to: '/mis-cvs',      label: 'Mis CVs',       Icon: Folders         },
   { to: '/mis-vacantes', label: 'Mis Vacantes',  Icon: BookmarkSimple  },
   { to: '/pipeline',     label: 'Pipeline',       Icon: Kanban          },
+]
+
+const RECURSOS = [
+  { to: '/entrevista',      label: 'Entrevista',      Icon: MicrophoneStage, premium: true },
+  { to: '/biblioteca',      label: 'Biblioteca',      Icon: Books                          },
+  { to: '/linkedin-optima', label: 'LinkedIn Optima', Icon: LinkedinLogo,    premium: true },
 ]
 
 function NavItem({ to, label, Icon, onClick, premium }) {
@@ -134,6 +140,18 @@ export default function Sidebar({ open, onClose }) {
               </div>
             </div>
           )}
+
+          {/* Recursos */}
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-outline px-3 mb-2">
+              Recursos
+            </p>
+            <div className="space-y-0.5">
+              {RECURSOS.map(item => (
+                <NavItem key={item.to} {...item} onClick={onClose} />
+              ))}
+            </div>
+          </div>
         </nav>
 
         {/* Footer del sidebar */}

@@ -340,4 +340,62 @@ CRITERIOS DE PUNTUACIÓN:
   return JSON.parse(jsonMatch[0])
 }
 
-module.exports = { optimizeCV, matchCVtoJob, generateChatResponse, generarPreguntasEntrevista, evaluarEntrevista };
+/**
+ * Analiza secciones del perfil LinkedIn y devuelve puntajes y recomendaciones por sección
+ */
+const analizarLinkedin = async ({ titular, extracto, experiencia, habilidades, educacion }) => {
+  const secciones = []
+  if (titular?.trim())    secciones.push(`TITULAR:\n${titular}`)
+  if (extracto?.trim())   secciones.push(`EXTRACTO:\n${extracto}`)
+  if (experiencia?.trim()) secciones.push(`EXPERIENCIA:\n${experiencia}`)
+  if (habilidades?.trim()) secciones.push(`HABILIDADES:\n${habilidades}`)
+  if (educacion?.trim())   secciones.push(`EDUCACION:\n${educacion}`)
+
+  const prompt = `Eres un experto en personal branding y LinkedIn para el mercado laboral de LATAM 2026.
+Analiza las siguientes secciones del perfil LinkedIn de un profesional y devuelve un análisis detallado.
+
+PERFIL A ANALIZAR:
+${secciones.join('\n\n')}
+
+CRITERIOS DE EVALUACIÓN 2026:
+- Titular: debe contener cargo, industria/nicho, propuesta de valor, keywords de ATS. Máx 220 chars.
+- Extracto: primera línea con gancho, historia profesional, logros cuantificados, CTA al final. Debe tener 3+ párrafos.
+- Experiencia: verbos de acción, logros con métricas, keywords del sector, fechas exactas.
+- Habilidades: mix de hard skills + soft skills, relevantes para el sector, al menos 15-20 skills.
+- Educación: institución relevante, actividades extracurriculares, logros académicos si aplican.
+
+Responde ÚNICAMENTE con un JSON con esta estructura exacta (sin texto extra):
+{
+  "puntaje_global": <número 0-100>,
+  "resumen_global": "<2-3 oraciones evaluando el perfil general y su impacto en reclutadores>",
+  "top_acciones": ["<acción prioritaria 1>", "<acción prioritaria 2>", "<acción prioritaria 3>"],
+  "secciones": {
+    "titular": {
+      "puntaje": <0-100 o null si no fue enviada>,
+      "diagnostico": "<1-2 oraciones de diagnóstico general de esta sección>",
+      "fortalezas": ["<punto fuerte>"],
+      "mejoras": ["<qué mejorar específicamente>"],
+      "ejemplo": "<reescritura sugerida de esta sección>"
+    },
+    "extracto": { "puntaje": <0-100 o null>, "diagnostico": "...", "fortalezas": [], "mejoras": [], "ejemplo": "..." },
+    "experiencia": { "puntaje": <0-100 o null>, "diagnostico": "...", "fortalezas": [], "mejoras": [], "ejemplo": "..." },
+    "habilidades": { "puntaje": <0-100 o null>, "diagnostico": "...", "fortalezas": [], "mejoras": [], "ejemplo": "..." },
+    "educacion": { "puntaje": <0-100 o null>, "diagnostico": "...", "fortalezas": [], "mejoras": [], "ejemplo": "..." }
+  }
+}
+
+Para secciones no enviadas, devuelve null en el campo puntaje y strings vacíos en los demás campos.`
+
+  const response = await client.messages.create({
+    model: MODELO,
+    max_tokens: 3000,
+    messages: [{ role: 'user', content: prompt }],
+  })
+
+  const text = response.content[0].text.trim()
+  const jsonMatch = text.match(/\{[\s\S]*\}/)
+  if (!jsonMatch) throw new Error('No se pudo parsear el análisis de LinkedIn')
+  return JSON.parse(jsonMatch[0])
+}
+
+module.exports = { optimizeCV, matchCVtoJob, generateChatResponse, generarPreguntasEntrevista, evaluarEntrevista, analizarLinkedin };
