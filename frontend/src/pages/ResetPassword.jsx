@@ -14,9 +14,16 @@ export default function ResetPassword() {
   const [error, setError]         = useState('')
   const [exito, setExito]         = useState(false)
   const [tokenValido, setTokenValido] = useState(false)
+  const [tokenExpirado, setTokenExpirado] = useState(false)
 
-  // Supabase inyecta la sesión automáticamente desde el fragmento del URL
+  // Detectar error en el hash del URL antes de que Supabase procese la sesión
   useEffect(() => {
+    const hash = window.location.hash
+    if (hash.includes('error_code=otp_expired') || hash.includes('error=access_denied')) {
+      setTokenExpirado(true)
+      return
+    }
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) setTokenValido(true)
     })
@@ -54,7 +61,33 @@ export default function ResetPassword() {
     }
   }
 
-  // ── Enlace inválido / expirado ─────────────────────────────────────────────
+  // ── Enlace expirado (otp_expired en el hash) ──────────────────────────────
+  if (tokenExpirado) {
+    return (
+      <div className="min-h-[80vh] flex items-center justify-center px-4 py-10">
+        <div className="w-full max-w-md">
+          <div className="bg-white rounded-2xl border border-amber-200 p-8 shadow-sm text-center space-y-4">
+            <div className="w-16 h-16 bg-amber-50 rounded-full flex items-center justify-center mx-auto">
+              <Warning size={28} weight="duotone" className="text-amber-500" />
+            </div>
+            <h2 className="text-xl font-bold text-gray-900">El enlace expiró</h2>
+            <p className="text-sm text-gray-500 leading-relaxed">
+              Los enlaces de recuperación son válidos por <strong>60 minutos</strong>.
+              Este ya no está activo — solicita uno nuevo y úsalo de inmediato.
+            </p>
+            <Link
+              to="/auth?forgot=1"
+              className="inline-flex items-center gap-2 mt-2 bg-gray-900 text-white font-semibold text-sm px-6 py-3 rounded-xl hover:bg-gray-800 transition-colors"
+            >
+              Solicitar nuevo enlace
+            </Link>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // ── Enlace inválido (sin sesión y sin error conocido) ──────────────────────
   if (!tokenValido) {
     return (
       <div className="min-h-[80vh] flex items-center justify-center px-4 py-10">

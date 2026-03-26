@@ -11,7 +11,10 @@ export default function Auth() {
   const navigate = useNavigate()
 
   const [searchParams] = useSearchParams()
-  const [modo, setModo]         = useState(searchParams.get('register') ? 'register' : 'login')
+  const [modo, setModo]         = useState(
+    searchParams.get('register') ? 'register' :
+    searchParams.get('forgot')   ? 'forgot'   : 'login'
+  )
   const [email, setEmail]       = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading]   = useState(false)

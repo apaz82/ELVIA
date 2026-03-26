@@ -5,7 +5,7 @@ import {
   FileMagnifyingGlass, MagnifyingGlass, Briefcase,
   Folders, BookmarkSimple, Kanban,
   UserCircle, SignOut, Coins, X, Crown, House,
-  MicrophoneStage, Books, LinkedinLogo,
+  MicrophoneStage, Books, LinkedinLogo, UsersThree, Shapes
 } from '@phosphor-icons/react'
 
 const INICIO = [
@@ -13,9 +13,11 @@ const INICIO = [
 ]
 
 const HERRAMIENTAS = [
-  { to: '/cv-optimizer', label: 'CV Optimizer',  Icon: FileMagnifyingGlass },
-  { to: '/cv-vs-job',    label: 'CV vs Vacante', Icon: MagnifyingGlass     },
-  { to: '/jobs',         label: 'Vacantes',       Icon: Briefcase           },
+  { to: '/cv-optimizer',    label: 'CV Optimizer',    Icon: FileMagnifyingGlass },
+  { to: '/cv-vs-job',       label: 'CV vs Vacante',   Icon: MagnifyingGlass     },
+  { to: '/jobs',            label: 'Vacantes',        Icon: Briefcase           },
+  { to: '/linkedin-optima', label: 'LinkedIn Optima', Icon: LinkedinLogo, premium: true },
+  { to: '/entrevista',      label: 'Entrevista',      Icon: MicrophoneStage, premium: true },
 ]
 
 const MI_CARRERA = [
@@ -25,9 +27,9 @@ const MI_CARRERA = [
 ]
 
 const RECURSOS = [
-  { to: '/entrevista',      label: 'Entrevista',      Icon: MicrophoneStage, premium: true },
   { to: '/biblioteca',      label: 'Biblioteca',      Icon: Books                          },
-  { to: '/linkedin-optima', label: 'LinkedIn Optima', Icon: LinkedinLogo,    premium: true },
+  { to: '/expertos',        label: 'Expertos',        Icon: UsersThree                     },
+  { to: '/infografias',     label: 'Infografías',     Icon: Shapes                         },
 ]
 
 function NavItem({ to, label, Icon, onClick, premium }) {

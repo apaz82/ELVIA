@@ -131,6 +131,184 @@ const ARTICULOS = [
       { t: 'tip', title: 'HORARIO ÓPTIMO', v: 'Para España y LATAM: publica entre 8:00 AM y 10:00 AM, martes a jueves. Coincide con el inicio de jornada y el pico de revisión de feed.' },
     ],
   },
+  {
+    id: 3,
+    titulo: 'Vencer al Filtro ATS: Guía Técnica 2026',
+    categoria: 'CV',
+    tiempo_lectura: 6,
+    descripcion: 'Cómo leer la mente de un Applicant Tracking System: keywords, parseo y formato infalible.',
+    tags: ['ats', 'cv', 'keywords', 'formatos'],
+    fecha: 'Abril 2026',
+    color: 'purple',
+    secciones: [
+      { t: 'intro', v: 'Más del 75% de los CVs son descartados por un robot antes de que un reclutador los vea. Entender cómo funcionan los ATS (Applicant Tracking Systems) es fundamental.' },
+      { t: 'h2', v: 'Regla #1: Simplicidad de Formato' },
+      { t: 'p', v: 'Los sistemas ATS sufren para "parsear" (leer) texto en columnas complejas, tablas, iconos o imágenes. Un formato lineal (como el Harvard) asegura que tu información se lea al 100%.' },
+      { t: 'h2', v: 'Keywords Exactas' },
+      { t: 'p', v: 'Si la vacante dice "Gestión de Proyectos", no pongas "Project Management" en tu CV. El ATS busca coincidencias textuales. Usa nuestra herramienta de CV vs Vacante para medir esto.' },
+      { t: 'tip', title: 'IMPORTANTE', v: 'Nunca copies y pegues las keywords en color blanco al fondo de tu CV. Los ATS modernos detectan esta trampa y te descartan automáticamente por mala fe.' }
+    ]
+  },
+  {
+    id: 4,
+    titulo: 'El Arte del "Cold Outreach" en LinkedIn',
+    categoria: 'Networking',
+    tiempo_lectura: 7,
+    descripcion: 'Cómo enviar mensajes directos a Hiring Managers y lograr tasas de respuesta del 40%.',
+    tags: ['networking', 'inmail', 'hiring manager'],
+    fecha: 'Abril 2026',
+    color: 'amber',
+    secciones: [
+      { t: 'intro', v: 'Postularse en frío es el camino lento. Conectar directamente con el Hiring Manager o Recruiter de la vacante es el camino rápido. Pero el "Cold Outreach" requiere sutileza.' },
+      { t: 'h2', v: 'La Estructura de Mensaje Perfecta' },
+      { t: 'ul', v: [
+        'Apertura: Conexión genuina (algo que compartan en su empresa/post).',
+        'Valor: 1 oración clara sobre qué puedes resolverles hoy.',
+        'CTA de baja fricción: "¿Abierto a conversar la próxima semana?" (No pidas empleo de inmediato).'
+      ]},
+      { t: 'tip', title: 'TEMPLATE MÁGICO', v: '"Hola [Nombre], excelente artículo sobre [Tema]. Vi que lideras el equipo de [Área]. En mi último rol optimicé los procesos en un 20% y veo que están expandiéndose. ¿Abierto a conectar?"' }
+    ]
+  },
+  {
+    id: 5,
+    titulo: 'Negociación Salarial Definitiva para Seniors',
+    categoria: 'Entrevistas',
+    tiempo_lectura: 10,
+    descripcion: 'Técnicas comprobadas para no dejar dinero en la mesa al recibir tu oferta final.',
+    tags: ['salario', 'entrevista', 'negociación', 'ofertas'],
+    fecha: 'Marzo 2026',
+    color: 'blue',
+    secciones: [
+      { t: 'intro', v: 'La frase "Estoy buscando lo que el mercado dicte" te costará miles de dólares al año. La negociación empieza desde la primera llamada, no en la carta oferta.' },
+      { t: 'h2', v: 'Evade dar la primera cifra' },
+      { t: 'p', v: 'Si te preguntan tus expectativas en la primera llamada, di: "Antes de dar un número exacto, me gustaría entender mejor la responsabilidad del rol y el esquema de beneficios totales. ¿Cuál es el presupuesto aprobado para esta posición?"' },
+      { t: 'h2', v: 'El Método del Rango Asimétrico' },
+      { t: 'p', v: 'Nunca des un número único. Si quieres $5,000, no pidas entre $4,000 y $5,000. Pide entre $5,200 y $6,500. Tu número objetivo debe ser el piso del rango que presentes.' }
+    ]
+  },
+  {
+    id: 6,
+    titulo: 'Personal Branding: Contenido B2B Orgánico',
+    categoria: 'LinkedIn',
+    tiempo_lectura: 5,
+    descripcion: 'Por qué necesitas escribir en LinkedIn aunque "sólo" busques empleo.',
+    tags: ['contenido', 'b2b', 'linkedin'],
+    fecha: 'Marzo 2026',
+    color: 'teal',
+    secciones: [
+      { t: 'intro', v: 'Menos del 2% de los usuarios activos en LinkedIn publican contenido semanalmente. El 98% restante son consumidores. Si empiezas a crear contenido constante, pasas a la minoría visible.' },
+      { t: 'h2', v: 'El Tipo de Contenido que Funciona' },
+      { t: 'ol', v: [
+        'Casos de estudio (cómo resolviste un problema en tu último trabajo).',
+        'Análisis técnicos de tu industria (demuestra expertise).',
+        'Lecciones aprendidas de un fracaso (humaniza el perfil).'
+      ]},
+      { t: 'p', v: 'Evita los posts motivacionales vacíos. La gente busca soluciones tangibles y contenido educativo.' }
+    ]
+  },
+  {
+    id: 7,
+    titulo: 'La Fórmula X-Y-Z de Google para CVs',
+    categoria: 'CV',
+    tiempo_lectura: 4,
+    descripcion: 'El método que Laszlo Bock implementó para estructurar la experiencia profesional perfecta.',
+    tags: ['google', 'impacto', 'metricas', 'cv'],
+    fecha: 'Febrero 2026',
+    color: 'purple',
+    secciones: [
+      { t: 'intro', v: 'Laszlo Bock, ex SVP de People Operations en Google, estandarizó la mejor manera de escribir viñetas de experiencia en un CV. Esta fórmula es universal y transforma tareas aburridas en logros impresionantes.' },
+      { t: 'h2', v: 'La Fórmula Mágica' },
+      { t: 'p', v: 'Logré [X] medido por [Y] haciendo [Z].' },
+      { t: 'ul', v: [
+        'Básico: "Hice marketing por email".',
+        'Google Formato: "Generé un aumento del 15% en ventas anuales (X) al liderar campañas a una base de 50k usuarios (Y) reimplementando el flujo de automatizaciones (Z)."'
+      ]}
+    ]
+  },
+  {
+    id: 8,
+    titulo: 'Hackeando Entrevistas Conductuales',
+    categoria: 'Entrevistas',
+    tiempo_lectura: 8,
+    descripcion: 'Cómo estructurar narrativas convincentes en las fases decisivas de contratación.',
+    tags: ['comportamiento', 'STAR', 'entrevistas', 'cultura'],
+    fecha: 'Enero 2026',
+    color: 'blue',
+    secciones: [
+      { t: 'intro', v: 'El fit cultural y las entrevistas conductuales (Behavioral Interviews) pesan cada vez más. Demuestras competencia técnica para la criba, y competencia emocional para la oferta final.' },
+      { t: 'h2', v: 'Los 4 Pilares de la Entrevista' },
+      { t: 'ol', v: [
+        'Liderazgo/Iniciativa: Cuándo tomaste el control sin que te lo pidieran.',
+        'Conflicto: Cómo manejaste una discrepancia difícil con un colega.',
+        'Fracaso: Un error grave, cómo lo admitiste y corregiste.',
+        'Trabajo bajo presión: Un deadline imposible que superaste.'
+      ]}
+    ]
+  },
+  {
+    id: 9,
+    titulo: 'El Mapa del Mercado Oculto de Trabajo',
+    categoria: 'Networking',
+    tiempo_lectura: 6,
+    descripcion: 'El 70% de las vacantes de alto nivel ni siquiera se publican. Así puedes acceder a ellas.',
+    tags: ['mercado oculto', 'networking', 'referidos'],
+    fecha: 'Enero 2026',
+    color: 'amber',
+    secciones: [
+      { t: 'intro', v: 'Las empresas top evitan publicar vacantes gerenciales para no recibir miles de aplicaciones de baja calidad. Cubren posiciones a través del mercado oculto: referidos internos y headhunters directos.' },
+      { t: 'h2', v: 'Cómo entrar al mercado oculto' },
+      { t: 'p', v: 'Conecta con Headhunters *boutique* de tu industria. No apliques por las bolsas genéricas. Habla con ejecutivos a un nivel superior al tuyo e invítalos a compartir "mejores prácticas" (informational interviews).' }
+    ]
+  },
+  {
+    id: 10,
+    titulo: 'El MITO de los CVs Múltiples',
+    categoria: 'CV',
+    tiempo_lectura: 4,
+    descripcion: 'No necesitas 15 CVs distintos, necesitas un máster CV y pequeñas iteraciones.',
+    tags: ['cv', 'mitos', 'estrategia'],
+    fecha: 'Diciembre 2025',
+    color: 'purple',
+    secciones: [
+      { t: 'intro', v: 'Uno de los grandes consejos obsoletos de HR es "reescribe tu CV completo para cada vacante". Es ineficiente y desgastante.' },
+      { t: 'h2', v: 'Crea tu Master CV' },
+      { t: 'p', v: 'Crea un documento de 5 páginas con TODOS tus logros de toda tu vida. Cuando vayas a aplicar, simplemente duplica el archivo, recorta para que quede en 1 página con lo más relevante, e inyecta 2-3 keywords de la vacante en el Summary.' }
+    ]
+  },
+  {
+    id: 11,
+    titulo: 'SSI de LinkedIn: De 40 a 80 en una semana',
+    categoria: 'LinkedIn',
+    tiempo_lectura: 5,
+    descripcion: 'Rutinas de 15 minutos diarios para disparar tu indicador algorítmico.',
+    tags: ['SSI', 'linkedin', 'rutina', 'algoritmo'],
+    fecha: 'Noviembre 2025',
+    color: 'teal',
+    secciones: [
+      { t: 'intro', v: 'El "Social Selling Index" rige tu alcance orgánico. Mejorarlo no toma horas, toma consistencia.' },
+      { t: 'h2', v: 'Rutina Diaria de 15 Minutos' },
+      { t: 'ul', v: [
+        '5 Min: Leer tu feed y dejar 3 comentarios extendidos (no "Excelente post").',
+        '5 Min: Enviar 2 mensajes genuinos de conexión a personas clave.',
+        '5 Min: Actualizar o pulir un micro-elemento de tu perfil.'
+      ]}
+    ]
+  },
+  {
+    id: 12,
+    titulo: 'Eventos Presenciales de Networking: 2026',
+    categoria: 'Networking',
+    tiempo_lectura: 5,
+    descripcion: 'La fatiga digital de las pantallas está regresando el poder a un buen apretón de manos real.',
+    tags: ['networking', 'presencial', 'estrategia'],
+    fecha: 'Octubre 2025',
+    color: 'amber',
+    secciones: [
+      { t: 'intro', v: 'Después de años de networking virtual tras la pandemia global originada en la IA, el contacto humano ahora es un producto premium. Presentarte a un evento del sector vale oro.' },
+      { t: 'h2', v: 'Cómo maximizar un evento de industria' },
+      { t: 'p', v: 'No vayas a vender tu CV. Ve a cazar talento o entender los dolores del mercado. Pregunta a los ejecutivos "Cuál es su mayor obstáculo hoy". Eso te dará el lenguaje exacto para postularte después a sus empresas.' }
+    ]
+  }
 ]
 
 // ── Colores por categoría ──────────────────────────────────────────────────────

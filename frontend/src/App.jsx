@@ -20,6 +20,8 @@ import Biblioteca from './pages/Biblioteca'
 import LinkedinOptima from './pages/LinkedinOptima'
 import Privacidad from './pages/Privacidad'
 import ResetPassword from './pages/ResetPassword'
+import Expertos from './pages/Expertos'
+import Infografias from './pages/Infografias'
 import AiChatBot from './components/chat/AiChatBot'
 import { useAuth } from './context/AuthContext'
 
@@ -89,6 +91,8 @@ export default function App() {
         <Route path="/linkedin-optima" element={<LinkedinOptima />} />
         <Route path="/privacidad"      element={<Privacidad />} />
         <Route path="/reset-password"  element={<ResetPassword />} />
+        <Route path="/expertos"        element={<Expertos />} />
+        <Route path="/infografias"     element={<Infografias />} />
       </Routes>
     </OnboardingGuard>
   )
