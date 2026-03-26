@@ -28,7 +28,7 @@ export default function AiChatBot() {
         className={`fixed bottom-6 right-6 z-50 w-16 h-16 rounded-full bg-[#0A3D2A] text-white shadow-float hover:scale-105 transition-all duration-300 flex items-center justify-center overflow-hidden border-2 border-[#0A3D2A] ${isOpen ? 'opacity-0 pointer-events-none scale-75' : 'opacity-100 scale-100 delay-100'}`}
         aria-label="Abrir asistente IA"
       >
-        <img src="/bot_avatar_female.png" alt="OPTIMA" className="w-full h-full object-cover scale-[1.05]" />
+        <img src="/optima_logo_v3_clean_2.png" alt="OPTIMA" className="w-4/5 h-4/5 object-contain" />
         <span className="absolute top-0 right-0 w-3 h-3 bg-[#E8541A] rounded-full border-2 border-surface animate-pulse"></span>
       </button>
 
@@ -45,7 +45,7 @@ export default function AiChatBot() {
         <div className="h-16 px-5 bg-gradient-to-r from-[#0A3D2A] to-primary flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-full bg-white overflow-hidden flex items-center justify-center shrink-0 border border-white/20">
-              <img src="/bot_avatar_female.png" alt="OPTIMA" className="w-full h-full object-cover" />
+              <img src="/optima_logo_v3_clean_2.png" alt="OPTIMA" className="w-4/5 h-4/5 object-contain" />
             </div>
             <div>
               <h3 className="text-white text-sm font-bold tracking-tight">OPTIMA</h3>
@@ -75,7 +75,7 @@ export default function AiChatBot() {
           {messages.map((msg, i) => (
             <div key={i} className={`flex gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
               <div className={`w-8 h-8 rounded-full flex items-center justify-center overflow-hidden shrink-0 ${msg.role === 'user' ? 'bg-primary/20 text-primary' : 'bg-white shadow-sm border border-outline-variant/50'}`}>
-                {msg.role === 'user' ? <User size={14} weight="bold" /> : <img src="/bot_avatar_female.png" alt="O" className="w-full h-full object-cover" />}
+                {msg.role === 'user' ? <User size={14} weight="bold" /> : <img src="/optima_logo_v3_clean_2.png" alt="O" className="w-4/5 h-4/5 object-contain" />}
               </div>
               <div className={`p-3.5 rounded-2xl text-sm max-w-[85%] leading-relaxed ${
                 msg.role === 'user' 
@@ -159,7 +159,7 @@ export default function AiChatBot() {
           {loading && (
             <div className="flex gap-3 flex-row">
               <div className="w-8 h-8 rounded-full flex items-center justify-center overflow-hidden shrink-0 bg-white shadow-sm border border-outline-variant/50">
-                <img src="/bot_avatar_female.png" alt="O" className="w-full h-full object-cover" />
+                <img src="/optima_logo_v3_clean_2.png" alt="O" className="w-4/5 h-4/5 object-contain" />
               </div>
               <div className="p-4 rounded-2xl bg-white border border-outline-variant/30 rounded-tl-sm flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 bg-primary/40 rounded-full animate-bounce"></span>
