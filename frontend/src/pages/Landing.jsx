@@ -97,58 +97,58 @@ export default function Landing() {
   ]
 
   return (
-    <div className="min-h-screen bg-[#0A1A14] font-body text-white selection:bg-[#E8541A]/30 relative overflow-hidden">
-      
-      {/* Background Gradients (Mesh Effect) */}
+    <div className="min-h-screen bg-slate-50 font-body text-gray-900 selection:bg-[#E8541A]/20 relative overflow-hidden">
+
+      {/* Background Gradients (suaves, para fondo claro) */}
       <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-gradient-to-br from-[#0A3D2A] to-transparent blur-[150px] opacity-40 animate-pulse" style={{ animationDuration: '8s' }} />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[60%] h-[60%] rounded-full bg-gradient-to-tl from-[#0D2B4E] to-transparent blur-[150px] opacity-50" />
+        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-gradient-to-br from-teal-100 to-transparent blur-[150px] opacity-60 animate-pulse" style={{ animationDuration: '8s' }} />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[60%] h-[60%] rounded-full bg-gradient-to-tl from-blue-100 to-transparent blur-[150px] opacity-60" />
       </div>
 
       {/* Progress Bar */}
       <motion.div
-        className="fixed top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#0A3D2A] via-[#E8541A] to-[#0D2B4E] z-[60] origin-left"
+        className="fixed top-0 left-0 right-0 h-1 bg-gradient-to-r from-teal-500 via-[#E8541A] to-blue-500 z-[60] origin-left"
         style={{ scaleX: springScroll }}
       />
 
       {/* ── Nav landing ────────────────────────────────────────────────────── */}
-      <nav className="sticky top-0 z-50 flex items-center justify-between px-6 h-24 bg-[#0A1A14]/70 backdrop-blur-xl border-b border-white/5 transition-all duration-300">
+      <nav className="sticky top-0 z-50 flex items-center justify-between px-6 h-24 bg-white/80 backdrop-blur-xl border-b border-gray-200/80 transition-all duration-300">
         <Link to="/" className="flex items-center">
-          <img src="/optima_logo_full.png" alt="OPTIMA-CV" className="h-[4.5rem] py-1 w-auto object-contain brightness-0 invert" />
+          <img src="/optima_logo_full.png" alt="OPTIMA-CV" className="h-[4.5rem] py-1 w-auto object-contain" />
         </Link>
 
         {/* Acciones nav */}
         <div className="flex items-center gap-3 sm:gap-6">
           {user ? (
             <>
-              <div className={`hidden sm:flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-full border border-white/10 backdrop-blur-md
-                ${creditosRestantes === 0 ? 'text-red-400 bg-red-500/10'
-                  : creditosRestantes === 1 ? 'text-amber-400 bg-amber-500/10'
-                  : 'text-white/90 bg-white/5'}`}>
+              <div className={`hidden sm:flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-full border
+                ${creditosRestantes === 0 ? 'text-red-600 bg-red-50 border-red-200'
+                  : creditosRestantes === 1 ? 'text-amber-600 bg-amber-50 border-amber-200'
+                  : 'text-gray-600 bg-gray-100 border-gray-200'}`}>
                 <Coins size={15} weight="duotone" />
                 {creditosRestantes} / {LIMITE_PLAN} Créditos
               </div>
-              <span className="hidden md:block text-sm font-medium text-white/80">
+              <span className="hidden md:block text-sm font-medium text-gray-600">
                 {perfil?.nombre1 || user.email?.split('@')[0]}
               </span>
               <button onClick={() => navigate('/cv-optimizer')}
-                className="hidden sm:flex items-center gap-2 bg-[#E8541A] text-white font-bold text-sm px-5 py-2.5 rounded-xl hover:bg-[#E8541A]/90 transition-all shadow-[0_0_15px_rgba(232,84,26,0.3)] hover:shadow-[0_0_20px_rgba(232,84,26,0.5)]">
+                className="hidden sm:flex items-center gap-2 bg-[#E8541A] text-white font-bold text-sm px-5 py-2.5 rounded-xl hover:bg-[#E8541A]/90 transition-all shadow-md">
                 Plataforma <ArrowRight size={15} weight="bold" />
               </button>
               <button
                 onClick={() => supabase.auth.signOut().then(() => navigate('/'))}
                 title="Cerrar sesión"
-                className="flex items-center gap-1.5 text-sm font-medium text-white/60 hover:text-white hover:bg-white/10 px-3 py-2.5 rounded-xl transition-colors">
+                className="flex items-center gap-1.5 text-sm font-medium text-gray-400 hover:text-gray-700 hover:bg-gray-100 px-3 py-2.5 rounded-xl transition-colors">
                 <SignOut size={18} weight="bold" />
               </button>
             </>
           ) : (
             <>
-              <Link to="/auth" className="text-sm font-medium text-white/70 hover:text-white transition-colors hidden sm:block">
+              <Link to="/auth" className="text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors hidden sm:block">
                 Iniciar sesión
               </Link>
               <Link to="/auth?register=true"
-                className="flex items-center gap-2 bg-white text-[#0A1A14] font-bold text-sm px-6 py-2.5 rounded-xl hover:bg-white/90 transition-all shadow-lg hover:shadow-[0_0_15px_rgba(255,255,255,0.2)]">
+                className="flex items-center gap-2 bg-gray-900 text-white font-bold text-sm px-6 py-2.5 rounded-xl hover:bg-gray-800 transition-all shadow-md">
                 Empezar gratis
               </Link>
             </>
@@ -158,10 +158,10 @@ export default function Landing() {
 
       {/* ── Banner onboarding incompleto ──────────────────────────────────── */}
       {onboardingIncompleto && (
-        <div className="bg-amber-500/10 border-b border-amber-500/20 px-6 py-3 flex items-center justify-center sm:justify-between gap-4 backdrop-blur-md relative z-40 flex-wrap">
+        <div className="bg-amber-50 border-b border-amber-200 px-6 py-3 flex items-center justify-center sm:justify-between gap-4 relative z-40 flex-wrap">
           <div className="flex items-center gap-3">
-            <Warning size={20} weight="duotone" className="text-amber-400" />
-            <p className="text-sm text-amber-100 font-medium">
+            <Warning size={20} weight="duotone" className="text-amber-500" />
+            <p className="text-sm text-amber-800 font-medium">
               Completa tu perfil para desbloquear todas las herramientas de IA.
             </p>
           </div>
@@ -183,46 +183,46 @@ export default function Landing() {
             variants={staggerContainer}
             className="max-w-2xl"
           >
-            <motion.div variants={fadeInUp} className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/10 bg-white/5 backdrop-blur-md mb-8">
+            <motion.div variants={fadeInUp} className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-gray-200 bg-white shadow-sm mb-8">
               <span className="w-2 h-2 rounded-full bg-[#E8541A] animate-pulse" />
-              <span className="text-xs font-bold uppercase tracking-widest text-white/80">OPTIMA-CV Está en vivo</span>
+              <span className="text-xs font-bold uppercase tracking-widest text-gray-500">OPTIMA-CV Está en vivo</span>
             </motion.div>
-            
+
             <motion.h1 variants={fadeInUp} className="font-headline font-black text-5xl sm:text-7xl leading-[1.05] tracking-tight mb-8">
               Tu carrera,<br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-300 via-green-400 to-blue-500">
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-600 via-emerald-500 to-blue-600">
                 Impulsada por IA.
               </span>
             </motion.h1>
-            
-            <motion.p variants={fadeInUp} className="text-lg sm:text-xl text-white/70 leading-relaxed mb-10 max-w-lg">
+
+            <motion.p variants={fadeInUp} className="text-lg sm:text-xl text-gray-500 leading-relaxed mb-10 max-w-lg">
               Supera los filtros ATS, diseña un CV formato Harvard de alto impacto y domina tu proceso de selección en empresas top de LATAM y USA.
             </motion.p>
-            
+
             <motion.div variants={fadeInUp} className="flex flex-col sm:flex-row gap-4">
               {user ? (
                 <button onClick={() => navigate(perfil?.nombre1 ? '/cv-optimizer' : '/onboarding')}
-                  className="group flex justify-center items-center gap-3 bg-[#E8541A] text-white font-bold text-base px-8 py-4 rounded-xl hover:bg-[#E8541A]/90 transition-all shadow-[0_0_20px_rgba(232,84,26,0.3)] hover:shadow-[0_0_30px_rgba(232,84,26,0.5)]">
+                  className="group flex justify-center items-center gap-3 bg-[#E8541A] text-white font-bold text-base px-8 py-4 rounded-xl hover:bg-[#E8541A]/90 transition-all shadow-lg shadow-[#E8541A]/20">
                   Ir al optimizador <ArrowRight size={18} weight="bold" className="group-hover:translate-x-1 transition-transform" />
                 </button>
               ) : (
                 <>
                   <button onClick={() => navigate('/auth?register=true')}
-                    className="group flex items-center justify-center gap-3 bg-white text-[#0A1A14] font-bold text-base px-8 py-4 rounded-xl hover:bg-white/90 transition-all shadow-xl hover:shadow-[0_0_20px_rgba(255,255,255,0.2)]">
+                    className="group flex items-center justify-center gap-3 bg-[#E8541A] text-white font-bold text-base px-8 py-4 rounded-xl hover:bg-[#E8541A]/90 transition-all shadow-lg shadow-[#E8541A]/20">
                     Empezar gratis <ArrowRight size={18} weight="bold" className="group-hover:translate-x-1 transition-transform" />
                   </button>
                   <button onClick={() => navigate('/auth')}
-                    className="flex justify-center flex-1 sm:flex-none items-center gap-2 bg-white/5 backdrop-blur-md border border-white/10 text-white font-medium px-8 py-4 rounded-xl hover:bg-white/10 transition-colors">
+                    className="flex justify-center flex-1 sm:flex-none items-center gap-2 bg-white border border-gray-200 text-gray-700 font-medium px-8 py-4 rounded-xl hover:border-gray-300 hover:bg-gray-50 transition-colors shadow-sm">
                     Iniciar sesión
                   </button>
                 </>
               )}
             </motion.div>
-            
-            <motion.div variants={fadeInUp} className="mt-10 flex flex-wrap items-center gap-6 text-sm text-white/50 font-medium">
+
+            <motion.div variants={fadeInUp} className="mt-10 flex flex-wrap items-center gap-6 text-sm text-gray-400 font-medium">
               {['2 análisis gratis', 'Sin tarjeta de crédito', 'Métricas instantáneas'].map(t => (
                 <span key={t} className="flex items-center gap-2">
-                  <CheckCircle size={16} weight="fill" className="text-teal-400" />
+                  <CheckCircle size={16} weight="fill" className="text-teal-500" />
                   {t}
                 </span>
               ))}
@@ -239,44 +239,44 @@ export default function Landing() {
             <div className="absolute inset-0 bg-gradient-to-r from-teal-500/20 to-blue-500/20 blur-[100px] rounded-full" />
             
             {/* Main Widget */}
-            <motion.div 
+            <motion.div
               animate={{ y: [0, -15, 0] }}
               transition={{ repeat: Infinity, duration: 6, ease: "easeInOut" }}
-              className="relative bg-white/5 backdrop-blur-2xl border border-white/10 p-8 rounded-3xl shadow-[0_20px_40px_rgba(0,0,0,0.5)] z-20"
+              className="relative bg-white border border-gray-200 p-8 rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.08)] z-20"
             >
-              <div className="flex items-center justify-between border-b border-white/10 pb-6 mb-6">
+              <div className="flex items-center justify-between border-b border-gray-100 pb-6 mb-6">
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-teal-400 to-emerald-600 flex items-center justify-center shrink-0 shadow-lg">
                     <ChartBar size={24} weight="duotone" className="text-white" />
                   </div>
                   <div>
-                    <h3 className="font-bold text-lg text-white">ATS Resume Score</h3>
-                    <p className="text-white/50 text-xs">Escaneando compatibilidad...</p>
+                    <h3 className="font-bold text-lg text-gray-900">ATS Resume Score</h3>
+                    <p className="text-gray-400 text-xs">Escaneando compatibilidad...</p>
                   </div>
                 </div>
                 <div className="text-right">
-                  <span className="block text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-teal-300 to-green-400">92%</span>
-                  <span className="text-[10px] text-white/50 uppercase tracking-widest">Match Rating</span>
+                  <span className="block text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-teal-600 to-emerald-500">92%</span>
+                  <span className="text-[10px] text-gray-400 uppercase tracking-widest">Match Rating</span>
                 </div>
               </div>
 
               <div className="space-y-5">
                 {[
                   { label: 'Densidad Palabras Clave', pct: 88, color: 'bg-teal-400' },
-                  { label: 'Estructura Harvard',      pct: 100, color: 'bg-green-400' },
+                  { label: 'Estructura Harvard',      pct: 100, color: 'bg-emerald-400' },
                   { label: 'Métricas de Impacto',     pct: 75, color: 'bg-amber-400' },
                 ].map(({ label, pct, color }, i) => (
                   <div key={label} className="flex items-center justify-between gap-4">
-                    <span className="text-sm text-white/70 w-44">{label}</span>
-                    <div className="flex-1 bg-black/40 h-2 rounded-full overflow-hidden">
-                      <motion.div 
-                        initial={{ width: 0 }} 
-                        animate={{ width: `${pct}%` }} 
+                    <span className="text-sm text-gray-500 w-44">{label}</span>
+                    <div className="flex-1 bg-gray-100 h-2 rounded-full overflow-hidden">
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${pct}%` }}
                         transition={{ duration: 1.5, delay: 0.5 + (i*0.2), ease: "easeOut" }}
-                        className={`h-full rounded-full ${color}`} 
+                        className={`h-full rounded-full ${color}`}
                       />
                     </div>
-                    <span className="text-sm font-bold w-10 text-right">{pct}%</span>
+                    <span className="text-sm font-bold text-gray-700 w-10 text-right">{pct}%</span>
                   </div>
                 ))}
               </div>
@@ -286,14 +286,14 @@ export default function Landing() {
             <motion.div
               animate={{ y: [0, 10, 0] }}
               transition={{ repeat: Infinity, duration: 5, ease: "easeInOut", delay: 1 }}
-              className="absolute right-0 -bottom-10 bg-[#0A1A14]/90 backdrop-blur-xl border border-white/10 p-5 rounded-2xl shadow-2xl z-30 flex items-center gap-4"
+              className="absolute right-0 -bottom-10 bg-white border border-gray-200 p-5 rounded-2xl shadow-xl z-30 flex items-center gap-4"
             >
-              <div className="w-10 h-10 rounded-full bg-[#E8541A]/20 border border-[#E8541A]/50 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-full bg-[#E8541A]/10 border border-[#E8541A]/30 flex items-center justify-center">
                 <CheckCircle size={20} weight="fill" className="text-[#E8541A]" />
               </div>
               <div>
-                <p className="text-sm font-bold text-white">Formato Optimizado</p>
-                <p className="text-xs text-white/50">Hace 2 minutos</p>
+                <p className="text-sm font-bold text-gray-900">Formato Optimizado</p>
+                <p className="text-xs text-gray-400">Hace 2 minutos</p>
               </div>
             </motion.div>
 
@@ -302,19 +302,19 @@ export default function Landing() {
       </section>
 
       {/* ── Stats Strip ───────────────────────────────────────────────────── */}
-      <section className="relative z-10 border-y border-white/5 bg-black/20 backdrop-blur-md py-10">
+      <section className="relative z-10 border-y border-gray-200 bg-white py-10">
         <div className="container mx-auto px-6 max-w-6xl">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 divide-y md:divide-y-0 md:divide-x divide-white/10 text-center">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 divide-y md:divide-y-0 md:divide-x divide-gray-200 text-center">
             {[
               { target: 75, suffix: '%', label: 'Tasa de rechazo inicial por filtros ATS sin optimizar' },
               { target: 3,  suffix: 'x', label: 'Mayor probabilidad de entrevista con un formato Harvard' },
               { target: 8,  suffix: 's', label: 'Tiempo promedio que un reclutador lee tu CV' },
             ].map(({ target, suffix, label }) => (
               <div key={label} className="px-6 py-4 md:py-0">
-                <p className="font-headline font-black text-4xl text-teal-300 md:text-5xl mb-2">
+                <p className="font-headline font-black text-4xl text-teal-600 md:text-5xl mb-2">
                   <AnimatedCounter target={target} suffix={suffix} />
                 </p>
-                <p className="text-xs font-bold text-white/50 uppercase tracking-widest leading-relaxed max-w-[220px] mx-auto">
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest leading-relaxed max-w-[220px] mx-auto">
                   {label}
                 </p>
               </div>
@@ -333,10 +333,10 @@ export default function Landing() {
             className="text-center mb-20 space-y-4"
           >
             <span className="text-[#E8541A] font-bold text-sm tracking-widest uppercase">Ecosistema Integral</span>
-            <h2 className="font-headline font-black text-4xl md:text-5xl tracking-tight">
+            <h2 className="font-headline font-black text-4xl md:text-5xl tracking-tight text-gray-900">
               Dominio total de tu proceso de selección
             </h2>
-            <p className="text-white/60 text-lg max-w-2xl mx-auto">
+            <p className="text-gray-500 text-lg max-w-2xl mx-auto">
               Las herramientas de inteligencia artificial más avanzadas para asegurar que tu perfil destaque en el competitivo mercado laboral actual.
             </p>
           </motion.div>
@@ -351,19 +351,19 @@ export default function Landing() {
                 viewport={{ once: true, margin: "-50px" }}
                 transition={{ delay: idx * 0.1 }}
                 onClick={() => navigate(feature.href)}
-                className={`group cursor-pointer relative overflow-hidden rounded-3xl border border-white/10 bg-white/5 backdrop-blur-sm p-10 transition-all duration-500 hover:bg-white/10 hover:border-white/20 hover:scale-[1.02]
+                className={`group cursor-pointer relative overflow-hidden rounded-3xl border border-gray-200 bg-white p-10 transition-all duration-500 hover:border-gray-300 hover:shadow-lg hover:scale-[1.02] shadow-sm
                   ${idx === 0 ? 'md:col-span-2' : 'md:col-span-1'}`}
               >
-                {feature.accent && <div className="absolute inset-0 bg-gradient-to-br from-[#E8541A]/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />}
+                {feature.accent && <div className="absolute inset-0 bg-gradient-to-br from-[#E8541A]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />}
                 <div className="relative z-10 h-full flex flex-col justify-between">
                   <div>
-                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-8 transition-transform duration-500 group-hover:-translate-y-2 ${feature.accent ? 'bg-[#E8541A]/20 text-[#E8541A] shadow-[0_0_20px_rgba(232,84,26,0.3)]' : 'bg-white/10 text-teal-300 shadow-lg'}`}>
+                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-8 transition-transform duration-500 group-hover:-translate-y-2 ${feature.accent ? 'bg-[#E8541A]/10 text-[#E8541A]' : 'bg-teal-50 text-teal-600'}`}>
                       <feature.Icon size={28} weight="duotone" />
                     </div>
-                    <h3 className="font-headline font-bold text-2xl mb-4 text-white">{feature.title}</h3>
-                    <p className="text-white/60 leading-relaxed group-hover:text-white/80 transition-colors">{feature.desc}</p>
+                    <h3 className="font-headline font-bold text-2xl mb-4 text-gray-900">{feature.title}</h3>
+                    <p className="text-gray-500 leading-relaxed group-hover:text-gray-700 transition-colors">{feature.desc}</p>
                   </div>
-                  <div className="mt-12 flex items-center gap-2 text-sm font-bold text-white/50 group-hover:text-white transition-colors">
+                  <div className="mt-12 flex items-center gap-2 text-sm font-bold text-gray-400 group-hover:text-[#E8541A] transition-colors">
                     {feature.cta} <ArrowRight size={16} weight="bold" className="opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300" />
                   </div>
                 </div>
@@ -381,19 +381,19 @@ export default function Landing() {
                 viewport={{ once: true, margin: "-50px" }}
                 transition={{ delay: idx * 0.1 }}
                 onClick={() => navigate(feature.href)}
-                className={`group cursor-pointer relative overflow-hidden rounded-3xl border border-white/10 bg-white/5 backdrop-blur-sm p-10 transition-all duration-500 hover:bg-white/10 hover:border-white/20 hover:scale-[1.02]
+                className={`group cursor-pointer relative overflow-hidden rounded-3xl border border-gray-200 bg-white p-10 transition-all duration-500 hover:border-gray-300 hover:shadow-lg hover:scale-[1.02] shadow-sm
                   ${idx === 0 ? 'md:col-span-1' : 'md:col-span-2'}`}
               >
-                {feature.accent && <div className="absolute inset-0 bg-gradient-to-br from-[#E8541A]/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />}
+                {feature.accent && <div className="absolute inset-0 bg-gradient-to-br from-[#E8541A]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />}
                 <div className="relative z-10 h-full flex flex-col justify-between">
                   <div>
-                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-8 transition-transform duration-500 group-hover:-translate-y-2 ${feature.accent ? 'bg-[#E8541A]/20 text-[#E8541A] shadow-[0_0_20px_rgba(232,84,26,0.3)]' : 'bg-white/10 text-teal-300 shadow-lg'}`}>
+                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-8 transition-transform duration-500 group-hover:-translate-y-2 ${feature.accent ? 'bg-[#E8541A]/10 text-[#E8541A]' : 'bg-teal-50 text-teal-600'}`}>
                       <feature.Icon size={28} weight="duotone" />
                     </div>
-                    <h3 className="font-headline font-bold text-2xl mb-4 text-white">{feature.title}</h3>
-                    <p className="text-white/60 leading-relaxed group-hover:text-white/80 transition-colors">{feature.desc}</p>
+                    <h3 className="font-headline font-bold text-2xl mb-4 text-gray-900">{feature.title}</h3>
+                    <p className="text-gray-500 leading-relaxed group-hover:text-gray-700 transition-colors">{feature.desc}</p>
                   </div>
-                  <div className="mt-12 flex items-center gap-2 text-sm font-bold text-white/50 group-hover:text-white transition-colors">
+                  <div className="mt-12 flex items-center gap-2 text-sm font-bold text-gray-400 group-hover:text-[#E8541A] transition-colors">
                     {feature.cta} <ArrowRight size={16} weight="bold" className="opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300" />
                   </div>
                 </div>
@@ -404,21 +404,21 @@ export default function Landing() {
       </section>
 
       {/* ── CTA Final ─────────────────────────────────────────────────────── */}
-      <section className="relative z-10 py-24 px-6 border-t border-white/10 bg-gradient-to-b from-transparent to-[#0A3D2A]/50">
+      <section className="relative z-10 py-24 px-6 border-t border-gray-200 bg-white">
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           whileInView={{ opacity: 1, scale: 1 }}
           viewport={{ once: true }}
-          className="container mx-auto max-w-4xl text-center bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-12 hover:border-white/20 transition-colors shadow-2xl relative overflow-hidden"
+          className="container mx-auto max-w-4xl text-center bg-gray-900 rounded-3xl p-12 shadow-2xl relative overflow-hidden"
         >
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-teal-500/20 blur-[100px] rounded-full pointer-events-none" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-teal-500/10 blur-[100px] rounded-full pointer-events-none" />
 
           {user ? (
             <div className="relative z-10 space-y-8">
               <span className="inline-block px-4 py-1.5 bg-teal-500/20 border border-teal-500/30 text-teal-300 font-bold text-xs rounded-full uppercase tracking-widest">
                 Bienvenido de vuelta, {perfil?.nombre1 || user.email?.split('@')[0]}
               </span>
-              <h2 className="font-headline font-black text-4xl md:text-5xl tracking-tight leading-tight">
+              <h2 className="font-headline font-black text-4xl md:text-5xl tracking-tight leading-tight text-white">
                 Tu siguiente paso<br className="hidden md:block" /> te está esperando.
               </h2>
               <p className="text-white/60 max-w-xl mx-auto leading-relaxed text-lg">
@@ -426,17 +426,17 @@ export default function Landing() {
               </p>
               <button
                 onClick={() => navigate(perfil?.nombre1 ? '/cv-optimizer' : '/onboarding')}
-                className="inline-flex items-center justify-center gap-3 text-base font-bold bg-[#E8541A] hover:bg-[#E8541A]/90 text-white px-10 py-5 rounded-2xl shadow-[0_10px_30px_rgba(232,84,26,0.4)] hover:shadow-[0_15px_40px_rgba(232,84,26,0.6)] hover:-translate-y-1 transition-all"
+                className="inline-flex items-center justify-center gap-3 text-base font-bold bg-[#E8541A] hover:bg-[#E8541A]/90 text-white px-10 py-5 rounded-2xl shadow-lg hover:-translate-y-1 transition-all"
               >
                 Ir al optimizador <ArrowRight size={18} weight="bold" />
               </button>
             </div>
           ) : (
             <div className="relative z-10 space-y-8">
-              <span className="inline-block px-4 py-1.5 bg-[#E8541A]/20 border border-[#E8541A]/30 text-[#E8541A] font-bold text-xs rounded-full uppercase tracking-widest shadow-[0_0_15px_rgba(232,84,26,0.2)]">
+              <span className="inline-block px-4 py-1.5 bg-[#E8541A]/20 border border-[#E8541A]/40 text-[#E8541A] font-bold text-xs rounded-full uppercase tracking-widest">
                 2 Análisis Gratuitos
               </span>
-              <h2 className="font-headline font-black text-4xl md:text-5xl tracking-tight leading-tight">
+              <h2 className="font-headline font-black text-4xl md:text-5xl tracking-tight leading-tight text-white">
                 No dejes tu carrera<br className="hidden md:block" /> al azar de un algoritmo.
               </h2>
               <p className="text-white/60 max-w-xl mx-auto leading-relaxed text-lg">
@@ -444,7 +444,7 @@ export default function Landing() {
               </p>
               <button
                 onClick={() => navigate('/auth?register=true')}
-                className="inline-flex items-center justify-center gap-3 text-base font-bold bg-[#E8541A] hover:bg-[#E8541A]/90 text-white px-10 py-5 rounded-2xl shadow-[0_10px_30px_rgba(232,84,26,0.4)] hover:shadow-[0_15px_40px_rgba(232,84,26,0.6)] hover:-translate-y-1 transition-all"
+                className="inline-flex items-center justify-center gap-3 text-base font-bold bg-[#E8541A] hover:bg-[#E8541A]/90 text-white px-10 py-5 rounded-2xl shadow-lg hover:-translate-y-1 transition-all"
               >
                 Crear cuenta gratis ahora <ArrowRight size={18} weight="bold" />
               </button>
@@ -454,7 +454,7 @@ export default function Landing() {
       </section>
 
       {/* ── Footer ────────────────────────────────────────────────────────── */}
-      <footer className="relative z-10 border-t border-white/10 bg-[#0A1A14]">
+      <footer className="relative z-10 border-t border-gray-200 bg-gray-900">
         <div className="container mx-auto max-w-6xl px-6 py-16 grid grid-cols-1 md:grid-cols-4 gap-12">
           <div className="md:col-span-2 space-y-6">
             <Link to="/">
