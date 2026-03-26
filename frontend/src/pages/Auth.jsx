@@ -5,7 +5,6 @@ import { useAuth } from '../context/AuthContext'
 import { supabase } from '../services/authService'
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:3001'
-const APP_URL = import.meta.env.VITE_APP_URL || 'https://gestioncv.netlify.app'
 
 export default function Auth() {
   const { user, login, register, onboardingPendiente } = useAuth()
@@ -90,7 +89,7 @@ export default function Auth() {
     setError('')
 
     try {
-      const resetUrl = `${APP_URL}/reset-password`
+      const resetUrl = `${window.location.origin}/reset-password`
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: resetUrl,
       })
