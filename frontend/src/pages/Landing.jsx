@@ -468,7 +468,7 @@ export default function Landing() {
               <div className="relative bg-[#0A1A14]/90 backdrop-blur-xl border border-white/10 p-6 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
                 <div className="flex items-center gap-4 border-b border-white/10 pb-5 mb-5">
                   <div className="w-12 h-12 rounded-full bg-gradient-to-br from-teal-400 to-emerald-600 p-[2px] shadow-lg">
-                    <img src="/optima_logo_v3_clean_2.png" alt="OPTIMA" className="w-full h-full object-cover rounded-full bg-[#0A1A14]" />
+                    <img src="/optima_logo_v3_clean_2.png" alt="OPTIMA" className="w-4/5 h-4/5 object-contain rounded-full" />
                   </div>
                   <div>
                     <h4 className="text-white font-bold text-lg leading-none">OPTIMA</h4>
