@@ -13,26 +13,29 @@ const INICIO = [
 ]
 
 const HERRAMIENTAS = [
-  { to: '/cv-optimizer',    label: 'CV Optimizer',    Icon: FileMagnifyingGlass },
-  { to: '/cv-vs-job',       label: 'CV vs Vacante',   Icon: MagnifyingGlass     },
-  { to: '/jobs',            label: 'Vacantes',        Icon: Briefcase           },
-  { to: '/linkedin-optima', label: 'LinkedIn Optima', Icon: LinkedinLogo, premium: true },
-  { to: '/entrevista',      label: 'Entrevista',      Icon: MicrophoneStage, premium: true },
+  { to: '/cv-optimizer', label: 'CV Optimizer',  Icon: FileMagnifyingGlass },
+  { to: '/cv-vs-job',    label: 'CV vs Vacante', Icon: MagnifyingGlass     },
+  { to: '/jobs',         label: 'Vacantes',      Icon: Briefcase           },
 ]
 
 const MI_CARRERA = [
-  { to: '/mis-cvs',      label: 'Mis CVs',       Icon: Folders         },
-  { to: '/mis-vacantes', label: 'Mis Vacantes',  Icon: BookmarkSimple  },
-  { to: '/pipeline',     label: 'Pipeline',       Icon: Kanban          },
+  { to: '/mis-cvs',      label: 'Mis CVs',      Icon: Folders        },
+  { to: '/mis-vacantes', label: 'Mis Vacantes', Icon: BookmarkSimple },
+  { to: '/pipeline',     label: 'Pipeline',     Icon: Kanban         },
 ]
 
 const RECURSOS = [
-  { to: '/biblioteca',      label: 'Biblioteca',      Icon: Books                          },
-  { to: '/expertos',        label: 'Expertos',        Icon: UsersThree                     },
-  { to: '/infografias',     label: 'Infografías',     Icon: Shapes                         },
+  { to: '/biblioteca',      label: 'Biblioteca',      Icon: Books           },
+  { to: '/infografias',     label: 'Infografías',     Icon: Shapes          },
+  { to: '/linkedin-optima', label: 'LinkedIn Optimo', Icon: LinkedinLogo,   beta: true },
+  { to: '/entrevista',      label: 'Entrevista',      Icon: MicrophoneStage, beta: true },
 ]
 
-function NavItem({ to, label, Icon, onClick, premium }) {
+const HABLEMOS = [
+  { to: '/expertos', label: 'Mentor Experto', Icon: UsersThree, beta: true },
+]
+
+function NavItem({ to, label, Icon, onClick, premium, beta }) {
   return (
     <NavLink
       to={to}
@@ -52,6 +55,11 @@ function NavItem({ to, label, Icon, onClick, premium }) {
           {premium && (
             <span className="text-[9px] font-bold uppercase tracking-widest bg-amber-400/20 text-amber-600 border border-amber-300 rounded-full px-1.5 py-0.5">
               Pro
+            </span>
+          )}
+          {beta && (
+            <span className="text-[9px] font-bold uppercase tracking-widest bg-blue-400/15 text-blue-500 border border-blue-300/60 rounded-full px-1.5 py-0.5">
+              Beta
             </span>
           )}
         </>
@@ -150,6 +158,18 @@ export default function Sidebar({ open, onClose }) {
             </p>
             <div className="space-y-0.5">
               {RECURSOS.map(item => (
+                <NavItem key={item.to} {...item} onClick={onClose} />
+              ))}
+            </div>
+          </div>
+
+          {/* Hablemos */}
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-outline px-3 mb-2">
+              Hablemos
+            </p>
+            <div className="space-y-0.5">
+              {HABLEMOS.map(item => (
                 <NavItem key={item.to} {...item} onClick={onClose} />
               ))}
             </div>
