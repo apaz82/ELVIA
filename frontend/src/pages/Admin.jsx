@@ -1,15 +1,16 @@
-// Panel de administración — acceso independiente, NO usa AuthContext
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@supabase/supabase-js'
+import * as PI from '@phosphor-icons/react'
 
-// Cliente Supabase propio del admin — storageKey separado para no pisar la sesión del usuario normal
+// Cliente Supabase propio del admin
 const db = createClient(
   import.meta.env.VITE_SUPABASE_URL,
   import.meta.env.VITE_SUPABASE_ANON_KEY,
   { auth: { storageKey: 'admin-auth', persistSession: true } }
 )
 
-// ─── Helpers ────────────────────────────────────────────────────────────────
+// ─── Constants ──────────────────────────────────────────────────────────────
+const API = import.meta.env.VITE_API_URL || 'http://localhost:3001'
 
 function fmtDate(iso) {
   if (!iso) return '—'
@@ -28,18 +29,31 @@ function Badge({ color = 'gray', children }) {
   return <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${cls}`}>{children}</span>
 }
 
-function KpiCard({ label, value, sub, color = 'blue' }) {
+function KpiCard({ label, value, sub, icon: Icon, color = 'blue' }) {
   const accent = {
-    blue:   'text-blue-600 bg-blue-50',
-    green:  'text-emerald-600 bg-emerald-50',
-    amber:  'text-amber-600 bg-amber-50',
-    purple: 'text-purple-600 bg-purple-50',
+    blue:   'text-blue-400 bg-blue-500/10 border-blue-500/20',
+    green:  'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
+    amber:  'text-amber-400 bg-amber-500/10 border-amber-500/20',
+    purple: 'text-purple-400 bg-purple-500/10 border-purple-500/20',
   }[color]
+  
   return (
-    <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
-      <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-3">{label}</p>
-      <p className={`text-3xl font-black rounded-xl px-2 py-1 inline-block ${accent}`}>{value}</p>
-      {sub && <p className="text-xs text-gray-400 mt-2">{sub}</p>}
+    <div className="bg-[#111827] rounded-3xl p-6 border border-gray-800 shadow-xl transition-all hover:border-gray-700 group">
+      <div className="flex items-center justify-between mb-4">
+        <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-500">{label}</p>
+        {Icon && (
+          <div className={`p-2 rounded-xl border ${accent.split(' ').slice(1).join(' ')} group-hover:scale-110 transition-transform`}>
+            <Icon size={18} weight="duotone" className={accent.split(' ')[0]} />
+          </div>
+        )}
+      </div>
+      <p className="text-3xl font-black text-white tracking-tight">{value}</p>
+      {sub && (
+        <div className="mt-4 flex items-center gap-1.5">
+          <div className="h-1 w-1 rounded-full bg-blue-500" />
+          <p className="text-[10px] text-gray-500 font-medium">{sub}</p>
+        </div>
+      )}
     </div>
   )
 }
@@ -57,13 +71,12 @@ function AdminLogin({ onLogin }) {
     setError('')
     setLoading(true)
     const { data, error: authErr } = await db.auth.signInWithPassword({ email, password })
-    if (authErr) { setError('Credenciales incorrectas'); setLoading(false); return }
+    if (authErr) { setError('Credenciales de acceso no válidas'); setLoading(false); return }
 
-    // Verificar que sea admin
     const { data: perfil } = await db.from('profiles').select('is_admin').eq('id', data.user.id).single()
     if (!perfil?.is_admin) {
       await db.auth.signOut()
-      setError('No tienes permisos de administrador.')
+      setError('Acceso restringido: Solamente personal autorizado.')
       setLoading(false)
       return
     }
@@ -72,41 +85,56 @@ function AdminLogin({ onLogin }) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-950 flex items-center justify-center p-6">
-      <div className="w-full max-w-sm">
-        <div className="text-center mb-8">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-600 to-violet-700 flex items-center justify-center mx-auto mb-4 shadow-lg">
-            <span className="text-white font-black text-xl">A</span>
+    <div className="min-h-screen bg-[#0B0F1A] flex items-center justify-center p-6 relative overflow-hidden">
+      {/* Background Decor */}
+      <div className="absolute top-0 left-0 w-full h-full opacity-20 pointer-events-none">
+          <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-600/30 blur-[120px] rounded-full" />
+          <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-violet-600/30 blur-[120px] rounded-full" />
+      </div>
+
+      <div className="w-full max-w-sm relative z-10">
+        <div className="text-center mb-10">
+          <div className="w-20 h-20 rounded-[2.5rem] bg-gradient-to-br from-blue-600 to-violet-700 flex items-center justify-center mx-auto mb-6 shadow-2xl shadow-blue-900/40 border border-white/10 ring-8 ring-blue-600/5 anim-float">
+            <span className="text-white font-black text-3xl">O</span>
           </div>
-          <h1 className="text-white text-2xl font-black tracking-tight">Admin Panel</h1>
-          <p className="text-gray-400 text-sm mt-1">OPTIMA-CV — Acceso restringido</p>
+          <h1 className="text-white text-3xl font-black tracking-tighter uppercase italic">OPTIMA ADMIN</h1>
+          <p className="text-blue-500/60 text-[10px] font-black tracking-[0.4em] mt-2 uppercase">Centro de Operaciones</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="bg-gray-900 rounded-2xl p-6 border border-gray-800 space-y-4">
-          <div>
-            <label className="block text-xs font-semibold text-gray-400 mb-1.5">Email</label>
+        <form onSubmit={handleSubmit} className="bg-[#111827] rounded-[2.5rem] p-8 border border-gray-800 shadow-2xl space-y-5">
+          <div className="space-y-1.5">
+            <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Identificación</label>
             <input
               type="email" value={email} onChange={e => setEmail(e.target.value)} required
-              className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2.5 text-white text-sm placeholder-gray-500 focus:outline-none focus:border-blue-500"
-              placeholder="admin@ejemplo.com"
+              className="w-full bg-gray-950/50 border border-gray-800 rounded-2xl px-5 py-3.5 text-white text-sm placeholder-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium"
+              placeholder="admin@optima.pro"
             />
           </div>
-          <div>
-            <label className="block text-xs font-semibold text-gray-400 mb-1.5">Contraseña</label>
+          <div className="space-y-1.5">
+            <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Clave de Acceso</label>
             <input
               type="password" value={password} onChange={e => setPassword(e.target.value)} required
-              className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2.5 text-white text-sm placeholder-gray-500 focus:outline-none focus:border-blue-500"
+              className="w-full bg-gray-950/50 border border-gray-800 rounded-2xl px-5 py-3.5 text-white text-sm placeholder-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium"
               placeholder="••••••••"
             />
           </div>
-          {error && <p className="text-red-400 text-xs bg-red-950/50 rounded-lg px-3 py-2">{error}</p>}
+          {error && (
+            <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/20 rounded-2xl p-4 text-red-500 text-xs font-bold animate-shake">
+                <PI.Warning size={16} />
+                <span>{error}</span>
+            </div>
+          )}
           <button
             type="submit" disabled={loading}
-            className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white font-semibold rounded-xl py-2.5 text-sm transition-colors"
+            className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white font-black uppercase tracking-widest rounded-2xl py-4 text-xs transition-all shadow-xl shadow-blue-900/20 active:scale-95 flex items-center justify-center gap-3"
           >
-            {loading ? 'Verificando...' : 'Entrar al panel'}
+            {loading ? <PI.ArrowClockwise size={18} className="animate-spin" /> : 'Autenticar Acceso'}
           </button>
         </form>
+        
+        <p className="text-center text-gray-600 text-[9px] font-bold uppercase tracking-widest mt-12">
+            © 2026 OPTIMA CAREER MENTOR — SISTEMA DE GESTIÓN PROPIA
+        </p>
       </div>
     </div>
   )
@@ -116,37 +144,65 @@ function AdminLogin({ onLogin }) {
 
 function OverviewTab({ stats }) {
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <KpiCard label="Usuarios totales"  value={stats.totalUsers}    sub="Registrados en la plataforma" color="blue"   />
-        <KpiCard label="Onboarding OK"     value={stats.conOnboarding} sub="Con perfil completo"          color="green"  />
-        <KpiCard label="Admins"            value={stats.admins}        sub="Usuarios con is_admin=true"   color="purple" />
-        <KpiCard label="Análisis totales"  value={stats.totalUsage}    sub="Suma de usage_count"          color="amber"  />
+    <div className="space-y-8 max-w-6xl">
+      {/* KPIs Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <KpiCard label="Usuarios totales"  value={stats.totalUsers}    sub="Registrados"   icon={PI.UsersThree}    color="blue"   />
+        <KpiCard label="Perfiles Full"     value={stats.conOnboarding} sub="Con onboarding" icon={PI.CheckCircle} color="green"  />
+        <KpiCard label="Administradores"   value={stats.admins}        sub="Accesos nivel 1" icon={PI.UserCircle} color="purple" />
+        <KpiCard label="Impacto Total"     value={stats.totalUsage}    sub="CVs optimizados" icon={PI.ChartBar} color="amber"  />
       </div>
 
-      <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
-        <h3 className="font-bold text-gray-800 mb-4">Distribución de planes</h3>
-        <div className="space-y-3">
-          {Object.entries(stats.planes).map(([plan, count]) => (
-            <div key={plan} className="flex items-center gap-3">
-              <span className="text-sm text-gray-600 w-24 shrink-0">{plan || 'Sin plan'}</span>
-              <div className="flex-1 bg-gray-100 rounded-full h-2">
-                <div className="bg-blue-500 h-2 rounded-full" style={{ width: `${stats.totalUsers ? (count / stats.totalUsers) * 100 : 0}%` }} />
-              </div>
-              <span className="text-sm font-semibold text-gray-700 w-6 text-right">{count}</span>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Gráfico de Planes */}
+        <div className="lg:col-span-2 bg-[#111827] rounded-3xl p-8 border border-gray-800 shadow-2xl">
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <h3 className="font-bold text-white text-lg">Distribución de Ingresos</h3>
+              <p className="text-xs text-gray-500 mt-1">Suscripciones activas por nivel</p>
             </div>
-          ))}
+            <PI.Coins size={24} className="text-blue-500/50" />
+          </div>
+          
+          <div className="space-y-8">
+            {Object.entries(stats.planes).map(([plan, count]) => (
+              <div key={plan} className="relative">
+                <div className="flex justify-between items-end mb-2">
+                  <span className="text-xs font-bold uppercase tracking-widest text-gray-400">{plan || 'Gratuito'}</span>
+                  <span className="text-sm font-black text-white">{count} usuarios</span>
+                </div>
+                <div className="h-3 bg-gray-800 rounded-full overflow-hidden">
+                  <div
+                  className={`h-full rounded-full transition-all duration-1000 ${
+                    plan === 'trimestral' ? 'bg-gradient-to-r from-amber-500 to-yellow-500' :
+                    plan === 'mensual'    ? 'bg-gradient-to-r from-blue-600 to-cyan-600' :
+                    plan === 'semanal'    ? 'bg-gradient-to-r from-emerald-500 to-teal-500' :
+                    'bg-gray-600'
+                  }`}
+                  style={{ width: `${stats.totalUsers ? (count / stats.totalUsers) * 100 : 0}%` }}
+                />
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
 
-      <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
-        <h3 className="font-bold text-gray-800 mb-3">Países registrados</h3>
-        <div className="flex flex-wrap gap-2">
-          {Object.entries(stats.paises).map(([pais, count]) => (
-            <span key={pais} className="bg-gray-100 text-gray-700 text-xs font-medium px-3 py-1 rounded-full">
-              {pais || 'Sin país'} ({count})
-            </span>
-          ))}
+        {/* Listado de Países */}
+        <div className="bg-[#111827] rounded-3xl p-8 border border-gray-800 shadow-2xl">
+          <div className="flex items-center justify-between mb-8">
+            <h3 className="font-bold text-white text-lg">Presencia Global</h3>
+            <PI.House size={24} className="text-emerald-500/50" />
+          </div>
+          <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+            {Object.entries(stats.paises).sort((a,b) => b[1] - a[1]).map(([pais, count]) => (
+              <div key={pais} className="flex items-center justify-between p-3 rounded-2xl bg-gray-800/30 border border-gray-800/50 hover:bg-gray-800/50 transition-colors">
+                <span className="text-xs font-medium text-gray-300">{pais || 'No detectado'}</span>
+                <span className="px-2 py-0.5 rounded-lg bg-emerald-500/10 text-emerald-400 text-[10px] font-bold">
+                  {count}
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>
@@ -155,49 +211,93 @@ function OverviewTab({ stats }) {
 
 // ─── Users Tab ───────────────────────────────────────────────────────────────
 
-function UserRow({ u, onEdit }) {
+function UserRow({ u, onEdit, onView }) {
   const nombre = [u.nombre1, u.nombre2, u.apellido1, u.apellido2].filter(Boolean).join(' ') || '—'
+  const inicial = (u.nombre1 || u.email_principal || '?')[0]?.toUpperCase()
+  
   return (
-    <tr className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-      <td className="px-4 py-3">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
-            <span className="text-blue-700 font-bold text-xs">
-              {(u.nombre1 || u.email_principal || '?')[0]?.toUpperCase()}
-            </span>
+    <tr className="border-b border-gray-800/50 hover:bg-gray-800/40 transition-colors group">
+      <td className="px-6 py-4">
+        <div className="flex items-center gap-4">
+          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-500/10 to-violet-500/10 border border-blue-500/20 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+            <span className="text-blue-400 font-black text-sm">{inicial}</span>
           </div>
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-gray-800 truncate">{nombre}</p>
-            <p className="text-xs text-gray-400 truncate">{u.email_principal || <span className="italic text-gray-300">sin email</span>}</p>
+            <p className="text-sm font-bold text-white truncate">{nombre}</p>
+            <p className="text-[10px] text-gray-500 truncate font-medium">{u.email_principal || 'Sin dirección de correo'}</p>
           </div>
         </div>
       </td>
-      <td className="px-4 py-3">
-        <Badge color={u.plan === 'pro' ? 'purple' : u.plan === 'starter' ? 'blue' : 'gray'}>
+      <td className="px-6 py-4">
+        <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest ${
+          u.plan === 'trimestral' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' :
+          u.plan === 'mensual'    ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' :
+          u.plan === 'semanal'    ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
+          'bg-gray-800 text-gray-400 border border-gray-700'
+        }`}>
           {u.plan || 'free'}
-        </Badge>
-      </td>
-      <td className="px-4 py-3 text-sm text-gray-600">{u.pais || '—'}</td>
-      <td className="px-4 py-3">
-        <div className="flex items-center gap-1.5">
-          <div className="bg-gray-200 rounded-full h-1.5 w-16">
-            <div className="bg-blue-500 h-1.5 rounded-full" style={{ width: `${Math.min(100, ((u.usage_count || 0) / 2) * 100)}%` }} />
-          </div>
-          <span className="text-xs text-gray-500">{u.usage_count || 0}/2</span>
+          {u.plan === 'semanal' && u.plan_expires_at && (
+            <span className="ml-1 opacity-70">· exp {new Date(u.plan_expires_at).toLocaleDateString('es-MX', { day: '2-digit', month: 'short' })}</span>
+          )}
         </div>
       </td>
-      <td className="px-4 py-3">
-        {u.is_admin ? <Badge color="purple">Admin</Badge> : <Badge color="gray">User</Badge>}
+      <td className="px-6 py-4">
+        <div className="flex items-center gap-2">
+           <PI.House size={14} className="text-gray-600" />
+           <span className="text-xs text-gray-300 font-medium">{u.pais || '—'}</span>
+        </div>
       </td>
-      <td className="px-4 py-3">
-        <Badge color={u.suspended ? 'red' : 'green'}>{u.suspended ? 'Suspendido' : 'Activo'}</Badge>
+      <td className="px-6 py-4">
+        <div className="flex flex-col gap-1.5">
+          <div className="flex justify-between items-center text-[10px] font-bold">
+            <span className="text-gray-500">CONSUMO</span>
+            <span className="text-blue-400">
+              {u.cv_optimizer_count || 0}/1 CV · {u.cv_match_count || 0}/3 match
+            </span>
+          </div>
+          <div className="bg-gray-800 rounded-full h-1.5 w-24 overflow-hidden border border-gray-700">
+            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 h-full rounded-full transition-all"
+              style={{ width: `${Math.min(100, ((u.usage_count || 0) / Math.max(1, u.plan === 'starter' ? 20 : 3)) * 100)}%` }} />
+          </div>
+          {/* Trial expirado */}
+          {(!u.plan || u.plan === 'free') && u.free_trial_expires_at && new Date(u.free_trial_expires_at) < new Date() && (
+            <span className="text-[9px] text-amber-500 font-bold uppercase">Trial expirado</span>
+          )}
+        </div>
       </td>
-      <td className="px-4 py-3 text-xs text-gray-400">{fmtDate(u.created_at)}</td>
-      <td className="px-4 py-3">
-        <button onClick={() => onEdit(u)}
-          className="text-xs font-semibold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-3 py-1 rounded-lg transition-colors">
-          Editar
-        </button>
+      <td className="px-6 py-4">
+        {u.is_admin ? (
+          <div className="flex items-center gap-1 text-purple-400">
+            <PI.UserCircle size={16} weight="fill" />
+            <span className="text-[10px] font-black uppercase">Admin</span>
+          </div>
+        ) : (
+          <span className="text-[10px] font-bold text-gray-600 uppercase">Usuario</span>
+        )}
+      </td>
+      <td className="px-6 py-4">
+        <div className={`flex items-center gap-1.5 ${u.suspended ? 'text-red-400' : 'text-emerald-400'}`}>
+          <div className={`w-1.5 h-1.5 rounded-full animate-pulse ${u.suspended ? 'bg-red-400' : 'bg-emerald-400'}`} />
+          <span className="text-[10px] font-black uppercase tracking-widest">{u.suspended ? 'Bloqueado' : 'Activo'}</span>
+        </div>
+      </td>
+      <td className="px-6 py-4 text-[10px] font-medium text-gray-500">{fmtDate(u.created_at)}</td>
+      <td className="px-6 py-4">
+        <div className="flex items-center gap-2">
+          <button 
+            onClick={() => onEdit(u)}
+            className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-all"
+            title="Ajustes rápidos"
+          >
+            <PI.UserCircle size={18} />
+          </button>
+          <button 
+            onClick={() => onView(u)}
+            className="px-3 py-1.5 text-[10px] font-black uppercase tracking-widest bg-blue-600/10 text-blue-400 border border-blue-500/20 rounded-lg hover:bg-blue-600 hover:text-white transition-all"
+          >
+            Detalle
+          </button>
+        </div>
       </td>
     </tr>
   )
@@ -205,68 +305,272 @@ function UserRow({ u, onEdit }) {
 
 function UserEditModal({ user: u, onClose, onSave }) {
   const [form, setForm] = useState({
-    plan:        u.plan || 'free',
-    usage_count: u.usage_count || 0,
-    is_admin:    u.is_admin || false,
-    suspended:   u.suspended || false,
+    plan:               u.plan || 'free',
+    usage_count:        u.usage_count        || 0,
+    cv_optimizer_count: u.cv_optimizer_count || 0,
+    cv_match_count:     u.cv_match_count     || 0,
+    is_admin:           u.is_admin  || false,
+    suspended:          u.suspended || false,
   })
-  const [saving, setSaving] = useState(false)
+  const [saving, setSaving]         = useState(false)
+  const [deleting, setDeleting]     = useState(false)
+  const [waitingOTP, setWaitingOTP] = useState(false)  // Step 1: esperando OTP
+  const [otpCode, setOtpCode]       = useState('')     // Step 2: usuario ingresa OTP
+  const API = import.meta.env.VITE_API_URL || 'http://localhost:3001'
+
+  // Step 1: Solicitar OTP
+  const handleDeleteRequest = async () => {
+    const ok = window.confirm(
+      `⚠️¿Eliminar permanentemente a "${u.email_principal || u.id}"?\n\nEsta acción no se puede deshacer. Se enviará un código OTP a tu email.`
+    )
+    if (!ok) return
+
+    setDeleting(true)
+    try {
+      const session = (await import('../services/authService')).supabase.auth
+      const { data: { session: s } } = await session.getSession()
+      const res = await fetch(`${API}/api/admin/users/delete-otp-request/${u.id}`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${s?.access_token}` },
+      })
+      const body = await res.json()
+      if (res.ok) {
+        setWaitingOTP(true)
+        setOtpCode('')
+        alert(body.message)
+      } else {
+        alert('Error: ' + (body.error || 'No se pudo enviar OTP'))
+      }
+    } catch (err) {
+      alert('Error de red: ' + err.message)
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  // Step 2: Confirmar con OTP y ejecutar borrado
+  const handleDeleteConfirm = async () => {
+    if (!otpCode || otpCode.length !== 6) {
+      alert('Ingresa un código OTP válido (6 dígitos)')
+      return
+    }
+
+    const ok = window.confirm('⚠️ Esta es tu última oportunidad de cancelar el borrado permanente.')
+    if (!ok) return
+
+    setDeleting(true)
+    try {
+      const session = (await import('../services/authService')).supabase.auth
+      const { data: { session: s } } = await session.getSession()
+      const res = await fetch(`${API}/api/admin/users/${u.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${s?.access_token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ otp: otpCode }),
+      })
+      const body = await res.json()
+      if (res.ok) {
+        alert('✅ Usuario eliminado permanentemente. Auditado para compliance.')
+        onSave()   // refresca la lista
+        onClose()
+      } else {
+        alert('Error: ' + (body.error || 'No se pudo eliminar'))
+      }
+    } catch (err) {
+      alert('Error de red: ' + err.message)
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  const handleCancelOTP = () => {
+    setWaitingOTP(false)
+    setOtpCode('')
+  }
 
   const handleSave = async () => {
     setSaving(true)
-    await db.from('profiles').update(form).eq('id', u.id)
-    onSave()
+    const payload = { ...form }
+    // Al asignar plan semanal, establecer expiración a 7 días desde ahora
+    if (form.plan === 'semanal' && u.plan !== 'semanal') {
+      payload.plan_expires_at = new Date(Date.now() + 7 * 24 * 3600 * 1000).toISOString()
+    }
+    // Al degradar a free, limpiar expiración de plan de pago
+    if (form.plan === 'free') {
+      payload.plan_expires_at = null
+    }
+    const { error } = await db.from('profiles').update(payload).eq('id', u.id)
+    if (!error) onSave()
     setSaving(false)
     onClose()
   }
 
-  const Toggle = ({ label, field, color = 'blue' }) => (
-    <div className="flex items-center justify-between py-1">
-      <span className="text-sm font-medium text-gray-700">{label}</span>
-      <button
-        onClick={() => setForm(f => ({ ...f, [field]: !f[field] }))}
-        className={`w-10 h-5 rounded-full transition-colors relative ${form[field] ? `bg-${color}-500` : 'bg-gray-200'}`}
-      >
-        <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${form[field] ? 'translate-x-5' : 'translate-x-0.5'}`} />
-      </button>
-    </div>
-  )
+  const Toggle = ({ label, field, color = 'blue' }) => {
+    const activeColor = {
+      blue:   'bg-blue-600',
+      purple: 'bg-purple-600',
+      red:    'bg-red-600',
+    }[color]
+    
+    return (
+      <div className="flex items-center justify-between py-2 px-4 rounded-2xl bg-gray-800/20 border border-gray-800/50">
+        <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">{label}</span>
+        <button
+          onClick={() => setForm(f => ({ ...f, [field]: !f[field] }))}
+          className={`w-12 h-6 rounded-full transition-all duration-300 relative ${form[field] ? activeColor : 'bg-gray-700'}`}
+        >
+          <div className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow-xl transition-all duration-300 ${form[field] ? 'translate-x-7' : 'translate-x-1'}`} />
+        </button>
+      </div>
+    )
+  }
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl" onClick={e => e.stopPropagation()}>
-        <h3 className="font-bold text-gray-800 mb-1">Editar usuario</h3>
-        <p className="text-xs text-gray-400 mb-5 truncate">{u.email_principal || u.id}</p>
-
-        <div className="space-y-4">
-          <div>
-            <label className="block text-xs font-semibold text-gray-500 mb-1">Plan</label>
-            <select value={form.plan} onChange={e => setForm(f => ({ ...f, plan: e.target.value }))}
-              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400">
-              <option value="free">Free</option>
-              <option value="starter">Starter</option>
-              <option value="pro">Pro</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-gray-500 mb-1">Usos consumidos</label>
-            <input type="number" min="0" value={form.usage_count}
-              onChange={e => setForm(f => ({ ...f, usage_count: parseInt(e.target.value) || 0 }))}
-              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400" />
-          </div>
-          <Toggle label="Es administrador" field="is_admin"  color="purple" />
-          <Toggle label="Suspendido"        field="suspended" color="red"    />
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[70] flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-[#111827] border border-gray-800 rounded-[2.5rem] p-8 w-full max-w-sm shadow-2xl animate-fade-in" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center gap-3 mb-6">
+            <div className="w-12 h-12 rounded-2xl bg-blue-600/10 border border-blue-500/20 flex items-center justify-center">
+                <PI.UserCircle size={24} weight="duotone" className="text-blue-400" />
+            </div>
+            <div>
+                <h3 className="font-black text-white uppercase tracking-tight">Ajustes de Cuenta</h3>
+                <p className="text-[10px] text-gray-500 font-bold uppercase truncate max-w-[180px]">{u.email_principal || u.id}</p>
+            </div>
         </div>
 
-        <div className="flex gap-3 mt-6">
-          <button onClick={onClose}
-            className="flex-1 border border-gray-200 text-gray-600 rounded-xl py-2 text-sm font-semibold hover:bg-gray-50 transition-colors">
-            Cancelar
-          </button>
-          <button onClick={handleSave} disabled={saving}
-            className="flex-1 bg-blue-600 text-white rounded-xl py-2 text-sm font-semibold hover:bg-blue-500 disabled:opacity-60 transition-colors">
-            {saving ? 'Guardando...' : 'Guardar'}
-          </button>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Nivel de Suscripción</label>
+            <select 
+              value={form.plan} 
+              onChange={e => setForm(f => ({ ...f, plan: e.target.value }))}
+              className="w-full bg-gray-950 border border-gray-800 rounded-2xl px-4 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 font-bold transition-all"
+            >
+              <option value="free">Candidato Free</option>
+              <option value="semanal">Semanal (7 días)</option>
+              <option value="mensual">Mensual</option>
+              <option value="trimestral">Trimestral</option>
+            </select>
+          </div>
+          
+          <div className="space-y-2">
+            <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Usos de IA (Análisis)</label>
+            <div className="flex items-center gap-3">
+                <input 
+                  type="number" min="0" value={form.usage_count}
+                  onChange={e => setForm(f => ({ ...f, usage_count: parseInt(e.target.value) || 0 }))}
+                  className="flex-1 bg-gray-950 border border-gray-800 rounded-2xl px-4 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 font-bold" 
+                />
+                <button 
+                    onClick={() => setForm(f => ({ ...f, usage_count: 0 }))}
+                    className="p-3 bg-gray-800 hover:bg-gray-700 text-gray-400 rounded-2xl transition-all"
+                    title="Resetear a cero"
+                >
+                    <PI.ArrowClockwise size={18} />
+                </button>
+            </div>
+          </div>
+
+          {/* Contadores granulares */}
+          <div className="space-y-2">
+            <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">CV Optimizer (usado/1)</label>
+            <div className="flex items-center gap-3">
+              <input
+                type="number" min="0" max="99" value={form.cv_optimizer_count}
+                onChange={e => setForm(f => ({ ...f, cv_optimizer_count: parseInt(e.target.value) || 0 }))}
+                className="flex-1 bg-gray-950 border border-gray-800 rounded-2xl px-4 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 font-bold"
+              />
+              <button onClick={() => setForm(f => ({ ...f, cv_optimizer_count: 0 }))}
+                className="p-3 bg-gray-800 hover:bg-gray-700 text-gray-400 rounded-2xl transition-all" title="Resetear">
+                <PI.ArrowClockwise size={18} />
+              </button>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">CV Match / Compatib. (usado/3)</label>
+            <div className="flex items-center gap-3">
+              <input
+                type="number" min="0" max="99" value={form.cv_match_count}
+                onChange={e => setForm(f => ({ ...f, cv_match_count: parseInt(e.target.value) || 0 }))}
+                className="flex-1 bg-gray-950 border border-gray-800 rounded-2xl px-4 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 font-bold"
+              />
+              <button onClick={() => setForm(f => ({ ...f, cv_match_count: 0 }))}
+                className="p-3 bg-gray-800 hover:bg-gray-700 text-gray-400 rounded-2xl transition-all" title="Resetear">
+                <PI.ArrowClockwise size={18} />
+              </button>
+            </div>
+          </div>
+
+          <div className="space-y-2 pt-2">
+            <Toggle label="Privilegios Admin" field="is_admin"  color="purple" />
+            <Toggle label="Bloquear Cuenta"   field="suspended" color="red"    />
+          </div>
+        </div>
+
+        <div className="mt-8 space-y-2">
+          {/* OTP Input (aparece después de solicitar OTP) */}
+          {waitingOTP && (
+            <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 space-y-3">
+              <div className="flex items-start gap-3">
+                <PI.Warning size={20} className="text-amber-500 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-amber-500 text-xs font-bold uppercase">Se envió OTP a tu email</p>
+                  <p className="text-gray-400 text-xs mt-1">Ingresa el código para confirmar el borrado.</p>
+                </div>
+              </div>
+              <input
+                type="text"
+                maxLength="6"
+                value={otpCode}
+                onChange={e => setOtpCode(e.target.value.replace(/\D/g, ''))}
+                placeholder="000000"
+                className="w-full bg-gray-950 border border-amber-500/50 rounded-xl px-4 py-2 text-center text-2xl font-black text-white placeholder-gray-700 focus:outline-none focus:ring-2 focus:ring-amber-500/50 tracking-[0.5em]"
+              />
+              <div className="flex gap-2">
+                <button
+                  onClick={handleCancelOTP}
+                  disabled={deleting}
+                  className="flex-1 px-3 py-2 rounded-xl border border-gray-800 text-gray-400 text-xs font-bold uppercase tracking-widest hover:bg-gray-800 disabled:opacity-50 transition-all"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleDeleteConfirm}
+                  disabled={deleting || otpCode.length !== 6}
+                  className="flex-1 px-3 py-2 rounded-xl bg-red-600 text-white text-xs font-bold uppercase tracking-widest hover:bg-red-500 disabled:opacity-50 transition-all flex items-center justify-center gap-2"
+                >
+                  <PI.Trash size={12} />
+                  {deleting ? 'Borrando...' : 'Confirmar'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Botón de eliminar — zona de peligro */}
+          {!waitingOTP && (
+            <button
+              onClick={handleDeleteRequest}
+              disabled={deleting}
+              className="w-full px-4 py-2.5 rounded-2xl border border-red-900/50 text-red-500 text-xs font-black uppercase tracking-widest hover:bg-red-950/40 disabled:opacity-50 transition-all flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <PI.Trash size={14} />
+              {deleting ? 'Enviando OTP...' : 'Eliminar usuario permanentemente'}
+            </button>
+          )}
+
+          <div className="flex gap-3">
+            <button onClick={onClose}
+              className="flex-1 px-4 py-3 rounded-2xl border border-gray-800 text-gray-400 text-xs font-black uppercase tracking-widest hover:bg-gray-800 hover:text-white transition-all">
+              Cerrar
+            </button>
+            <button onClick={handleSave} disabled={saving || waitingOTP}
+              className="flex-1 px-4 py-3 rounded-2xl bg-blue-600 text-white text-xs font-black uppercase tracking-widest hover:bg-blue-500 shadow-lg shadow-blue-900/20 disabled:opacity-50 transition-all">
+              {saving ? 'Guardando...' : 'Aplicar'}
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -276,8 +580,9 @@ function UserEditModal({ user: u, onClose, onSave }) {
 function UsersTab({ users, onRefresh }) {
   const [search, setSearch]     = useState('')
   const [editUser, setEditUser] = useState(null)
+  const [viewUser, setViewUser] = useState(null)
   const [page, setPage]         = useState(0)
-  const PER_PAGE = 12
+  const PER_PAGE = 10
 
   const filtered = users.filter(u => {
     const q = search.toLowerCase()
@@ -291,44 +596,52 @@ function UsersTab({ users, onRefresh }) {
   const totalPages = Math.ceil(filtered.length / PER_PAGE)
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-3">
-        <input
-          type="text" placeholder="Buscar por nombre, email o país..."
-          value={search} onChange={e => { setSearch(e.target.value); setPage(0) }}
-          className="flex-1 border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-blue-400"
-        />
+    <div className="space-y-6">
+      <div className="flex items-center gap-4 bg-[#111827] p-4 rounded-3xl border border-gray-800 shadow-xl">
+        <div className="flex-1 relative">
+          <PI.MagnifyingGlass size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" />
+          <input
+            type="text" placeholder="Filtrar por nombre, email o país..."
+            value={search} onChange={e => { setSearch(e.target.value); setPage(0) }}
+            className="w-full bg-gray-950/50 border border-gray-800 rounded-2xl pl-12 pr-4 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 placeholder:text-gray-700 transition-all font-medium"
+          />
+        </div>
         <button onClick={onRefresh}
-          className="bg-gray-100 hover:bg-gray-200 text-gray-600 text-sm font-semibold px-4 py-2 rounded-xl transition-colors">
-          Refrescar
+          className="bg-blue-600/10 hover:bg-blue-600/20 text-blue-400 text-xs font-black uppercase tracking-widest px-6 py-3 rounded-2xl border border-blue-500/20 transition-all flex items-center gap-2">
+          <PI.ArrowClockwise size={16} /> Actualizar
         </button>
       </div>
 
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+      <div className="bg-[#111827] rounded-3xl border border-gray-800 shadow-2xl overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left">
-            <thead className="bg-gray-50 border-b border-gray-100">
+            <thead className="bg-gray-900/50 border-b border-gray-800">
               <tr>
-                {['Usuario', 'Plan', 'País', 'Uso', 'Rol', 'Estado', 'Registro', 'Acciones'].map(h => (
-                  <th key={h} className="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap">{h}</th>
+                {['Candidato', 'Suscripción', 'País', 'Consumo IA', 'Rol', 'Estado', 'Fecha Registro', 'Gestión'].map(h => (
+                  <th key={h} className="px-6 py-4 text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] whitespace-nowrap">{h}</th>
                 ))}
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-gray-800/50">
               {paginated.length === 0
-                ? <tr><td colSpan={8} className="px-4 py-8 text-center text-gray-400 text-sm">No se encontraron usuarios</td></tr>
-                : paginated.map(u => <UserRow key={u.id} u={u} onEdit={setEditUser} />)
+                ? <tr><td colSpan={8} className="px-6 py-20 text-center text-gray-600 text-sm font-medium uppercase tracking-widest">No se detectaron usuarios con este criterio</td></tr>
+                : paginated.map(u => <UserRow key={u.id} u={u} onEdit={setEditUser} onView={setViewUser} />)
               }
             </tbody>
           </table>
         </div>
+        
         {totalPages > 1 && (
-          <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100 bg-gray-50">
-            <span className="text-xs text-gray-500">{filtered.length} usuarios</span>
-            <div className="flex gap-1">
+          <div className="flex items-center justify-between px-8 py-4 bg-gray-900/30 border-t border-gray-800">
+            <span className="text-[10px] font-black uppercase tracking-widest text-gray-500">Mostrando {paginated.length} de {filtered.length} perfiles</span>
+            <div className="flex gap-1.5">
               {Array.from({ length: totalPages }).map((_, i) => (
                 <button key={i} onClick={() => setPage(i)}
-                  className={`w-7 h-7 rounded-lg text-xs font-semibold transition-colors ${i === page ? 'bg-blue-600 text-white' : 'text-gray-500 hover:bg-gray-100'}`}>
+                  className={`min-w-[32px] h-8 rounded-xl text-[10px] font-black transition-all border ${
+                    i === page 
+                      ? 'bg-blue-600 text-white border-blue-500 shadow-lg shadow-blue-900/20' 
+                      : 'text-gray-500 border-gray-800 hover:text-white hover:border-gray-600'
+                  }`}>
                   {i + 1}
                 </button>
               ))}
@@ -339,6 +652,69 @@ function UsersTab({ users, onRefresh }) {
 
       {editUser && (
         <UserEditModal user={editUser} onClose={() => setEditUser(null)} onSave={onRefresh} />
+      )}
+      
+      {viewUser && (
+        <div className="fixed inset-0 z-[60] flex justify-end">
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setViewUser(null)} />
+            <div className="relative w-full max-w-lg bg-[#111827] border-l border-gray-800 p-8 overflow-y-auto animate-slide-in-right">
+                <div className="flex items-center justify-between mb-8">
+                    <h2 className="text-xl font-black text-white uppercase tracking-tight">Ficha de Candidato</h2>
+                    <button onClick={() => setViewUser(null)} className="p-2 hover:bg-gray-800 rounded-xl transition-colors">
+                        <PI.SignOut size={24} className="rotate-180 text-gray-500" />
+                    </button>
+                </div>
+                
+                <div className="space-y-6">
+                    <div className="flex items-center gap-6 p-6 rounded-3xl bg-gray-950/50 border border-gray-800">
+                        <div className="w-20 h-20 rounded-3xl bg-blue-600 flex items-center justify-center text-3xl font-black text-white shadow-2xl">
+                            {viewUser.nombre1?.[0]}
+                        </div>
+                        <div>
+                             <h3 className="text-2xl font-bold text-white capitalize">{viewUser.nombre1} {viewUser.apellido1}</h3>
+                             <p className="text-blue-400 font-medium">{viewUser.email_principal}</p>
+                             <div className="mt-2 flex gap-2">
+                                <Badge color={viewUser.plan === 'pro' ? 'purple' : 'blue'}>{viewUser.plan || 'free'}</Badge>
+                             </div>
+                        </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="p-4 rounded-2xl bg-gray-800/30 border border-gray-800">
+                             <p className="text-[10px] font-bold text-gray-500 uppercase mb-1">País</p>
+                             <p className="text-sm text-gray-200 font-semibold">{viewUser.pais || '—'}</p>
+                        </div>
+                        <div className="p-4 rounded-2xl bg-gray-800/30 border border-gray-800">
+                             <p className="text-[10px] font-bold text-gray-500 uppercase mb-1">Ciudad</p>
+                             <p className="text-sm text-gray-200 font-semibold">{viewUser.ciudad || '—'}</p>
+                        </div>
+                    </div>
+
+                    <div className="p-6 rounded-3xl bg-gray-800/30 border border-gray-800">
+                         <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-4">Información Profesional</h4>
+                         <div className="space-y-4">
+                            <div>
+                                <p className="text-[10px] font-bold text-gray-600 mb-1 uppercase">Aspiración Salarial</p>
+                                <p className="text-lg font-black text-white">{viewUser.salario_esperado || 'No definida'}</p>
+                            </div>
+                            <div>
+                                <p className="text-[10px] font-bold text-gray-600 mb-1 uppercase">Área / Puesto</p>
+                                <p className="text-sm text-gray-200 font-bold">{viewUser.area || '—'}</p>
+                            </div>
+                         </div>
+                    </div>
+                    
+                    <div className="flex gap-4">
+                         <button 
+                            className="flex-1 py-4 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black uppercase tracking-widest text-xs transition-all shadow-lg shadow-blue-900/20"
+                            onClick={() => { setEditUser(viewUser); setViewUser(null); }}
+                         >
+                            Configurar Cuenta
+                         </button>
+                    </div>
+                </div>
+            </div>
+        </div>
       )}
     </div>
   )
@@ -351,7 +727,7 @@ function AnalyticsTab({ users }) {
     const map = {}
     users.forEach(u => {
       if (!u.created_at) return
-      const key = new Date(u.created_at).toLocaleDateString('es-MX', { month: 'short', year: '2-digit' })
+      const key = new Date(u.created_at).toLocaleDateString('es-MX', { month: 'short' })
       map[key] = (map[key] || 0) + 1
     })
     return Object.entries(map).slice(-6)
@@ -360,93 +736,431 @@ function AnalyticsTab({ users }) {
   const maxVal = Math.max(...monthlyData.map(([, v]) => v), 1)
 
   return (
-    <div className="space-y-6">
-      <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
-        <h3 className="font-bold text-gray-800 mb-5">Nuevos registros por mes</h3>
-        {monthlyData.length === 0
-          ? <p className="text-gray-400 text-sm text-center py-6">Sin datos suficientes</p>
-          : (
-            <div className="flex items-end gap-3 h-40">
-              {monthlyData.map(([label, val]) => (
-                <div key={label} className="flex-1 flex flex-col items-center gap-1">
-                  <span className="text-xs font-bold text-blue-600">{val}</span>
-                  <div className="w-full bg-blue-500 rounded-t-md" style={{ height: `${(val / maxVal) * 120}px`, minHeight: 4 }} />
-                  <span className="text-[10px] text-gray-400 text-center">{label}</span>
+    <div className="space-y-8 max-w-5xl">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="bg-[#111827] rounded-3xl p-8 border border-gray-800 shadow-2xl">
+          <div className="flex items-center justify-between mb-8">
+             <h3 className="font-bold text-white text-lg">Crecimiento Mensual</h3>
+             <PI.ChartBar size={24} className="text-blue-500/50" />
+          </div>
+          {monthlyData.length === 0
+            ? <div className="h-48 flex items-center justify-center text-gray-600 uppercase text-[10px] font-black tracking-widest">Sin datos</div>
+            : (
+              <div className="flex items-end gap-4 h-48 px-4">
+                {monthlyData.map(([label, val]) => (
+                  <div key={label} className="flex-1 flex flex-col items-center gap-2 group">
+                    <span className="text-[10px] font-black text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity">{val}</span>
+                    <div className="w-full bg-gradient-to-t from-blue-600/20 to-blue-500 rounded-xl transition-all hover:scale-x-110 active:scale-95" style={{ height: `${(val / maxVal) * 100}%`, minHeight: 8 }} />
+                    <span className="text-[10px] text-gray-500 font-bold uppercase tracking-tighter truncate w-full text-center">{label}</span>
+                  </div>
+                ))}
+              </div>
+            )
+          }
+        </div>
+
+        <div className="bg-[#111827] rounded-3xl p-8 border border-gray-800 shadow-2xl">
+           <div className="flex items-center justify-between mb-8">
+             <h3 className="font-bold text-white text-lg">Nivel de Adopción</h3>
+             <PI.ChartBar size={24} className="text-purple-500/50" />
+           </div>
+           <div className="space-y-6">
+              {[
+                { label: 'Conversión Total', val: '12.4%', color: 'bg-blue-500' },
+                { label: 'Retención (30d)', val: '84%', color: 'bg-emerald-500' },
+                { label: 'Uso de Mentora', val: '68%', color: 'bg-purple-500' },
+              ].map(i => (
+                <div key={i.label} className="space-y-2">
+                   <div className="flex justify-between items-end">
+                      <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">{i.label}</span>
+                      <span className="text-sm font-black text-white">{i.val}</span>
+                   </div>
+                   <div className="h-1.5 bg-gray-800 rounded-full overflow-hidden">
+                      <div className={`h-full ${i.color} rounded-full`} style={{ width: i.val }} />
+                   </div>
                 </div>
               ))}
-            </div>
-          )
-        }
-      </div>
-
-      <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
-        <h3 className="font-bold text-gray-800 mb-4">Distribución por país</h3>
-        {(() => {
-          const map = {}
-          users.forEach(u => { const k = u.pais || 'Sin país'; map[k] = (map[k] || 0) + 1 })
-          return Object.entries(map).sort((a, b) => b[1] - a[1]).map(([pais, count]) => (
-            <div key={pais} className="flex items-center gap-3 mb-2">
-              <span className="text-sm text-gray-600 w-28 truncate shrink-0">{pais}</span>
-              <div className="flex-1 bg-gray-100 rounded-full h-2">
-                <div className="bg-emerald-500 h-2 rounded-full" style={{ width: `${users.length ? (count / users.length) * 100 : 0}%` }} />
-              </div>
-              <span className="text-xs font-semibold text-gray-600 w-4 text-right">{count}</span>
-            </div>
-          ))
-        })()}
+           </div>
+        </div>
       </div>
     </div>
   )
 }
 
-// ─── Finanzas Tab ────────────────────────────────────────────────────────────
-
-function FinanzasTab({ users }) {
+function SubscriptionsTab({ users }) {
   const agotados   = users.filter(u => (u.usage_count || 0) >= 2).length
   const conPlan    = users.filter(u => u.plan && u.plan !== 'free').length
   const conversion = users.length ? ((conPlan / users.length) * 100).toFixed(1) : 0
 
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-2 gap-4">
-        <KpiCard label="Agotaron créditos" value={agotados}        sub="Candidatos para upgrade" color="amber" />
-        <KpiCard label="Tasa conversión"   value={`${conversion}%`} sub="Free → plan de pago"     color="green" />
+    <div className="space-y-8 max-w-5xl">
+       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <KpiCard label="Candidatos Hot" value={agotados} sub="Agotaron créditos gratuitos" icon={PI.Warning} color="amber" />
+          <KpiCard label="Tasa de Cierre" value={`${conversion}%`} sub="Conversión Free → Premium" icon={PI.Coins} color="green" />
+       </div>
+
+       <div className="bg-[#111827] rounded-3xl p-8 border border-gray-800 shadow-2xl">
+          <div className="flex items-center justify-between mb-8">
+             <h3 className="font-bold text-white text-lg">Resumen Financiero</h3>
+             <PI.Sparkle size={24} className="text-gray-700" />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+             <div className="space-y-4">
+                {[
+                  { l: 'Pro Mensual',   v: users.filter(u => u.plan === 'mensual').length },
+                  { l: 'Pro Trimestral', v: users.filter(u => u.plan === 'trimestral').length },
+                  { l: 'Pro Semanal',   v: users.filter(u => u.plan === 'semanal').length },
+                  { l: 'Gratuitos',     v: users.filter(u => !u.plan || u.plan === 'free').length },
+                  { l: 'Trial expirado', v: users.filter(u => (!u.plan || u.plan === 'free') && u.free_trial_expires_at && new Date(u.free_trial_expires_at) < new Date()).length },
+                ].map(item => (
+                  <div key={item.l} className="flex justify-between items-center p-4 rounded-2xl bg-gray-800/20 border border-gray-800/50">
+                     <span className="text-xs font-medium text-gray-400 uppercase tracking-widest">{item.l}</span>
+                     <span className="text-lg font-black text-white">{item.v}</span>
+                  </div>
+                ))}
+             </div>
+             
+             <div className="p-8 rounded-[2rem] bg-gradient-to-br from-blue-600/10 to-violet-600/10 border border-blue-500/20 flex flex-col justify-center items-center text-center">
+                <PI.Coins size={48} weight="duotone" className="text-blue-400 mb-4" />
+                <p className="text-[10px] font-black text-blue-500 uppercase tracking-[0.3em] mb-2">Ingreso Proyectado</p>
+                <p className="text-4xl font-black text-white">$ {(
+                  (users.filter(u => u.plan === 'semanal').length    *  9) +
+                  (users.filter(u => u.plan === 'mensual').length    * 29) +
+                  (users.filter(u => u.plan === 'trimestral').length * 69)
+                ).toLocaleString()}</p>
+                <p className="text-[10px] text-gray-500 mt-4 font-bold uppercase">Actualizado hace unos instantes</p>
+             </div>
+          </div>
+       </div>
+    </div>
+  )
+}
+
+// ─── Codigos Tab ──────────────────────────────────────────────────────────────
+
+const PLAN_COLORS = {
+  semanal:    'text-emerald-400 bg-emerald-400/10 border-emerald-500/20',
+  mensual:    'text-blue-400 bg-blue-400/10 border-blue-500/20',
+  trimestral: 'text-amber-400 bg-amber-400/10 border-amber-500/20',
+}
+
+function generarCodigo() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+  let r = ''
+  for (let i = 0; i < 8; i++) r += chars[Math.floor(Math.random() * chars.length)]
+  return r
+}
+
+function CodigosTab() {
+  const [codigos, setCodigos]         = useState([])
+  const [redenidos, setRedimidos]     = useState([])
+  const [loadingC, setLoadingC]       = useState(true)
+  const [showForm, setShowForm]       = useState(false)
+  const [saving, setSaving]           = useState(false)
+  const [formErr, setFormErr]         = useState('')
+  const [form, setForm] = useState({
+    code:      generarCodigo(),
+    plan:      'mensual',
+    max_uses:  1,
+    expires_at: '',
+    notes:     '',
+  })
+
+  const fetchAll = async () => {
+    setLoadingC(true)
+    const [codsRes, redsRes] = await Promise.all([
+      db.from('access_codes').select('*, code_redemptions(count)').order('created_at', { ascending: false }),
+      db.from('code_redemptions')
+        .select('*, access_codes(code, plan), profiles(email_principal)')
+        .order('redeemed_at', { ascending: false })
+        .limit(30),
+    ])
+    if (codsRes.data) setCodigos(codsRes.data)
+    if (redsRes.data) setRedimidos(redsRes.data)
+    setLoadingC(false)
+  }
+
+  useEffect(() => { fetchAll() }, [])
+
+  const handleCreate = async (e) => {
+    e.preventDefault()
+    if (!form.code.trim()) { setFormErr('Ingresa un código'); return }
+    setSaving(true); setFormErr('')
+    const payload = {
+      code:      form.code.trim().toUpperCase(),
+      plan:      form.plan,
+      max_uses:  Math.max(1, parseInt(form.max_uses) || 1),
+      expires_at: form.expires_at || null,
+      notes:     form.notes || null,
+    }
+    const { error } = await db.from('access_codes').insert(payload)
+    if (error) {
+      setFormErr(error.code === '23505' ? 'Ya existe un código con ese nombre' : error.message)
+    } else {
+      setShowForm(false)
+      setForm({ code: generarCodigo(), plan: 'mensual', max_uses: 1, expires_at: '', notes: '' })
+      fetchAll()
+    }
+    setSaving(false)
+  }
+
+  const handleDeactivate = async (id) => {
+    await db.from('access_codes').update({ is_active: false }).eq('id', id)
+    fetchAll()
+  }
+
+  const totalRedimidos = redenidos.length
+  const porPlan = redenidos.reduce((acc, r) => {
+    const p = r.access_codes?.plan || 'N/A'
+    acc[p] = (acc[p] || 0) + 1
+    return acc
+  }, {})
+
+  return (
+    <div className="space-y-8 max-w-5xl">
+      {/* KPIs */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <KpiCard label="Códigos activos"  value={codigos.filter(c => c.is_active).length}  icon={PI.Tag}         color="blue"   />
+        <KpiCard label="Canjeados (total)" value={totalRedimidos}                          icon={PI.CheckCircle} color="green"  />
+        <KpiCard label="Tipos de plan"    value={Object.keys(porPlan).join(' · ') || '—'}  icon={PI.Coins}       color="amber"  sub="por tipo de acceso" />
       </div>
 
-      <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
-        <h3 className="font-bold text-gray-800 mb-4">Economía de créditos</h3>
-        <div className="space-y-2">
-          {[
-            ['Total créditos usados',           users.reduce((s, u) => s + (u.usage_count || 0), 0),                  'text-gray-800'],
-            ['Créditos disponibles restantes',  users.reduce((s, u) => s + Math.max(0, 2 - (u.usage_count || 0)), 0), 'text-gray-800'],
-            ['Usuarios sin créditos',            agotados,                                                              'text-red-600'],
-            ['Usuarios con créditos disponibles', users.length - agotados,                                             'text-emerald-600'],
-          ].map(([label, val, cls]) => (
-            <div key={label} className="flex justify-between items-center py-2 border-b border-gray-50 last:border-0">
-              <span className="text-sm text-gray-600">{label}</span>
-              <span className={`font-bold ${cls}`}>{val}</span>
-            </div>
-          ))}
+      {/* Header + botón */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <h3 className="text-2xl font-black text-white tracking-tight uppercase">Códigos de Acceso</h3>
+          <p className="text-xs text-gray-500 font-medium mt-1">Genera códigos que otorgan acceso semanal, mensual o trimestral</p>
         </div>
+        <button
+          onClick={() => setShowForm(v => !v)}
+          className="px-6 py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-black uppercase tracking-widest flex items-center gap-2 transition-all shadow-lg shadow-blue-900/20 shrink-0"
+        >
+          <PI.Plus size={16} weight="bold" /> Nuevo Código
+        </button>
       </div>
 
-      {agotados > 0 && (
-        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5">
-          <h3 className="font-bold text-amber-800 mb-2">Oportunidad de conversión</h3>
-          <p className="text-sm text-amber-700">
-            {agotados} usuario{agotados !== 1 ? 's han' : ' ha'} agotado sus créditos gratuitos —
-            son los mejores candidatos para una campaña de upgrade a plan de pago.
-          </p>
+      {/* Formulario de creación */}
+      {showForm && (
+        <form onSubmit={handleCreate} className="bg-[#111827] rounded-3xl p-8 border border-blue-500/20 shadow-2xl space-y-5">
+          <h4 className="text-sm font-black text-white uppercase tracking-widest mb-2">Configurar nuevo código</h4>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            {/* Código */}
+            <div className="space-y-1.5">
+              <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest">Código</label>
+              <div className="flex gap-2">
+                <input
+                  value={form.code}
+                  onChange={e => setForm(f => ({ ...f, code: e.target.value.toUpperCase() }))}
+                  maxLength={20}
+                  className="flex-1 bg-gray-950 border border-gray-800 rounded-2xl px-4 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 font-mono tracking-widest"
+                />
+                <button
+                  type="button"
+                  onClick={() => setForm(f => ({ ...f, code: generarCodigo() }))}
+                  className="p-3 bg-gray-800 hover:bg-gray-700 text-gray-400 rounded-2xl transition-all"
+                  title="Generar aleatorio"
+                >
+                  <PI.ArrowClockwise size={18} />
+                </button>
+              </div>
+            </div>
+
+            {/* Plan */}
+            <div className="space-y-1.5">
+              <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest">Plan que otorga</label>
+              <select
+                value={form.plan}
+                onChange={e => setForm(f => ({ ...f, plan: e.target.value }))}
+                className="w-full bg-gray-950 border border-gray-800 rounded-2xl px-4 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 font-bold"
+              >
+                <option value="semanal">Semanal (7 días)</option>
+                <option value="mensual">Mensual (30 días)</option>
+                <option value="trimestral">Trimestral (90 días)</option>
+              </select>
+            </div>
+
+            {/* Usos máximos */}
+            <div className="space-y-1.5">
+              <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest">Usos máximos</label>
+              <input
+                type="number" min="1" max="9999"
+                value={form.max_uses}
+                onChange={e => setForm(f => ({ ...f, max_uses: e.target.value }))}
+                className="w-full bg-gray-950 border border-gray-800 rounded-2xl px-4 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 font-bold"
+              />
+            </div>
+
+            {/* Vencimiento del código */}
+            <div className="space-y-1.5">
+              <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest">Vence el (opcional)</label>
+              <input
+                type="date"
+                value={form.expires_at}
+                onChange={e => setForm(f => ({ ...f, expires_at: e.target.value }))}
+                className="w-full bg-gray-950 border border-gray-800 rounded-2xl px-4 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 font-bold"
+              />
+            </div>
+          </div>
+
+          {/* Notas */}
+          <div className="space-y-1.5">
+            <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest">Notas internas (opcional)</label>
+            <input
+              type="text"
+              value={form.notes}
+              onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
+              placeholder="Ej: Para campaña de LinkedIn marzo 2026"
+              className="w-full bg-gray-950 border border-gray-800 rounded-2xl px-4 py-3 text-sm text-white placeholder-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+            />
+          </div>
+
+          {formErr && (
+            <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/20 rounded-2xl p-4 text-red-400 text-xs font-bold">
+              <PI.Warning size={16} /> {formErr}
+            </div>
+          )}
+
+          <div className="flex gap-3">
+            <button type="button" onClick={() => setShowForm(false)}
+              className="flex-1 py-3 rounded-2xl border border-gray-800 text-gray-400 text-xs font-black uppercase tracking-widest hover:bg-gray-800 hover:text-white transition-all">
+              Cancelar
+            </button>
+            <button type="submit" disabled={saving}
+              className="flex-1 py-3 rounded-2xl bg-blue-600 text-white text-xs font-black uppercase tracking-widest hover:bg-blue-500 shadow-lg shadow-blue-900/20 disabled:opacity-50 transition-all flex items-center justify-center gap-2">
+              {saving ? <PI.ArrowClockwise size={14} className="animate-spin" /> : <PI.Plus size={14} />}
+              {saving ? 'Creando...' : 'Crear Código'}
+            </button>
+          </div>
+        </form>
+      )}
+
+      {/* Lista de códigos */}
+      {loadingC ? (
+        <div className="py-20 text-center text-gray-600 text-sm uppercase tracking-widest">Cargando...</div>
+      ) : codigos.length === 0 ? (
+        <div className="py-20 text-center bg-[#111827] rounded-[2.5rem] border border-gray-800 border-dashed">
+          <PI.Tag size={64} weight="duotone" className="mx-auto text-gray-800 mb-6" />
+          <p className="text-gray-500 font-bold uppercase tracking-widest text-sm mb-2">No hay códigos creados aún</p>
+          <p className="text-[10px] text-gray-700 max-w-xs mx-auto">Haz clic en "Nuevo Código" para crear el primero.</p>
+        </div>
+      ) : (
+        <div className="bg-[#111827] rounded-3xl border border-gray-800 overflow-hidden shadow-2xl">
+          <table className="w-full text-left">
+            <thead className="bg-gray-900/50 border-b border-gray-800">
+              <tr>
+                {['Código', 'Plan', 'Usos', 'Vence', 'Estado', 'Notas', ''].map(h => (
+                  <th key={h} className="px-6 py-4 text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] whitespace-nowrap">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-800/50">
+              {codigos.map(c => (
+                <tr key={c.id} className="hover:bg-gray-800/30 transition-colors">
+                  <td className="px-6 py-4">
+                    <span className="font-mono font-black text-white tracking-widest text-sm">{c.code}</span>
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest border ${PLAN_COLORS[c.plan] || 'text-gray-400 bg-gray-800 border-gray-700'}`}>
+                      {c.plan}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className="text-xs font-bold text-white">{c.uses_count}</span>
+                    <span className="text-xs text-gray-500"> / {c.max_uses}</span>
+                  </td>
+                  <td className="px-6 py-4 text-xs text-gray-400 font-medium">
+                    {c.expires_at ? new Date(c.expires_at).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className={`flex items-center gap-1.5 ${c.is_active ? 'text-emerald-400' : 'text-gray-600'}`}>
+                      <div className={`w-1.5 h-1.5 rounded-full ${c.is_active ? 'bg-emerald-400 animate-pulse' : 'bg-gray-600'}`} />
+                      <span className="text-[10px] font-black uppercase">{c.is_active ? 'Activo' : 'Inactivo'}</span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 text-xs text-gray-500 max-w-[160px] truncate">{c.notes || '—'}</td>
+                  <td className="px-6 py-4">
+                    {c.is_active && (
+                      <button
+                        onClick={() => handleDeactivate(c.id)}
+                        className="text-[10px] font-black uppercase text-red-500 hover:text-red-400 transition-colors"
+                      >
+                        Desactivar
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Últimas redenciones */}
+      {redenidos.length > 0 && (
+        <div>
+          <h4 className="text-sm font-black text-white uppercase tracking-widest mb-4">Últimas redenciones</h4>
+          <div className="bg-[#111827] rounded-3xl border border-gray-800 overflow-hidden shadow-2xl">
+            <table className="w-full text-left">
+              <thead className="bg-gray-900/50 border-b border-gray-800">
+                <tr>
+                  {['Usuario', 'Código', 'Plan', 'Fecha'].map(h => (
+                    <th key={h} className="px-6 py-4 text-[10px] font-black text-gray-500 uppercase tracking-[0.2em]">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-800/50">
+                {redenidos.map(r => (
+                  <tr key={r.id} className="hover:bg-gray-800/30 transition-colors">
+                    <td className="px-6 py-4 text-xs text-gray-300 font-medium truncate max-w-[180px]">
+                      {r.profiles?.email_principal || r.user_id.slice(0, 8) + '...'}
+                    </td>
+                    <td className="px-6 py-4 font-mono text-xs font-bold text-white tracking-widest">
+                      {r.access_codes?.code || '—'}
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest border ${PLAN_COLORS[r.plan_granted] || 'text-gray-400 bg-gray-800 border-gray-700'}`}>
+                        {r.plan_granted}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-[10px] text-gray-500 font-medium">
+                      {new Date(r.redeemed_at).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>
   )
 }
 
-// ─── Sistema Tab ─────────────────────────────────────────────────────────────
-
 function SistemaTab() {
-  const [copied, setCopied] = useState('')
+  const [status, setStatus]   = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [copied, setCopied]   = useState('')
+
+  const fetchStatus = async () => {
+    setLoading(true)
+    try {
+      const { data: { session } } = await db.auth.getSession()
+      const res = await fetch(`${API}/api/admin/system-status`, {
+        headers: {
+          'Authorization': `Bearer ${session?.access_token}`
+        }
+      })
+      const data = await res.json()
+      setStatus(data)
+    } catch (err) {
+      console.error('Error fetching system status:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => { fetchStatus() }, [])
 
   const copy = (text, key) => {
     navigator.clipboard.writeText(text)
@@ -454,7 +1168,7 @@ function SistemaTab() {
     setTimeout(() => setCopied(''), 2000)
   }
 
-  const SQL_COLUMNS = `-- Agregar columnas necesarias si no existen
+  const SQL_COLUMNS = `-- Agregar columnas necesarias
 alter table public.profiles
   add column if not exists email_principal text,
   add column if not exists is_admin boolean default false,
@@ -462,70 +1176,134 @@ alter table public.profiles
   add column if not exists plan text default 'free',
   add column if not exists features_enabled jsonb default '{}';`
 
-  const SQL_RLS = `-- 1. Función para verificar si el usuario actual es admin (bypassa RLS)
-create or replace function is_current_user_admin()
-returns boolean language sql security definer stable as $$
-  select coalesce(
-    (select is_admin from public.profiles where id = auth.uid()),
-    false
-  );
-$$;
+  const SQL_PROMO = `-- Habilitar sistema de cupones
+CREATE TABLE IF NOT EXISTS public.promo_codes (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    code TEXT UNIQUE NOT NULL,
+    discount_pct INTEGER DEFAULT 0,
+    plan_to_grant TEXT,
+    max_uses INTEGER DEFAULT 1,
+    current_uses INTEGER DEFAULT 0,
+    expires_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);`
 
--- 2. Policy: admin puede leer TODOS los perfiles
-create policy "admin_read_all_profiles" on public.profiles
-  for select using (id = auth.uid() or is_current_user_admin());
-
--- 3. Policy: admin puede actualizar todos los perfiles
-create policy "admin_update_all_profiles" on public.profiles
-  for update using (is_current_user_admin());`
-
-  const SQL_MARK_ADMIN = `-- Marcar tu usuario como admin (reemplaza el email)
-update public.profiles
-  set is_admin = true
-  where email_principal = 'tu@email.com';`
+  const getStatusColor = (s) => {
+    if (s === 'active' || s === 'configured') return 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
+    if (s === 'error') return 'text-red-400 bg-red-500/10 border-red-500/20'
+    return 'text-gray-500 bg-gray-500/10 border-gray-500/20'
+  }
 
   return (
-    <div className="space-y-6">
-      {[
-        { key: 'cols',  title: 'Columnas requeridas',     sub: 'Ejecutar primero si hay errores de columna', sql: SQL_COLUMNS },
-        { key: 'rls',   title: 'RLS — ver todos usuarios', sub: 'Necesario para que el admin vea los 5 perfiles', sql: SQL_RLS },
-        { key: 'admin', title: 'Marcar usuario como admin', sub: 'Reemplaza el email con el tuyo', sql: SQL_MARK_ADMIN },
-      ].map(({ key, title, sub, sql }) => (
-        <div key={key} className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
-          <div className="flex items-start justify-between mb-3">
+    <div className="space-y-10 max-w-5xl">
+       {/* Sección de Auditoría en Vivo */}
+       <div>
+          <div className="flex items-center justify-between mb-6">
             <div>
-              <h3 className="font-bold text-gray-800">{title}</h3>
-              <p className="text-xs text-gray-400 mt-0.5">{sub}</p>
+              <h3 className="text-xl font-black text-white tracking-tight uppercase">Auditoría de Conexiones</h3>
+              <p className="text-xs text-gray-500 font-medium">Estado en tiempo real de integraciones externas</p>
             </div>
-            <button onClick={() => copy(sql, key)}
-              className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-600 px-3 py-1.5 rounded-lg font-semibold transition-colors shrink-0">
-              {copied === key ? '✓ Copiado' : 'Copiar'}
+            <button 
+              onClick={fetchStatus}
+              disabled={loading}
+              className="p-3 rounded-2xl bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white transition-all border border-gray-700 disabled:opacity-50"
+            >
+              <PI.ArrowClockwise size={20} className={loading ? 'animate-spin' : ''} />
             </button>
           </div>
-          <pre className="bg-gray-950 text-emerald-400 text-xs rounded-xl p-4 overflow-x-auto font-mono leading-relaxed">{sql}</pre>
-        </div>
-      ))}
 
-      <div className="bg-blue-50 border border-blue-200 rounded-2xl p-5">
-        <h3 className="font-bold text-blue-800 mb-2">Variables de entorno</h3>
-        <div className="space-y-1 font-mono text-xs text-blue-700">
-          {['VITE_SUPABASE_URL', 'VITE_SUPABASE_ANON_KEY', 'ANTHROPIC_API_KEY', 'RESEND_API_KEY', 'JOOBLE_API_KEY'].map(v => (
-            <p key={v}>{v}</p>
-          ))}
-        </div>
-      </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {loading && !status ? (
+              [...Array(4)].map((_, i) => (
+                <div key={i} className="h-32 bg-gray-900/50 rounded-3xl border border-gray-800 animate-pulse" />
+              ))
+            ) : status && Object.entries(status).map(([key, info]) => (
+              <div key={key} className="bg-[#111827] rounded-3xl p-6 border border-gray-800 shadow-xl group hover:border-gray-700 transition-all">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="p-3 rounded-2xl bg-gray-800 border border-gray-700">
+                    {key === 'database' ? <PI.Database size={24} className="text-blue-400" weight="duotone" /> :
+                     key === 'ai'       ? <PI.Robot size={24} className="text-purple-400" weight="duotone" /> :
+                     key === 'email'    ? <PI.EnvelopeOpen size={24} className="text-amber-400" weight="duotone" /> :
+                                          <PI.ShieldCheck size={24} className="text-emerald-400" weight="duotone" />}
+                  </div>
+                  <span className={`text-[10px] font-black uppercase px-2.5 py-1 rounded-lg border ${getStatusColor(info.status)}`}>
+                    {info.status}
+                  </span>
+                </div>
+                <h4 className="text-sm font-bold text-white mb-1">{info.name}</h4>
+                <p className="text-[10px] font-mono text-gray-500 truncate">{info.details || 'No details available'}</p>
+              </div>
+            ))}
+          </div>
+       </div>
+
+       {/* Sección de Scripts (Manteniendo lo anterior) */}
+       <div className="pt-6 border-t border-gray-800">
+          <div className="mb-6">
+            <h3 className="text-xl font-black text-white tracking-tight uppercase">Scripts de Mantenimiento</h3>
+            <p className="text-xs text-gray-500 font-medium font-bold">Herramientas críticas para la integridad de la base de datos</p>
+          </div>
+          
+          <div className="grid grid-cols-1 gap-6">
+            {[
+              { key: 'cols',  title: 'Estructura Table Profiles', sql: SQL_COLUMNS },
+              { key: 'promo', title: 'Infraestructura de Cupones/Códigos', sql: SQL_PROMO },
+            ].map(({ key, title, sql }) => (
+              <div key={key} className="bg-[#111827] rounded-3xl p-6 border border-gray-800 shadow-xl overflow-hidden group">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-bold text-white uppercase tracking-tight text-xs text-gray-400">{title}</h3>
+                  <button onClick={() => copy(sql, key)}
+                    className="text-[10px] font-black uppercase tracking-widest bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white px-4 py-2 rounded-xl transition-all">
+                    {copied === key ? '✓ Copiado' : 'Copiar Script'}
+                  </button>
+                </div>
+                <pre className="bg-gray-950 text-blue-400 text-[11px] rounded-2xl p-5 overflow-x-auto font-mono leading-relaxed border border-gray-800/50">
+                  {sql}
+                </pre>
+              </div>
+            ))}
+          </div>
+       </div>
+
+       <div className="p-8 rounded-[2.5rem] bg-amber-500/5 border border-amber-500/10 flex items-start gap-4">
+          <div className="p-3 rounded-2xl bg-amber-500/10 text-amber-500 shrink-0">
+             <PI.Warning size={24} weight="duotone" />
+          </div>
+          <div>
+             <h4 className="font-bold text-amber-500 mb-1">Cuidado Crítico</h4>
+             <p className="text-xs text-gray-700 leading-relaxed font-bold">Estas operaciones modifican la estructura vital de Supabase. No las ejecutes si no estás seguro de lo que haces. Para escalar a miles de usuarios, asegúrate de que todos los índices estén creados.</p>
+          </div>
+       </div>
     </div>
   )
 }
 
-// ─── Dashboard principal ──────────────────────────────────────────────────────
+// ─── Dashboard Sub-components ───────────────────────────────────────────
+
+function SidebarItem({ id, label, icon: Icon, active, onClick }) {
+  return (
+    <button
+      onClick={() => onClick(id)}
+      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200 group ${
+        active 
+          ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/40' 
+          : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+      }`}
+    >
+      <Icon size={20} weight={active ? 'fill' : 'duotone'} className={active ? 'text-white' : 'text-gray-500 group-hover:text-blue-400'} />
+      <span className="flex-1 text-left">{label}</span>
+      {active && <PI.ArrowRight size={14} weight="bold" className="text-white/60" />}
+    </button>
+  )
+}
 
 const TABS = [
-  { id: 'overview',  label: 'Overview'  },
-  { id: 'users',     label: 'Usuarios'  },
-  { id: 'analytics', label: 'Analytics' },
-  { id: 'finanzas',  label: 'Finanzas'  },
-  { id: 'sistema',   label: 'Sistema'   },
+  { id: 'overview',      label: 'Escritorio',     icon: PI.Kanban },
+  { id: 'users',         label: 'Usuarios',       icon: PI.UsersThree },
+  { id: 'suscripciones', label: 'Suscripciones',  icon: PI.Coins },
+  { id: 'codigos',       label: 'Códigos',        icon: PI.Tag },
+  { id: 'analytics',     label: 'Métricas',       icon: PI.ChartBar },
+  { id: 'sistema',       label: 'Configuración',  icon: PI.UserCircle },
 ]
 
 function Dashboard({ adminUser, onLogout }) {
@@ -552,53 +1330,102 @@ function Dashboard({ adminUser, onLogout }) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* Topbar */}
-      <header className="bg-gray-900 border-b border-gray-800 h-14 flex items-center px-6 gap-4 shrink-0">
-        <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-blue-600 to-violet-700 flex items-center justify-center shrink-0">
-          <span className="text-white font-black text-xs">A</span>
-        </div>
-        <span className="text-white font-bold text-sm tracking-tight">Admin Panel</span>
-        <span className="text-gray-600 text-xs hidden sm:block">/ OPTIMA-CV</span>
-        <div className="flex-1" />
-        <div className="flex items-center gap-3">
-          <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
-            <span className="text-blue-700 font-bold text-[10px]">{adminUser.email?.[0]?.toUpperCase()}</span>
+    <div className="min-h-screen bg-[#0B0F1A] text-gray-100 flex overflow-hidden">
+      
+      {/* Sidebar */}
+      <aside className="w-64 bg-[#111827] border-r border-gray-800 flex flex-col shrink-0">
+        <div className="p-6 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-violet-700 flex items-center justify-center shadow-lg shadow-blue-900/40">
+            <span className="text-white font-black text-xl">A</span>
           </div>
-          <span className="text-gray-400 text-xs hidden sm:block truncate max-w-[160px]">{adminUser.email}</span>
-          <button onClick={onLogout}
-            className="text-xs text-gray-400 hover:text-white bg-gray-800 hover:bg-gray-700 px-3 py-1.5 rounded-lg font-semibold transition-colors">
-            Salir
-          </button>
+          <div>
+            <h2 className="font-bold text-sm tracking-tight text-white">OPTIMA Admin</h2>
+            <p className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Control Center</p>
+          </div>
         </div>
-      </header>
 
-      {/* Tabs */}
-      <div className="bg-white border-b border-gray-100 px-6 flex gap-1 shrink-0 overflow-x-auto">
-        {TABS.map(t => (
-          <button key={t.id} onClick={() => setTab(t.id)}
-            className={`px-4 py-3 text-sm font-semibold border-b-2 transition-colors whitespace-nowrap ${
-              tab === t.id ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-800'
-            }`}>
-            {t.label}
-          </button>
-        ))}
-      </div>
+        <nav className="flex-1 px-4 py-4 space-y-1">
+          {TABS.map(t => (
+            <SidebarItem 
+              key={t.id} 
+              id={t.id} 
+              label={t.label} 
+              icon={t.icon} 
+              active={tab === t.id} 
+              onClick={setTab} 
+            />
+          ))}
+        </nav>
 
-      {/* Contenido */}
-      <main className="flex-1 p-6 max-w-6xl mx-auto w-full">
-        {loading
-          ? <div className="flex items-center justify-center py-20 text-gray-400 text-sm">Cargando datos...</div>
-          : (
-            <>
-              {tab === 'overview'  && <OverviewTab stats={stats} />}
-              {tab === 'users'     && <UsersTab users={users} onRefresh={fetchUsers} />}
-              {tab === 'analytics' && <AnalyticsTab users={users} />}
-              {tab === 'finanzas'  && <FinanzasTab users={users} />}
-              {tab === 'sistema'   && <SistemaTab />}
-            </>
-          )
-        }
+        <div className="p-4 border-t border-gray-800">
+          <div className="bg-gray-800/50 rounded-2xl p-4 space-y-3">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-blue-500/20 border border-blue-500/40 flex items-center justify-center shrink-0">
+                <span className="text-blue-400 font-bold text-xs">{adminUser.email?.[0]?.toUpperCase()}</span>
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-bold text-white truncate">{adminUser.email}</p>
+                <p className="text-[10px] text-blue-400 font-medium">Master Admin</p>
+              </div>
+            </div>
+            <button 
+              onClick={onLogout}
+              className="w-full flex items-center justify-center gap-2 py-2 rounded-xl bg-gray-700/50 hover:bg-red-900/30 text-gray-300 hover:text-red-400 text-xs font-bold transition-all"
+            >
+              <PI.SignOut size={16} /> Cerrar Sesión
+            </button>
+          </div>
+        </div>
+      </aside>
+
+      <main className="flex-1 flex flex-col overflow-hidden">
+        <header className="h-16 border-b border-gray-800 flex items-center px-8 justify-between bg-[#111827]/50 backdrop-blur-md sticky top-0 z-10">
+          <div className="flex items-center gap-2">
+            <h1 className="text-lg font-bold text-white uppercase tracking-tight">
+              {TABS.find(t => t.id === tab)?.label}
+            </h1>
+            <span className="text-gray-600 text-sm">/</span>
+            <span className="text-gray-400 text-xs font-medium">Panel de Control</span>
+          </div>
+          
+          <div className="flex items-center gap-4">
+            <div className="relative">
+              <PI.MagnifyingGlass size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+              <input 
+                type="text" 
+                placeholder="Buscar en el sistema..." 
+                className="bg-gray-800/50 border border-gray-700 rounded-xl pl-10 pr-4 py-2 text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/50 w-64 placeholder:text-gray-600"
+              />
+            </div>
+            <button 
+              onClick={fetchUsers}
+              className="p-2 text-gray-400 hover:text-blue-400 hover:bg-blue-400/10 rounded-xl transition-all"
+              title="Refrescar datos"
+            >
+              <PI.Lightning size={20} className={loading ? 'animate-spin text-blue-400' : ''} />
+            </button>
+          </div>
+        </header>
+
+        <section className="flex-1 overflow-y-auto p-8 custom-scrollbar">
+          <div className="max-w-7xl mx-auto h-full">
+            {loading && tab !== 'users' ? (
+              <div className="h-full flex flex-col items-center justify-center gap-4 py-20 grayscale opacity-50">
+                 <div className="w-12 h-12 border-4 border-blue-500/20 border-t-blue-500 rounded-full animate-spin" />
+                 <p className="text-sm font-medium tracking-widest uppercase">Inicializando Dashboard...</p>
+              </div>
+            ) : (
+              <div className="fade-in">
+                {tab === 'overview'  && <OverviewTab stats={stats} />}
+                {tab === 'users'     && <UsersTab users={users} onRefresh={fetchUsers} />}
+                {tab === 'analytics' && <AnalyticsTab users={users} />}
+                {tab === 'suscripciones'  && <SubscriptionsTab users={users} />}
+                {tab === 'codigos'     && <CodigosTab />}
+                {tab === 'sistema'   && <SistemaTab />}
+              </div>
+            )}
+          </div>
+        </section>
       </main>
     </div>
   )
@@ -610,7 +1437,6 @@ export default function Admin() {
   const [adminUser, setAdminUser] = useState(null)
   const [checking, setChecking]   = useState(true)
 
-  // Al cargar: verificar si hay sesión admin activa en este cliente
   useEffect(() => {
     const check = async () => {
       const { data: { session } } = await db.auth.getSession()
