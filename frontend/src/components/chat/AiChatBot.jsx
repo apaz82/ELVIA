@@ -6,6 +6,10 @@ import ReactMarkdown from 'react-markdown';
 
 export default function AiChatBot() {
   const { user } = useAuth();
+
+  // No renderizar hooks si no hay usuario autenticado
+  if (!user) return null;
+
   const [isOpen, setIsOpen] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const { messages, inputVal, setInputVal, loading, sendMessage } = useChat();
@@ -17,8 +21,6 @@ export default function AiChatBot() {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages, isOpen]);
-
-  if (!user) return null;
 
   return (
     <>
