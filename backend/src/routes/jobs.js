@@ -1,7 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const Anthropic = require('@anthropic-ai/sdk');
-const auth = require('../middleware/auth');
+const auth                = require('../middleware/auth');
+const { planContext }     = require('../middleware/planContext');
+const checkCvMatchLimit   = require('../middleware/checkCvMatchLimit');
+const requireActiveTrial  = require('../middleware/requireActiveTrial');
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -230,7 +233,7 @@ router.get('/similar', async (req, res) => {
 });
 
 // POST /api/jobs/compatibility — score rápido CV vs vacante (con cache por usuario)
-router.post('/compatibility', auth, async (req, res) => {
+router.post('/compatibility', auth, planContext, checkCvMatchLimit, async (req, res) => {
   const { cvText, jobTitle, jobCompany, jobSnippet, jobLink, jobLocation, jobVia } = req.body;
   if (!cvText || !jobTitle) {
     return res.status(400).json({ error: 'Faltan datos' });
@@ -240,7 +243,7 @@ router.post('/compatibility', auth, async (req, res) => {
   const jobKey = generarJobKey(jobTitle, jobCompany);
 
   try {
-    // 1. Verificar cache — si ya fue analizado, devolver sin cobrar
+    // 1. Verificar cache — si ya fue analizado, devolver sin cobrar crédito
     const { data: cached } = await db
       .from('job_checks')
       .select('score, motivos')
@@ -252,19 +255,7 @@ router.post('/compatibility', auth, async (req, res) => {
       return res.json({ score: cached.score, motivos: cached.motivos, fromCache: true });
     }
 
-    // 2. Verificar créditos disponibles
-    const { data: perfil } = await db
-      .from('profiles')
-      .select('usage_count')
-      .eq('id', req.user.id)
-      .maybeSingle();
-
-    const LIMITE = 2;
-    if (perfil && perfil.usage_count >= LIMITE) {
-      return res.status(403).json({ error: 'LIMIT_REACHED' });
-    }
-
-    // 3. Llamar a Claude
+    // 2. Llamar a Claude (los límites ya fueron verificados por checkCvMatchLimit)
     const respuesta = await client.messages.create({
       model: 'claude-haiku-4-5-20251001',
       max_tokens: 300,
@@ -295,15 +286,17 @@ ${jobSnippet || ''}`,
       ? motivosMatch[1].trim().split('\n').map(l => l.replace(/^[-•]\s*/, '').trim()).filter(Boolean)
       : [];
 
-    // 4. Guardar en cache (con datos de la vacante) y cobrar crédito
+    // 3. Guardar en cache (con datos de la vacante) e incrementar contadores
     const jobData = {
       title: jobTitle, company: jobCompany || '',
       location: jobLocation || '', link: jobLink || '', via: jobVia || '',
       snippet: jobSnippet || '',
     };
+    const nuevoMatchCount = (req.planInfo.cv_match_count || 0) + 1;
+    const nuevoUsageCount = (req.planInfo.usage_count   || 0) + 1;
     await Promise.all([
       db.from('job_checks').insert({ user_id: req.user.id, job_key: jobKey, score, motivos, job_data: jobData }),
-      db.from('profiles').update({ usage_count: (perfil?.usage_count || 0) + 1 }).eq('id', req.user.id),
+      db.from('profiles').update({ cv_match_count: nuevoMatchCount, usage_count: nuevoUsageCount }).eq('id', req.user.id),
     ]);
 
     res.json({ score, motivos, fromCache: false });

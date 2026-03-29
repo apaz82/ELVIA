@@ -320,29 +320,41 @@ function UserEditModal({ user: u, onClose, onSave }) {
 
   // Step 1: Solicitar OTP
   const handleDeleteRequest = async () => {
-    const ok = window.confirm(
+    const confirmed = window.confirm(
       `⚠️¿Eliminar permanentemente a "${u.email_principal || u.id}"?\n\nEsta acción no se puede deshacer. Se enviará un código OTP a tu email.`
     )
-    if (!ok) return
+    if (!confirmed) return
 
     setDeleting(true)
     try {
-      const session = (await import('../services/authService')).supabase.auth
-      const { data: { session: s } } = await session.getSession()
-      const res = await fetch(`${API}/api/admin/users/delete-otp-request/${u.id}`, {
+      const { supabase } = await import('../services/authService')
+      const { data: { session: s } } = await supabase.auth.getSession()
+      if (!s?.access_token) {
+        alert('No hay sesión activa. Inicia sesión nuevamente.')
+        setDeleting(false)
+        return
+      }
+
+      const response = await fetch(`${API}/api/admin/users/delete-otp-request/${u.id}`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${s?.access_token}` },
+        headers: {
+          'Authorization': `Bearer ${s.access_token}`,
+          'Content-Type': 'application/json'
+        },
       })
-      const body = await res.json()
-      if (res.ok) {
+
+      const body = await response.json()
+
+      if (response.ok) {
         setWaitingOTP(true)
         setOtpCode('')
-        alert(body.message)
+        alert(body.message || 'OTP enviado a tu email')
       } else {
         alert('Error: ' + (body.error || 'No se pudo enviar OTP'))
       }
     } catch (err) {
-      alert('Error de red: ' + err.message)
+      console.error('Error en handleDeleteRequest:', err)
+      alert('Error: ' + err.message)
     } finally {
       setDeleting(false)
     }
@@ -355,31 +367,40 @@ function UserEditModal({ user: u, onClose, onSave }) {
       return
     }
 
-    const ok = window.confirm('⚠️ Esta es tu última oportunidad de cancelar el borrado permanente.')
-    if (!ok) return
+    const confirmed = window.confirm('⚠️ Esta es tu última oportunidad de cancelar el borrado permanente.')
+    if (!confirmed) return
 
     setDeleting(true)
     try {
-      const session = (await import('../services/authService')).supabase.auth
-      const { data: { session: s } } = await session.getSession()
-      const res = await fetch(`${API}/api/admin/users/${u.id}`, {
+      const { supabase } = await import('../services/authService')
+      const { data: { session: s } } = await supabase.auth.getSession()
+      if (!s?.access_token) {
+        alert('No hay sesión activa.')
+        setDeleting(false)
+        return
+      }
+
+      const response = await fetch(`${API}/api/admin/users/${u.id}`, {
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${s?.access_token}`,
+          'Authorization': `Bearer ${s.access_token}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({ otp: otpCode }),
       })
-      const body = await res.json()
-      if (res.ok) {
+
+      const body = await response.json()
+
+      if (response.ok) {
         alert('✅ Usuario eliminado permanentemente. Auditado para compliance.')
-        onSave()   // refresca la lista
+        onSave()
         onClose()
       } else {
         alert('Error: ' + (body.error || 'No se pudo eliminar'))
       }
     } catch (err) {
-      alert('Error de red: ' + err.message)
+      console.error('Error en handleDeleteConfirm:', err)
+      alert('Error: ' + err.message)
     } finally {
       setDeleting(false)
     }

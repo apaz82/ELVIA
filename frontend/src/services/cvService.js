@@ -23,6 +23,11 @@ export const matchCVVacante = async (cvOArchivo, jobText, language) => {
   return api.postForm('/api/cv/match', formData)
 }
 
+// Obtener datos estructurados para la vista infográfica
+export const obtenerInfografia = async (id) => {
+  return api.get(`/api/cv/infografia/${id}`)
+}
+
 // Descargar CV generado como PDF o Word
 export const descargarCV = async (id, format = 'pdf') => {
   const res = await api.download(`/api/cv/download/${id}?format=${format}`)

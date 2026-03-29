@@ -9,6 +9,7 @@ import {
   ArrowRight, ArrowLeft, CheckCircle, Star, Lightning,
   ChatText, Trophy, Target, Spinner, Crown,
 } from '@phosphor-icons/react'
+import ProGate from '../components/common/ProGate'
 
 const ENTREVISTADORES = [
   { value: 'HR',             label: 'HR / Recursos Humanos',  desc: 'Cultura, motivación y fit' },
@@ -58,8 +59,26 @@ function Estrellas({ n }) {
 
 // ── Componente principal ────────────────────────────────────────────────────
 export default function Entrevista() {
-  const { user } = useAuth()
+  const { user, isPaidPlan, trialExpired } = useAuth()
   const navigate = useNavigate()
+
+  // Bloqueo para usuarios gratuitos
+  if (!isPaidPlan) {
+    return (
+      <ProGate
+        tipo={trialExpired ? 'trial' : 'pro'}
+        titulo="Preparación para Entrevistas"
+        descripcion="Practica entrevistas simuladas con IA, recibe feedback personalizado y llega preparado a cualquier proceso de selección."
+        icono={<MicrophoneStage size={40} className="text-on-surface-variant/60" />}
+        beneficios={[
+          'Entrevistas simuladas con HR, Hiring Manager o panel técnico',
+          'Preguntas adaptadas a tu cargo y nivel de experiencia',
+          'Feedback detallado por respuesta con puntuación',
+          'Acceso a vacantes guardadas como contexto de práctica',
+        ]}
+      />
+    )
+  }
 
   // Paso: 'setup' | 'entrevista' | 'feedback'
   const [paso, setPaso]           = useState('setup')
@@ -495,7 +514,7 @@ export default function Entrevista() {
               {/* Avatar */}
               <div className="shrink-0 relative">
                 <div className={`w-14 h-14 rounded-2xl overflow-hidden border-2 transition-all ${hablando ? 'border-primary shadow-lg shadow-primary/20' : 'border-gray-200'}`}>
-                  <img src="/avatar_3d_bot.png" alt="OPTIMA" className="w-full h-full object-cover rounded-full" />
+                  <img src="/Avatar Optima.png" alt="OPTIMA" className="w-full h-full object-cover rounded-full" />
                 </div>
                 {hablando && (
                   <span className="absolute -bottom-1 -right-1 flex h-4 w-4">

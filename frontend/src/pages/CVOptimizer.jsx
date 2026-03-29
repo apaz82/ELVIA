@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useCV } from '../context/CVContext'
-import { optimizarCV, descargarCV } from '../services/cvService'
+import { optimizarCV, descargarCV, obtenerInfografia } from '../services/cvService'
+import CVInfographic from '../components/cv/CVInfographic'
 import { supabase } from '../services/authService'
 import FileUpload from '../components/common/FileUpload'
 import LanguageSelector from '../components/common/LanguageSelector'
@@ -31,8 +32,11 @@ export default function CVOptimizer() {
   const [error, setError]                 = useState('')
   const [tabActiva, setTabActiva]         = useState('cv')
   const [cvsExistentes, setCvsExistentes] = useState([])
-  const [descargando, setDescargando]     = useState({})
-  const [cargandoPerfil, setCargandoPerfil] = useState(false)
+  const [descargando, setDescargando]         = useState({})
+  const [cargandoPerfil, setCargandoPerfil]   = useState(false)
+  const [vistaInfografia, setVistaInfografia] = useState(false)
+  const [datosInfografia, setDatosInfografia] = useState(null)
+  const [cargandoInfografia, setCargandoInfografia] = useState(false)
   // null = sin decidir, 'perfil' = usar CV del perfil, 'nuevo' = subir nuevo
   const [cvDecision, setCvDecision] = useState(null)
 
@@ -46,6 +50,22 @@ export default function CVOptimizer() {
       .order('created_at', { ascending: false })
       .then(({ data }) => setCvsExistentes(data || []))
   }, [user])
+
+  const toggleInfografia = async () => {
+    if (vistaInfografia) { setVistaInfografia(false); return }
+    if (!datosInfografia && resultadoOptimize?.id) {
+      setCargandoInfografia(true)
+      try {
+        const datos = await obtenerInfografia(resultadoOptimize.id)
+        setDatosInfografia(datos)
+      } catch {
+        // Si falla, no bloqueamos — simplemente no mostramos la infografía
+      } finally {
+        setCargandoInfografia(false)
+      }
+    }
+    setVistaInfografia(true)
+  }
 
   const handleDescargar = async (id, fmt) => {
     setDescargando(d => ({ ...d, [id]: fmt }))
@@ -84,9 +104,9 @@ export default function CVOptimizer() {
     try {
       const data = await optimizarCV(cvArchivo, language)
       if (data.error) {
-        setError(data.error === 'LIMIT_REACHED'
-          ? 'Agotaste tus 2 análisis gratuitos. Suscríbete para continuar.'
-          : data.error)
+        if (data.error === 'LIMIT_REACHED') setError('Agotaste tus análisis gratuitos. Suscríbete para continuar.')
+        else if (data.error === 'ACCOUNT_SUSPENDED') setError('Tu cuenta ha sido suspendida. Contacta a soporte.')
+        else setError(data.error)
         return
       }
       // Reemplazar CVs anteriores del mismo idioma
@@ -279,12 +299,37 @@ export default function CVOptimizer() {
             <div className="flex gap-2 flex-wrap">
               <Button variant="outline" onClick={() => descargarCV(resultadoOptimize.id, 'pdf')}>↓ PDF</Button>
               <Button variant="outline" onClick={() => descargarCV(resultadoOptimize.id, 'word')}>↓ Word</Button>
+              <button
+                onClick={toggleInfografia}
+                disabled={cargandoInfografia}
+                className={`flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-xl border transition-all ${
+                  vistaInfografia
+                    ? 'bg-primary text-white border-primary'
+                    : 'border-gray-300 text-gray-700 hover:border-primary hover:text-primary'
+                } disabled:opacity-50`}
+              >
+                {cargandoInfografia ? (
+                  <><span className="animate-spin inline-block w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full" /> Generando...</>
+                ) : (
+                  <>{vistaInfografia ? '📄 Vista Texto' : '🎨 Vista Infográfica'}</>
+                )}
+              </button>
               <Button onClick={() => navigate('/cv-vs-job')}>CV vs Vacante →</Button>
             </div>
           </div>
 
-          {/* Tabs */}
-          <div className="flex gap-6 mb-6 border-b border-gray-100">
+          {/* Vista Infográfica */}
+          {vistaInfografia && datosInfografia && (
+            <div className="mb-6 overflow-x-auto">
+              <CVInfographic
+                datos={datosInfografia}
+                watermark={resultadoOptimize.watermark}
+              />
+            </div>
+          )}
+
+          {/* Tabs — solo visibles en vista texto */}
+          {!vistaInfografia && <div className="flex gap-6 mb-6 border-b border-gray-100">
             {[
               { key: 'cv',              label: 'CV Optimizado' },
               { key: 'cambios',         label: `Cambios (${resultadoOptimize.changes?.length || 0})` },
@@ -297,14 +342,14 @@ export default function CVOptimizer() {
                 {tab.label}
               </button>
             ))}
-          </div>
+          </div>}
 
-          {tabActiva === 'cv' && (
+          {!vistaInfografia && tabActiva === 'cv' && (
             <pre className="whitespace-pre-wrap font-mono text-sm text-gray-700 bg-gray-50 rounded-xl p-6 leading-relaxed max-h-[600px] overflow-y-auto border border-gray-100">
               {resultadoOptimize.optimizedCV}
             </pre>
           )}
-          {tabActiva === 'cambios' && (
+          {!vistaInfografia && tabActiva === 'cambios' && (
             <ul className="space-y-1">
               {resultadoOptimize.changes?.map((c, i) => (
                 <li key={i} className="flex gap-3 text-sm text-gray-700 py-2.5 border-b border-gray-50 last:border-0">
@@ -313,7 +358,7 @@ export default function CVOptimizer() {
               ))}
             </ul>
           )}
-          {tabActiva === 'recomendaciones' && (
+          {!vistaInfografia && tabActiva === 'recomendaciones' && (
             <ul className="space-y-1">
               {resultadoOptimize.recommendations?.map((r, i) => (
                 <li key={i} className="flex gap-3 text-sm text-gray-700 py-2.5 border-b border-gray-50 last:border-0">

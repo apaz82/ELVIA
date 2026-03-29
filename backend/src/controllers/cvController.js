@@ -1,7 +1,7 @@
 // Orquesta los servicios para cada endpoint de CV
 const { parseCV } = require('../utils/cvParser');
 const { detectLanguage } = require('../utils/languageDetector');
-const { optimizeCV, matchCVtoJob } = require('../services/claudeService');
+const { optimizeCV, matchCVtoJob, extraerDatosInfografia } = require('../services/claudeService');
 const { generarPDF } = require('../services/pdfService');
 const { generarWord } = require('../services/wordService');
 
@@ -31,10 +31,12 @@ const optimize = async (req, res, next) => {
 
     if (error) throw error;
 
-    // Incrementar usage_count solo si todo fue exitoso
+    // Incrementar contadores de uso
+    const nuevoOptimizerCount = (req.planInfo?.cv_optimizer_count || 0) + 1;
+    const nuevoUsageCount     = (req.planInfo?.usage_count || 0) + 1;
     await db
       .from('profiles')
-      .update({ usage_count: req.usageCount + 1 })
+      .update({ cv_optimizer_count: nuevoOptimizerCount, usage_count: nuevoUsageCount })
       .eq('id', req.user.id);
 
     res.json({
@@ -43,7 +45,9 @@ const optimize = async (req, res, next) => {
       changes: resultado.changes,
       recommendations: resultado.recommendations,
       language,
-      usageCount: req.usageCount + 1,
+      usageCount: nuevoUsageCount,
+      cv_optimizer_count: nuevoOptimizerCount,
+      watermark: req.planInfo?.config?.watermark ?? false,
     });
   } catch (err) {
     next(err);
@@ -97,9 +101,12 @@ const matchToJob = async (req, res, next) => {
 
     if (error) throw error;
 
+    // Incrementar contadores de uso
+    const nuevoMatchCount = (req.planInfo?.cv_match_count || 0) + 1;
+    const nuevoUsageCount = (req.planInfo?.usage_count || 0) + 1;
     await db
       .from('profiles')
-      .update({ usage_count: req.usageCount + 1 })
+      .update({ cv_match_count: nuevoMatchCount, usage_count: nuevoUsageCount })
       .eq('id', req.user.id);
 
     res.json({
@@ -110,7 +117,9 @@ const matchToJob = async (req, res, next) => {
       changes: resultado.changes,
       jobData: resultado.jobData,
       language,
-      usageCount: req.usageCount + 1,
+      usageCount: nuevoUsageCount,
+      cv_match_count: nuevoMatchCount,
+      watermark: req.planInfo?.config?.watermark ?? false,
     });
   } catch (err) {
     next(err);
@@ -161,8 +170,10 @@ const download = async (req, res, next) => {
       return res.status(403).json({ error: 'Sin permiso para acceder a este recurso' });
     }
 
+    const watermark = req.planInfo?.config?.watermark ?? false;
+
     if (req.query.format === 'word') {
-      const buffer = await generarWord(data.contenido);
+      const buffer = await generarWord(data.contenido, { watermark });
       const nombre = generarNombreArchivo(data.contenido, data.metadata, data.tipo, 'docx');
       res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
       // RFC 6266 for UTF-8 filenames
@@ -170,7 +181,7 @@ const download = async (req, res, next) => {
       return res.send(buffer);
     }
 
-    const buffer = await generarPDF(data.contenido);
+    const buffer = await generarPDF(data.contenido, { watermark });
     const nombre = generarNombreArchivo(data.contenido, data.metadata, data.tipo, 'pdf');
     res.setHeader('Content-Type', 'application/pdf');
     // RFC 6266 for UTF-8 filenames
@@ -193,7 +204,7 @@ const extractProfile = async (req, res, next) => {
     const fragmento = cvText.substring(0, 4000);
 
     const response = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
+      model: 'claude-haiku-4-5-20251001', // Haiku: extracción de datos estructurados, no requiere Sonnet
       max_tokens: 800,
       messages: [{
         role: 'user',
@@ -238,4 +249,26 @@ Formato de respuesta:
   }
 };
 
-module.exports = { optimize, matchToJob, download, extractProfile };
+// GET /api/cv/infografia/:id — extrae JSON estructurado para el componente visual
+const generarInfografia = async (req, res, next) => {
+  try {
+    const { id } = req.params
+    const db = req.supabase
+
+    const { data, error } = await db
+      .from('cv_results')
+      .select('contenido, user_id')
+      .eq('id', id)
+      .single()
+
+    if (error || !data) return res.status(404).json({ error: 'CV no encontrado' })
+    if (data.user_id !== req.user.id) return res.status(403).json({ error: 'Sin permiso' })
+
+    const infografia = await extraerDatosInfografia(data.contenido)
+    res.json(infografia)
+  } catch (err) {
+    next(err)
+  }
+}
+
+module.exports = { optimize, matchToJob, download, extractProfile, generarInfografia };

@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useCV } from '../context/CVContext'
-import { matchCVVacante, descargarCV } from '../services/cvService'
+import { matchCVVacante, descargarCV, obtenerInfografia } from '../services/cvService'
+import CVInfographic from '../components/cv/CVInfographic'
 import { supabase } from '../services/authService'
 import FileUpload from '../components/common/FileUpload'
 import LanguageSelector from '../components/common/LanguageSelector'
@@ -55,8 +56,29 @@ export default function CVvsJob() {
   const [loadingUrl, setLoadingUrl] = useState(false)
   const [language, setLanguage] = useState('')
   const [loading, setLoading] = useState(false)
+  const [loadingText, setLoadingText] = useState('')
+  const [showAuthWall, setShowAuthWall] = useState(false)
   const [error, setError] = useState('')
   const [tabActiva, setTabActiva] = useState('cv')
+  const [vistaInfografia, setVistaInfografia] = useState(false)
+  const [datosInfografia, setDatosInfografia] = useState(null)
+  const [cargandoInfografia, setCargandoInfografia] = useState(false)
+
+  const toggleInfografia = async () => {
+    if (vistaInfografia) { setVistaInfografia(false); return }
+    if (!datosInfografia && resultadoMatch?.id) {
+      setCargandoInfografia(true)
+      try {
+        const datos = await obtenerInfografia(resultadoMatch.id)
+        setDatosInfografia(datos)
+      } catch {
+        // no bloqueamos el flujo
+      } finally {
+        setCargandoInfografia(false)
+      }
+    }
+    setVistaInfografia(true)
+  }
 
   const cargarDesdeUrl = async () => {
     if (!jobUrl.trim()) return
@@ -87,18 +109,32 @@ export default function CVvsJob() {
   const analizar = async () => {
     if (!selectedCvId && !cvArchivo) return setError('Selecciona un CV de tu historial o sube uno nuevo para continuar.')
     if (!jobText.trim()) return setError('Pega la descripción de la vacante')
-    if (!user) return navigate('/auth')
 
-    setLoading(true)
     setError('')
+    setLoading(true)
+    setShowAuthWall(false)
+
+    // Curiosy Gap: Simulación visual si el usuario NO está logueado
+    if (!user) {
+      setLoadingText('Leyendo CV...')
+      
+      setTimeout(() => setLoadingText('Cruzando requerimientos de la vacante...'), 1200)
+      setTimeout(() => setLoadingText('Cálculo de penalizaciones ATS...'), 2400)
+      
+      setTimeout(() => {
+        setLoading(false)
+        setLoadingText('')
+        setShowAuthWall(true)
+      }, 3500)
+      return
+    }
+
     try {
       const data = await matchCVVacante(selectedCvId || cvArchivo, jobText, language)
       if (data.error) {
-        if (data.error === 'LIMIT_REACHED') {
-          setError('Agotaste tus 2 análisis gratuitos. Suscríbete para continuar.')
-        } else {
-          setError(data.error)
-        }
+        if (data.error === 'LIMIT_REACHED') setError('Agotaste tus análisis gratuitos. Suscríbete para continuar.')
+        else if (data.error === 'ACCOUNT_SUSPENDED') setError('Tu cuenta ha sido suspendida. Contacta a soporte.')
+        else setError(data.error)
         return
       }
       setResultadoMatch(data)
@@ -119,9 +155,10 @@ export default function CVvsJob() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
-      {/* Encabezado */}
-      <div className="mb-8">
+    <div className="min-h-screen bg-slate-50 w-full py-8">
+      <div className="max-w-4xl mx-auto px-4">
+        {/* Encabezado */}
+        <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900">CV vs Vacante</h1>
         <p className="mt-2 text-gray-600">
           Adapta tu CV a una vacante específica y descubre tu % de compatibilidad.
@@ -245,9 +282,16 @@ export default function CVvsJob() {
 
         <div className="mt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <LanguageSelector value={language} onChange={setLanguage} />
-          <Button onClick={analizar} loading={loading} disabled={(!cvArchivo && !selectedCvId) || !jobText.trim()}>
-            {loading ? 'Analizando...' : 'Analizar compatibilidad'}
-          </Button>
+          <div className="flex flex-col items-end w-full sm:w-auto">
+            <Button className="w-full sm:w-auto" onClick={analizar} loading={loading} disabled={(!cvArchivo && !selectedCvId) || !jobText.trim()}>
+              {loading ? (loadingText || 'Analizando...') : 'Analizar compatibilidad'}
+            </Button>
+            {loading && !user && (
+              <p className="mt-2 text-xs text-amber-600 font-medium animate-pulse">
+                * Para ver el reporte detallado se requiere iniciar sesión gratis al finalizar.
+              </p>
+            )}
+          </div>
         </div>
 
         {error && (
@@ -255,17 +299,56 @@ export default function CVvsJob() {
             {error}
           </div>
         )}
-
-        {!user && (
-          <p className="mt-3 text-sm text-amber-600">
-            ⚠️ Necesitas{' '}
-            <button onClick={() => navigate('/auth')} className="underline font-medium">
-              iniciar sesión
-            </button>{' '}
-            para analizar tu CV.
-          </p>
-        )}
       </div>
+
+      {/* Auth Wall (Curiosity Gap) */}
+      {showAuthWall && (
+        <div className="bg-white rounded-2xl border border-gray-200 p-6 relative overflow-hidden mt-6 mb-8 animate-fade-in shadow-xl">
+          {/* Fondo borroso falso (Simulación de resultado) */}
+          <div className="filter blur-md opacity-40 select-none pointer-events-none p-4">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-lg font-bold text-gray-800">3. Resultado del Análisis</h2>
+                <div className="h-4 bg-gray-300 rounded w-64 mt-3"></div>
+              </div>
+              <div className="w-20 h-20 rounded-full bg-green-300"></div>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-3 mb-8"></div>
+            <div className="space-y-4">
+               <div className="h-5 bg-gray-300 rounded w-full"></div>
+               <div className="h-5 bg-gray-300 rounded w-5/6"></div>
+               <div className="h-5 bg-gray-300 rounded w-4/6"></div>
+            </div>
+          </div>
+
+          {/* Modal Overlay enfocado a conversión */}
+          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center p-6 text-center bg-white/50">
+            <div className="bg-white p-8 md:p-10 rounded-3xl shadow-2xl max-w-lg w-full border border-gray-100 ring-4 ring-gray-50">
+              <div className="w-20 h-20 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-5 shadow-inner">
+                <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8V7z"></path>
+                </svg>
+              </div>
+              <h3 className="text-2xl font-black text-gray-900 mb-3 tracking-tight">¡Tu análisis finalizó con éxito!</h3>
+              <p className="text-gray-600 mb-8 text-sm leading-relaxed max-w-sm mx-auto">
+                Hemos cruzado tu perfil con la vacante. Regístrate en <b>30 segundos</b> para revelar tu porcentaje de compatibilidad, saber qué palabras clave ocultas te faltan e impresionar al reclutador.
+              </p>
+              
+              <div className="flex flex-col gap-3">
+                <button 
+                  onClick={() => navigate('/auth')} 
+                  className="w-full bg-[#1A91F0] text-white font-bold py-3.5 px-6 rounded-xl hover:bg-blue-600 hover:shadow-lg transition-all"
+                >
+                  Revelar mis resultados
+                </button>
+                <p className="text-xs text-gray-400 mt-2">
+                  No requiere tarjeta de crédito. 100% confidencial.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Resultado */}
       {resultadoMatch && (
@@ -292,34 +375,64 @@ export default function CVvsJob() {
                 <div className="text-xs text-gray-400">compatibilidad</div>
               </div>
 
-              {/* Descargas */}
-              <div className="flex gap-2">
+              {/* Descargas + toggle infografía */}
+              <div className="flex gap-2 flex-wrap">
                 <Button variant="outline" onClick={() => descargarCV(resultadoMatch.id, 'pdf')}>
                   ↓ PDF
                 </Button>
                 <Button variant="outline" onClick={() => descargarCV(resultadoMatch.id, 'word')}>
                   ↓ Word
                 </Button>
+                <button
+                  onClick={toggleInfografia}
+                  disabled={cargandoInfografia}
+                  className={`flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-xl border transition-all ${
+                    vistaInfografia
+                      ? 'bg-primary text-white border-primary'
+                      : 'border-gray-300 text-gray-700 hover:border-primary hover:text-primary'
+                  } disabled:opacity-50`}
+                >
+                  {cargandoInfografia ? (
+                    <><span className="animate-spin inline-block w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full" /> Generando...</>
+                  ) : (
+                    <>{vistaInfografia ? '📄 Vista Texto' : '🎨 Vista Infográfica'}</>
+                  )}
+                </button>
               </div>
             </div>
           </div>
 
           {/* Barra de progreso del score */}
-          <div className="w-full bg-gray-100 rounded-full h-2 mb-6">
-            <div
-              className={`h-2 rounded-full transition-all duration-500 ${
-                resultadoMatch.matchScore >= 75
-                  ? 'bg-green-500'
-                  : resultadoMatch.matchScore >= 50
-                  ? 'bg-amber-400'
-                  : 'bg-red-400'
-              }`}
-              style={{ width: `${resultadoMatch.matchScore}%` }}
-            />
-          </div>
+          {!vistaInfografia && (
+            <div className="w-full bg-gray-100 rounded-full h-2 mb-6">
+              <div
+                className={`h-2 rounded-full transition-all duration-500 ${
+                  resultadoMatch.matchScore >= 75
+                    ? 'bg-green-500'
+                    : resultadoMatch.matchScore >= 50
+                    ? 'bg-amber-400'
+                    : 'bg-red-400'
+                }`}
+                style={{ width: `${resultadoMatch.matchScore}%` }}
+              />
+            </div>
+          )}
 
-          {/* Tabs */}
-          <div className="flex gap-1 mb-4 bg-gray-100 rounded-lg p-1">
+          {/* Vista Infográfica */}
+          {vistaInfografia && datosInfografia && (
+            <div className="mb-6 overflow-x-auto">
+              <CVInfographic
+                datos={datosInfografia}
+                matchScore={resultadoMatch.matchScore}
+                jobData={resultadoMatch.jobData}
+                analisis={resultadoMatch.analisis}
+                watermark={resultadoMatch.watermark}
+              />
+            </div>
+          )}
+
+          {/* Tabs — solo en vista texto */}
+          {!vistaInfografia && <div className="flex gap-1 mb-4 bg-gray-100 rounded-lg p-1">
             {[
               { key: 'cv',       label: 'CV Adaptado' },
               { key: 'analisis', label: 'Análisis' },
@@ -337,17 +450,17 @@ export default function CVvsJob() {
                 {tab.label}
               </button>
             ))}
-          </div>
+          </div>}
 
           {/* Tab: CV adaptado */}
-          {tabActiva === 'cv' && (
+          {!vistaInfografia && tabActiva === 'cv' && (
             <pre className="whitespace-pre-wrap font-mono text-sm text-gray-800 bg-gray-50 rounded-xl p-5 leading-relaxed max-h-[600px] overflow-y-auto">
               {resultadoMatch.tailoredCV}
             </pre>
           )}
 
           {/* Tab: Análisis detallado */}
-          {tabActiva === 'analisis' && resultadoMatch.analisis && (
+          {!vistaInfografia && tabActiva === 'analisis' && resultadoMatch.analisis && (
             <div className="space-y-5">
               {/* Fortalezas */}
               <div>
@@ -386,7 +499,7 @@ export default function CVvsJob() {
           )}
 
           {/* Tab: Ajustes */}
-          {tabActiva === 'cambios' && (
+          {!vistaInfografia && tabActiva === 'cambios' && (
             <ul className="space-y-2">
               {resultadoMatch.changes?.map((c, i) => (
                 <li key={i} className="flex gap-3 text-sm text-gray-700">
@@ -413,6 +526,7 @@ export default function CVvsJob() {
           </p>
         </div>
       )}
+      </div>
     </div>
   )
 }

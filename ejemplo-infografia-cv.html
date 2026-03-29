@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CV Infográfico — Ejemplo OPTIMA-CV</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: #f0f4f8;
+    padding: 40px 20px;
+    color: #1a202c;
+  }
+
+  .cv-wrapper {
+    max-width: 900px;
+    margin: 0 auto;
+    background: white;
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.12);
+  }
+
+  /* ── HEADER ── */
+  .header {
+    background: linear-gradient(135deg, #1e3a5f 0%, #2d6a4f 100%);
+    padding: 48px 48px 40px;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 32px;
+    align-items: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .header::before {
+    content: '';
+    position: absolute;
+    top: -80px; right: -80px;
+    width: 300px; height: 300px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.05);
+  }
+
+  .header::after {
+    content: '';
+    position: absolute;
+    bottom: -60px; left: 200px;
+    width: 200px; height: 200px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.04);
+  }
+
+  .avatar {
+    width: 110px; height: 110px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #52b788, #74c69d);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 42px; font-weight: 700; color: white;
+    border: 4px solid rgba(255,255,255,0.3);
+    flex-shrink: 0;
+    position: relative; z-index: 1;
+  }
+
+  .header-info { position: relative; z-index: 1; }
+
+  .name {
+    font-size: 32px; font-weight: 800;
+    color: white; letter-spacing: -0.5px;
+    margin-bottom: 4px;
+  }
+
+  .title {
+    font-size: 15px; font-weight: 500;
+    color: rgba(255,255,255,0.75);
+    margin-bottom: 18px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  .contact-chips {
+    display: flex; flex-wrap: wrap; gap: 10px;
+  }
+
+  .chip {
+    background: rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: rgba(255,255,255,0.9);
+    padding: 5px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    backdrop-filter: blur(4px);
+  }
+
+  /* ── SCORE BAR ── */
+  .score-bar {
+    background: #f7fafc;
+    border-bottom: 1px solid #e2e8f0;
+    padding: 16px 48px;
+    display: flex;
+    align-items: center;
+    gap: 32px;
+  }
+
+  .score-label { font-size: 12px; color: #718096; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
+
+  .match-score {
+    display: flex; align-items: center; gap: 12px;
+  }
+
+  .score-number {
+    font-size: 28px; font-weight: 800;
+    background: linear-gradient(135deg, #2d6a4f, #52b788);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .score-track {
+    width: 180px; height: 8px;
+    background: #e2e8f0; border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .score-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #2d6a4f, #52b788);
+    border-radius: 4px;
+    width: 87%;
+    transition: width 1s ease;
+  }
+
+  .badges { display: flex; gap: 8px; margin-left: auto; }
+
+  .badge {
+    padding: 4px 12px; border-radius: 12px;
+    font-size: 11px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.5px;
+  }
+
+  .badge-green  { background: #c6f6d5; color: #276749; }
+  .badge-blue   { background: #bee3f8; color: #2a69ac; }
+  .badge-orange { background: #feebc8; color: #c05621; }
+
+  /* ── BODY ── */
+  .body {
+    display: grid;
+    grid-template-columns: 1fr 300px;
+  }
+
+  /* ── COLUMNA IZQUIERDA ── */
+  .main-col { padding: 40px 40px 40px 48px; border-right: 1px solid #e2e8f0; }
+
+  .section { margin-bottom: 36px; }
+
+  .section-title {
+    font-size: 11px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 1.5px;
+    color: #2d6a4f;
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #c6f6d5;
+    display: flex; align-items: center; gap: 8px;
+  }
+
+  .section-title svg { width: 14px; height: 14px; }
+
+  /* Resumen */
+  .summary {
+    font-size: 14px; line-height: 1.7;
+    color: #4a5568;
+  }
+
+  /* Timeline experiencia */
+  .timeline { position: relative; }
+
+  .timeline::before {
+    content: '';
+    position: absolute;
+    left: 7px; top: 8px; bottom: 8px;
+    width: 2px;
+    background: linear-gradient(to bottom, #2d6a4f, #e2e8f0);
+  }
+
+  .timeline-item {
+    padding-left: 28px;
+    margin-bottom: 24px;
+    position: relative;
+  }
+
+  .timeline-item::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 6px;
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: white;
+    border: 3px solid #2d6a4f;
+  }
+
+  .timeline-item:first-child::before { background: #2d6a4f; }
+
+  .job-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2px; }
+
+  .job-title { font-size: 14px; font-weight: 700; color: #1a202c; }
+
+  .job-period {
+    font-size: 11px; color: #718096;
+    background: #f7fafc; padding: 2px 10px;
+    border-radius: 10px; white-space: nowrap;
+    flex-shrink: 0; margin-left: 8px;
+  }
+
+  .job-company { font-size: 13px; color: #4a5568; margin-bottom: 8px; }
+
+  .job-bullets { list-style: none; }
+
+  .job-bullets li {
+    font-size: 13px; color: #4a5568;
+    padding: 2px 0;
+    display: flex; align-items: flex-start; gap: 8px;
+    line-height: 1.5;
+  }
+
+  .job-bullets li::before {
+    content: '▸';
+    color: #52b788;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  /* Educación */
+  .edu-item { margin-bottom: 16px; }
+
+  .edu-degree { font-size: 14px; font-weight: 600; color: #1a202c; }
+  .edu-school { font-size: 13px; color: #4a5568; }
+  .edu-year { font-size: 12px; color: #718096; }
+
+  /* ── COLUMNA DERECHA ── */
+  .side-col { padding: 40px 32px 40px; background: #fafbfc; }
+
+  /* Habilidades con barras */
+  .skills-list { display: flex; flex-direction: column; gap: 10px; }
+
+  .skill-item {}
+
+  .skill-header {
+    display: flex; justify-content: space-between;
+    font-size: 13px; font-weight: 500; color: #2d3748;
+    margin-bottom: 5px;
+  }
+
+  .skill-pct { color: #718096; font-size: 12px; }
+
+  .skill-track {
+    height: 6px; background: #e2e8f0;
+    border-radius: 3px; overflow: hidden;
+  }
+
+  .skill-fill {
+    height: 100%; border-radius: 3px;
+    background: linear-gradient(90deg, #2d6a4f, #52b788);
+    transition: width 1.2s cubic-bezier(.4,0,.2,1);
+  }
+
+  /* Idiomas */
+  .idiomas-list { display: flex; flex-direction: column; gap: 12px; }
+
+  .idioma-item {}
+
+  .idioma-header {
+    display: flex; justify-content: space-between;
+    font-size: 13px; margin-bottom: 6px;
+  }
+
+  .idioma-nombre { font-weight: 600; color: #2d3748; }
+  .idioma-nivel {
+    font-size: 11px; font-weight: 600;
+    padding: 2px 10px; border-radius: 10px;
+    background: #c6f6d5; color: #276749;
+  }
+
+  .idioma-dots { display: flex; gap: 4px; }
+
+  .dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    border: 2px solid #2d6a4f;
+  }
+
+  .dot.filled { background: #2d6a4f; }
+
+  /* Logros clave */
+  .logros-list { display: flex; flex-direction: column; gap: 10px; }
+
+  .logro-card {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-left: 4px solid #2d6a4f;
+    border-radius: 0 8px 8px 0;
+    padding: 10px 14px;
+  }
+
+  .logro-number {
+    font-size: 22px; font-weight: 800;
+    color: #2d6a4f; line-height: 1;
+  }
+
+  .logro-desc {
+    font-size: 12px; color: #4a5568; line-height: 1.4;
+    margin-top: 2px;
+  }
+
+  /* Tags */
+  .tags { display: flex; flex-wrap: wrap; gap: 6px; }
+
+  .tag {
+    background: #ebf8ff;
+    color: #2b6cb0;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+  }
+
+  /* ── FOOTER ── */
+  .cv-footer {
+    background: #1e3a5f;
+    padding: 14px 48px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .footer-brand {
+    font-size: 11px; color: rgba(255,255,255,0.5);
+    letter-spacing: 0.5px;
+  }
+
+  .footer-brand span { color: #52b788; font-weight: 700; }
+
+  .footer-qr {
+    width: 36px; height: 36px;
+    background: white;
+    border-radius: 4px;
+    display: grid;
+    grid-template-columns: repeat(5,1fr);
+    gap: 2px;
+    padding: 4px;
+    opacity: 0.6;
+  }
+
+  .footer-qr div {
+    background: #1e3a5f;
+    border-radius: 1px;
+  }
+
+  /* ── BOTÓN DESCARGA (demo) ── */
+  .download-btn {
+    display: block;
+    margin: 24px auto 0;
+    padding: 12px 32px;
+    background: linear-gradient(135deg, #1e3a5f, #2d6a4f);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+  }
+
+  .note {
+    text-align: center;
+    font-size: 12px;
+    color: #718096;
+    margin-top: 12px;
+  }
+</style>
+</head>
+<body>
+
+<div class="cv-wrapper" id="cv">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="avatar">MA</div>
+    <div class="header-info">
+      <div class="name">María Alejandra Gómez</div>
+      <div class="title">Gerente de Marketing Digital · 8 años de experiencia</div>
+      <div class="contact-chips">
+        <span class="chip">📧 m.gomez@email.com</span>
+        <span class="chip">📱 +52 55 1234 5678</span>
+        <span class="chip">📍 Ciudad de México, MX</span>
+        <span class="chip">💼 linkedin.com/in/magomez</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCORE BAR (aparece cuando es CV vs Vacante) -->
+  <div class="score-bar">
+    <div>
+      <div class="score-label">Match con vacante</div>
+      <div style="font-size:11px;color:#a0aec0;margin-top:2px;">Sr. Marketing Manager · Grupo Bimbo</div>
+    </div>
+    <div class="match-score">
+      <div class="score-number">87%</div>
+      <div class="score-track"><div class="score-fill"></div></div>
+    </div>
+    <div class="badges">
+      <span class="badge badge-green">Liderazgo ✓</span>
+      <span class="badge badge-blue">Digital ✓</span>
+      <span class="badge badge-orange">B2B gap</span>
+    </div>
+  </div>
+
+  <!-- BODY -->
+  <div class="body">
+
+    <!-- Columna principal -->
+    <div class="main-col">
+
+      <!-- Resumen -->
+      <div class="section">
+        <div class="section-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+          Resumen Profesional
+        </div>
+        <p class="summary">
+          Gerente de Marketing Digital con 8 años liderando estrategias de crecimiento en empresas B2C de consumo masivo en México y Colombia. Especialista en performance marketing, growth hacking y construcción de marca digital. Historial demostrable de incremento en conversiones y reducción de CAC.
+        </p>
+      </div>
+
+      <!-- Experiencia -->
+      <div class="section">
+        <div class="section-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
+          Experiencia Profesional
+        </div>
+        <div class="timeline">
+
+          <div class="timeline-item">
+            <div class="job-header">
+              <div class="job-title">Directora de Marketing Digital</div>
+              <div class="job-period">Ene 2021 – Actual</div>
+            </div>
+            <div class="job-company">Rappi México — Ciudad de México, MX</div>
+            <ul class="job-bullets">
+              <li>Lideré equipo de 12 personas logrando un incremento del 43% en retención de usuarios activos</li>
+              <li>Implementé estrategia omnicanal que redujo el CAC en $18 USD (de $52 a $34)</li>
+              <li>Gestioné presupuesto de $2.4M USD anuales en paid media con ROAS promedio de 4.2x</li>
+            </ul>
+          </div>
+
+          <div class="timeline-item">
+            <div class="job-header">
+              <div class="job-title">Sr. Marketing Manager</div>
+              <div class="job-period">Mar 2018 – Dic 2020</div>
+            </div>
+            <div class="job-company">L'Oréal México — Ciudad de México, MX</div>
+            <ul class="job-bullets">
+              <li>Coordiné lanzamiento de 3 productos digitales con alcance de 2.1M de usuarios en 60 días</li>
+              <li>Aumenté el NPS de la marca del 42 al 67 mediante campañas de contenido UGC</li>
+            </ul>
+          </div>
+
+          <div class="timeline-item">
+            <div class="job-header">
+              <div class="job-title">Especialista en Marketing Digital</div>
+              <div class="job-period">Jun 2016 – Feb 2018</div>
+            </div>
+            <div class="job-company">Agencia Ogilvy — Bogotá, Colombia</div>
+            <ul class="job-bullets">
+              <li>Gestioné cuentas de 4 clientes con inversión combinada de $800K USD en medios digitales</li>
+            </ul>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Educación -->
+      <div class="section">
+        <div class="section-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+          Educación
+        </div>
+        <div class="edu-item">
+          <div class="edu-degree">MBA — Marketing y Estrategia Digital</div>
+          <div class="edu-school">IPADE Business School · Ciudad de México</div>
+          <div class="edu-year">2019 – 2021</div>
+        </div>
+        <div class="edu-item">
+          <div class="edu-degree">Lic. en Comunicación y Mercadotecnia</div>
+          <div class="edu-school">Universidad Iberoamericana · Ciudad de México</div>
+          <div class="edu-year">2012 – 2016</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Columna lateral -->
+    <div class="side-col">
+
+      <!-- Habilidades -->
+      <div class="section">
+        <div class="section-title">Habilidades Clave</div>
+        <div class="skills-list">
+          <div class="skill-item">
+            <div class="skill-header"><span>Performance Marketing</span><span class="skill-pct">95%</span></div>
+            <div class="skill-track"><div class="skill-fill" style="width:95%"></div></div>
+          </div>
+          <div class="skill-item">
+            <div class="skill-header"><span>Growth Strategy</span><span class="skill-pct">90%</span></div>
+            <div class="skill-track"><div class="skill-fill" style="width:90%"></div></div>
+          </div>
+          <div class="skill-item">
+            <div class="skill-header"><span>Google Ads / Meta Ads</span><span class="skill-pct">92%</span></div>
+            <div class="skill-track"><div class="skill-fill" style="width:92%"></div></div>
+          </div>
+          <div class="skill-item">
+            <div class="skill-header"><span>Liderazgo de Equipos</span><span class="skill-pct">88%</span></div>
+            <div class="skill-track"><div class="skill-fill" style="width:88%"></div></div>
+          </div>
+          <div class="skill-item">
+            <div class="skill-header"><span>Análisis de Datos</span><span class="skill-pct">80%</span></div>
+            <div class="skill-track"><div class="skill-fill" style="width:80%"></div></div>
+          </div>
+          <div class="skill-item">
+            <div class="skill-header"><span>B2B Marketing</span><span class="skill-pct">65%</span></div>
+            <div class="skill-track"><div class="skill-fill" style="width:65%"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Idiomas -->
+      <div class="section">
+        <div class="section-title">Idiomas</div>
+        <div class="idiomas-list">
+          <div class="idioma-item">
+            <div class="idioma-header">
+              <span class="idioma-nombre">Español</span>
+              <span class="idioma-nivel">Nativo</span>
+            </div>
+            <div class="idioma-dots">
+              <div class="dot filled"></div><div class="dot filled"></div><div class="dot filled"></div><div class="dot filled"></div><div class="dot filled"></div>
+            </div>
+          </div>
+          <div class="idioma-item">
+            <div class="idioma-header">
+              <span class="idioma-nombre">Inglés</span>
+              <span class="idioma-nivel">C1</span>
+            </div>
+            <div class="idioma-dots">
+              <div class="dot filled"></div><div class="dot filled"></div><div class="dot filled"></div><div class="dot filled"></div><div class="dot" style="border-color:#e2e8f0"></div>
+            </div>
+          </div>
+          <div class="idioma-item">
+            <div class="idioma-header">
+              <span class="idioma-nombre">Portugués</span>
+              <span class="idioma-nivel">B1</span>
+            </div>
+            <div class="idioma-dots">
+              <div class="dot filled"></div><div class="dot filled"></div><div class="dot filled"></div><div class="dot" style="border-color:#e2e8f0"></div><div class="dot" style="border-color:#e2e8f0"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Logros cuantificados -->
+      <div class="section">
+        <div class="section-title">Logros Destacados</div>
+        <div class="logros-list">
+          <div class="logro-card">
+            <div class="logro-number">+43%</div>
+            <div class="logro-desc">Retención de usuarios en Rappi MX</div>
+          </div>
+          <div class="logro-card">
+            <div class="logro-number">4.2x</div>
+            <div class="logro-desc">ROAS promedio en paid media</div>
+          </div>
+          <div class="logro-card">
+            <div class="logro-number">$2.4M</div>
+            <div class="logro-desc">USD en presupuesto gestionado</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tags de herramientas -->
+      <div class="section">
+        <div class="section-title">Herramientas</div>
+        <div class="tags">
+          <span class="tag">Google Analytics 4</span>
+          <span class="tag">Salesforce</span>
+          <span class="tag">HubSpot</span>
+          <span class="tag">Tableau</span>
+          <span class="tag">Meta Ads</span>
+          <span class="tag">TikTok Ads</span>
+          <span class="tag">Figma</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="cv-footer">
+    <div class="footer-brand">Generado por <span>OPTIMA-CV</span> · cv.optima.com</div>
+    <div style="font-size:11px;color:rgba(255,255,255,0.4)">CV-2024-MAG-001</div>
+  </div>
+
+</div>
+
+<button class="download-btn" onclick="window.print()">
+  ⬇ Descargar como PDF (Ctrl+P → Guardar como PDF)
+</button>
+<p class="note">Este es un ejemplo con datos ficticios — el CV real se genera desde tu archivo subido</p>
+
+<style>
+  @media print {
+    body { padding: 0; background: white; }
+    .download-btn, .note { display: none; }
+    .cv-wrapper { box-shadow: none; border-radius: 0; }
+  }
+</style>
+
+</body>
+</html>

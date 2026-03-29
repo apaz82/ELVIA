@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../services/authService'
+import PlanBanner from '../components/common/PlanBanner'
 
 const ETAPAS = ['Descubierto', 'Apliqué', 'Pruebas/Assessment', 'En entrevistas', 'Ofertado']
 const ETAPA_PERDIDA = 'No avanzó'
@@ -339,9 +340,22 @@ export default function Pipeline() {
     setVacantes(prev => prev.map(v => v.id === item.id ? { ...v, contacto } : v))
   }
 
+  const { isPaidPlan } = useAuth()
+
   const activas  = vacantes.filter(v => (v.estado || 'Descubierto') !== ETAPA_PERDIDA)
   const perdidas = vacantes.filter(v => (v.estado || 'Descubierto') === ETAPA_PERDIDA)
-  const visibles = filtroPerdidas ? perdidas : activas
+
+  // Plan free: solo ver 3 vacantes (prioriza las que tienen análisis de compatibilidad)
+  const activasVisibles = useMemo(() => {
+    if (isPaidPlan) return activas
+    const conAnalisis   = activas.filter(v => v.check)
+    const sinAnalisis   = activas.filter(v => !v.check)
+    const necesitamos   = Math.max(0, 3 - conAnalisis.length)
+    return [...conAnalisis, ...sinAnalisis.slice(0, necesitamos)]
+  }, [activas, isPaidPlan])
+
+  const visibles = filtroPerdidas ? perdidas : activasVisibles
+  const ocultasPorPlan = !isPaidPlan && !filtroPerdidas && activas.length > activasVisibles.length
 
   const conteo = ETAPAS.reduce((acc, e) => {
     acc[e] = activas.filter(v => (v.estado || 'Descubierto') === e).length
@@ -350,6 +364,14 @@ export default function Pipeline() {
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-8">
+      {/* Banner cuando hay vacantes ocultas por plan */}
+      {ocultasPorPlan && (
+        <PlanBanner
+          tipo="upgrade_teaser"
+          mensaje={`Tienes ${activas.length - activasVisibles.length} vacante${activas.length - activasVisibles.length !== 1 ? 's' : ''} más en tu pipeline. Actívalas con un plan Pro.`}
+          className="mb-5"
+        />
+      )}
       <div className="mb-6 flex items-start justify-between gap-3 flex-wrap">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Pipeline</h1>

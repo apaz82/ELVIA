@@ -1,5 +1,5 @@
 // Genera un PDF en formato Harvard a partir del texto del CV
-const { PDFDocument, StandardFonts, rgb, PageSizes } = require('pdf-lib');
+const { PDFDocument, StandardFonts, rgb, PageSizes, degrees } = require('pdf-lib');
 
 const MARGENES = { sup: 65, inf: 65, izq: 72, der: 72 };
 const LINE_HEIGHT = 15;
@@ -21,9 +21,10 @@ const sanitizar = (texto) => texto
 
 /**
  * @param {string} cvText - Texto completo del CV optimizado
+ * @param {object} opciones - { watermark: boolean }
  * @returns {Promise<Buffer>} Buffer del PDF generado
  */
-const generarPDF = async (cvText) => {
+const generarPDF = async (cvText, opciones = {}) => {
   const doc = await PDFDocument.create();
   const fRegular = await doc.embedFont(StandardFonts.TimesRoman);
   const fBold    = await doc.embedFont(StandardFonts.TimesRomanBold);
@@ -121,6 +122,33 @@ const generarPDF = async (cvText) => {
 
     // Texto normal
     renderTexto(linea, fRegular, 10);
+  }
+
+  // Marca de agua para plan gratuito — diagonal en cada página
+  if (opciones.watermark) {
+    const fWatermark = await doc.embedFont(StandardFonts.HelveticaBold);
+    const paginas = doc.getPages();
+    for (const pg of paginas) {
+      const { width: w, height: h } = pg.getSize();
+      // Línea superior: logo/nombre de la app
+      pg.drawText('OptimaCV', {
+        x: w / 2 - 55,
+        y: h - 22,
+        size: 11,
+        font: fWatermark,
+        color: rgb(0.55, 0.55, 0.55),
+      });
+      // Marca diagonal en el centro de cada página
+      pg.drawText('OPTIMA CV', {
+        x: w / 2 - 95,
+        y: h / 2 - 20,
+        size: 42,
+        font: fWatermark,
+        color: rgb(0.82, 0.82, 0.82),
+        rotate: degrees(45),
+        opacity: 0.35,
+      });
+    }
   }
 
   return Buffer.from(await doc.save());

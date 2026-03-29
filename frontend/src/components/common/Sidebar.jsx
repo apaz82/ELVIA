@@ -4,18 +4,25 @@ import { useAuth } from '../../context/AuthContext'
 import {
   FileMagnifyingGlass, MagnifyingGlass, Briefcase,
   Folders, BookmarkSimple, Kanban,
-  UserCircle, SignOut, Coins, X, Crown, House,
-  MicrophoneStage, Books, LinkedinLogo, UsersThree, Shapes
+  SignOut, X, Crown, House,
+  MicrophoneStage, Books, LinkedinLogo, UsersThree, Target, Heart
 } from '@phosphor-icons/react'
 
 const INICIO = [
   { to: '/dashboard', label: 'Dashboard', Icon: House },
 ]
 
+// Sección especial resaltada — encima de Herramientas
+const PLANIFICACION = [
+  { to: '/proyecto-laboral', label: 'Gerente de Búsqueda', Icon: Target, premium: true },
+]
+
 const HERRAMIENTAS = [
-  { to: '/cv-optimizer', label: 'CV Optimizer',  Icon: FileMagnifyingGlass },
-  { to: '/cv-vs-job',    label: 'CV vs Vacante', Icon: MagnifyingGlass     },
-  { to: '/jobs',         label: 'Vacantes',      Icon: Briefcase           },
+  { to: '/cv-optimizer',    label: 'CV Optimizer',             Icon: FileMagnifyingGlass },
+  { to: '/linkedin-optima', label: 'LinkedIn Optimo',          Icon: LinkedinLogo, beta: true },
+  { to: '/cv-vs-job',       label: 'CV vs Vacante',            Icon: MagnifyingGlass     },
+  { to: '/jobs',            label: 'Vacantes',                 Icon: Briefcase           },
+  { to: '/entrevista',      label: 'Prepara tu Entrevista',    Icon: MicrophoneStage, beta: true },
 ]
 
 const MI_CARRERA = [
@@ -25,10 +32,7 @@ const MI_CARRERA = [
 ]
 
 const RECURSOS = [
-  { to: '/biblioteca',      label: 'Biblioteca',      Icon: Books           },
-  { to: '/infografias',     label: 'Infografías',     Icon: Shapes          },
-  { to: '/linkedin-optima', label: 'LinkedIn Optimo', Icon: LinkedinLogo,   beta: true },
-  { to: '/entrevista',      label: 'Entrevista',      Icon: MicrophoneStage, beta: true },
+  { to: '/biblioteca', label: 'Biblioteca', Icon: Books },
 ]
 
 const HABLEMOS = [
@@ -68,8 +72,66 @@ function NavItem({ to, label, Icon, onClick, premium, beta }) {
   )
 }
 
+// Botón especial para Gerente de Búsqueda — siempre resaltado
+function GerenciaItem({ onClick }) {
+  return (
+    <NavLink
+      to="/proyecto-laboral"
+      onClick={onClick}
+      className={({ isActive }) =>
+        `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-all duration-150
+         ${isActive
+           ? 'bg-slate-800 text-white shadow-md'
+           : 'bg-slate-800/6 text-slate-700 border border-slate-200 hover:bg-slate-800/10 hover:text-slate-900'
+         }`
+      }
+    >
+      {({ isActive }) => (
+        <>
+          <Target size={19} weight={isActive ? 'fill' : 'duotone'} className={isActive ? 'text-teal-300' : 'text-teal-600'} />
+          <span className="flex-1">Gerente de Búsqueda</span>
+          <span className={`text-[9px] font-bold uppercase tracking-widest rounded-full px-1.5 py-0.5 border ${isActive ? 'bg-teal-400/20 text-teal-200 border-teal-400/40' : 'bg-teal-50 text-teal-600 border-teal-200'}`}>
+            Pro
+          </span>
+        </>
+      )}
+    </NavLink>
+  )
+}
+
+// Botón especial para Bienestar — rose gradient, diferenciado de todos los demás
+function BienestarItem({ onClick }) {
+  return (
+    <NavLink
+      to="/bienestar"
+      onClick={onClick}
+      className={({ isActive }) =>
+        `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-all duration-150 group
+         ${isActive
+           ? 'bg-gradient-to-r from-rose-500 to-pink-600 text-white shadow-md'
+           : 'bg-gradient-to-r from-rose-50 to-pink-50 text-rose-600 border border-rose-200 hover:from-rose-100 hover:to-pink-100'
+         }`
+      }
+    >
+      {({ isActive }) => (
+        <>
+          <Heart
+            size={19}
+            weight={isActive ? 'fill' : 'duotone'}
+            className={`transition-transform group-hover:scale-110 ${isActive ? 'text-white' : 'text-rose-500'}`}
+          />
+          <span className="flex-1">Bienestar</span>
+          <span className={`text-[9px] font-bold uppercase tracking-widest rounded-full px-1.5 py-0.5 border ${isActive ? 'bg-white/20 text-white border-white/30' : 'bg-emerald-50 text-emerald-600 border-emerald-200'}`}>
+            Nuevo
+          </span>
+        </>
+      )}
+    </NavLink>
+  )
+}
+
 export default function Sidebar({ open, onClose }) {
-  const { user, logout, creditosRestantes, LIMITE_PLAN, perfil } = useAuth()
+  const { user, logout, perfil } = useAuth()
   const navigate = useNavigate()
 
   const handleLogout = async () => {
@@ -77,11 +139,6 @@ export default function Sidebar({ open, onClose }) {
     onClose?.()
     navigate('/')
   }
-
-  const creditColor =
-    creditosRestantes === 0 ? 'text-error'
-    : creditosRestantes === 1 ? 'text-amber-600'
-    : 'text-secondary'
 
   return (
     <>
@@ -114,16 +171,21 @@ export default function Sidebar({ open, onClose }) {
         </div>
 
         {/* Nav scrollable */}
-        <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-6">
+        <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-5">
 
           {/* Inicio */}
-          <div>
-            <div className="space-y-0.5">
-              {INICIO.map(item => (
-                <NavItem key={item.to} {...item} onClick={onClose} />
-              ))}
-            </div>
+          <div className="space-y-0.5">
+            {INICIO.map(item => (
+              <NavItem key={item.to} {...item} onClick={onClose} />
+            ))}
           </div>
+
+          {/* Gerente de Búsqueda — resaltado siempre */}
+          {user && (
+            <div>
+              <GerenciaItem onClick={onClose} />
+            </div>
+          )}
 
           {/* Herramientas */}
           <div>
@@ -161,6 +223,9 @@ export default function Sidebar({ open, onClose }) {
                 <NavItem key={item.to} {...item} onClick={onClose} />
               ))}
             </div>
+            {/* Separador visual */}
+            <div className="my-2 mx-3 h-px bg-rose-100" />
+            <BienestarItem onClick={onClose} />
           </div>
 
           {/* Hablemos */}
@@ -179,29 +244,6 @@ export default function Sidebar({ open, onClose }) {
         {/* Footer del sidebar */}
         {user && (
           <div className="px-3 py-4 border-t border-outline-variant/20 space-y-1 shrink-0">
-            {/* Créditos */}
-            <div className="flex items-center gap-3 px-3 py-2 rounded-xl bg-surface-container-low">
-              <Coins size={17} weight="duotone" className={creditColor} />
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-semibold text-on-surface">
-                  {creditosRestantes} / {LIMITE_PLAN} créditos
-                </p>
-                <div className="w-full bg-surface-container h-1 rounded-full mt-1 overflow-hidden">
-                  <div
-                    className={`h-full rounded-full transition-all ${
-                      creditosRestantes === 0 ? 'bg-error'
-                      : creditosRestantes === 1 ? 'bg-amber-400'
-                      : 'bg-secondary'
-                    }`}
-                    style={{ width: `${(creditosRestantes / LIMITE_PLAN) * 100}%` }}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Mi Perfil */}
-            <NavItem to="/perfil" label="Mi Perfil" Icon={UserCircle} onClick={onClose} />
-
             {/* Admin — solo si es admin */}
             {perfil?.is_admin && (
               <NavItem to="/admin" label="Admin Panel" Icon={Crown} onClick={onClose} />

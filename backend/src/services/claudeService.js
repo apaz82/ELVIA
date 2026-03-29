@@ -2,7 +2,14 @@
 const Anthropic = require('@anthropic-ai/sdk');
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-const MODELO = 'claude-sonnet-4-6';
+
+// ── Estrategia de modelos ─────────────────────────────────────
+// Sonnet 4.6  → tasks que requieren escritura creativa de alta calidad:
+//               optimizeCV, matchCVtoJob, analizarLinkedin, evaluarEntrevista
+// Haiku 4.5   → tasks de extracción/clasificación/respuestas cortas:
+//               generateChatResponse, generarPreguntasEntrevista, extractProfile
+const MODELO        = 'claude-sonnet-4-6';
+const MODELO_RAPIDO = 'claude-haiku-4-5-20251001';
 
 // --- Instrucciones del sistema compartidas ---
 const SISTEMA_BASE = `Eres un experto en recursos humanos y redacción de CV con 20 años de experiencia
@@ -149,10 +156,13 @@ Responde usando exactamente estos delimitadores (sin texto fuera de ellos):
   const response = await client.messages.create({
     model: MODELO,
     max_tokens: 4096,
-    system: SISTEMA_BASE,
+    // cache_control en el system prompt: Anthropic reutiliza el prompt cacheado
+    // durante 5 min — ahorra ~90% del costo de tokens de entrada en requests repetidos.
+    // Requiere ≥1024 tokens para activarse; por debajo de eso no se aplica pero tampoco rompe.
+    system: [{ type: 'text', text: SISTEMA_BASE, cache_control: { type: 'ephemeral' } }],
     messages: [{ role: 'user', content: prompt }],
   });
-  console.log(`[optimizeCV] Claude tardó ${((Date.now() - t0) / 1000).toFixed(1)}s`);
+  console.log(`[optimizeCV] Claude tardó ${((Date.now() - t0) / 1000).toFixed(1)}s | cache: ${JSON.stringify(response.usage?.cache_read_input_tokens ?? 0)} tokens leídos de caché`);
 
   return parsearRespuestaOptimize(response.content[0].text);
 };
@@ -203,13 +213,15 @@ ubicacion: [ciudad o región]
 pais: [país]
 </VACANTE>`;
 
+  const t0 = Date.now();
   const response = await client.messages.create({
     model: MODELO,
     max_tokens: 4096,
     temperature: 0,
-    system: SISTEMA_BASE,
+    system: [{ type: 'text', text: SISTEMA_BASE, cache_control: { type: 'ephemeral' } }],
     messages: [{ role: 'user', content: prompt }],
   });
+  console.log(`[matchCVtoJob] Claude tardó ${((Date.now() - t0) / 1000).toFixed(1)}s | cache: ${JSON.stringify(response.usage?.cache_read_input_tokens ?? 0)} tokens leídos de caché`);
 
   return parsearRespuestaMatch(response.content[0].text);
 };
@@ -242,7 +254,7 @@ Contexto actual: ${context || 'Navegando en la plataforma'}
   formattedHistory.push({ role: 'user', content: message });
 
   const response = await client.messages.create({
-    model: 'claude-haiku-4-5-20251001',
+    model: MODELO_RAPIDO,
     max_tokens: 600,
     system: systemPrompt,
     messages: formattedHistory,
@@ -284,7 +296,7 @@ Responde ÚNICAMENTE con un JSON array con este formato exacto (sin texto extra)
 ]`
 
   const response = await client.messages.create({
-    model: 'claude-haiku-4-5-20251001',
+    model: MODELO_RAPIDO,
     max_tokens: 1500,
     messages: [{ role: 'user', content: prompt }],
   })
@@ -398,4 +410,75 @@ Para secciones no enviadas, devuelve null en el campo puntaje y strings vacíos 
   return JSON.parse(jsonMatch[0])
 }
 
-module.exports = { optimizeCV, matchCVtoJob, generateChatResponse, generarPreguntasEntrevista, evaluarEntrevista, analizarLinkedin };
+/**
+ * Extrae datos estructurados de un CV para generar la infografía visual
+ * Usa Haiku (rápido y barato) — es extracción, no escritura creativa
+ */
+const extraerDatosInfografia = async (cvText) => {
+  const fragmento = cvText.substring(0, 6000)
+
+  const prompt = `Analiza el siguiente CV y extrae los datos estructurados para generar una infografía visual profesional.
+Responde ÚNICAMENTE con JSON válido, sin texto adicional ni markdown.
+
+CV:
+${fragmento}
+
+Devuelve exactamente esta estructura:
+{
+  "nombre": "Nombre completo",
+  "cargo": "Cargo o título profesional principal",
+  "resumen": "Resumen profesional de 2-3 oraciones",
+  "contacto": {
+    "email": "email o null",
+    "telefono": "teléfono o null",
+    "ciudad": "Ciudad, País o null",
+    "linkedin": "URL o usuario de LinkedIn o null"
+  },
+  "experiencia": [
+    {
+      "empresa": "Nombre empresa",
+      "cargo": "Cargo",
+      "periodo": "Ene 2021 – Actual",
+      "bullets": ["logro 1 con verbo de acción", "logro 2"]
+    }
+  ],
+  "educacion": [
+    { "titulo": "MBA Marketing", "institucion": "Universidad X", "anio": "2021" }
+  ],
+  "habilidades": [
+    { "nombre": "Nombre habilidad", "nivel": 90 }
+  ],
+  "idiomas": [
+    { "idioma": "Español", "nivel": "Nativo", "puntos": 5 },
+    { "idioma": "Inglés", "nivel": "C1", "puntos": 4 }
+  ],
+  "logros": [
+    { "numero": "+43%", "descripcion": "Descripción breve del logro" }
+  ],
+  "diferenciadores": [
+    "Frase corta que describe qué hace único a este candidato",
+    "Otro diferenciador clave"
+  ],
+  "herramientas": ["Herramienta 1", "Herramienta 2"]
+}
+
+REGLAS:
+- habilidades: máximo 6, con nivel del 0 al 100 estimado por el contexto del CV
+- logros: máximo 3, extraer solo los que tengan números o métricas concretas
+- diferenciadores: exactamente 3, frases cortas y específicas (no genéricas como "profesional comprometido")
+- herramientas: máximo 8
+- experiencia: máximo 3 entradas más recientes, máximo 3 bullets cada una
+- Si no encuentras un dato, usa null o array vacío`
+
+  const response = await client.messages.create({
+    model: MODELO_RAPIDO,
+    max_tokens: 1500,
+    messages: [{ role: 'user', content: prompt }],
+  })
+
+  let jsonText = response.content[0].text.trim()
+  jsonText = jsonText.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim()
+  return JSON.parse(jsonText)
+}
+
+module.exports = { optimizeCV, matchCVtoJob, generateChatResponse, generarPreguntasEntrevista, evaluarEntrevista, analizarLinkedin, extraerDatosInfografia };

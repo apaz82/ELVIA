@@ -17,9 +17,10 @@ export default function Auth() {
   )
   const [email, setEmail]       = useState('')
   const [password, setPassword] = useState('')
-  const [loading, setLoading]   = useState(false)
-  const [error, setError]       = useState('')
+  const [loading, setLoading]           = useState(false)
+  const [error, setError]               = useState('')
   const [aceptaPolitica, setAceptaPolitica] = useState(false)
+  const [codigoAcceso, setCodigoAcceso] = useState('')
 
   // Estados de pantallas de confirmación
   const [verificando, setVerificando]     = useState(false) // post-registro
@@ -68,6 +69,10 @@ export default function Auth() {
         if (error) {
           setError(traducirError(error.message))
         } else {
+          // Guardar código de acceso para canjearlo tras el primer login
+          if (codigoAcceso.trim()) {
+            localStorage.setItem('pending_access_code', codigoAcceso.trim().toUpperCase())
+          }
           // Enviar email de bienvenida via Resend (no bloquea el flujo)
           fetch(`${API}/api/email/bienvenida`, {
             method: 'POST',
@@ -189,7 +194,7 @@ export default function Auth() {
             </h1>
             <p className="text-sm text-gray-500 mt-1">
               {modo === 'login'    ? 'Bienvenido de nuevo'
-               : modo === 'register' ? '2 análisis gratuitos al registrarte'
+               : modo === 'register' ? 'Créditos gratuitos de Análisis al registrarte'
                : 'Te enviaremos un enlace por email'}
             </p>
           </div>
@@ -267,6 +272,25 @@ export default function Auth() {
                 )}
               </div>
 
+              {/* Código de acceso — solo en registro */}
+              {modo === 'register' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-600 mb-1">
+                    Código de acceso{' '}
+                    <span className="text-gray-400 font-normal">(opcional)</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={codigoAcceso}
+                    onChange={e => setCodigoAcceso(e.target.value.toUpperCase())}
+                    placeholder="Ej: BETA2025"
+                    maxLength={30}
+                    className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-colors bg-transparent text-gray-900 uppercase tracking-widest placeholder-normal"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">¿Te compartieron un código? Ingrésalo aquí para activar tu plan.</p>
+                </div>
+              )}
+
               {/* Checkbox política — solo en registro */}
               {modo === 'register' && (
                 <label className="flex items-start gap-3 cursor-pointer select-none">
@@ -319,6 +343,60 @@ export default function Auth() {
             </p>
           )}
         </div>
+
+        {/* ── Testimonios — solo en registro ── */}
+        {modo === 'register' && (
+          <div className="mt-6 space-y-3">
+            <p className="text-center text-[11px] font-semibold text-gray-400 uppercase tracking-widest">
+              Lo que dicen nuestros candidatos
+            </p>
+
+            {[
+              {
+                texto: 'En 3 días de usar OPTIMA conseguí 4 entrevistas. Mi CV pasó de ser ignorado a destacar en cada postulación.',
+                nombre: 'Carlos M.',
+                cargo: 'Gerente de Proyectos · CDMX',
+                iniciales: 'CM',
+                color: 'bg-teal-500',
+              },
+              {
+                texto: 'El análisis CV vs Vacante me mostró exactamente qué palabras clave me faltaban. Conseguí el trabajo que quería.',
+                nombre: 'Andrea R.',
+                cargo: 'Analista de Datos · Bogotá',
+                iniciales: 'AR',
+                color: 'bg-indigo-500',
+              },
+              {
+                texto: 'Nunca pensé que mi CV estuviera tan mal estructurado. OPTIMA lo transformó completamente en minutos.',
+                nombre: 'Miguel T.',
+                cargo: 'Ingeniero de Software · Buenos Aires',
+                iniciales: 'MT',
+                color: 'bg-orange-500',
+              },
+            ].map((t, i) => (
+              <div key={i} className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
+                <p className="text-xs text-gray-600 leading-relaxed mb-3">"{t.texto}"</p>
+                <div className="flex items-center gap-2.5">
+                  <div className={`w-7 h-7 rounded-full ${t.color} flex items-center justify-center shrink-0`}>
+                    <span className="text-white text-[10px] font-bold">{t.iniciales}</span>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-gray-800">{t.nombre}</p>
+                    <p className="text-[10px] text-gray-400">{t.cargo}</p>
+                  </div>
+                  <div className="ml-auto flex gap-0.5">
+                    {[...Array(5)].map((_, s) => (
+                      <svg key={s} className="w-3 h-3 text-amber-400 fill-current" viewBox="0 0 20 20">
+                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                      </svg>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
       </div>
     </div>
   )

@@ -22,13 +22,27 @@ import Privacidad from './pages/Privacidad'
 import ResetPassword from './pages/ResetPassword'
 import Expertos from './pages/Expertos'
 import Infografias from './pages/Infografias'
+import Pricing from './pages/Pricing'
+import ProyectoLaboral from './pages/ProyectoLaboral'
+import Bienestar from './pages/Bienestar'
 import AiChatBot from './components/chat/AiChatBot'
 import { useAuth } from './context/AuthContext'
 
 // Rutas que NO muestran sidebar ni header estándar
-const RUTAS_FULL = ['/', '/auth', '/onboarding', '/admin', '/privacidad', '/reset-password']
+const RUTAS_FULL = ['/', '/auth', '/onboarding', '/admin', '/privacidad', '/reset-password', '/pricing']
 // Rutas excluidas del guard de onboarding
-const RUTAS_SIN_GUARD = ['/', '/auth', '/onboarding', '/admin', '/privacidad', '/reset-password']
+const RUTAS_SIN_GUARD = ['/', '/auth', '/onboarding', '/admin', '/privacidad', '/reset-password', '/pricing', '/proyecto-laboral']
+// Rutas públicas (solo para usuarios NO autenticados)
+const RUTAS_PUBLICAS = ['/', '/auth', '/privacidad', '/reset-password', '/pricing']
+
+function PublicRoute({ children }) {
+  const { user, loading } = useAuth()
+  if (loading) return null
+  if (user) {
+    return <Navigate to="/dashboard" replace />
+  }
+  return children
+}
 
 function OnboardingGuard({ children }) {
   const { onboardingPendiente } = useAuth()
@@ -73,11 +87,11 @@ export default function App() {
   const routes = (
     <OnboardingGuard>
       <Routes>
-        <Route path="/"              element={<Landing />} />
+        <Route path="/"              element={<PublicRoute><Landing /></PublicRoute>} />
         <Route path="/cv-optimizer"  element={<CVOptimizer />} />
         <Route path="/cv-vs-job"     element={<CVvsJob />} />
         <Route path="/jobs"          element={<JobMatches />} />
-        <Route path="/auth"          element={<Auth />} />
+        <Route path="/auth"          element={<PublicRoute><Auth /></PublicRoute>} />
         <Route path="/mis-cvs"       element={<MisCVs />} />
         <Route path="/mis-vacantes"  element={<MisVacantes />} />
         <Route path="/pipeline"      element={<Pipeline />} />
@@ -89,10 +103,13 @@ export default function App() {
         <Route path="/entrevista"      element={<Entrevista />} />
         <Route path="/biblioteca"      element={<Biblioteca />} />
         <Route path="/linkedin-optima" element={<LinkedinOptima />} />
-        <Route path="/privacidad"      element={<Privacidad />} />
-        <Route path="/reset-password"  element={<ResetPassword />} />
+        <Route path="/privacidad"      element={<PublicRoute><Privacidad /></PublicRoute>} />
+        <Route path="/reset-password"  element={<PublicRoute><ResetPassword /></PublicRoute>} />
         <Route path="/expertos"        element={<Expertos />} />
         <Route path="/infografias"     element={<Infografias />} />
+        <Route path="/pricing"              element={<PublicRoute><Pricing /></PublicRoute>} />
+        <Route path="/proyecto-laboral"     element={<ProyectoLaboral />} />
+        <Route path="/bienestar"             element={<Bienestar />} />
       </Routes>
     </OnboardingGuard>
   )

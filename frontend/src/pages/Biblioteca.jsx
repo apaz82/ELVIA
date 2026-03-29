@@ -1,6 +1,26 @@
 // Biblioteca — centro de conocimiento con artículos y búsqueda
 import { useState } from 'react'
-import { BookOpen, MagnifyingGlass, Clock, Tag, X, ArrowRight, Lightbulb, Star } from '@phosphor-icons/react'
+import { BookOpen, MagnifyingGlass, Clock, Tag, X, ArrowRight, Lightbulb, Star, Images, ArrowSquareOut } from '@phosphor-icons/react'
+
+// ── Infografías ───────────────────────────────────────────────────────────────
+const INFOGRAFIAS = [
+  {
+    id: 'cv',
+    titulo: 'Anatomía del CV Perfecto',
+    descripcion: 'Estructura visual de un CV optimizado para ATS y reclutadores humanos en 2026.',
+    src: '/info_cv.png',
+    tags: ['cv', 'ats', 'formato'],
+    categoria: 'CV',
+  },
+  {
+    id: 'ats',
+    titulo: 'Cómo Piensa un ATS',
+    descripcion: 'Mapa visual del parsing que hace un ATS: qué lee, qué ignora y qué te descalifica.',
+    src: '/info_ats.png',
+    tags: ['ats', 'parsing', 'keywords'],
+    categoria: 'CV',
+  },
+]
 
 // ── Contenido de artículos ────────────────────────────────────────────────────
 const ARTICULOS = [
@@ -371,6 +391,7 @@ export default function Biblioteca() {
   const [busqueda, setBusqueda] = useState('')
   const [categoriaActiva, setCategoriaActiva] = useState('Todos')
   const [articuloAbierto, setArticuloAbierto] = useState(null)
+  const [infografiaAbierta, setInfografiaAbierta] = useState(null)
 
   const categorias = ['Todos', ...new Set(ARTICULOS.map(a => a.categoria))]
 
@@ -385,6 +406,20 @@ export default function Biblioteca() {
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-8">
+
+      {/* Modal Infografía */}
+      {infografiaAbierta && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setInfografiaAbierta(null)}>
+          <div className="relative max-w-3xl w-full" onClick={e => e.stopPropagation()}>
+            <button onClick={() => setInfografiaAbierta(null)}
+              className="absolute -top-10 right-0 text-white/70 hover:text-white transition-colors flex items-center gap-1.5 text-sm font-semibold">
+              <X size={18} /> Cerrar
+            </button>
+            <img src={infografiaAbierta.src} alt={infografiaAbierta.titulo} className="w-full rounded-2xl shadow-2xl" />
+            <p className="text-white/70 text-xs text-center mt-3">{infografiaAbierta.titulo}</p>
+          </div>
+        </div>
+      )}
 
       {/* Modal artículo */}
       {articuloAbierto && (
@@ -511,6 +546,59 @@ export default function Biblioteca() {
           ))}
         </div>
       )}
+
+      {/* ── Sección Infografías ── */}
+      <div className="mt-12">
+        <div className="flex items-center gap-2.5 mb-6">
+          <div className="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center">
+            <Images size={16} weight="duotone" className="text-purple-600" />
+          </div>
+          <div>
+            <h2 className="text-lg font-bold text-gray-900">Infografías</h2>
+            <p className="text-xs text-gray-400">Referencia visual rápida — guárdalas o compártelas</p>
+          </div>
+        </div>
+        <div className="grid sm:grid-cols-2 gap-5">
+          {INFOGRAFIAS.map(inf => (
+            <div key={inf.id} className="group bg-white border border-gray-200 rounded-2xl overflow-hidden hover:border-purple-200 hover:shadow-md transition-all duration-200">
+              {/* Preview */}
+              <div className="relative overflow-hidden bg-gray-50 cursor-pointer" onClick={() => setInfografiaAbierta(inf)}>
+                <img src={inf.src} alt={inf.titulo} className="w-full object-cover h-48 object-top group-hover:scale-[1.02] transition-transform duration-300" />
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                  <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 rounded-xl px-4 py-2 flex items-center gap-2 text-sm font-semibold text-gray-800">
+                    <ArrowSquareOut size={15} /> Ver completa
+                  </div>
+                </div>
+              </div>
+              {/* Info */}
+              <div className="p-5">
+                <span className="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full border bg-purple-50 text-purple-600 border-purple-100">
+                  {inf.categoria}
+                </span>
+                <h3 className="text-base font-bold text-gray-900 mt-2 mb-1">{inf.titulo}</h3>
+                <p className="text-sm text-gray-500 leading-relaxed">{inf.descripcion}</p>
+                <div className="flex flex-wrap gap-1 mt-3">
+                  {inf.tags.map(t => (
+                    <span key={t} className="text-[10px] text-gray-400 bg-gray-50 rounded-full px-2 py-0.5 flex items-center gap-0.5">
+                      <Tag size={9} />{t}
+                    </span>
+                  ))}
+                </div>
+                <div className="flex gap-2 mt-4">
+                  <button onClick={() => setInfografiaAbierta(inf)}
+                    className="flex-1 text-xs font-semibold border border-gray-200 hover:border-purple-300 hover:text-purple-600 text-gray-600 rounded-xl py-2 transition-colors flex items-center justify-center gap-1.5 cursor-pointer">
+                    <ArrowSquareOut size={13} /> Ver completa
+                  </button>
+                  <a href={inf.src} download
+                    className="flex-1 text-xs font-semibold bg-purple-600 hover:bg-purple-700 text-white rounded-xl py-2 transition-colors flex items-center justify-center gap-1.5 cursor-pointer">
+                    Descargar
+                  </a>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
 
       {/* CTA próximos artículos */}
       <div className="mt-10 bg-gradient-to-r from-primary/5 to-secondary/5 border border-primary/10 rounded-2xl p-6 text-center">

@@ -2,21 +2,28 @@
 const express = require('express');
 const router = express.Router();
 
-const auth = require('../middleware/auth');
-const usageLimit = require('../middleware/usageLimit');
-const upload = require('../middleware/upload');
-const { optimize, matchToJob, download, extractProfile } = require('../controllers/cvController');
+const auth                  = require('../middleware/auth');
+const { planContext }       = require('../middleware/planContext');
+const checkCvOptimizeLimit  = require('../middleware/checkCvOptimizeLimit');
+const checkCvMatchLimit     = require('../middleware/checkCvMatchLimit');
+const requireActiveTrial    = require('../middleware/requireActiveTrial');
+const upload                = require('../middleware/upload');
+const { limiterOptimize, limiterMatch } = require('../middleware/rateLimiter');
+const { optimize, matchToJob, download, extractProfile, generarInfografia } = require('../controllers/cvController');
 
-// Optimización de CV — requiere auth, verificación de límite y archivo adjunto
-router.post('/optimize', auth, usageLimit, upload.single('cv'), optimize);
+// Optimización de CV — 1 análisis gratis + rate limit (5/15min)
+router.post('/optimize', auth, planContext, limiterOptimize, checkCvOptimizeLimit, upload.single('cv'), optimize);
 
-// CV vs Vacante — mismos middlewares
-router.post('/match', auth, usageLimit, upload.single('cv'), matchToJob);
+// CV vs Vacante — 3 análisis gratis + rate limit (10/15min)
+router.post('/match', auth, planContext, limiterMatch, checkCvMatchLimit, upload.single('cv'), matchToJob);
 
-// Descarga del resultado — solo requiere auth (no consume uso)
-router.get('/download/:id', auth, download);
+// Descarga del resultado — no consume crédito, pero respeta watermark según plan
+router.get('/download/:id', auth, planContext, download);
 
 // Extrae datos personales del CV para pre-llenar el onboarding (no consume crédito)
 router.post('/extract-profile', auth, upload.single('cv'), extractProfile);
+
+// Genera JSON estructurado para la vista infográfica (no consume crédito de análisis)
+router.get('/infografia/:id', auth, planContext, generarInfografia);
 
 module.exports = router;

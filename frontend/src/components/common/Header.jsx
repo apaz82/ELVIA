@@ -2,7 +2,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
-import { List, Coins, UserCircle, CaretDown, SignOut } from '@phosphor-icons/react'
+import { List, Coins, UserCircle, CaretDown, SignOut, UsersThree } from '@phosphor-icons/react'
 
 export default function Header({ onMenuToggle }) {
   const { user, creditosRestantes, LIMITE_PLAN, perfil, logout } = useAuth()
@@ -57,6 +57,15 @@ export default function Header({ onMenuToggle }) {
             <Coins size={14} weight="duotone" />
             {creditosRestantes} / {LIMITE_PLAN} créditos
           </div>
+
+          {/* ── Mentor shortcut ── */}
+          <Link
+            to="/expertos"
+            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold bg-amber-400/20 text-amber-300 border border-amber-400/40 hover:bg-amber-400/30 transition-colors"
+          >
+            <UsersThree size={14} weight="duotone" />
+            Mentor
+          </Link>
 
           {/* Avatar + nombre — con dropdown */}
           <div className="relative" ref={dropdownRef}>

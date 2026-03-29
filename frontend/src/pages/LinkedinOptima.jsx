@@ -6,6 +6,7 @@ import {
   LinkedinLogo, Sparkle, CheckCircle, WarningCircle,
   CaretDown, CaretUp, ArrowRight, Trophy, Star, LightbulbFilament,
 } from '@phosphor-icons/react'
+import ProGate from '../components/common/ProGate'
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:3001'
 
@@ -153,8 +154,26 @@ function SeccionResultado({ seccion, datos }) {
 }
 
 export default function LinkedinOptima() {
-  const { user } = useAuth()
+  const { user, isPaidPlan, trialExpired } = useAuth()
   const [campos, setCampos] = useState({ titular: '', extracto: '', experiencia: '', habilidades: '', educacion: '' })
+
+  // Bloqueo para usuarios gratuitos
+  if (!isPaidPlan) {
+    return (
+      <ProGate
+        tipo={trialExpired ? 'trial' : 'pro'}
+        titulo="LinkedIn Óptimo"
+        descripcion="Analiza y optimiza cada sección de tu perfil de LinkedIn con IA para maximizar tu visibilidad ante reclutadores y ATS."
+        icono={<LinkedinLogo size={40} className="text-[#0077B5]" />}
+        beneficios={[
+          'Análisis de titular, extracto, experiencia y habilidades',
+          'Score por sección con recomendaciones específicas',
+          'Sugerencias con palabras clave del mercado',
+          'Comparación contra estándares de reclutadores',
+        ]}
+      />
+    )
+  }
   const [cargando, setCargando] = useState(false)
   const [resultado, setResultado] = useState(null)
   const [error, setError] = useState('')

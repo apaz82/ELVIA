@@ -1,5 +1,5 @@
 // Genera un archivo Word (.docx) en formato Harvard a partir del texto del CV
-const { Document, Packer, Paragraph, TextRun, AlignmentType, BorderStyle, UnderlineType } = require('docx');
+const { Document, Packer, Paragraph, TextRun, AlignmentType, BorderStyle, UnderlineType, Header } = require('docx');
 
 // Detectores de tipo de línea (mismo criterio que pdfService)
 const esDivisor       = (l) => /^[─━—\-]{3,}/.test(l);
@@ -10,9 +10,10 @@ const FUENTE = 'Times New Roman';
 
 /**
  * @param {string} cvText - Texto completo del CV optimizado
+ * @param {object} opciones - { watermark: boolean }
  * @returns {Promise<Buffer>} Buffer del archivo .docx generado
  */
-const generarWord = async (cvText) => {
+const generarWord = async (cvText, opciones = {}) => {
   const parrafos = [];
   let primerasLineas = 0;
 
@@ -91,15 +92,35 @@ const generarWord = async (cvText) => {
     }));
   }
 
-  const documento = new Document({
-    sections: [{
-      properties: {
-        page: {
-          margin: { top: 1080, bottom: 1080, left: 1260, right: 1260 }, // ~1.9cm márgenes
-        },
+  // Header con marca de agua para plan gratuito
+  const headerWatermark = opciones.watermark
+    ? new Header({
+        children: [
+          new Paragraph({
+            alignment: AlignmentType.CENTER,
+            children: [new TextRun({
+              text: 'Generado con OptimaCV — optimacv.com — Versión gratuita',
+              size: 16,
+              color: '999999',
+              font: FUENTE,
+            })],
+          }),
+        ],
+      })
+    : undefined;
+
+  const sectionProps = {
+    properties: {
+      page: {
+        margin: { top: 1080, bottom: 1080, left: 1260, right: 1260 },
       },
-      children: parrafos,
-    }],
+    },
+    children: parrafos,
+  };
+  if (headerWatermark) sectionProps.headers = { default: headerWatermark };
+
+  const documento = new Document({
+    sections: [sectionProps],
   });
 
   return await Packer.toBuffer(documento);

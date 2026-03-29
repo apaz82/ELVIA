@@ -57,10 +57,12 @@ export default function MiPlan() {
           </div>
 
           <div className="flex flex-col items-start gap-2 shrink-0">
-            <button className="bg-primary text-white text-sm font-semibold px-6 py-3 rounded-xl hover:brightness-110 transition-colors shadow-sm">
-              Mejorar plan — Próximamente
+            <button
+              onClick={() => navigate('/pricing')}
+              className="bg-primary text-white text-sm font-semibold px-6 py-3 rounded-xl hover:brightness-110 transition-colors shadow-sm">
+              Ver planes y precios →
             </button>
-            <p className="text-xs text-on-surface-variant/70">Planes desde $9 USD/mes</p>
+            <p className="text-xs text-on-surface-variant/70">Desde MXN 299/mes · Sin renovación automática</p>
           </div>
         </div>
 
