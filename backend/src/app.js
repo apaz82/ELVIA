@@ -19,6 +19,7 @@ const app = express();
 app.use(helmet());
 const ALLOWED_ORIGINS = [
   process.env.FRONTEND_URL || 'https://gestioncv.netlify.app',
+  'https://optimacv.cv',
   'http://localhost:5173',
   'http://localhost:4173',
 ];
