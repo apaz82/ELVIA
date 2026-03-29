@@ -4,7 +4,7 @@
 const { Resend } = require('resend');
 
 const resend = new Resend(process.env.RESEND_API_KEY);
-const FROM_EMAIL = 'noreply@cvoptimizerpro.com'; // Configurar en Resend
+const FROM_EMAIL = 'noreply@optimacv.cv'; // Verificar dominio en Resend
 
 /**
  * Envía email con CV como adjunto
