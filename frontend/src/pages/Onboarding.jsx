@@ -204,6 +204,7 @@ const S1_INICIAL = {
   indicativo1: '+52', telefono1: '',
   indicativo2: '+52', telefono2: '',
   email_secundario: '', ciudades_busqueda: [], edad: '',
+  industria_actual: '',
 }
 const S2_INICIAL = {
   salario_monto: '', moneda: 'MXN', pais: '', prestaciones: [],
@@ -299,6 +300,7 @@ const [s1, setS1] = useState(S1_INICIAL)
       email_secundario:  perfil.email_secundario || '',
       ciudades_busqueda: perfil.ciudades_busqueda || [],
       edad:              perfil.edad || '',
+      industria_actual:  perfil.industria_actual || '',
     }))
     setS2(prev => ({
       ...prev,
@@ -518,6 +520,7 @@ const [s1, setS1] = useState(S1_INICIAL)
       pais: s1.pais, ciudad: s1.ciudad,
       ciudades_busqueda: s1.ciudades_busqueda,
       edad: s1.edad ? parseInt(s1.edad) : null,
+      industria_actual: s1.industria_actual || null,
       salario_esperado, prestaciones: s2.prestaciones, prestaciones_detalle,
       nivel_cargo: s3.niveles_cargo.join(', '),
       industrias_deseadas: s3.industrias_deseadas,
@@ -795,13 +798,24 @@ const [s1, setS1] = useState(S1_INICIAL)
               </div>
             </div>
 
-            {/* Edad */}
-            <div className="w-40">
-              <label className="block text-xs text-on-surface-variant mb-1">Edad</label>
-              <input type="number" value={s1.edad}
-                onChange={e => setS1(f => ({ ...f, edad: e.target.value }))}
-                min="16" max="80" placeholder="35"
-                className="w-full border border-outline-variant rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+            {/* Edad e industria actual */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs text-on-surface-variant mb-1">Edad</label>
+                <input type="number" value={s1.edad}
+                  onChange={e => setS1(f => ({ ...f, edad: e.target.value }))}
+                  min="16" max="80" placeholder="35"
+                  className="w-full border border-outline-variant rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+              </div>
+              <div>
+                <label className="block text-xs text-on-surface-variant mb-1">Industria actual</label>
+                <select value={s1.industria_actual}
+                  onChange={e => setS1(f => ({ ...f, industria_actual: e.target.value }))}
+                  className="w-full border border-outline-variant rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary">
+                  <option value="">Selecciona tu industria</option>
+                  {INDUSTRIAS_LATAM.map(ind => <option key={ind} value={ind}>{ind}</option>)}
+                </select>
+              </div>
             </div>
 
             {error && <p className="text-sm text-error font-medium">{error}</p>}

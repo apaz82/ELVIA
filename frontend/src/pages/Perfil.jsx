@@ -131,6 +131,7 @@ export default function Perfil() {
     idiomas: [], educacion: [],
     // Campos legacy
     cargo_actual: '', cargo_objetivo: '', experiencia_anos: '',
+    industria_actual: '',
   })
 
   useEffect(() => {
@@ -178,6 +179,7 @@ export default function Perfil() {
       cargo_actual:       perfil.cargo_actual || '',
       cargo_objetivo:     perfil.cargo_objetivo || '',
       experiencia_anos:   perfil.experiencia_anos ?? '',
+      industria_actual:   perfil.industria_actual || '',
     })
   }, [perfil])
 
@@ -609,6 +611,14 @@ export default function Perfil() {
                   className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary">
                   <option value="">Selecciona</option>
                   {EXPERIENCIAS.map(e => <option key={e.value} value={e.value}>{e.label}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Industria actual</label>
+                <select value={form.industria_actual} onChange={set('industria_actual')}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary">
+                  <option value="">Selecciona tu industria</option>
+                  {INDUSTRIAS_LATAM.map(ind => <option key={ind} value={ind}>{ind}</option>)}
                 </select>
               </div>
             </div>

@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext'
 import {
   CheckCircle, XCircle, Lightning, Sparkle, Crown,
   ShieldCheck, ArrowRight, Users, Star, WhatsappLogo,
-  EnvelopeSimple, X, CalendarBlank, Globe
+  EnvelopeSimple, X, CalendarBlank, Globe, Tag
 } from '@phosphor-icons/react'
 
 // ─── Países, monedas y precios ───────────────────────────────────────────────
@@ -132,6 +132,83 @@ const GARANTIAS = [
   { icono: <Star        size={18} weight="duotone" className="text-amber-400"   />, texto: 'Sin cobro automático sorpresa' },
   { icono: <Users       size={18} weight="duotone" className="text-blue-500"    />, texto: 'Soporte por email incluido' },
 ]
+
+// ─── Banner de plan actual ────────────────────────────────────────────────────
+
+const PLAN_LABELS_PRICING = {
+  free:       'Plan Gratuito',
+  semanal:    'Pro Semanal',
+  mensual:    'Pro Mensual',
+  trimestral: 'Pro Trimestral',
+}
+
+function PlanActualBanner({ perfil }) {
+  const plan        = perfil?.plan || 'free'
+  const isPaid      = ['semanal', 'mensual', 'trimestral'].includes(plan)
+  const expiresAt   = perfil?.plan_expires_at ? new Date(perfil.plan_expires_at) : null
+  const diasRestantes = expiresAt
+    ? Math.max(0, Math.ceil((expiresAt - new Date()) / (1000 * 60 * 60 * 24)))
+    : null
+  const compraAt = perfil?.updated_at ? new Date(perfil.updated_at) : null
+
+  // Plan vencido o free — mostrar solo un info chip
+  if (!isPaid) {
+    return (
+      <div className="bg-gray-50 border border-gray-200 rounded-2xl px-5 py-4 flex flex-wrap items-center gap-3">
+        <div className="flex items-center gap-2 text-sm text-gray-600">
+          <Sparkle size={16} weight="duotone" className="text-gray-400 shrink-0" />
+          <span className="font-semibold">{PLAN_LABELS_PRICING[plan]}</span>
+        </div>
+        <span className="text-gray-300">|</span>
+        <span className="text-xs text-gray-400">Selecciona un plan de pago para acceso completo</span>
+        <Link to="/mi-plan" className="ml-auto text-xs font-semibold text-primary hover:underline shrink-0">
+          Ver Mi Plan →
+        </Link>
+      </div>
+    )
+  }
+
+  return (
+    <div className="bg-primary/5 border border-primary/20 rounded-2xl px-5 py-4 flex flex-wrap items-center gap-4">
+      <div className="flex items-center gap-2.5">
+        <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+          <Tag size={16} weight="duotone" className="text-primary" />
+        </div>
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-primary/60">Tu plan actual</p>
+          <p className="text-sm font-black text-primary">{PLAN_LABELS_PRICING[plan]}</p>
+        </div>
+      </div>
+
+      {expiresAt && (
+        <div className="flex items-center gap-1.5 text-sm text-gray-600">
+          <CalendarBlank size={14} weight="duotone" className="text-primary shrink-0" />
+          {diasRestantes > 0 ? (
+            <span>
+              Vence: <strong>{expiresAt.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })}</strong>
+              {' '}·{' '}
+              <span className={`font-semibold ${diasRestantes <= 3 ? 'text-amber-600' : 'text-primary'}`}>
+                {diasRestantes} día{diasRestantes !== 1 ? 's' : ''} restante{diasRestantes !== 1 ? 's' : ''}
+              </span>
+            </span>
+          ) : (
+            <span className="text-red-600 font-semibold">Plan vencido</span>
+          )}
+        </div>
+      )}
+
+      {compraAt && (
+        <div className="text-xs text-gray-400">
+          Activado: {compraAt.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })}
+        </div>
+      )}
+
+      <Link to="/mi-plan" className="ml-auto text-xs font-semibold text-primary border border-primary/30 rounded-lg px-3 py-1.5 hover:bg-primary/5 transition-colors shrink-0">
+        Ver detalles →
+      </Link>
+    </div>
+  )
+}
 
 // ─── Modal de selección de plan ──────────────────────────────────────────────
 
@@ -496,6 +573,9 @@ export default function Pricing() {
           </div>
         )}
 
+        {/* Banner de plan actual para usuarios logueados */}
+        {user && perfil && <PlanActualBanner perfil={perfil} />}
+
         {/* Encabezado */}
         <div className="text-center">
           <h1 className="text-4xl font-black text-gray-900 mb-3">Planes y precios</h1>
@@ -539,9 +619,13 @@ export default function Pricing() {
             />
           ))}
         </div>
-        <p className="text-xs text-gray-400 text-center -mt-6">
-          Plataformas similares cobran {formatPrecio(precios.competencia, moneda)}/mes con renovación automática. Nosotros no.
-        </p>
+        <div className="text-center -mt-4">
+          <p className="inline-block text-sm font-bold text-gray-700 bg-amber-50 border border-amber-200 rounded-2xl px-6 py-3">
+            💡 Plataformas similares cobran{' '}
+            <span className="text-amber-600 font-black">{formatPrecio(precios.competencia, moneda)}/mes con renovación automática.</span>
+            {' '}Nosotros no.
+          </p>
+        </div>
 
         {/* ¿Por qué Optima-CV? */}
         <div>

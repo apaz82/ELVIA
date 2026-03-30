@@ -51,7 +51,7 @@ export default function AiChatBot() {
             </div>
             <div>
               <h3 className="text-white text-sm font-bold tracking-tight">OPTIMA</h3>
-              <p className="text-white/70 text-[10px] uppercase tracking-widest font-bold">Mentora IA</p>
+              <p className="text-white/70 text-[10px] uppercase tracking-widest font-bold">Tu mentora 24X7</p>
             </div>
           </div>
           <div className="flex items-center gap-1">

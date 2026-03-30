@@ -6,74 +6,9 @@ import { supabase } from '../services/authService'
 import {
   FileMagnifyingGlass, MagnifyingGlass, Briefcase,
   ChartLineUp, Coins, ArrowRight, Sparkle,
-  FileText, Target, ChartBar, LinkSimple, CurrencyDollar, Star,
-  Ticket, Kanban
+  Target, Ticket, Kanban
 } from '@phosphor-icons/react'
 import PlanBanner from '../components/common/PlanBanner'
-
-// ─── Artículos placeholder — reemplaza con contenido real ────────────────────
-const ARTICULOS = [
-  {
-    id: 1,
-    categoria: 'Tips de CV',
-    titulo: 'Los 7 errores más comunes en un CV y cómo corregirlos',
-    resumen: 'Desde el formato hasta las palabras clave, descubre qué aleja a los reclutadores antes de la primera entrevista.',
-    color: 'from-blue-500 to-indigo-600',
-    icono: <FileText weight="duotone" className="text-white drop-shadow-sm" size={48} />,
-    minLectura: 4,
-    href: '#',
-  },
-  {
-    id: 2,
-    categoria: 'Entrevistas',
-    titulo: 'Método STAR: responde preguntas de comportamiento con impacto',
-    resumen: 'Aprende a estructurar tus respuestas con situación, tarea, acción y resultado para dejar huella en cualquier entrevista.',
-    color: 'from-emerald-500 to-teal-600',
-    icono: <Target weight="duotone" className="text-white drop-shadow-sm" size={48} />,
-    minLectura: 5,
-    href: '#',
-  },
-  {
-    id: 3,
-    categoria: 'Mercado laboral',
-    titulo: 'Las habilidades más demandadas en LATAM para 2025',
-    resumen: 'Análisis de más de 50,000 ofertas en México, Colombia y Argentina revela qué competencias marcan la diferencia.',
-    color: 'from-orange-500 to-rose-500',
-    icono: <ChartBar weight="duotone" className="text-white drop-shadow-sm" size={48} />,
-    minLectura: 6,
-    href: '#',
-  },
-  {
-    id: 4,
-    categoria: 'LinkedIn',
-    titulo: 'Cómo optimizar tu perfil de LinkedIn para aparecer en búsquedas de reclutadores',
-    resumen: 'El algoritmo de LinkedIn prioriza ciertas secciones. Saber cuáles puede triplicar tu visibilidad en semanas.',
-    color: 'from-sky-500 to-blue-600',
-    icono: <LinkSimple weight="duotone" className="text-white drop-shadow-sm" size={48} />,
-    minLectura: 7,
-    href: '#',
-  },
-  {
-    id: 5,
-    categoria: 'Negociación',
-    titulo: 'Cómo negociar tu salario sin perder la oferta',
-    resumen: 'El 70% de los profesionales nunca negocia su sueldo inicial. Guía práctica con frases y estrategias que funcionan.',
-    color: 'from-violet-500 to-purple-600',
-    icono: <CurrencyDollar weight="duotone" className="text-white drop-shadow-sm" size={48} />,
-    minLectura: 5,
-    href: '#',
-  },
-  {
-    id: 6,
-    categoria: 'Marca personal',
-    titulo: 'Personal branding para ejecutivos: diferénciate en mercados saturados',
-    resumen: 'Construir una marca profesional coherente entre tu CV, LinkedIn y entrevistas multiplica tus oportunidades.',
-    color: 'from-pink-500 to-rose-600',
-    icono: <Star weight="duotone" className="text-white drop-shadow-sm" size={48} />,
-    minLectura: 8,
-    href: '#',
-  },
-]
 
 // ─── Componente métrica ───────────────────────────────────────────────────────
 function MetricCard({ icon: Icon, iconColor, bgColor, label, value, sub, to }) {
@@ -415,54 +350,6 @@ export default function Dashboard() {
           </div>
         </section>
       )}
-
-      {/* ── Sección 2: Recursos editoriales ── */}
-      <section>
-        <div className="flex items-end justify-between mb-4">
-          <div>
-            <h2 className="text-base font-bold text-on-surface flex items-center gap-2">
-              <Sparkle size={18} weight="duotone" className="text-primary" />
-              Recursos para tu búsqueda
-            </h2>
-            <p className="text-xs text-on-surface-variant mt-0.5">Artículos y guías seleccionados para potenciar tu perfil</p>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {ARTICULOS.map(a => (
-            <a key={a.id} href={a.href}
-              className="group bg-surface-container-lowest rounded-2xl border border-outline-variant/30 overflow-hidden hover:shadow-float hover:border-[#E8541A]/30 hover:-translate-y-1 transition-all flex flex-col cursor-pointer">
-
-              {/* Imagen / banner */}
-              <div className={`h-28 bg-[#0D2B4E]/5 flex items-center justify-center relative overflow-hidden`}>
-                <div className={`absolute inset-0 bg-gradient-to-br ${a.color} opacity-80 mix-blend-overlay`} />
-                <div className="relative z-10 w-14 h-14 bg-white/20 backdrop-blur-sm rounded-2xl border border-white/20 flex items-center justify-center shadow-sm">
-                  {a.icono}
-                </div>
-              </div>
-
-              {/* Contenido */}
-              <div className="p-4 flex flex-col flex-1 gap-2">
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-primary bg-primary/10 rounded-full px-2.5 py-0.5">
-                    {a.categoria}
-                  </span>
-                  <span className="text-[10px] text-gray-400">{a.minLectura} min</span>
-                </div>
-                <h3 className="text-sm font-bold text-on-surface leading-snug group-hover:text-primary transition-colors line-clamp-2">
-                  {a.titulo}
-                </h3>
-                <p className="text-xs text-on-surface-variant leading-relaxed line-clamp-3 flex-1">
-                  {a.resumen}
-                </p>
-                <span className="text-xs font-semibold text-primary flex items-center gap-1 mt-1">
-                  Leer artículo <ArrowRight size={11} weight="bold" />
-                </span>
-              </div>
-            </a>
-          ))}
-        </div>
-      </section>
 
     </div>
   )
