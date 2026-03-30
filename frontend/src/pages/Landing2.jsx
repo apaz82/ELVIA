@@ -176,45 +176,6 @@ export default function Landing() {
      }, 3500)
   }
 
-  // --- Waitlist State ---
-  const [waitlistForm, setWaitlistForm] = useState({ nombre: '', apellido: '', telefono: '', pais: '', email: '', situacion: '', aceptaPrivacidad: false })
-  const [waitlistStatus, setWaitlistStatus] = useState({ loading: false, success: false, error: null })
-
-  useEffect(() => {
-    // Analytics: Registrar visita a la Landing
-    if (window.location.hostname !== 'localhost') {
-       fetch((import.meta.env.VITE_API_URL || 'https://optima-backend-production.up.railway.app') + '/api/waitlist/track', { method: 'POST' }).catch(() => {})
-    }
-
-    fetch('https://ipapi.co/json/')
-      .then(res => res.json())
-      .then(data => {
-        if (data.country_name) {
-          setWaitlistForm(f => ({ ...f, pais: data.country_name, telefono: data.country_calling_code ? data.country_calling_code + ' ' : '' }))
-        }
-      })
-      .catch(err => console.error("Error fetching IP details", err))
-  }, [])
-  
-  const handleWaitlistSubmit = async (e) => {
-    e.preventDefault()
-    setWaitlistStatus({ loading: true, success: false, error: null })
-    try {
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001'
-      const res = await fetch(`${API_URL}/api/waitlist`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(waitlistForm)
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Error al registrarte en la lista de espera')
-      setWaitlistStatus({ loading: false, success: true, error: null })
-      setWaitlistForm({ nombre: '', apellido: '', telefono: '', pais: '', email: '', situacion: '', aceptaPrivacidad: false })
-    } catch (err) {
-      setWaitlistStatus({ loading: false, success: false, error: err.message })
-    }
-  }
-
 
   return (
     <div className="min-h-screen bg-slate-50 font-body text-gray-900 selection:bg-[#E8541A]/20 relative overflow-hidden">
@@ -251,6 +212,9 @@ export default function Landing() {
               <span className="hidden md:block text-sm font-medium text-gray-600">
                 {perfil?.nombre1 || user.email?.split('@')[0]}
               </span>
+              <Link to="/pricing" className="text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors hidden md:block">
+                Inversión
+              </Link>
               <button onClick={() => navigate('/cv-optimizer')}
                 className="hidden sm:flex items-center gap-2 bg-[#E8541A] text-white font-bold text-sm px-5 py-2.5 rounded-xl hover:bg-[#E8541A]/90 transition-all shadow-md">
                 Plataforma <ArrowRight size={15} weight="bold" />
@@ -264,10 +228,16 @@ export default function Landing() {
             </>
           ) : (
             <>
-              <button onClick={() => document.getElementById('waitlist-form').scrollIntoView({ behavior: 'smooth' })}
+              <Link to="/pricing" className="text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors hidden sm:block">
+                Inversión
+              </Link>
+              <Link to="/auth" className="text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors hidden sm:block">
+                Iniciar sesión
+              </Link>
+              <Link to="/auth?register=true"
                 className="flex items-center gap-2 bg-gray-900 text-white font-bold text-sm px-6 py-2.5 rounded-xl hover:bg-gray-800 transition-all shadow-md">
-                Únete a la Lista de Espera apuntándote aquí
-              </button>
+                Empezar gratis
+              </Link>
             </>
           )}
         </div>
@@ -331,79 +301,23 @@ export default function Landing() {
               Supera los filtros ATS, diseña un CV formato Harvard de alto impacto y domina tu proceso de selección en empresas corporativas.
             </motion.p>
 
-            <motion.div variants={fadeInUp} className="mt-8 bg-white border border-gray-200 rounded-3xl p-6 shadow-xl relative overflow-hidden" id="waitlist-form">
-              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-teal-500 via-[#E8541A] to-blue-500" />
-              <h3 className="text-xl font-black text-gray-900 mb-2">Únete a la lista de espera</h3>
-              <p className="text-sm text-gray-500 mb-5">
-                Recibe descuentos y beneficios exclusivos por ser pionero OPTIMA.
-              </p>
-              
-              {waitlistStatus.success ? (
-                <div className="bg-teal-50 border border-teal-200 p-4 rounded-xl flex items-start gap-3">
-                  <CheckCircle size={24} weight="fill" className="text-teal-500 shrink-0" />
-                  <div>
-                    <h4 className="font-bold text-teal-800 text-sm">¡Estás en la lista!</h4>
-                    <p className="text-xs text-teal-600 mt-1">Acabamos de enviarte un correo de bienvenida. Revisa tu bandeja de entrada (y tu carpeta de spam en caso de que no lo veas).</p>
-                  </div>
-                </div>
+            <motion.div variants={fadeInUp} className="flex flex-col sm:flex-row gap-4">
+              {user ? (
+                <button onClick={() => navigate(perfil?.nombre1 ? '/cv-optimizer' : '/onboarding')}
+                  className="group flex justify-center items-center gap-3 bg-[#E8541A] text-white font-bold text-base px-8 py-4 rounded-xl hover:bg-[#E8541A]/90 transition-all shadow-lg shadow-[#E8541A]/20">
+                  Ir al optimizador <ArrowRight size={18} weight="bold" className="group-hover:translate-x-1 transition-transform" />
+                </button>
               ) : (
-                <form onSubmit={handleWaitlistSubmit} className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-bold text-gray-700 mb-1">Nombre</label>
-                      <input required type="text" value={waitlistForm.nombre} onChange={e => setWaitlistForm(f => ({...f, nombre: e.target.value}))} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8541A]" placeholder="Tu nombre" />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-gray-700 mb-1">Apellido</label>
-                      <input required type="text" value={waitlistForm.apellido} onChange={e => setWaitlistForm(f => ({...f, apellido: e.target.value}))} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8541A]" placeholder="Tu apellido" />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-bold text-gray-700 mb-1">País</label>
-                      <input required type="text" value={waitlistForm.pais} onChange={e => setWaitlistForm(f => ({...f, pais: e.target.value}))} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8541A]" placeholder="País" />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-gray-700 mb-1">Teléfono</label>
-                      <input type="tel" value={waitlistForm.telefono} onChange={e => setWaitlistForm(f => ({...f, telefono: e.target.value}))} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8541A]" placeholder="+57 300..." />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-gray-700 mb-1">Email</label>
-                    <input required type="email" value={waitlistForm.email} onChange={e => setWaitlistForm(f => ({...f, email: e.target.value}))} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8541A]" placeholder="tu@email.com" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-gray-700 mb-1">Situación Actual</label>
-                    <select required value={waitlistForm.situacion} onChange={e => setWaitlistForm(f => ({...f, situacion: e.target.value}))} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8541A] appearance-none">
-                      <option value="" disabled>Selecciona una opción</option>
-                      <option value="Estoy desempleada/o">Estoy desempleada/o</option>
-                      <option value="Empleada/o pero buscando alternativas">Empleada/o pero buscando alternativas</option>
-                      <option value="Quiero optimizar mi perfil para futuro">Quiero optimizar mi perfil para futuro</option>
-                    </select>
-                  </div>
-                  
-                  {waitlistStatus.error && (
-                    <div className="text-xs font-medium text-red-600 bg-red-50 p-3 rounded-lg border border-red-100">
-                      {waitlistStatus.error}
-                    </div>
-                  )}
-
-                  <div className="flex flex-col gap-4 pt-2">
-                    <label className="flex items-start gap-2 cursor-pointer group">
-                      <div className="relative flex items-center justify-center shrink-0 w-5 h-5 rounded border border-gray-300 bg-white shadow-sm mt-0.5 group-hover:border-[#E8541A] transition-colors">
-                        <input type="checkbox" required checked={waitlistForm.aceptaPrivacidad} onChange={e => setWaitlistForm(f => ({...f, aceptaPrivacidad: e.target.checked}))} className="opacity-0 absolute inset-0 w-full h-full cursor-pointer" />
-                        {waitlistForm.aceptaPrivacidad && <CheckCircle size={14} weight="bold" className="text-[#E8541A]" />}
-                      </div>
-                      <span className="text-xs text-gray-500 leading-relaxed">
-                        Acepto la <Link to="/privacidad" className="underline hover:text-[#E8541A]">política de privacidad</Link> y doy mi consentimiento para recibir comunicaciones.
-                      </span>
-                    </label>
-
-                    <button disabled={waitlistStatus.loading} type="submit" className="w-full flex items-center justify-center gap-2 bg-teal-500 text-white font-bold px-6 py-3.5 rounded-xl hover:bg-teal-600 transition-all shadow-md shadow-teal-500/20 disabled:opacity-50">
-                      {waitlistStatus.loading ? 'Registrando...' : 'Quiero unirme a la lista'} <ArrowRight size={16} weight="bold" />
-                    </button>
-                  </div>
-                </form>
+                <>
+                  <button onClick={() => navigate('/auth?register=true')}
+                    className="group flex items-center justify-center gap-3 bg-[#E8541A] text-white font-bold text-base px-8 py-4 rounded-xl hover:bg-[#E8541A]/90 transition-all shadow-lg shadow-[#E8541A]/20">
+                    Empezar gratis <ArrowRight size={18} weight="bold" className="group-hover:translate-x-1 transition-transform" />
+                  </button>
+                  <button onClick={() => navigate('/auth')}
+                    className="flex justify-center flex-1 sm:flex-none items-center gap-2 bg-white border border-gray-200 text-gray-700 font-medium px-8 py-4 rounded-xl hover:border-gray-300 hover:bg-gray-50 transition-colors shadow-sm">
+                    Iniciar sesión
+                  </button>
+                </>
               )}
             </motion.div>
 
@@ -716,10 +630,10 @@ export default function Landing() {
                   </p>
                   <div className="flex flex-col gap-3">
                     <button 
-                      onClick={() => document.getElementById('waitlist-form').scrollIntoView({ behavior: 'smooth' })} 
+                      onClick={() => navigate('/auth?register=true')} 
                       className="w-full bg-[#1A91F0] text-white font-bold py-4 px-6 rounded-2xl hover:bg-blue-600 hover:shadow-lg transition-all shadow-md focus:ring-4 focus:ring-blue-500/20"
                     >
-                      Únete a la lista de espera
+                      Revelar mis errores ocultos
                     </button>
                     <p className="text-xs text-gray-400 mt-2 font-medium">
                       Descubre tu análisis completo. 100% Gratis.
@@ -908,12 +822,10 @@ export default function Landing() {
               </div>
 
               {/* CTA */}
-              <button 
-                onClick={() => document.getElementById('waitlist-form').scrollIntoView({ behavior: 'smooth' })}
-                className="flex items-center gap-2.5 text-white font-bold text-sm shrink-0 bg-white/10 group-hover:bg-white/20 transition-colors duration-300 px-6 py-3.5 rounded-xl border border-white/10 group-hover:border-white/20 whitespace-nowrap cursor-pointer">
-                Disponible próximamente, únete a la lista de espera
+              <div className="flex items-center gap-2.5 text-white font-bold text-sm shrink-0 bg-white/10 group-hover:bg-white/20 transition-colors duration-300 px-6 py-3.5 rounded-xl border border-white/10 group-hover:border-white/20 whitespace-nowrap">
+                Conectar con mentor
                 <ArrowRight size={16} weight="bold" className="group-hover:translate-x-1 transition-transform duration-200" />
-              </button>
+              </div>
             </div>
           </motion.div>
 
@@ -930,80 +842,43 @@ export default function Landing() {
         >
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-teal-500/10 blur-[100px] rounded-full pointer-events-none" />
 
-          <div className="relative z-10 text-left">
-            <h3 className="text-3xl font-black text-white mb-2 text-center">Únete a la lista de espera</h3>
-            <p className="text-white/60 mb-8 text-center max-w-xl mx-auto">
-              Recibe descuentos y beneficios exclusivos por ser pionero OPTIMA.
-            </p>
-            
-            {waitlistStatus.success ? (
-              <div className="bg-teal-500/10 border border-teal-500/30 p-6 rounded-2xl flex items-start gap-4">
-                <CheckCircle size={28} weight="fill" className="text-teal-400 shrink-0" />
-                <div>
-                  <h4 className="font-bold text-teal-300 text-lg">¡Estás en la lista!</h4>
-                  <p className="text-sm text-teal-100/70 mt-1">Acabamos de enviarte un correo de bienvenida. Revisa tu bandeja de entrada (y tu carpeta de spam en caso de que no lo veas).</p>
-                </div>
-              </div>
-            ) : (
-              <form onSubmit={handleWaitlistSubmit} className="space-y-5 max-w-2xl mx-auto">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                  <div>
-                    <label className="block text-sm font-bold text-white/80 mb-1.5">Nombre</label>
-                    <input required type="text" value={waitlistForm.nombre} onChange={e => setWaitlistForm(f => ({...f, nombre: e.target.value}))} className="w-full bg-white/5 border border-white/10 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 placeholder-white/30" placeholder="Tu nombre" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-bold text-white/80 mb-1.5">Apellido</label>
-                    <input required type="text" value={waitlistForm.apellido} onChange={e => setWaitlistForm(f => ({...f, apellido: e.target.value}))} className="w-full bg-white/5 border border-white/10 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 placeholder-white/30" placeholder="Tu apellido" />
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                  <div>
-                    <label className="block text-sm font-bold text-white/80 mb-1.5">País</label>
-                    <input required type="text" value={waitlistForm.pais} onChange={e => setWaitlistForm(f => ({...f, pais: e.target.value}))} className="w-full bg-white/5 border border-white/10 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 placeholder-white/30" placeholder="País" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-bold text-white/80 mb-1.5">Teléfono</label>
-                    <input type="tel" value={waitlistForm.telefono} onChange={e => setWaitlistForm(f => ({...f, telefono: e.target.value}))} className="w-full bg-white/5 border border-white/10 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 placeholder-white/30" placeholder="+57 300..." />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-bold text-white/80 mb-1.5">Email</label>
-                  <input required type="email" value={waitlistForm.email} onChange={e => setWaitlistForm(f => ({...f, email: e.target.value}))} className="w-full bg-white/5 border border-white/10 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 placeholder-white/30" placeholder="tu@email.com" />
-                </div>
-                <div>
-                  <label className="block text-sm font-bold text-white/80 mb-1.5">Situación Actual</label>
-                  <select required value={waitlistForm.situacion} onChange={e => setWaitlistForm(f => ({...f, situacion: e.target.value}))} className="w-full bg-white/5 border border-white/10 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 appearance-none">
-                    <option value="" disabled className="text-gray-900">Selecciona una opción</option>
-                    <option value="Estoy desempleada/o" className="text-gray-900">Estoy desempleada/o</option>
-                    <option value="Empleada/o pero buscando alternativas" className="text-gray-900">Empleada/o pero buscando alternativas</option>
-                    <option value="Quiero optimizar mi perfil para futuro" className="text-gray-900">Quiero optimizar mi perfil para futuro</option>
-                  </select>
-                </div>
-                
-                {waitlistStatus.error && (
-                  <div className="text-sm font-medium text-red-400 bg-red-500/10 p-3 rounded-lg border border-red-500/20">
-                    {waitlistStatus.error}
-                  </div>
-                )}
-
-                <div className="flex flex-col gap-6 pt-2">
-                  <label className="flex items-start gap-3 cursor-pointer group">
-                    <div className="relative flex items-center justify-center shrink-0 w-5 h-5 rounded border border-white/30 bg-white/5 mt-0.5 group-hover:border-teal-400 transition-colors">
-                      <input type="checkbox" required checked={waitlistForm.aceptaPrivacidad} onChange={e => setWaitlistForm(f => ({...f, aceptaPrivacidad: e.target.checked}))} className="opacity-0 absolute inset-0 w-full h-full cursor-pointer" />
-                      {waitlistForm.aceptaPrivacidad && <CheckCircle size={14} weight="bold" className="text-teal-400" />}
-                    </div>
-                    <span className="text-sm text-white/50 leading-relaxed">
-                      Acepto la <Link to="/privacidad" className="underline hover:text-teal-400 transition-colors">política de privacidad</Link> y doy mi consentimiento para recibir comunicaciones.
-                    </span>
-                  </label>
-
-                  <button disabled={waitlistStatus.loading} type="submit" className="w-full flex items-center justify-center gap-2 bg-teal-500 text-white font-bold px-6 py-4 rounded-xl hover:bg-teal-600 transition-all shadow-lg shadow-teal-500/20 disabled:opacity-50 text-lg">
-                    {waitlistStatus.loading ? 'Registrando...' : 'Quiero unirme a la lista'} <ArrowRight size={18} weight="bold" />
-                  </button>
-                </div>
-              </form>
-            )}
-          </div>
+          {user ? (
+            <div className="relative z-10 space-y-8">
+              <span className="inline-block px-4 py-1.5 bg-teal-500/20 border border-teal-500/30 text-teal-300 font-bold text-xs rounded-full uppercase tracking-widest">
+                Bienvenido de vuelta, {perfil?.nombre1 || user.email?.split('@')[0]}
+              </span>
+              <h2 className="font-headline font-black text-4xl md:text-5xl tracking-tight leading-tight text-white">
+                Tu siguiente paso<br className="hidden md:block" /> te está esperando.
+              </h2>
+              <p className="text-white/60 max-w-xl mx-auto leading-relaxed text-lg">
+                Tienes <strong className="text-white">{creditosRestantes} créditos</strong> disponibles. Úsalos para optimizar tu CV o medir tu match con una vacante.
+              </p>
+              <button
+                onClick={() => navigate(perfil?.nombre1 ? '/cv-optimizer' : '/onboarding')}
+                className="inline-flex items-center justify-center gap-3 text-base font-bold bg-[#E8541A] hover:bg-[#E8541A]/90 text-white px-10 py-5 rounded-2xl shadow-lg hover:-translate-y-1 transition-all"
+              >
+                Ir al optimizador <ArrowRight size={18} weight="bold" />
+              </button>
+            </div>
+          ) : (
+            <div className="relative z-10 space-y-8">
+              <span className="inline-block px-4 py-1.5 bg-[#E8541A]/20 border border-[#E8541A]/40 text-[#E8541A] font-bold text-xs rounded-full uppercase tracking-widest">
+                2 Análisis Gratuitos
+              </span>
+              <h2 className="font-headline font-black text-4xl md:text-5xl tracking-tight leading-tight text-white">
+                No dejes tu carrera<br className="hidden md:block" /> al azar de un algoritmo.
+              </h2>
+              <p className="text-white/60 max-w-xl mx-auto leading-relaxed text-lg">
+                Utiliza inteligencia artificial a tu favor. Mide tu compatibilidad de CV antes de postularte y genera un formato impecable.
+              </p>
+              <button
+                onClick={() => navigate('/auth?register=true')}
+                className="inline-flex items-center justify-center gap-3 text-base font-bold bg-[#E8541A] hover:bg-[#E8541A]/90 text-white px-10 py-5 rounded-2xl shadow-lg hover:-translate-y-1 transition-all"
+              >
+                Crear cuenta gratis ahora <ArrowRight size={18} weight="bold" />
+              </button>
+            </div>
+          )}
         </motion.div>
       </section>
 

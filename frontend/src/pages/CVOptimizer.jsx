@@ -39,6 +39,7 @@ export default function CVOptimizer() {
   const [cargandoInfografia, setCargandoInfografia] = useState(false)
   // null = sin decidir, 'perfil' = usar CV del perfil, 'nuevo' = subir nuevo
   const [cvDecision, setCvDecision] = useState(null)
+  const [showConfirmModal, setShowConfirmModal] = useState(false)
 
   // Cargar CVs optimizados existentes del usuario
   useEffect(() => {
@@ -96,9 +97,20 @@ export default function CVOptimizer() {
     }
   }
 
+  const handleOptimizarClick = () => {
+    if (!cvArchivo) return setError('Selecciona un archivo primero')
+    if (cvsExistentes.length > 0) {
+      setShowConfirmModal(true)
+    } else {
+      analizar()
+    }
+  }
+
   const analizar = async () => {
     if (!cvArchivo) return setError('Selecciona un archivo primero')
     if (!user)      return navigate('/auth')
+    
+    setShowConfirmModal(false)
     setLoading(true)
     setError('')
     try {
@@ -109,16 +121,14 @@ export default function CVOptimizer() {
         else setError(data.error)
         return
       }
-      // Reemplazar CVs anteriores del mismo idioma
-      const idiomaDetectado = data.metadata?.language
-      if (idiomaDetectado) {
-        const aEliminar = cvsExistentes
-          .filter(cv => cv.metadata?.language === idiomaDetectado && cv.id !== data.id)
-          .map(cv => cv.id)
-        if (aEliminar.length > 0) {
-          await supabase.from('cv_results').delete().in('id', aEliminar)
-        }
+
+      // Limpieza de historial: Conservar máximo los últimos 5 CVs en total para no saturar la BD (y se mantienen visibles en Mis CVs)
+      const nuevosCVs = [ {id: data.id}, ...cvsExistentes ]
+      if (nuevosCVs.length > 5) {
+        const aEliminar = nuevosCVs.slice(5).map(c => c.id) // Todos a partir del sexto
+        await supabase.from('cv_results').delete().in('id', aEliminar)
       }
+
       // Recargar lista de CVs existentes
       const { data: actualizados } = await supabase
         .from('cv_results')
@@ -137,7 +147,7 @@ export default function CVOptimizer() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto px-6 py-10">
+    <div className="max-w-3xl mx-auto px-6 py-10 relative">
 
       {/* Encabezado */}
       <div className="mb-8">
@@ -192,8 +202,8 @@ export default function CVOptimizer() {
         </h2>
         <p className="text-sm text-gray-400 mb-5">PDF, DOC o DOCX — máx. 5MB</p>
 
-        {/* Pregunta: ¿usar CV del perfil? — se muestra solo si hay CV guardado y aún no se ha decidido */}
-        {perfil?.cv_path && cvDecision === null ? (
+        {/* Pregunta: ¿usar CV del perfil? — se muestra solo si hay CV guardado, aún no se ha decidido y NO hay CVs optimizados */}
+        {perfil?.cv_path && cvDecision === null && cvsExistentes.length === 0 ? (
           <div className="mb-2 p-5 bg-primary/5 border border-primary/20 rounded-2xl">
             <div className="flex items-start gap-3 mb-4">
               <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
@@ -246,27 +256,14 @@ export default function CVOptimizer() {
           </div>
         )}
 
-        {/* Upload normal — solo si decidió subir nuevo o no hay CV en perfil */}
-        {(cvDecision === 'nuevo' || !perfil?.cv_path) && (
+        {/* Upload normal — solo si decidió subir nuevo, no hay CV en perfil, o ya tiene historial previo */}
+        {(cvDecision === 'nuevo' || !perfil?.cv_path || cvsExistentes.length > 0) && (
           <FileUpload onFileSelect={setCvArchivo} archivoActual={cvArchivo} />
-        )}
-
-        {/* Disclaimer de reemplazo — solo si ya hay CVs previos */}
-        {cvsExistentes.length > 0 && (
-          <div className="mt-4 p-3 bg-amber-50 border border-amber-100 rounded-xl flex gap-2">
-            <span className="shrink-0 text-amber-500 text-sm">ℹ</span>
-            <p className="text-xs text-amber-700 leading-relaxed">
-              Al optimizar un nuevo CV, reemplazará el anterior del mismo idioma como tu versión activa.
-              No te preocupes — los podrás encontrar todos en{' '}
-              <button onClick={() => navigate('/mis-cvs')} className="underline font-medium">Mis CVs</button>
-              {' '}ordenados por fecha.
-            </p>
-          </div>
         )}
 
         <div className="mt-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pt-5 border-t border-gray-100">
           <LanguageSelector value={language} onChange={setLanguage} />
-          <Button onClick={analizar} loading={loading} disabled={!cvArchivo}>
+          <Button onClick={handleOptimizarClick} loading={loading} disabled={!cvArchivo}>
             {loading ? 'Analizando...' : 'Optimizar CV →'}
           </Button>
         </div>
@@ -375,6 +372,41 @@ export default function CVOptimizer() {
           <p className="mt-4 text-xs text-gray-400 text-right">
             Créditos utilizados: {resultadoOptimize.usageCount} · Plan gratuito (2 análisis)
           </p>
+        </div>
+      )}
+
+      {/* Modal de confirmación para reemplazo de CV activo */}
+      {showConfirmModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden animate-fade-in-up">
+            <div className="p-6">
+              <div className="w-12 h-12 rounded-full bg-amber-50 flex items-center justify-center mb-4 border border-amber-100">
+                <span className="text-amber-500 text-2xl">ℹ</span>
+              </div>
+              <h3 className="text-lg font-bold text-gray-900 mb-2">¿Optimizar un nuevo CV?</h3>
+              <p className="text-sm text-gray-600 leading-relaxed">
+                Al optimizar un nuevo CV, reemplazará el anterior del mismo idioma como tu versión activa.
+                No te preocupes — los podrás encontrar todos en <strong className="font-semibold text-gray-900">Mis CVs</strong> ordenados por fecha.
+              </p>
+            </div>
+            <div className="flex gap-3 px-6 py-4 bg-gray-50 border-t border-gray-100">
+              <button
+                onClick={() => setShowConfirmModal(false)}
+                className="flex-1 px-4 py-2.5 text-sm font-semibold text-gray-700 bg-white border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors"
+                disabled={loading}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={analizar}
+                disabled={loading}
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-white bg-primary rounded-xl hover:bg-primary/90 transition-colors shadow-sm disabled:opacity-50"
+              >
+                {loading ? <span className="animate-spin inline-block w-4 h-4 border-2 border-current border-t-transparent rounded-full" /> : null}
+                {loading ? 'Analizando...' : 'Optimizar'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

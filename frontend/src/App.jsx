@@ -3,6 +3,7 @@ import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import Header from './components/common/Header'
 import Sidebar from './components/common/Sidebar'
 import Landing from './pages/Landing'
+import Landing2 from './pages/Landing2'
 import CVOptimizer from './pages/CVOptimizer'
 import CVvsJob from './pages/CVvsJob'
 import JobMatches from './pages/JobMatches'
@@ -29,9 +30,9 @@ import AiChatBot from './components/chat/AiChatBot'
 import { useAuth } from './context/AuthContext'
 
 // Rutas que NO muestran sidebar ni header estándar
-const RUTAS_FULL = ['/', '/auth', '/onboarding', '/admin', '/privacidad', '/reset-password', '/pricing']
+const RUTAS_FULL = ['/', '/landing2', '/auth', '/onboarding', '/admin', '/privacidad', '/reset-password', '/pricing']
 // Rutas excluidas del guard de onboarding
-const RUTAS_SIN_GUARD = ['/', '/auth', '/onboarding', '/admin', '/privacidad', '/reset-password', '/pricing', '/proyecto-laboral']
+const RUTAS_SIN_GUARD = ['/', '/landing2', '/auth', '/onboarding', '/admin', '/privacidad', '/reset-password', '/pricing', '/proyecto-laboral']
 // Rutas públicas (solo para usuarios NO autenticados)
 const RUTAS_PUBLICAS = ['/', '/auth', '/privacidad', '/reset-password', '/pricing']
 
@@ -88,6 +89,7 @@ export default function App() {
     <OnboardingGuard>
       <Routes>
         <Route path="/"              element={<PublicRoute><Landing /></PublicRoute>} />
+        <Route path="/landing2"      element={<PublicRoute><Landing2 /></PublicRoute>} />
         <Route path="/cv-optimizer"  element={<CVOptimizer />} />
         <Route path="/cv-vs-job"     element={<CVvsJob />} />
         <Route path="/jobs"          element={<JobMatches />} />

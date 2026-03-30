@@ -209,6 +209,83 @@ function OverviewTab({ stats }) {
   )
 }
 
+// ─── Waitlist Tab ────────────────────────────────────────────────────────────
+
+function WaitlistTab({ leads, views, onRefresh }) {
+  const conversionRate = views > 0 ? ((leads.length / views) * 100).toFixed(1) : 0
+  
+  return (
+    <div className="space-y-8 max-w-6xl">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-black text-white">Lista de Espera</h2>
+          <p className="text-gray-400 text-sm mt-1">Leads capturados desde la nueva Landing Page</p>
+        </div>
+        <button onClick={onRefresh} className="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors">
+          <PI.ArrowsClockwise size={20} />
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <KpiCard label="Total Leads" value={leads.length} icon={PI.UsersThree} color="blue" />
+        <KpiCard label="Visitas a Landing" value={views} icon={PI.Eye} color="purple" />
+        <KpiCard label="Conversión" value={`${conversionRate}%`} sub={`Promedio: 5-10%`} icon={PI.Target} color="green" />
+      </div>
+
+      <div className="bg-[#111827] rounded-3xl border border-gray-800 shadow-2xl overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-[#0B0F1A] border-b border-gray-800 text-[10px] uppercase font-black tracking-widest text-gray-500">
+                <th className="px-6 py-4">Usuario</th>
+                <th className="px-6 py-4">Situación</th>
+                <th className="px-6 py-4">País/Teléfono</th>
+                <th className="px-6 py-4 text-right">Fecha Registro</th>
+              </tr>
+            </thead>
+            <tbody>
+              {leads.map(lead => (
+                <tr key={lead.id} className="border-b border-gray-800/50 hover:bg-gray-800/40 transition-colors">
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
+                        <span className="text-emerald-400 font-black text-sm">{lead.nombre?.[0]?.toUpperCase()}</span>
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-bold text-white truncate">{lead.nombre} {lead.apellido}</p>
+                        <p className="text-[10px] text-gray-500 truncate font-medium">{lead.email}</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 text-xs font-semibold text-gray-300">
+                    <span className="inline-block px-2.5 py-1 rounded-lg bg-gray-800 border border-gray-700">
+                      {lead.situacion || 'No especificada'}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4">
+                    <p className="text-xs font-bold text-white mb-0.5">{lead.pais || '—'}</p>
+                    <p className="text-[10px] text-gray-500 font-mono">{lead.telefono || '—'}</p>
+                  </td>
+                  <td className="px-6 py-4 text-right text-[10px] font-medium text-gray-500 uppercase tracking-wider">
+                    {fmtDate(lead.created_at)}
+                  </td>
+                </tr>
+              ))}
+              {leads.length === 0 && (
+                <tr>
+                  <td colSpan={4} className="px-6 py-12 text-center text-sm font-medium text-gray-500">
+                    Aún no hay registros en la lista de espera.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ─── Users Tab ───────────────────────────────────────────────────────────────
 
 function UserRow({ u, onEdit, onView }) {
@@ -1323,6 +1400,7 @@ const TABS = [
   { id: 'users',         label: 'Usuarios',       icon: PI.UsersThree },
   { id: 'suscripciones', label: 'Suscripciones',  icon: PI.Coins },
   { id: 'codigos',       label: 'Códigos',        icon: PI.Tag },
+  { id: 'waitlist',      label: 'Lista de Espera', icon: PI.ListStar },
   { id: 'analytics',     label: 'Métricas',       icon: PI.ChartBar },
   { id: 'sistema',       label: 'Configuración',  icon: PI.UserCircle },
 ]
@@ -1332,10 +1410,20 @@ function Dashboard({ adminUser, onLogout }) {
   const [users, setUsers]     = useState([])
   const [loading, setLoading] = useState(true)
 
+  const [waitlistLeads, setWaitlistLeads] = useState([])
+  const [landingViews, setLandingViews] = useState(0)
+
   const fetchUsers = useCallback(async () => {
     setLoading(true)
     const { data, error } = await db.from('profiles').select('*').order('created_at', { ascending: false })
     if (!error && data) setUsers(data)
+
+    const { data: wData } = await db.from('waitlist_leads').select('*').order('created_at', { ascending: false })
+    if (wData) setWaitlistLeads(wData)
+
+    const { data: sData } = await db.from('landing_stats').select('views').eq('id', 1).single()
+    if (sData) setLandingViews(sData.views)
+    
     setLoading(false)
   }, [])
 
@@ -1439,6 +1527,7 @@ function Dashboard({ adminUser, onLogout }) {
               <div className="fade-in">
                 {tab === 'overview'  && <OverviewTab stats={stats} />}
                 {tab === 'users'     && <UsersTab users={users} onRefresh={fetchUsers} />}
+                {tab === 'waitlist'  && <WaitlistTab leads={waitlistLeads} views={landingViews} onRefresh={fetchUsers} />}
                 {tab === 'analytics' && <AnalyticsTab users={users} />}
                 {tab === 'suscripciones'  && <SubscriptionsTab users={users} />}
                 {tab === 'codigos'     && <CodigosTab />}

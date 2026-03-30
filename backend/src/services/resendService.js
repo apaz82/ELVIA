@@ -74,7 +74,35 @@ const sendOTPEmail = async (to, otp, targetUserEmail) => {
   });
 };
 
+const sendWelcomeWaitlistEmail = async (to, nombre) => {
+  if (!process.env.RESEND_API_KEY) {
+    throw new Error('RESEND_API_KEY no configurada');
+  }
+
+  return resend.emails.send({
+    from: FROM_EMAIL,
+    to,
+    subject: '¡Bienvenido a la tribu pionera de OPTIMA-CV! 🚀',
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; line-height: 1.6;">
+        <h2 style="color: #E8541A;">¡Hola ${nombre}!</h2>
+        <p>Gracias por unirte a la lista de espera de <strong>OPTIMA-CV</strong>.</p>
+        <p>Estamos afinando los últimos detalles de nuestra plataforma potenciada por IA para que tu currículum destaque y supere todos los filtros corporativos.</p>
+        <p>Por ser pionero, recibirás <strong>descuentos exclusivos y beneficios especiales</strong> cuando lancemos oficialmente al público. Muy pronto estaremos live y serás de los primeros en probar nuestra magia.</p>
+        <br />
+        <p>Si tienes alguna sugerencia o quieres decir hola, responde este correo. ¡Nos encanta escucharte!</p>
+        <p>Un saludo,<br/><strong>El equipo de OPTIMA</strong></p>
+        <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;" />
+        <p style="font-size: 12px; color: #999;">
+          © 2026 OPTIMA-CV
+        </p>
+      </div>
+    `,
+  });
+};
+
 module.exports = {
   sendCVEmail,
   sendOTPEmail,
+  sendWelcomeWaitlistEmail,
 };

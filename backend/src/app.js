@@ -22,6 +22,7 @@ const interviewRoutes = require('./routes/interview')
 const linkedinRoutes  = require('./routes/linkedin')
 const codesRoutes     = require('./routes/codes')
 const adminRoutes     = require('./routes/admin')
+const waitlistRoutes  = require('./routes/waitlist')
 
 const app = express();
 
@@ -84,6 +85,7 @@ app.use('/api/interview', interviewRoutes)
 app.use('/api/linkedin',  linkedinRoutes)
 app.use('/api/codes',     codesRoutes)
 app.use('/api/admin',     adminRoutes)
+app.use('/api/waitlist',  waitlistRoutes)
 
 // --- Manejo global de errores ---
 app.use((err, req, res, next) => {

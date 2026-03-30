@@ -14,6 +14,27 @@ const optimize = async (req, res, next) => {
 
     const db = req.supabase;
     const cvText = await parseCV(req.file.buffer, req.file.mimetype);
+
+    // NUEVO: Validación de Identidad del Onboarding
+    const { data: profile } = await db.from('profiles').select('nombre1, apellido1').eq('id', req.user.id).single();
+    if (profile) {
+      const cvTextNorm = cvText.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+      const n1 = profile.nombre1 ? profile.nombre1.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim() : '';
+      const a1 = profile.apellido1 ? profile.apellido1.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim() : '';
+      
+      let faltan = false;
+      // Buscamos la primera palabra del nombre o apellido por si registraron nombres compuestos
+      const primerNombre = n1.split(' ')[0];
+      const primerApellido = a1.split(' ')[0];
+
+      if (primerNombre && !cvTextNorm.includes(primerNombre)) faltan = true;
+      if (primerApellido && !cvTextNorm.includes(primerApellido)) faltan = true;
+
+      if (faltan) {
+        return res.status(400).json({ error: 'Este cv no concuerda con con la informaciòn del onboarding.' });
+      }
+    }
+
     const language = req.body.language || 'es';
     const resultado = await optimizeCV(cvText, language);
 
