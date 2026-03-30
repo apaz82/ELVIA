@@ -23,9 +23,9 @@ const crearClienteAutenticado = (token) => {
 
 // Cliente con service role key — permisos totales (para operaciones sensibles)
 // NUNCA exponer al frontend
-const supabaseAdmin = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+// Creación condicional: si la key no está, el servidor arranca igual y solo fallan las rutas admin
+const supabaseAdmin = process.env.SUPABASE_SERVICE_ROLE_KEY
+  ? createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
+  : null;
 
 module.exports = { supabase, crearClienteAutenticado, supabaseAdmin };
