@@ -30,11 +30,18 @@ export function useChat() {
       };
 
       const res = await api.post('/api/chat', payload);
-      
-      if (res.error) {
-        setMessages(prev => [...prev, { role: 'assistant', content: 'Lo siento, hubo un error al conectar con mis sistemas. Intenta de nuevo más tarde.' }]);
-      } else {
+
+      if (res.reply) {
+        // Respuesta normal O rate limit con mensaje amigable
         setMessages(prev => [...prev, { role: 'assistant', content: res.reply }]);
+      } else if (res.error) {
+        // Errores de auth → pedir que recargue; otros → mensaje genérico
+        console.error('[OPTIMA chat] backend error:', res.error);
+        const esAuthError = res.error === 'Token inválido o expirado' || res.error === 'Token no proporcionado' || res.error === 'No autorizado';
+        const msg = esAuthError
+          ? 'Tu sesión ha expirado. Por favor, recarga la página e inicia sesión nuevamente.'
+          : 'Lo siento, hubo un error al conectar con mis sistemas. Intenta de nuevo más tarde.';
+        setMessages(prev => [...prev, { role: 'assistant', content: msg }]);
       }
     } catch (err) {
       setMessages(prev => [...prev, { role: 'assistant', content: 'Error de red. Asegúrate de tener conexión.' }]);
