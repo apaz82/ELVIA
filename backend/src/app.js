@@ -1,6 +1,5 @@
 // Configuración principal de Express
 const express = require('express');
-const cors = require('cors');
 const helmet = require('helmet');
 
 const { limiterGeneral } = require('./middleware/rateLimiter');
@@ -15,7 +14,7 @@ const adminRoutes     = require('./routes/admin')
 
 const app = express();
 
-// --- CORS va ANTES de Helmet para que los preflights OPTIONS siempre reciban headers ---
+// --- CORS manual — bypassea el paquete cors para máxima compatibilidad con proxies ---
 const ALLOWED_ORIGINS = [
   process.env.FRONTEND_URL || 'https://gestioncv.netlify.app',
   'https://optimacv.cv',
@@ -24,24 +23,22 @@ const ALLOWED_ORIGINS = [
   'http://localhost:4173',
 ];
 
-const corsOptions = {
-  origin: (origin, callback) => {
-    // Permitir requests sin origin (mobile apps, Postman, health checks)
-    if (!origin || ALLOWED_ORIGINS.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error(`CORS bloqueado: ${origin}`));
-    }
-  },
-  credentials: true,
-  exposedHeaders: ['Content-Disposition'],
-};
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (!origin || ALLOWED_ORIGINS.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin || '*');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization');
+    res.setHeader('Access-Control-Expose-Headers', 'Content-Disposition');
+  }
+  // Preflight OPTIONS — responder inmediatamente con 204
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(204);
+  }
+  next();
+});
 
-// Handler explícito de preflight OPTIONS — responde antes que cualquier otro middleware
-app.options('*', cors(corsOptions));
-app.use(cors(corsOptions));
-
-// --- Helmet después de CORS para no interferir con Access-Control headers ---
 app.use(helmet());
 
 app.use(express.json());
