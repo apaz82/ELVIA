@@ -15,8 +15,7 @@ const adminRoutes     = require('./routes/admin')
 
 const app = express();
 
-// --- Middlewares globales ---
-app.use(helmet());
+// --- CORS va ANTES de Helmet para que los preflights OPTIONS siempre reciban headers ---
 const ALLOWED_ORIGINS = [
   process.env.FRONTEND_URL || 'https://gestioncv.netlify.app',
   'https://optimacv.cv',
@@ -25,9 +24,9 @@ const ALLOWED_ORIGINS = [
   'http://localhost:4173',
 ];
 
-app.use(cors({
+const corsOptions = {
   origin: (origin, callback) => {
-    // Permitir requests sin origin (mobile apps, Postman, Railway health checks)
+    // Permitir requests sin origin (mobile apps, Postman, health checks)
     if (!origin || ALLOWED_ORIGINS.includes(origin)) {
       callback(null, true);
     } else {
@@ -36,7 +35,14 @@ app.use(cors({
   },
   credentials: true,
   exposedHeaders: ['Content-Disposition'],
-}));
+};
+
+// Handler explícito de preflight OPTIONS — responde antes que cualquier otro middleware
+app.options('*', cors(corsOptions));
+app.use(cors(corsOptions));
+
+// --- Helmet después de CORS para no interferir con Access-Control headers ---
+app.use(helmet());
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
