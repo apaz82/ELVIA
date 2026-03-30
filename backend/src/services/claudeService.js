@@ -1,7 +1,12 @@
-// Integración con Claude API — motor de análisis de CV
 const Anthropic = require('@anthropic-ai/sdk');
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+// Inicialización segura para evitar crashes en producción si falta la llave
+let client;
+try {
+  client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY || 'fake-key-to-prevent-crash' });
+} catch (error) {
+  console.error('[Anthropic] CRITICAL: Error al inicializar cliente. ¿Falta ANTHROPIC_API_KEY?', error.message);
+}
 
 // ── Estrategia de modelos ─────────────────────────────────────
 // Sonnet 4.6  → tasks que requieren escritura creativa de alta calidad:

@@ -1,5 +1,16 @@
 // Configuración principal de Express
 const express = require('express');
+const cors = require('cors');
+
+// --- Manejo de errores fatales del proceso ---
+process.on('uncaughtException', (err) => {
+  console.error('[CRITICAL] Uncaught Exception:', err);
+  // En producción, podrías querer cerrar el servidor de forma elegante aquí
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('[CRITICAL] Unhandled Rejection at:', promise, 'reason:', reason);
+});
 const helmet = require('helmet');
 
 const { limiterGeneral } = require('./middleware/rateLimiter');
@@ -14,7 +25,12 @@ const adminRoutes     = require('./routes/admin')
 
 const app = express();
 
-// --- CORS manual — bypassea el paquete cors para máxima compatibilidad con proxies ---
+// --- Configuración para Proxies (Railway/Render) ---
+// Necesario para que express-rate-limit identifique IPs correctamente tras el balanceador
+app.set('trust proxy', 1);
+
+
+// --- CORS Configuración Segura ---
 const ALLOWED_ORIGINS = [
   process.env.FRONTEND_URL || 'https://gestioncv.netlify.app',
   'https://optimacv.cv',
@@ -23,20 +39,32 @@ const ALLOWED_ORIGINS = [
   'http://localhost:4173',
 ];
 
-app.use((req, res, next) => {
-  const origin = req.headers.origin;
-  if (!origin || ALLOWED_ORIGINS.includes(origin)) {
-    res.setHeader('Access-Control-Allow-Origin', origin || '*');
-    res.setHeader('Access-Control-Allow-Credentials', 'true');
-    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization');
-    res.setHeader('Access-Control-Expose-Headers', 'Content-Disposition');
-  }
-  // Preflight OPTIONS — responder inmediatamente con 204
-  if (req.method === 'OPTIONS') {
-    return res.sendStatus(204);
-  }
-  next();
+app.use(cors({
+  origin: function (origin, callback) {
+    if (!origin || ALLOWED_ORIGINS.includes(origin)) {
+      callback(null, true);
+    } else {
+      console.warn(`[CORS Blocked] Origin: ${origin}`);
+      callback(new Error('No permitido por CORS'));
+    }
+  },
+  credentials: true,
+  exposedHeaders: ['Content-Disposition'],
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+}));
+
+// --- Ruta de salud (health check) ---
+// Se coloca aquí para que responda incluso si fallan otros middlewares pesados
+app.get('/', (req, res) => {
+  res.json({
+    status: 'ok',
+    producto: 'OPTIMA-CV',
+    env: {
+      has_url: !!process.env.SUPABASE_URL,
+      has_anon: !!process.env.SUPABASE_ANON_KEY,
+      has_service: !!process.env.SUPABASE_SERVICE_ROLE_KEY
+    }
+  });
 });
 
 app.use(helmet());
@@ -45,10 +73,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(limiterGeneral);
 
-// --- Ruta de salud (health check) ---
-app.get('/', (req, res) => {
-  res.json({ status: 'ok', producto: 'OPTIMA-CV' });
-});
+
 
 // --- Rutas de la API ---
 app.use('/api/cv', cvRoutes);
@@ -68,6 +93,14 @@ app.use((err, req, res, next) => {
     Sentry.captureException(err);
   }
   console.error(err.stack);
+
+  // Asegurar que los errores mantengan headers CORS para que el browser los reciba
+  const origin = req.headers.origin;
+  if (origin && ALLOWED_ORIGINS.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+  }
+
   res.status(err.status || 500).json({
     error: err.message || 'Error interno del servidor',
   });

@@ -2,6 +2,9 @@
 const { supabase, crearClienteAutenticado } = require('../lib/supabase');
 
 const auth = async (req, res, next) => {
+  if (!supabase) {
+    return res.status(500).json({ error: 'Backend mal configurado: Supabase no inicializado' });
+  }
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {

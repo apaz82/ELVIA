@@ -2,10 +2,10 @@
 const { createClient } = require('@supabase/supabase-js');
 
 // Cliente base (anon) — solo para verificar JWTs en el middleware de auth
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_ANON_KEY
-);
+// Creación condicional para evitar crashes si las keys faltan en el entorno
+const supabase = (process.env.SUPABASE_URL && process.env.SUPABASE_ANON_KEY)
+  ? createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY)
+  : (console.error('[Supabase] CRITICAL: Missing SUPABASE_URL or SUPABASE_ANON_KEY'), null);
 
 // Cliente autenticado con el JWT del usuario
 // Permite que RLS identifique al usuario y aplique sus políticas correctamente
