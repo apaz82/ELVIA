@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const supabaseAdmin = require('../lib/supabaseAdmin'); // Assuming supabaseAdmin is inside lib
+const { supabaseAdmin } = require('../lib/supabase');
 const { sendWelcomeWaitlistEmail } = require('../services/resendService');
 
 router.post('/', async (req, res, next) => {

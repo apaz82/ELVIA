@@ -264,7 +264,7 @@ export default function Landing() {
             </>
           ) : (
             <>
-              <button onClick={() => document.getElementById('waitlist-form').scrollIntoView({ behavior: 'smooth' })}
+              <button onClick={() => document.getElementById('waitlist-form-bottom').scrollIntoView({ behavior: 'smooth' })}
                 className="flex items-center gap-2 bg-gray-900 text-white font-bold text-sm px-6 py-2.5 rounded-xl hover:bg-gray-800 transition-all shadow-md">
                 Únete a la Lista de Espera apuntándote aquí
               </button>
@@ -716,7 +716,7 @@ export default function Landing() {
                   </p>
                   <div className="flex flex-col gap-3">
                     <button 
-                      onClick={() => document.getElementById('waitlist-form').scrollIntoView({ behavior: 'smooth' })} 
+                      onClick={() => document.getElementById('waitlist-form-bottom').scrollIntoView({ behavior: 'smooth' })} 
                       className="w-full bg-[#1A91F0] text-white font-bold py-4 px-6 rounded-2xl hover:bg-blue-600 hover:shadow-lg transition-all shadow-md focus:ring-4 focus:ring-blue-500/20"
                     >
                       Únete a la lista de espera
@@ -909,7 +909,7 @@ export default function Landing() {
 
               {/* CTA */}
               <button 
-                onClick={() => document.getElementById('waitlist-form').scrollIntoView({ behavior: 'smooth' })}
+                onClick={() => document.getElementById('waitlist-form-bottom').scrollIntoView({ behavior: 'smooth' })}
                 className="flex items-center gap-2.5 text-white font-bold text-sm shrink-0 bg-white/10 group-hover:bg-white/20 transition-colors duration-300 px-6 py-3.5 rounded-xl border border-white/10 group-hover:border-white/20 whitespace-nowrap cursor-pointer">
                 Disponible próximamente, únete a la lista de espera
                 <ArrowRight size={16} weight="bold" className="group-hover:translate-x-1 transition-transform duration-200" />
@@ -921,7 +921,7 @@ export default function Landing() {
       </section>
 
       {/* ── CTA Final ─────────────────────────────────────────────────────── */}
-      <section className="relative z-10 py-24 px-6 border-t border-gray-200 bg-white">
+      <section id="waitlist-form-bottom" className="relative z-10 py-24 px-6 border-t border-gray-200 bg-white">
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           whileInView={{ opacity: 1, scale: 1 }}
