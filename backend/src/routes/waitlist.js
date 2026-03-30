@@ -3,9 +3,24 @@ const router = express.Router();
 const { supabaseAdmin } = require('../lib/supabase');
 const { sendWelcomeWaitlistEmail } = require('../services/resendService');
 
+// GET /api/waitlist — listar todos los leads (solo llamado desde Admin)
+router.get('/', async (req, res, next) => {
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('waitlist_leads')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return res.json({ leads: data || [] });
+  } catch (error) {
+    next(error);
+  }
+});
+
 router.post('/', async (req, res, next) => {
   try {
-    const { nombre, apellido, telefono, pais, email, situacion, aceptaPrivacidad } = req.body;
+    const { nombre, apellido, indicativo, telefono, pais, email, situacion, aceptaPrivacidad } = req.body;
 
     if (!nombre || !apellido || !pais || !email || !situacion || !aceptaPrivacidad) {
       return res.status(400).json({ error: 'Faltan campos obligatorios' });
@@ -17,10 +32,13 @@ router.post('/', async (req, res, next) => {
       return res.status(400).json({ error: 'Formato de email inválido' });
     }
 
+    // Combinar indicativo + número para guardar teléfono completo
+    const telefonoCompleto = indicativo && telefono ? `${indicativo} ${telefono}` : (telefono || '');
+
     // Use supabaseAdmin to bypass RLS for inserting leads
     const { data: dbData, error: dbError } = await supabaseAdmin
       .from('waitlist_leads')
-      .insert([{ nombre, apellido, telefono, pais, email, situacion }])
+      .insert([{ nombre, apellido, telefono: telefonoCompleto, pais, email, situacion }])
       .select('id')
       .single();
 

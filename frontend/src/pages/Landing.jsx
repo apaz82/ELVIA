@@ -9,7 +9,7 @@ import {
   MicrophoneStage, UsersThree
 } from '@phosphor-icons/react'
 
-// ── Features data (fuera del componente para evitar re-renders) ───────────────
+// ─── Features data (fuera del componente para evitar re-renders) ───────────────
 const GRAD = {
   orange: 'linear-gradient(135deg, #E8541A 0%, #F59E0B 100%)',
   teal:   'linear-gradient(135deg, #0D9488 0%, #059669 100%)',
@@ -107,7 +107,28 @@ const FEATURE_ROWS = {
 import { supabase } from '../services/authService'
 import { motion, useScroll, useTransform, useSpring } from 'framer-motion'
 
-// ── Animaciones ───────────────────────────────────────────────────────────────
+// ─── Catálogo de países — valor ES, código IP en inglés, indicativo ────────────
+const PAISES = [
+  { value: 'Colombia',    ipName: 'Colombia',     code: '+57'  },
+  { value: 'México',      ipName: 'Mexico',        code: '+52'  },
+  { value: 'Argentina',   ipName: 'Argentina',     code: '+54'  },
+  { value: 'Chile',       ipName: 'Chile',         code: '+56'  },
+  { value: 'Perú',        ipName: 'Peru',          code: '+51'  },
+  { value: 'Ecuador',     ipName: 'Ecuador',       code: '+593' },
+  { value: 'Venezuela',   ipName: 'Venezuela',     code: '+58'  },
+  { value: 'Bolivia',     ipName: 'Bolivia',       code: '+591' },
+  { value: 'Paraguay',    ipName: 'Paraguay',      code: '+595' },
+  { value: 'Uruguay',     ipName: 'Uruguay',       code: '+598' },
+  { value: 'Costa Rica',  ipName: 'Costa Rica',    code: '+506' },
+  { value: 'Guatemala',   ipName: 'Guatemala',     code: '+502' },
+  { value: 'Honduras',    ipName: 'Honduras',      code: '+504' },
+  { value: 'Panamá',      ipName: 'Panama',        code: '+507' },
+  { value: 'España',      ipName: 'Spain',         code: '+34'  },
+  { value: 'Estados Unidos', ipName: 'United States', code: '+1' },
+  { value: 'Otro',        ipName: '',              code: ''     },
+]
+
+// ─── Animaciones ──────────────────────────────────────────────────────────────
 const fadeInUp = {
   hidden: { opacity: 0, y: 40 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.8, ease: [0.22, 1, 0.36, 1] } }
@@ -121,7 +142,7 @@ const staggerContainer = {
   }
 }
 
-// ── Contador animado ──────────────────────────────────────────────────────────
+// ─── Contador animado ────────────────────────────────────────────────────────
 function useInView(threshold = 0.15) {
   const ref = useRef(null)
   const [inView, setInView] = useState(false)
@@ -149,7 +170,7 @@ function AnimatedCounter({ target, suffix = '', duration = 1600 }) {
   return <span ref={ref}>{count}{suffix}</span>
 }
 
-// ── Componente principal ──────────────────────────────────────────────────────
+// ─── Componente principal ──────────────────────────────────────────────────
 export default function Landing() {
   const navigate  = useNavigate()
   const { user, perfil, creditosRestantes, LIMITE_PLAN } = useAuth()
@@ -159,11 +180,43 @@ export default function Landing() {
   // Detectar onboarding incompleto
   const onboardingIncompleto = user && !perfil?.nombre1
 
-  // Estados para el Simulador Interactivo (Curiosity Gap)
+  // ─── Simulador Interactivo (auto-type) ──────────────────────────────────
+  const DEMO_JOB_TEXT = 'La Compañía busca un perfil de Operaciones con experiencia en la industria de alimentos. El candidato ideal tiene 3+ años liderando procesos de calidad, coordinación de proveedores y mejora continua (Lean/Six Sigma). Excelente comunicación, visión analítica y enfoque en resultados. Deseable experiencia en ERP (SAP o similar).'
   const [demoText, setDemoText] = useState('')
+  const [demoTypingDone, setDemoTypingDone] = useState(false)
   const [demoLoading, setDemoLoading] = useState(false)
   const [demoLoadingText, setDemoLoadingText] = useState('Ejecutar simulador')
   const [showDemoOverlay, setShowDemoOverlay] = useState(false)
+  const demoSectionRef = useRef(null)
+  const demoTypingStarted = useRef(false)
+
+  useEffect(() => {
+    const section = demoSectionRef.current
+    if (!section) return
+    const obs = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting && !demoTypingStarted.current) {
+        demoTypingStarted.current = true
+        let i = 0
+        const timer = setInterval(() => {
+          i++
+          setDemoText(DEMO_JOB_TEXT.slice(0, i))
+          if (i >= DEMO_JOB_TEXT.length) { 
+            clearInterval(timer)
+            setDemoTypingDone(true)
+            // Analytics: Simulación terminada
+            const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001'
+            fetch(`${API_URL}/api/events/track`, {
+               method: 'POST',
+               headers: { 'Content-Type': 'application/json' },
+               body: JSON.stringify({ event_name: 'simulation_completed' })
+            }).catch(() => {})
+          }
+        }, 28)
+      }
+    }, { threshold: 0.3 })
+    obs.observe(section)
+    return () => obs.disconnect()
+  }, [])
 
   const handleDemoSubmit = () => {
      setDemoLoading(true)
@@ -177,7 +230,7 @@ export default function Landing() {
   }
 
   // --- Waitlist State ---
-  const [waitlistForm, setWaitlistForm] = useState({ nombre: '', apellido: '', telefono: '', pais: '', email: '', situacion: '', aceptaPrivacidad: false })
+  const [waitlistForm, setWaitlistForm] = useState({ nombre: '', apellido: '', indicativo: '', telefono: '', pais: '', email: '', situacion: '', aceptaPrivacidad: false })
   const [waitlistStatus, setWaitlistStatus] = useState({ loading: false, success: false, error: null })
 
   useEffect(() => {
@@ -186,11 +239,35 @@ export default function Landing() {
        fetch((import.meta.env.VITE_API_URL || 'https://optima-backend-production.up.railway.app') + '/api/waitlist/track', { method: 'POST' }).catch(() => {})
     }
 
+    // Dynamic Config: SEO & Headline
+    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001'
+    fetch(`${API_URL}/api/events/track`, { method: 'GET' }) // Mock or custom route if needed, for now use Supabase directly
+    
+    // Using Supabase client for simple public read
+    const { createClient } = import('@supabase/supabase-js').then(({ createClient }) => {
+      const db = createClient(import.meta.env.VITE_SUPABASE_URL, import.meta.env.VITE_SUPABASE_ANON_KEY)
+      db.from('landing_config').select('*').then(({ data }) => {
+        if (data) {
+          const title = data.find(c => c.config_key === 'seo_title')?.config_value
+          const desc  = data.find(c => c.config_key === 'seo_meta_description')?.config_value
+          if (title) document.title = title
+          if (desc) {
+            let meta = document.querySelector('meta[name="description"]')
+            if (meta) meta.setAttribute('content', desc)
+          }
+        }
+      })
+    })
+
     fetch('https://ipapi.co/json/')
       .then(res => res.json())
       .then(data => {
         if (data.country_name) {
-          setWaitlistForm(f => ({ ...f, pais: data.country_name, telefono: data.country_calling_code ? data.country_calling_code + ' ' : '' }))
+          // Buscar por ipName (inglés) en el catálogo
+          const pais = PAISES.find(p => p.ipName === data.country_name)
+          const paisValue  = pais ? pais.value : data.country_name
+          const indicativo = pais ? pais.code  : (data.country_calling_code || '')
+          setWaitlistForm(f => ({ ...f, pais: paisValue, indicativo }))
         }
       })
       .catch(err => console.error("Error fetching IP details", err))
@@ -208,8 +285,16 @@ export default function Landing() {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Error al registrarte en la lista de espera')
+      
+      // Analytics: Registro exitoso
+      fetch(`${API_URL}/api/events/track`, {
+         method: 'POST',
+         headers: { 'Content-Type': 'application/json' },
+         body: JSON.stringify({ event_name: 'waitlist_registered', metadata: { email: waitlistForm.email, situacion: waitlistForm.situacion } })
+      }).catch(() => {})
+
       setWaitlistStatus({ loading: false, success: true, error: null })
-      setWaitlistForm({ nombre: '', apellido: '', telefono: '', pais: '', email: '', situacion: '', aceptaPrivacidad: false })
+      setWaitlistForm({ nombre: '', apellido: '', indicativo: '', telefono: '', pais: '', email: '', situacion: '', aceptaPrivacidad: false })
     } catch (err) {
       setWaitlistStatus({ loading: false, success: false, error: err.message })
     }
@@ -231,7 +316,7 @@ export default function Landing() {
         style={{ scaleX: springScroll }}
       />
 
-      {/* ── Nav landing ────────────────────────────────────────────────────── */}
+      {/* ─── Nav landing ────────────────────────────────────────────────────────── */}
       <nav className="sticky top-0 z-50 flex items-center justify-between px-6 h-24 bg-white/80 backdrop-blur-xl border-b border-gray-200/80 transition-all duration-300">
         <Link to="/" className="flex items-center">
           <img src="/optima_logo_v3_clean_1.png" alt="OPTIMA-CV" className="h-[4.5rem] py-1 w-auto object-contain" />
@@ -264,7 +349,7 @@ export default function Landing() {
             </>
           ) : (
             <>
-              <button onClick={() => document.getElementById('waitlist-form-bottom').scrollIntoView({ behavior: 'smooth' })}
+              <button onClick={() => { setShowDemoOverlay(false); setTimeout(() => document.getElementById('waitlist-form')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 150) }}
                 className="flex items-center gap-2 bg-gray-900 text-white font-bold text-sm px-6 py-2.5 rounded-xl hover:bg-gray-800 transition-all shadow-md">
                 Únete a la Lista de Espera apuntándote aquí
               </button>
@@ -273,7 +358,7 @@ export default function Landing() {
         </div>
       </nav>
 
-      {/* ── Banner onboarding incompleto ──────────────────────────────────── */}
+      {/* ─── Banner onboarding incompleto ────────────────────────────────────────── */}
       {onboardingIncompleto && (
         <div className="bg-amber-50 border-b border-amber-200 px-6 py-3 flex items-center justify-center sm:justify-between gap-4 relative z-40 flex-wrap">
           <div className="flex items-center gap-3">
@@ -290,7 +375,7 @@ export default function Landing() {
         </div>
       )}
 
-      {/* ── Hero Section ──────────────────────────────────────────────────── */}
+      {/* ─── Hero Section ───────────────────────────────────────────────────────── */}
       <section className="relative z-10 pt-12 pb-20 md:pt-20 md:pb-32 px-6 lg:min-h-[85vh] flex items-center">
         <div className="container mx-auto max-w-7xl grid lg:grid-cols-2 gap-16 items-center">
           
@@ -331,11 +416,11 @@ export default function Landing() {
               Supera los filtros ATS, diseña un CV formato Harvard de alto impacto y domina tu proceso de selección en empresas corporativas.
             </motion.p>
 
-            <motion.div variants={fadeInUp} className="mt-8 bg-white border border-gray-200 rounded-3xl p-6 shadow-xl relative overflow-hidden" id="waitlist-form">
+            <motion.div variants={fadeInUp} className="mt-8 bg-gray-900 border border-white/10 rounded-3xl p-6 shadow-2xl relative overflow-hidden" id="waitlist-form">
               <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-teal-500 via-[#E8541A] to-blue-500" />
-              <h3 className="text-xl font-black text-gray-900 mb-2">Únete a la lista de espera</h3>
-              <p className="text-sm text-gray-500 mb-5">
-                Recibe descuentos y beneficios exclusivos por ser pionero OPTIMA.
+              <h3 className="text-xl font-black text-white mb-2 underline decoration-teal-500/50">Únete a la lista de espera</h3>
+              <p className="text-xs text-white/60 mb-5 leading-relaxed">
+                Supera los filtros ATS y domina tu proceso. Por ser pionero <span className="text-[#E8541A] font-bold">OPTIMA</span>, podrás ganar una de las <span className="text-teal-400 font-bold">Cuentas PRO Mensual</span> antes del lanzamiento oficial. Sorteo: 8 de Abril.
               </p>
               
               {waitlistStatus.success ? (
@@ -350,35 +435,51 @@ export default function Landing() {
                 <form onSubmit={handleWaitlistSubmit} className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs font-bold text-gray-700 mb-1">Nombre</label>
-                      <input required type="text" value={waitlistForm.nombre} onChange={e => setWaitlistForm(f => ({...f, nombre: e.target.value}))} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8541A]" placeholder="Tu nombre" />
+                      <label className="block text-xs font-bold text-white/50 mb-1">Nombre</label>
+                      <input required type="text" value={waitlistForm.nombre} onChange={e => setWaitlistForm(f => ({...f, nombre: e.target.value}))} className="w-full bg-white/5 border border-white/10 text-white rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8541A] placeholder-white/20" placeholder="Tu nombre" />
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-gray-700 mb-1">Apellido</label>
-                      <input required type="text" value={waitlistForm.apellido} onChange={e => setWaitlistForm(f => ({...f, apellido: e.target.value}))} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8541A]" placeholder="Tu apellido" />
+                      <label className="block text-xs font-bold text-white/50 mb-1">Apellido</label>
+                      <input required type="text" value={waitlistForm.apellido} onChange={e => setWaitlistForm(f => ({...f, apellido: e.target.value}))} className="w-full bg-white/5 border border-white/10 text-white rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8541A] placeholder-white/20" placeholder="Tu apellido" />
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs font-bold text-gray-700 mb-1">País</label>
-                      <input required type="text" value={waitlistForm.pais} onChange={e => setWaitlistForm(f => ({...f, pais: e.target.value}))} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8541A]" placeholder="País" />
+                      <label className="block text-xs font-bold text-white/50 mb-1">País</label>
+                      <select required value={waitlistForm.pais} onChange={e => {
+                        const pais = PAISES.find(p => p.value === e.target.value)
+                        setWaitlistForm(f => ({...f, pais: e.target.value, indicativo: pais?.code || ''}))
+                      }} className="w-full bg-white/5 border border-white/10 text-white rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8541A] appearance-none">
+                        <option value="" disabled className="text-gray-900">Selecciona país</option>
+                        {PAISES.map(p => (
+                          <option key={p.value} value={p.value} className="text-gray-900 bg-white">{p.value}</option>
+                        ))}
+                      </select>
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-gray-700 mb-1">Teléfono</label>
-                      <input type="tel" value={waitlistForm.telefono} onChange={e => setWaitlistForm(f => ({...f, telefono: e.target.value}))} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8541A]" placeholder="+57 300..." />
+                      <label className="block text-xs font-bold text-white/50 mb-1">Teléfono</label>
+                      <div className="flex gap-2">
+                        <select value={waitlistForm.indicativo} onChange={e => setWaitlistForm(f => ({...f, indicativo: e.target.value}))} className="w-24 shrink-0 bg-white/5 border border-white/10 text-white rounded-xl px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8541A] appearance-none text-center">
+                          <option value="" className="text-gray-900 bg-white">+--</option>
+                          {PAISES.filter(p => p.code).map(p => (
+                            <option key={p.value} value={p.code} className="text-gray-900 bg-white">{p.code}</option>
+                          ))}
+                        </select>
+                        <input type="tel" value={waitlistForm.telefono} onChange={e => setWaitlistForm(f => ({...f, telefono: e.target.value}))} className="flex-1 bg-white/5 border border-white/10 text-white rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8541A] placeholder-white/20" placeholder="300 000 0000" />
+                      </div>
                     </div>
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-gray-700 mb-1">Email</label>
-                    <input required type="email" value={waitlistForm.email} onChange={e => setWaitlistForm(f => ({...f, email: e.target.value}))} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8541A]" placeholder="tu@email.com" />
+                    <label className="block text-xs font-bold text-white/50 mb-1">Email</label>
+                    <input required type="email" value={waitlistForm.email} onChange={e => setWaitlistForm(f => ({...f, email: e.target.value}))} className="w-full bg-white/5 border border-white/10 text-white rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8541A] placeholder-white/20" placeholder="tu@email.com" />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-gray-700 mb-1">Situación Actual</label>
-                    <select required value={waitlistForm.situacion} onChange={e => setWaitlistForm(f => ({...f, situacion: e.target.value}))} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8541A] appearance-none">
-                      <option value="" disabled>Selecciona una opción</option>
-                      <option value="Estoy desempleada/o">Estoy desempleada/o</option>
-                      <option value="Empleada/o pero buscando alternativas">Empleada/o pero buscando alternativas</option>
-                      <option value="Quiero optimizar mi perfil para futuro">Quiero optimizar mi perfil para futuro</option>
+                    <label className="block text-xs font-bold text-white/50 mb-1">Situación Actual</label>
+                    <select required value={waitlistForm.situacion} onChange={e => setWaitlistForm(f => ({...f, situacion: e.target.value}))} className="w-full bg-white/5 border border-white/10 text-white rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8541A] appearance-none">
+                      <option value="" disabled className="text-gray-400">Selecciona una opción</option>
+                      <option value="Estoy desempleada/o" className="text-gray-900">Estoy desempleada/o</option>
+                      <option value="Empleada/o pero buscando alternativas" className="text-gray-900">Empleada/o pero buscando alternativas</option>
+                      <option value="Quiero optimizar mi perfil para futuro" className="text-gray-900">Quiero optimizar mi perfil para futuro</option>
                     </select>
                   </div>
                   
@@ -394,7 +495,7 @@ export default function Landing() {
                         <input type="checkbox" required checked={waitlistForm.aceptaPrivacidad} onChange={e => setWaitlistForm(f => ({...f, aceptaPrivacidad: e.target.checked}))} className="opacity-0 absolute inset-0 w-full h-full cursor-pointer" />
                         {waitlistForm.aceptaPrivacidad && <CheckCircle size={14} weight="bold" className="text-[#E8541A]" />}
                       </div>
-                      <span className="text-xs text-gray-500 leading-relaxed">
+                      <span className="text-xs text-white/40 leading-relaxed">
                         Acepto la <Link to="/privacidad" className="underline hover:text-[#E8541A]">política de privacidad</Link> y doy mi consentimiento para recibir comunicaciones.
                       </span>
                     </label>
@@ -407,33 +508,7 @@ export default function Landing() {
               )}
             </motion.div>
 
-            <motion.div variants={fadeInUp} className="mt-8 flex flex-wrap items-center gap-6 text-sm text-gray-400 font-medium">
-              {['2 análisis gratis', 'Sin tarjeta de crédito', 'Métricas instantáneas'].map(t => (
-                <span key={t} className="flex items-center gap-2">
-                  <CheckCircle size={16} weight="fill" className="text-teal-500" />
-                  {t}
-                </span>
-              ))}
-            </motion.div>
-
-            {/* Trust Badges */}
-            <motion.div variants={fadeInUp} className="mt-10 grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="flex flex-col gap-1.5 p-4 rounded-2xl bg-white/60 backdrop-blur-sm border border-gray-200/60 shadow-[0_2px_10px_rgba(0,0,0,0.02)] hover:bg-white hover:border-gray-300 hover:shadow-md transition-all">
-                 <ShieldCheck size={28} weight="duotone" className="text-teal-500 mb-1" />
-                 <span className="text-sm font-black tracking-tight text-gray-900">100% ATS-Perfect</span>
-                 <span className="text-xs text-gray-500 leading-tight">Supera filtros automáticos de corporativos.</span>
-              </div>
-              <div className="flex flex-col gap-1.5 p-4 rounded-2xl bg-white/60 backdrop-blur-sm border border-gray-200/60 shadow-[0_2px_10px_rgba(0,0,0,0.02)] hover:bg-white hover:border-gray-300 hover:shadow-md transition-all">
-                 <Lightning size={28} weight="duotone" className="text-amber-500 mb-1" />
-                 <span className="text-sm font-black tracking-tight text-gray-900">10x Más Rápido</span>
-                 <span className="text-xs text-gray-500 leading-tight">Tu currículum listo en segundos, no horas.</span>
-              </div>
-              <div className="flex flex-col gap-1.5 p-4 rounded-2xl bg-white/60 backdrop-blur-sm border border-gray-200/60 shadow-[0_2px_10px_rgba(0,0,0,0.02)] hover:bg-white hover:border-gray-300 hover:shadow-md transition-all">
-                 <Target size={28} weight="duotone" className="text-blue-500 mb-1" />
-                 <span className="text-sm font-black tracking-tight text-gray-900">Recruiter Match</span>
-                 <span className="text-xs text-gray-500 leading-tight">Compatible matemáticamente con la vacante.</span>
-              </div>
-            </motion.div>
+            {/* Trust Badges moved inside the right column below mockup */}
           </motion.div>
 
           {/* Floating UI Elements / Dashboard Mockup */}
@@ -444,76 +519,100 @@ export default function Landing() {
             className="relative hidden lg:block perspective-1000"
           >
             <div className="absolute inset-0 bg-gradient-to-r from-teal-500/20 to-blue-500/20 blur-[100px] rounded-full" />
-            
-            {/* Main Widget */}
-            <motion.div
-              animate={{ y: [0, -15, 0] }}
-              transition={{ repeat: Infinity, duration: 6, ease: "easeInOut" }}
-              className="relative bg-white border border-gray-200 p-8 rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.08)] z-20"
-            >
-              <div className="flex items-center justify-between border-b border-gray-100 pb-6 mb-6">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-teal-400 to-emerald-600 flex items-center justify-center shrink-0 shadow-lg">
-                    <svg className="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                      <polyline points="14 2 14 8 20 8" />
-                      <line x1="9" y1="12" x2="15" y2="12" />
-                      <line x1="9" y1="16" x2="15" y2="16" />
-                    </svg>
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-lg text-gray-900">ATS Resume Score</h3>
-                    <p className="text-gray-400 text-xs">Escaneando compatibilidad...</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <span className="block text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-teal-600 to-emerald-500">92%</span>
-                  <span className="text-[10px] text-gray-400 uppercase tracking-widest">Match Rating</span>
-                </div>
-              </div>
 
-              <div className="space-y-5">
-                {[
-                  { label: 'Densidad Palabras Clave', pct: 88, color: 'bg-teal-400' },
-                  { label: 'Estructura Harvard',      pct: 100, color: 'bg-emerald-400' },
-                  { label: 'Métricas de Impacto',     pct: 75, color: 'bg-amber-400' },
-                ].map(({ label, pct, color }, i) => (
-                  <div key={label} className="flex items-center justify-between gap-4">
-                    <span className="text-sm text-gray-500 w-44">{label}</span>
-                    <div className="flex-1 bg-gray-100 h-2 rounded-full overflow-hidden">
-                      <motion.div
-                        initial={{ width: 0 }}
-                        animate={{ width: `${pct}%` }}
-                        transition={{ duration: 1.5, delay: 0.5 + (i*0.2), ease: "easeOut" }}
-                        className={`h-full rounded-full ${color}`}
-                      />
+            {/* Wrapper de los dos widgets — pb-16 deja espacio para el flotante absoluto */}
+            <div className="relative pb-16">
+
+              {/* Main Widget */}
+              <motion.div
+                animate={{ y: [0, -15, 0] }}
+                transition={{ repeat: Infinity, duration: 6, ease: "easeInOut" }}
+                className="relative bg-white border border-gray-200 p-8 rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.08)] z-20"
+              >
+                <div className="flex items-center justify-between border-b border-gray-100 pb-6 mb-6">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-teal-400 to-emerald-600 flex items-center justify-center shrink-0 shadow-lg">
+                      <svg className="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                        <polyline points="14 2 14 8 20 8" />
+                        <line x1="9" y1="12" x2="15" y2="12" />
+                        <line x1="9" y1="16" x2="15" y2="16" />
+                      </svg>
                     </div>
-                    <span className="text-sm font-bold text-gray-700 w-10 text-right">{pct}%</span>
+                    <div>
+                      <h3 className="font-bold text-lg text-gray-900">Nivel de Optimización</h3>
+                      <p className="text-gray-400 text-xs">Escaneando compatibilidad...</p>
+                    </div>
                   </div>
-                ))}
-              </div>
-            </motion.div>
+                  <div className="text-right">
+                    <span className="block text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-teal-600 to-emerald-500">92%</span>
+                    <span className="text-[10px] text-gray-400 uppercase tracking-widest">Compatibilidad</span>
+                  </div>
+                </div>
 
-            {/* Small Floating Widget */}
-            <motion.div
-              animate={{ y: [0, 10, 0] }}
-              transition={{ repeat: Infinity, duration: 5, ease: "easeInOut", delay: 1 }}
-              className="absolute right-0 -bottom-10 bg-white border border-gray-200 p-5 rounded-2xl shadow-xl z-30 flex items-center gap-4"
-            >
-              <div className="w-10 h-10 rounded-full bg-[#E8541A]/10 border border-[#E8541A]/30 flex items-center justify-center">
-                <CheckCircle size={20} weight="fill" className="text-[#E8541A]" />
+                <div className="space-y-5">
+                  {[
+                    { label: 'Densidad Palabras Clave', pct: 88, color: 'bg-teal-400' },
+                    { label: 'Estructura Harvard',      pct: 100, color: 'bg-emerald-400' },
+                    { label: 'Métricas de Impacto',     pct: 75, color: 'bg-amber-400' },
+                  ].map(({ label, pct, color }, i) => (
+                    <div key={label} className="flex items-center justify-between gap-4">
+                      <span className="text-sm text-gray-500 w-44">{label}</span>
+                      <div className="flex-1 bg-gray-100 h-2 rounded-full overflow-hidden">
+                        <motion.div
+                          initial={{ width: 0 }}
+                          animate={{ width: `${pct}%` }}
+                          transition={{ duration: 1.5, delay: 0.5 + (i*0.2), ease: "easeOut" }}
+                          className={`h-full rounded-full ${color}`}
+                        />
+                      </div>
+                      <span className="text-sm font-bold text-gray-700 w-10 text-right">{pct}%</span>
+                    </div>
+                  ))}
+                </div>
+              </motion.div>
+
+              {/* Small Floating Widget — absoluto dentro del wrapper, no toca los badges */}
+              <motion.div
+                animate={{ y: [0, 10, 0] }}
+                transition={{ repeat: Infinity, duration: 5, ease: "easeInOut", delay: 1 }}
+                className="absolute right-0 bottom-0 bg-white border border-gray-200 p-5 rounded-2xl shadow-xl z-30 flex items-center gap-4"
+              >
+                <div className="w-10 h-10 rounded-full bg-[#E8541A]/10 border border-[#E8541A]/30 flex items-center justify-center">
+                  <CheckCircle size={20} weight="fill" className="text-[#E8541A]" />
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-gray-900">Formato Optimizado</p>
+                  <p className="text-xs text-gray-400">Hace 2 minutos</p>
+                </div>
+              </motion.div>
+
+            </div>{/* /wrapper widgets */}
+
+            {/* Trust Badges — debajo de ambas animaciones, sin superposición */}
+            <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="flex flex-col gap-1.5 p-4 rounded-2xl bg-white/60 backdrop-blur-sm border border-gray-200/60 shadow-sm hover:bg-white hover:border-gray-300 transition-all">
+                 <ShieldCheck size={28} weight="duotone" className="text-teal-500 mb-1" />
+                 <span className="text-sm font-black tracking-tight text-gray-900">100% ATS-Perfect</span>
+                 <span className="text-xs text-gray-500 leading-tight">Supera filtros automáticos de corporativos.</span>
               </div>
-              <div>
-                <p className="text-sm font-bold text-gray-900">Formato Optimizado</p>
-                <p className="text-xs text-gray-400">Hace 2 minutos</p>
+              <div className="flex flex-col gap-1.5 p-4 rounded-2xl bg-white/60 backdrop-blur-sm border border-gray-200/60 shadow-sm hover:bg-white hover:border-gray-300 transition-all">
+                 <Lightning size={28} weight="duotone" className="text-amber-500 mb-1" />
+                 <span className="text-sm font-black tracking-tight text-gray-900">10x Más Rápido</span>
+                 <span className="text-xs text-gray-500 leading-tight">Tu currículum listo en segundos, no horas.</span>
               </div>
-            </motion.div>
+              <div className="flex flex-col gap-1.5 p-4 rounded-2xl bg-white/60 backdrop-blur-sm border border-gray-200/60 shadow-sm hover:bg-white hover:border-gray-300 transition-all">
+                 <Target size={28} weight="duotone" className="text-blue-500 mb-1" />
+                 <span className="text-sm font-black tracking-tight text-gray-900">Recruiter Match</span>
+                 <span className="text-xs text-gray-500 leading-tight">Compatible matemáticamente con la vacante.</span>
+              </div>
+            </div>
 
           </motion.div>
         </div>
       </section>
 
-      {/* ── Stats Strip ───────────────────────────────────────────────────── */}
+      {/* ─── Stats Strip ────────────────────────────────────────────────────────── */}
       <section className="relative z-10 border-y border-gray-200 bg-white py-10">
         <div className="container mx-auto px-6 max-w-6xl">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 divide-y md:divide-y-0 md:divide-x divide-gray-200 text-center">
@@ -535,7 +634,7 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ── Seccion AI Bot 3D ───────────────────────────────────────────── */}
+      {/* ─── Seccion AI Bot 3D ───────────────────────────────────────────────────── */}
       <section className="relative z-10 py-32 px-6 overflow-hidden bg-gray-900 border-t border-gray-800">
         <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-gradient-to-bl from-teal-500/10 via-emerald-500/5 to-transparent rounded-full blur-[120px] pointer-events-none" />
         <div className="absolute bottom-[-20%] left-[-10%] w-[600px] h-[600px] bg-gradient-to-tr from-[#E8541A]/10 to-transparent rounded-full blur-[100px] pointer-events-none" />
@@ -654,8 +753,8 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ── Seccion Demo Interactive (Curiosity Gap Widget) ────────────────── */}
-      <section className="relative z-10 py-24 px-6 bg-slate-50 border-t border-gray-200" id="simulador">
+      {/* ─── Seccion Demo Interactive (Curiosity Gap Widget) ────────────────────── */}
+      <section ref={demoSectionRef} className="relative z-10 py-24 px-6 bg-slate-50 border-t border-gray-200" id="simulador">
         <div className="container mx-auto max-w-4xl">
           <div className="text-center mb-12">
             <span className="text-[#E8541A] font-bold text-sm tracking-widest uppercase mb-2 block">Simulador en tiempo real</span>
@@ -680,20 +779,49 @@ export default function Landing() {
                </div>
                
                <div>
-                  <h3 className="text-base font-bold text-gray-800 mb-3 flex items-center gap-2"><div className="w-6 h-6 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center text-xs font-black">2</div> Pega la vacante deseada</h3>
-                  <textarea 
-                     value={demoText}
-                     onChange={(e) => setDemoText(e.target.value)}
-                     rows="4" 
-                     className="w-full border-2 border-gray-200 rounded-2xl px-5 py-4 text-sm focus:outline-none focus:ring-0 focus:border-[#E8541A] transition-colors resize-none placeholder-gray-400"
-                     placeholder="Ej. Buscamos un Product Manager con experiencia en metodologías ágiles, análisis de datos, liderazgo de equipos técnicos y manejo de Jira..."
-                  ></textarea>
+                  <h3 className="text-base font-bold text-gray-800 mb-3 flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center text-xs font-black">2</div>
+                    Descripción del cargo (Simulado)
+                    {!demoTypingDone && demoText.length > 0 && (
+                      <span className="ml-auto text-xs text-teal-500 font-semibold flex items-center gap-1.5">
+                        <span className="inline-block w-1.5 h-3.5 bg-teal-500 rounded-sm animate-pulse" />
+                        Escribiendo...
+                      </span>
+                    )}
+                    {demoTypingDone && (
+                      <span className="ml-auto text-xs text-emerald-600 font-semibold">✓ Listo — ¡Haz clic abajo!</span>
+                    )}
+                  </h3>
+                  <div className="relative">
+                    <textarea
+                       readOnly
+                       value={demoText}
+                       rows="5"
+                       className={`w-full border-2 rounded-2xl px-5 py-4 text-sm focus:outline-none resize-none transition-all duration-500 ${
+                         demoTypingDone
+                           ? 'border-teal-400 bg-teal-50/40 text-gray-700'
+                           : 'border-gray-200 bg-gray-50/70 text-gray-600'
+                       }`}
+                       placeholder="Cargando descripción de cargo simulada..."
+                    />
+                    {!demoTypingDone && demoText.length > 0 && (
+                      <span className="absolute bottom-4 right-5 inline-block w-0.5 h-4 bg-gray-500 animate-pulse" />
+                    )}
+                  </div>
+                  <p className="mt-2 text-xs text-gray-400 italic flex items-center gap-1.5">
+                    <span className="inline-flex text-[10px] bg-gray-100 text-gray-500 font-bold px-1.5 py-0.5 rounded uppercase tracking-wider shrink-0">Demo</span>
+                    Información ficticia utilizada únicamente para esta simulación. No representa una vacante real.
+                  </p>
                </div>
                
                <button 
                   onClick={handleDemoSubmit}
                   disabled={demoText.trim().length < 15 || demoLoading || showDemoOverlay}
-                  className="w-full bg-gray-900 text-white font-bold text-lg py-5 rounded-2xl hover:bg-gray-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 shadow-xl shadow-gray-900/10 focus:ring-4 focus:ring-gray-900/20"
+                  className={`w-full text-white font-bold text-lg py-5 rounded-2xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 shadow-xl focus:ring-4 focus:ring-gray-900/20 ${
+                    demoTypingDone 
+                      ? 'bg-[#E8541A] hover:bg-[#E8541A]/90 shadow-[#E8541A]/40 animate-bounce-subtle' 
+                      : 'bg-gray-900 hover:bg-gray-800 shadow-gray-900/10'
+                  }`}
                >
                   {demoLoading ? <span className="animate-spin rounded-full border-2 border-white/20 border-t-white w-5 h-5" /> : <MagnifyingGlass size={22} weight="bold" />}
                   {demoLoadingText}
@@ -716,7 +844,7 @@ export default function Landing() {
                   </p>
                   <div className="flex flex-col gap-3">
                     <button 
-                      onClick={() => document.getElementById('waitlist-form-bottom').scrollIntoView({ behavior: 'smooth' })} 
+                      onClick={() => setShowDemoOverlay(false)} 
                       className="w-full bg-[#1A91F0] text-white font-bold py-4 px-6 rounded-2xl hover:bg-blue-600 hover:shadow-lg transition-all shadow-md focus:ring-4 focus:ring-blue-500/20"
                     >
                       Únete a la lista de espera
@@ -733,7 +861,7 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ── Features Bento Grid ───────────────────────────────────────────── */}
+      {/* ─── Features Bento Grid ────────────────────────────────────────────────── */}
       <section className="relative z-10 py-24 px-6 bg-slate-50">
         <div className="container mx-auto max-w-6xl">
 
@@ -753,13 +881,13 @@ export default function Landing() {
             </p>
           </motion.div>
 
-          {/* ── Fila 1: Herramientas IA hero (3 cols) ── */}
+          {/* ─── Fila 1: Herramientas IA hero (3 cols) ─── */}
           <motion.div
             initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-60px" }}
             variants={staggerContainer}
             className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4"
           >
-            {/* CV Optimizer — hero (2 cols) */}
+            {/* CV Optimizer â€” hero (2 cols) */}
             {[FEATURE_ROWS.heroes[0]].map(f => (
               <motion.div
                 key={f.titulo}
@@ -810,7 +938,7 @@ export default function Landing() {
             ))}
           </motion.div>
 
-          {/* ── Fila 2: Mi Carrera (4 cols iguales) ── */}
+          {/* ─── Fila 2: Mi Carrera (4 cols iguales) ─── */}
           <motion.div
             initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-60px" }}
             variants={staggerContainer}
@@ -841,7 +969,7 @@ export default function Landing() {
             ))}
           </motion.div>
 
-          {/* ── Fila 3: Recursos (4 cols iguales) ── */}
+          {/* ─── Fila 3: Recursos (4 cols iguales) ─── */}
           <motion.div
             initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-60px" }}
             variants={staggerContainer}
@@ -872,7 +1000,7 @@ export default function Landing() {
             ))}
           </motion.div>
 
-          {/* ── Fila 4: Mentor Experto — card premium full-width ── */}
+          {/* ─── Fila 4: Mentor Experto ─── card premium full-width ─── */}
           <motion.div
             initial={{ opacity: 0, y: 24 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -903,13 +1031,13 @@ export default function Landing() {
                   Mentor Experto — cuando la IA no es suficiente
                 </h3>
                 <p className="text-white/55 text-sm leading-relaxed max-w-xl group-hover:text-white/75 transition-colors duration-300">
-                  Conecta con mentores reales que han vivido el proceso. Orientación personalizada, feedback honesto y el impulso que solo un humano puede darte.
+                  Orientación personalizada, feedback honesto y el impulso que solo un humano puede darte.
                 </p>
               </div>
 
               {/* CTA */}
               <button 
-                onClick={() => document.getElementById('waitlist-form-bottom').scrollIntoView({ behavior: 'smooth' })}
+                onClick={() => { setShowDemoOverlay(false); setTimeout(() => document.getElementById('waitlist-form-bottom')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 150) }}
                 className="flex items-center gap-2.5 text-white font-bold text-sm shrink-0 bg-white/10 group-hover:bg-white/20 transition-colors duration-300 px-6 py-3.5 rounded-xl border border-white/10 group-hover:border-white/20 whitespace-nowrap cursor-pointer">
                 Disponible próximamente, únete a la lista de espera
                 <ArrowRight size={16} weight="bold" className="group-hover:translate-x-1 transition-transform duration-200" />
@@ -920,7 +1048,7 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ── CTA Final ─────────────────────────────────────────────────────── */}
+      {/* ─── CTA Final ──────────────────────────────────────────────────────────── */}
       <section id="waitlist-form-bottom" className="relative z-10 py-24 px-6 border-t border-gray-200 bg-white">
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
@@ -932,8 +1060,8 @@ export default function Landing() {
 
           <div className="relative z-10 text-left">
             <h3 className="text-3xl font-black text-white mb-2 text-center">Únete a la lista de espera</h3>
-            <p className="text-white/60 mb-8 text-center max-w-xl mx-auto">
-              Recibe descuentos y beneficios exclusivos por ser pionero OPTIMA.
+            <p className="text-white/60 mb-8 text-center max-w-xl mx-auto leading-relaxed">
+              Supera los filtros ATS y domina tu proceso. Por ser pionero <span className="text-[#E8541A] font-bold">OPTIMA</span>, podrás ganar una de las <span className="text-teal-400 font-bold">Cuentas PRO Mensual</span> antes del lanzamiento oficial. Sorteo: 8 de Abril.
             </p>
             
             {waitlistStatus.success ? (
@@ -959,11 +1087,27 @@ export default function Landing() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   <div>
                     <label className="block text-sm font-bold text-white/80 mb-1.5">País</label>
-                    <input required type="text" value={waitlistForm.pais} onChange={e => setWaitlistForm(f => ({...f, pais: e.target.value}))} className="w-full bg-white/5 border border-white/10 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 placeholder-white/30" placeholder="País" />
+                    <select required value={waitlistForm.pais} onChange={e => {
+                      const pais = PAISES.find(p => p.value === e.target.value)
+                      setWaitlistForm(f => ({...f, pais: e.target.value, indicativo: pais?.code || ''}))
+                    }} className="w-full bg-white/5 border border-white/10 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 appearance-none">
+                      <option value="" disabled className="text-gray-900">Selecciona país</option>
+                      {PAISES.map(p => (
+                        <option key={p.value} value={p.value} className="text-gray-900 bg-white">{p.value}</option>
+                      ))}
+                    </select>
                   </div>
                   <div>
                     <label className="block text-sm font-bold text-white/80 mb-1.5">Teléfono</label>
-                    <input type="tel" value={waitlistForm.telefono} onChange={e => setWaitlistForm(f => ({...f, telefono: e.target.value}))} className="w-full bg-white/5 border border-white/10 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 placeholder-white/30" placeholder="+57 300..." />
+                    <div className="flex gap-2">
+                      <select value={waitlistForm.indicativo} onChange={e => setWaitlistForm(f => ({...f, indicativo: e.target.value}))} className="w-24 shrink-0 bg-white/5 border border-white/10 text-white rounded-xl px-2 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 appearance-none text-center">
+                        <option value="" className="text-gray-900 bg-white">+--</option>
+                        {PAISES.filter(p => p.code).map(p => (
+                          <option key={p.value} value={p.code} className="text-gray-900 bg-white">{p.code}</option>
+                        ))}
+                      </select>
+                      <input type="tel" value={waitlistForm.telefono} onChange={e => setWaitlistForm(f => ({...f, telefono: e.target.value}))} className="flex-1 bg-white/5 border border-white/10 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 placeholder-white/30" placeholder="300 000 0000" />
+                    </div>
                   </div>
                 </div>
                 <div>
@@ -1007,7 +1151,7 @@ export default function Landing() {
         </motion.div>
       </section>
 
-      {/* ── Footer ────────────────────────────────────────────────────────── */}
+      {/* ─── Footer ──────────────────────────────────────────────────────────────── */}
       <footer className="relative z-10 border-t border-gray-200 bg-gray-900">
         <div className="container mx-auto max-w-6xl px-6 py-16 grid grid-cols-1 md:grid-cols-5 gap-12">
           <div className="space-y-6">

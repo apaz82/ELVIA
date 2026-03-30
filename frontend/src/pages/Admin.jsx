@@ -211,76 +211,207 @@ function OverviewTab({ stats }) {
 
 // ─── Waitlist Tab ────────────────────────────────────────────────────────────
 
-function WaitlistTab({ leads, views, onRefresh }) {
+function WaitlistTab({ leads, views, events, onRefresh }) {
+  const [search, setSearch] = useState('')
+
   const conversionRate = views > 0 ? ((leads.length / views) * 100).toFixed(1) : 0
-  
+  const simCount = events?.filter(e => e.event_name === 'simulation_completed').length || 0
+
+  // Breakdown por país
+  const porPais = leads.reduce((acc, l) => {
+    const k = l.pais || 'Desconocido'
+    acc[k] = (acc[k] || 0) + 1
+    return acc
+  }, {})
+  const topPaises = Object.entries(porPais).sort((a, b) => b[1] - a[1]).slice(0, 6)
+
+  // Breakdown por situación
+  const SITUACION_LABEL = {
+    'Estoy desempleada/o': 'Desempleada/o',
+    'Empleada/o pero buscando alternativas': 'Buscando alternativas',
+    'Quiero optimizar mi perfil para futuro': 'Optimizar perfil',
+  }
+  const porSituacion = leads.reduce((acc, l) => {
+    const k = SITUACION_LABEL[l.situacion] || l.situacion || 'No especificada'
+    acc[k] = (acc[k] || 0) + 1
+    return acc
+  }, {})
+
+  // Registros últimos 7 días
+  const hoy = new Date()
+  const ultimos7 = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(hoy); d.setDate(hoy.getDate() - (6 - i))
+    const key = d.toISOString().slice(0, 10)
+    const count = leads.filter(l => l.created_at?.slice(0, 10) === key).length
+    return { label: d.toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric' }), count }
+  })
+  const maxDay = Math.max(...ultimos7.map(d => d.count), 1)
+
+  // Exportar CSV
+  const exportCSV = () => {
+    const header = 'Nombre,Apellido,Email,País,Teléfono,Situación,Fecha\n'
+    const rows = leads.map(l =>
+      [l.nombre, l.apellido, l.email, l.pais, l.telefono, l.situacion, fmtDate(l.created_at)].join(',')
+    ).join('\n')
+    const blob = new Blob([header + rows], { type: 'text/csv' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a'); a.href = url; a.download = 'waitlist_leads.csv'; a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const filtered = leads.filter(l =>
+    !search || [l.nombre, l.apellido, l.email, l.pais].join(' ').toLowerCase().includes(search.toLowerCase())
+  )
+
   return (
     <div className="space-y-8 max-w-6xl">
+
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-black text-white">Lista de Espera</h2>
-          <p className="text-gray-400 text-sm mt-1">Leads capturados desde la nueva Landing Page</p>
+          <p className="text-gray-400 text-sm mt-1">Leads capturados desde la Landing Page</p>
         </div>
-        <button onClick={onRefresh} className="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors">
-          <PI.ArrowsClockwise size={20} />
-        </button>
+        <div className="flex items-center gap-3">
+          <button onClick={exportCSV} className="flex items-center gap-2 text-xs font-bold text-gray-400 hover:text-white bg-gray-800 hover:bg-gray-700 px-4 py-2 rounded-xl border border-gray-700 transition-all">
+            <PI.DownloadSimple size={15} /> Exportar CSV
+          </button>
+          <button onClick={onRefresh} className="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-xl border border-gray-700 transition-colors">
+            <PI.ArrowsClockwise size={18} />
+          </button>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {/* KPIs */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <KpiCard label="Total Leads" value={leads.length} icon={PI.UsersThree} color="blue" />
-        <KpiCard label="Visitas a Landing" value={views} icon={PI.Eye} color="purple" />
-        <KpiCard label="Conversión" value={`${conversionRate}%`} sub={`Promedio: 5-10%`} icon={PI.Target} color="green" />
+        <KpiCard label="Visitas Landing" value={views} icon={PI.Eye} color="purple" />
+        <KpiCard label="Conversión" value={`${conversionRate}%`} sub="Visitas → Leads" icon={PI.Target} color="green" />
+        <KpiCard label="Simulaciones" value={simCount} icon={PI.Robot} color="amber" />
       </div>
 
+      {/* Fila: Actividad últimos 7 días + Breakdown situación */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+        {/* Barras últimos 7 días */}
+        <div className="bg-[#111827] rounded-3xl p-6 border border-gray-800">
+          <h3 className="text-xs font-black text-gray-500 uppercase tracking-widest mb-6">Registros últimos 7 días</h3>
+          <div className="flex items-end gap-2 h-32">
+            {ultimos7.map((d, i) => (
+              <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                <span className="text-[10px] font-bold text-white">{d.count > 0 ? d.count : ''}</span>
+                <div className="w-full rounded-t-lg bg-teal-500/20 border border-teal-500/30 transition-all"
+                  style={{ height: `${Math.max((d.count / maxDay) * 100, d.count > 0 ? 8 : 4)}%` }} />
+                <span className="text-[9px] text-gray-600 text-center leading-tight">{d.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Breakdown situación */}
+        <div className="bg-[#111827] rounded-3xl p-6 border border-gray-800">
+          <h3 className="text-xs font-black text-gray-500 uppercase tracking-widest mb-6">Por Situación</h3>
+          <div className="space-y-3">
+            {Object.entries(porSituacion).map(([label, count]) => (
+              <div key={label}>
+                <div className="flex justify-between text-xs font-semibold mb-1">
+                  <span className="text-gray-300 truncate">{label}</span>
+                  <span className="text-white ml-2">{count}</span>
+                </div>
+                <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
+                  <div className="h-full bg-gradient-to-r from-teal-500 to-emerald-500 rounded-full transition-all"
+                    style={{ width: `${(count / leads.length) * 100}%` }} />
+                </div>
+              </div>
+            ))}
+            {Object.keys(porSituacion).length === 0 && <p className="text-gray-600 text-xs">Sin datos</p>}
+          </div>
+        </div>
+      </div>
+
+      {/* Top países */}
+      {topPaises.length > 0 && (
+        <div className="bg-[#111827] rounded-3xl p-6 border border-gray-800">
+          <h3 className="text-xs font-black text-gray-500 uppercase tracking-widest mb-5">Top Países</h3>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            {topPaises.map(([pais, count]) => (
+              <div key={pais} className="flex items-center justify-between bg-gray-800/50 rounded-2xl px-4 py-3 border border-gray-700/50">
+                <span className="text-sm font-semibold text-gray-300">{pais}</span>
+                <span className="text-sm font-black text-white bg-teal-500/20 text-teal-400 px-2.5 py-0.5 rounded-lg">{count}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Tabla */}
       <div className="bg-[#111827] rounded-3xl border border-gray-800 shadow-2xl overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-800 flex items-center gap-3">
+          <PI.MagnifyingGlass size={16} className="text-gray-500 shrink-0" />
+          <input
+            type="text"
+            placeholder="Buscar por nombre, email o país..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="flex-1 bg-transparent text-sm text-white placeholder-gray-600 focus:outline-none"
+          />
+          {search && <button onClick={() => setSearch('')} className="text-gray-500 hover:text-white"><PI.X size={14} /></button>}
+        </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-[#0B0F1A] border-b border-gray-800 text-[10px] uppercase font-black tracking-widest text-gray-500">
+                <th className="px-6 py-4">#</th>
                 <th className="px-6 py-4">Usuario</th>
                 <th className="px-6 py-4">Situación</th>
-                <th className="px-6 py-4">País/Teléfono</th>
-                <th className="px-6 py-4 text-right">Fecha Registro</th>
+                <th className="px-6 py-4">País / Tel</th>
+                <th className="px-6 py-4 text-right">Fecha</th>
               </tr>
             </thead>
             <tbody>
-              {leads.map(lead => (
+              {filtered.map((lead, idx) => (
                 <tr key={lead.id} className="border-b border-gray-800/50 hover:bg-gray-800/40 transition-colors">
+                  <td className="px-6 py-4 text-xs text-gray-600 font-mono">{idx + 1}</td>
                   <td className="px-6 py-4">
-                    <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
                         <span className="text-emerald-400 font-black text-sm">{lead.nombre?.[0]?.toUpperCase()}</span>
                       </div>
                       <div className="min-w-0">
                         <p className="text-sm font-bold text-white truncate">{lead.nombre} {lead.apellido}</p>
-                        <p className="text-[10px] text-gray-500 truncate font-medium">{lead.email}</p>
+                        <a href={`mailto:${lead.email}`} className="text-[10px] text-teal-500 hover:text-teal-400 truncate font-medium block">{lead.email}</a>
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-xs font-semibold text-gray-300">
-                    <span className="inline-block px-2.5 py-1 rounded-lg bg-gray-800 border border-gray-700">
-                      {lead.situacion || 'No especificada'}
+                  <td className="px-6 py-4">
+                    <span className="text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-gray-800 border border-gray-700 text-gray-300">
+                      {SITUACION_LABEL[lead.situacion] || lead.situacion || '—'}
                     </span>
                   </td>
                   <td className="px-6 py-4">
-                    <p className="text-xs font-bold text-white mb-0.5">{lead.pais || '—'}</p>
+                    <p className="text-xs font-bold text-white">{lead.pais || '—'}</p>
                     <p className="text-[10px] text-gray-500 font-mono">{lead.telefono || '—'}</p>
                   </td>
-                  <td className="px-6 py-4 text-right text-[10px] font-medium text-gray-500 uppercase tracking-wider">
+                  <td className="px-6 py-4 text-right text-[10px] font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                     {fmtDate(lead.created_at)}
                   </td>
                 </tr>
               ))}
-              {leads.length === 0 && (
+              {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={4} className="px-6 py-12 text-center text-sm font-medium text-gray-500">
-                    Aún no hay registros en la lista de espera.
+                  <td colSpan={5} className="px-6 py-12 text-center text-sm font-medium text-gray-600">
+                    {leads.length === 0 ? 'Aún no hay registros en la lista de espera.' : 'Sin resultados para la búsqueda.'}
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
         </div>
+        {filtered.length > 0 && (
+          <div className="px-6 py-3 border-t border-gray-800 text-[10px] font-bold text-gray-600 uppercase tracking-widest">
+            {filtered.length} de {leads.length} registros
+          </div>
+        )}
       </div>
     </div>
   )
@@ -1401,6 +1532,7 @@ const TABS = [
   { id: 'suscripciones', label: 'Suscripciones',  icon: PI.Coins },
   { id: 'codigos',       label: 'Códigos',        icon: PI.Tag },
   { id: 'waitlist',      label: 'Lista de Espera', icon: PI.ListStar },
+  { id: 'marketing',     label: 'Marketing Hub',  icon: PI.TrendUp },
   { id: 'analytics',     label: 'Métricas',       icon: PI.ChartBar },
   { id: 'sistema',       label: 'Configuración',  icon: PI.UserCircle },
 ]
@@ -1412,17 +1544,29 @@ function Dashboard({ adminUser, onLogout }) {
 
   const [waitlistLeads, setWaitlistLeads] = useState([])
   const [landingViews, setLandingViews] = useState(0)
+  const [events, setEvents] = useState([])
+  const [config, setConfig] = useState([])
 
   const fetchUsers = useCallback(async () => {
     setLoading(true)
     const { data, error } = await db.from('profiles').select('*').order('created_at', { ascending: false })
     if (!error && data) setUsers(data)
 
-    const { data: wData } = await db.from('waitlist_leads').select('*').order('created_at', { ascending: false })
-    if (wData) setWaitlistLeads(wData)
+    // Waitlist: usar API backend (bypasa RLS con service role key)
+    try {
+      const wRes = await fetch(`${API}/api/waitlist`)
+      const wJson = await wRes.json()
+      if (wJson.leads) setWaitlistLeads(wJson.leads)
+    } catch (_) {}
 
     const { data: sData } = await db.from('landing_stats').select('views').eq('id', 1).single()
     if (sData) setLandingViews(sData.views)
+
+    const { data: eData } = await db.from('landing_events').select('*').order('created_at', { ascending: false })
+    if (eData) setEvents(eData)
+
+    const { data: cData } = await db.from('landing_config').select('*')
+    if (cData) setConfig(cData)
     
     setLoading(false)
   }, [])
@@ -1527,7 +1671,8 @@ function Dashboard({ adminUser, onLogout }) {
               <div className="fade-in">
                 {tab === 'overview'  && <OverviewTab stats={stats} />}
                 {tab === 'users'     && <UsersTab users={users} onRefresh={fetchUsers} />}
-                {tab === 'waitlist'  && <WaitlistTab leads={waitlistLeads} views={landingViews} onRefresh={fetchUsers} />}
+                {tab === 'waitlist'  && <WaitlistTab leads={waitlistLeads} views={landingViews} events={events} onRefresh={fetchUsers} />}
+                {tab === 'marketing' && <MarketingTab config={config} onRefresh={fetchUsers} />}
                 {tab === 'analytics' && <AnalyticsTab users={users} />}
                 {tab === 'suscripciones'  && <SubscriptionsTab users={users} />}
                 {tab === 'codigos'     && <CodigosTab />}
@@ -1537,6 +1682,219 @@ function Dashboard({ adminUser, onLogout }) {
           </div>
         </section>
       </main>
+    </div>
+  )
+}
+
+// ─── Marketing Hub Tab ───────────────────────────────────────────────────────
+
+function MarketingTab({ config, onRefresh }) {
+  const [generando, setGenerando] = useState(false)
+  const [idea, setIdea] = useState('')
+  const [tone, setTone] = useState('profesional')
+  const [platform, setPlatform] = useState('linkedin')
+  
+  const [seoForm, setSeoForm] = useState({
+    seo_title: config?.find(c => c.config_key === 'seo_title')?.config_value || '',
+    seo_meta_description: config?.find(c => c.config_key === 'seo_meta_description')?.config_value || ''
+  })
+  const [savingSeo, setSavingSeo] = useState(false)
+
+  const handleGenerarIdea = () => {
+    setGenerando(true)
+    // Simulación de IA (en el futuro conectar a Anthropic)
+    setTimeout(() => {
+      const ideas = {
+        linkedin: {
+          profesional: "🚀 ¿Sabías que el 75% de los CVs son descartados por filtros ATS antes de que un humano los vea?\n\nNo dejes tu carrera al azar. Con OPTIMA CV puedes analizar tu currículum contra cualquier vacante en tiempo real y obtener un formato Harvard que resalte tu impacto real.\n\n🔗 Pruébalo gratis hoy en optima.pro \n\n#Talento #DesarrolloProfesional #ATS #BusquedaDeEmpleo #OPTIMACV",
+          agresivo: "⚠️ TU CV ES BASURA PARA LOS ATS... y tú ni lo sabes.\n\nDeja de enviar aplicaciones al vacío. El 90% de las empresas usan software para filtrarte. Si no hablas su idioma, no existes.\n\nUsa IA para ganarles en su propio juego. optima.pro te da la ventaja injusta.\n\n#CareerHack #ATS #Empleo #IA",
+        },
+        twitter: {
+          profesional: "Tu CV no es malo, es invisible para los ATS. 🤖\n\nOptimiza tus palabras clave y vence al algoritmo en 30 segundos. Harvard Style Ready.\n\nGratis en: optima.pro #CareerTech #IA",
+          agresivo: "Deja de mendigar empleo. Empieza a cazar ofertas ganándole a los ATS con IA. 🎯\n\noptima.pro — Entra, optimiza, consigue la entrevista. Punto.",
+        }
+      }
+      setIdea(ideas[platform]?.[tone] || ideas.linkedin.profesional)
+      setGenerando(false)
+    }, 1500)
+  }
+
+  const handleUpdateSeo = async (key, val) => {
+    setSavingSeo(true)
+    const { supabase } = await import('../services/authService')
+    const { data: { session } } = await supabase.auth.getSession()
+    
+    try {
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001'
+      const res = await fetch(`${API_URL}/api/admin/config`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token}`
+        },
+        body: JSON.stringify({ config_key: key, config_value: val })
+      })
+      if (res.ok) {
+        onRefresh()
+      }
+    } catch (err) {
+      console.error("Error updating SEO:", err)
+    } finally {
+      setSavingSeo(false)
+    }
+  }
+
+  return (
+    <div className="space-y-8 max-w-6xl">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-black text-white">Marketing Hub</h2>
+          <p className="text-gray-400 text-sm mt-1">Crecimiento, análisis de calor e ideas de contenido al estilo Pomelli</p>
+        </div>
+        <div className="p-2 rounded-xl bg-blue-500/10 text-blue-400">
+          <PI.TrendUp size={24} weight="duotone" />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        
+        {/* Heatmaps Section */}
+        <div className="bg-[#111827] rounded-3xl p-8 border border-gray-800 shadow-2xl flex flex-col">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-3 rounded-xl bg-orange-500/10 text-orange-500">
+              <PI.Fire size={24} weight="duotone" />
+            </div>
+            <div>
+              <h3 className="font-bold text-white text-lg">Mapas de Calor</h3>
+              <p className="text-xs text-gray-500">Microsoft Clarity Integration</p>
+            </div>
+          </div>
+          
+          <p className="text-sm text-gray-400 mb-6 leading-relaxed flex-1">
+            Tu landing page está siendo analizada. Para ver grabaciones de pantalla de usuarios, clics muertos (rage clicks) y mapas de navegación en vivo, accede directamente a tu panel de Clarity.
+          </p>
+          
+          <a 
+            href="https://clarity.microsoft.com/" 
+            target="_blank" rel="noreferrer"
+            className="w-full flex items-center justify-center gap-2 py-4 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-bold text-sm transition-all shadow-xl shadow-orange-900/20"
+          >
+            Abrir Panel de Clarity <PI.ArrowSquareOut size={16} weight="bold" />
+          </a>
+        </div>
+
+        {/* Enhanced Content Generator Section */}
+        <div className="bg-[#111827] rounded-3xl p-8 border border-gray-800 shadow-2xl flex flex-col">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-3 rounded-xl bg-purple-500/10 text-purple-500">
+              <PI.MagicWand size={24} weight="duotone" />
+            </div>
+            <div>
+              <h3 className="font-bold text-white text-lg">Growth AI Copywriter</h3>
+              <p className="text-xs text-gray-500">Genera posts virales personalizados</p>
+            </div>
+          </div>
+          
+          {!idea && (
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              <div>
+                <label className="block text-[10px] font-black text-gray-600 uppercase mb-1.5">Plataforma</label>
+                <select value={platform} onChange={e => setPlatform(e.target.value)} className="w-full bg-gray-950 border border-gray-800 rounded-xl px-3 py-2 text-xs text-white font-bold">
+                  <option value="linkedin">LinkedIn</option>
+                  <option value="twitter">Twitter / X</option>
+                  <option value="instagram">Instagram</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-[10px] font-black text-gray-600 uppercase mb-1.5">Tono</label>
+                <select value={tone} onChange={e => setTone(e.target.value)} className="w-full bg-gray-950 border border-gray-800 rounded-xl px-3 py-2 text-xs text-white font-bold">
+                  <option value="profesional">Profesional</option>
+                  <option value="agresivo">Directo / Agresivo</option>
+                  <option value="amigable">Inspiracional</option>
+                </select>
+              </div>
+            </div>
+          )}
+
+          {idea ? (
+            <div className="flex-1 bg-gray-950 border border-gray-800 rounded-2xl p-5 relative group">
+              <button 
+                onClick={() => { navigator.clipboard.writeText(idea); alert("¡Copiado!") }} 
+                className="absolute top-4 right-4 p-2 bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white rounded-lg transition-colors"
+              >
+                <PI.Copy size={16} />
+              </button>
+              <pre className="text-sm text-gray-300 font-sans whitespace-pre-wrap leading-relaxed">{idea}</pre>
+              <div className="mt-4 pt-4 border-t border-gray-800 flex justify-end">
+                <button onClick={() => setIdea('')} className="text-xs text-gray-500 hover:text-gray-300">Generar otra variante</button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex-1 flex flex-col justify-center items-center text-center p-6 border-2 border-dashed border-gray-800 rounded-2xl">
+              <PI.Lightbulb size={32} weight="duotone" className="text-gray-600 mb-4" />
+              <button 
+                onClick={handleGenerarIdea} disabled={generando}
+                className="flex items-center gap-2 py-3 px-6 rounded-xl bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white font-bold text-sm transition-all shadow-xl"
+              >
+                {generando ? <PI.CircleNotch size={18} className="animate-spin" /> : <PI.Sparkle size={18} weight="fill" />}
+                {generando ? 'Analizando...' : 'Generar Variante'}
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* SEO Manager Section */}
+        <div className="bg-[#111827] rounded-3xl p-8 border border-gray-800 shadow-2xl lg:col-span-2">
+          <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center gap-3">
+              <div className="p-3 rounded-xl bg-teal-500/10 text-teal-400">
+                <PI.Globe size={24} weight="duotone" />
+              </div>
+              <div>
+                <h3 className="font-bold text-white text-lg">SEO & Meta Manager</h3>
+                <p className="text-xs text-gray-500">Controla cómo te ven en Google y Redes Sociales</p>
+              </div>
+            </div>
+            {savingSeo && <PI.CircleNotch size={20} className="animate-spin text-teal-500" />}
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="block text-[10px] font-black text-gray-600 uppercase tracking-widest">Page Title</label>
+                <input 
+                  type="text" 
+                  value={seoForm.seo_title}
+                  onChange={e => setSeoForm(f => ({ ...f, seo_title: e.target.value }))}
+                  onBlur={() => handleUpdateSeo('seo_title', seoForm.seo_title)}
+                  className="w-full bg-gray-950 border border-gray-800 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-teal-500/30"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="block text-[10px] font-black text-gray-600 uppercase tracking-widest">Meta Description</label>
+                <textarea 
+                  rows={4}
+                  value={seoForm.seo_meta_description}
+                  onChange={e => setSeoForm(f => ({ ...f, seo_meta_description: e.target.value }))}
+                  onBlur={() => handleUpdateSeo('seo_meta_description', seoForm.seo_meta_description)}
+                  className="w-full bg-gray-950 border border-gray-800 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-teal-500/30 resize-none"
+                />
+              </div>
+            </div>
+
+            <div className="bg-gray-950 rounded-2xl p-6 border border-gray-800 flex flex-col justify-center">
+               <p className="text-[10px] font-black text-gray-700 uppercase mb-4 tracking-tighter">Vista previa en buscadores</p>
+               <div className="space-y-1 max-w-[320px]">
+                  <p className="text-blue-400 text-lg hover:underline cursor-pointer truncate">{seoForm.seo_title || 'Optima CV | Optimización IA'}</p>
+                  <p className="text-emerald-700 text-xs truncate">https://optima.pro › cv-optimizer</p>
+                  <p className="text-gray-500 text-xs line-clamp-2 leading-relaxed">
+                    {seoForm.seo_meta_description || 'Analiza tu currículum contra cualquier vacante en tiempo real y vence a los filtros ATS...'}
+                  </p>
+               </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }

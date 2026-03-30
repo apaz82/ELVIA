@@ -160,10 +160,35 @@ export default function Landing() {
   const onboardingIncompleto = user && !perfil?.nombre1
 
   // Estados para el Simulador Interactivo (Curiosity Gap)
+  const DEMO_JOB_TEXT = 'La Compañía busca un perfil de Operaciones con experiencia en la industria de alimentos. El candidato ideal tiene 3+ años liderando procesos de calidad, coordinación de proveedores y mejora continua (Lean/Six Sigma). Excelente comunicación, visión analítica y enfoque en resultados. Deseable experiencia en ERP (SAP o similar).'
   const [demoText, setDemoText] = useState('')
+  const [demoTypingDone, setDemoTypingDone] = useState(false)
   const [demoLoading, setDemoLoading] = useState(false)
   const [demoLoadingText, setDemoLoadingText] = useState('Ejecutar simulador')
   const [showDemoOverlay, setShowDemoOverlay] = useState(false)
+  const demoSectionRef = useRef(null)
+  const demoTypingStarted = useRef(false)
+
+  useEffect(() => {
+    const section = demoSectionRef.current
+    if (!section) return
+    const obs = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting && !demoTypingStarted.current) {
+        demoTypingStarted.current = true
+        let i = 0
+        const timer = setInterval(() => {
+          i++
+          setDemoText(DEMO_JOB_TEXT.slice(0, i))
+          if (i >= DEMO_JOB_TEXT.length) {
+            clearInterval(timer)
+            setDemoTypingDone(true)
+          }
+        }, 28)
+      }
+    }, { threshold: 0.3 })
+    obs.observe(section)
+    return () => obs.disconnect()
+  }, [])
 
   const handleDemoSubmit = () => {
      setDemoLoading(true)
@@ -569,7 +594,7 @@ export default function Landing() {
       </section>
 
       {/* ── Seccion Demo Interactive (Curiosity Gap Widget) ────────────────── */}
-      <section className="relative z-10 py-24 px-6 bg-slate-50 border-t border-gray-200" id="simulador">
+      <section className="relative z-10 py-24 px-6 bg-slate-50 border-t border-gray-200" id="simulador" ref={demoSectionRef}>
         <div className="container mx-auto max-w-4xl">
           <div className="text-center mb-12">
             <span className="text-[#E8541A] font-bold text-sm tracking-widest uppercase mb-2 block">Simulador en tiempo real</span>
@@ -604,10 +629,11 @@ export default function Landing() {
                   ></textarea>
                </div>
                
-               <button 
+               <button
                   onClick={handleDemoSubmit}
                   disabled={demoText.trim().length < 15 || demoLoading || showDemoOverlay}
-                  className="w-full bg-gray-900 text-white font-bold text-lg py-5 rounded-2xl hover:bg-gray-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 shadow-xl shadow-gray-900/10 focus:ring-4 focus:ring-gray-900/20"
+                  className={`w-full bg-gray-900 text-white font-bold text-lg py-5 rounded-2xl hover:bg-gray-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 shadow-xl shadow-gray-900/10 focus:ring-4 focus:ring-gray-900/20
+                    ${demoTypingDone && !demoLoading && !showDemoOverlay ? 'animate-bounce shadow-[0_0_24px_rgba(232,84,26,0.45)]' : ''}`}
                >
                   {demoLoading ? <span className="animate-spin rounded-full border-2 border-white/20 border-t-white w-5 h-5" /> : <MagnifyingGlass size={22} weight="bold" />}
                   {demoLoadingText}
@@ -629,11 +655,11 @@ export default function Landing() {
                     Este es un ejemplo — para tener esta funcionalidad, regístrate.
                   </p>
                   <div className="flex flex-col gap-3">
-                    <button 
-                      onClick={() => navigate('/auth?register=true')} 
-                      className="w-full bg-[#1A91F0] text-white font-bold py-4 px-6 rounded-2xl hover:bg-blue-600 hover:shadow-lg transition-all shadow-md focus:ring-4 focus:ring-blue-500/20"
+                    <button
+                      onClick={() => setShowDemoOverlay(false)}
+                      className="w-full bg-gray-900 text-white font-bold py-4 px-6 rounded-2xl hover:bg-gray-800 transition-all shadow-md focus:ring-4 focus:ring-gray-900/20"
                     >
-                      Revelar mis errores ocultos
+                      Volver
                     </button>
                     <p className="text-xs text-gray-400 mt-2 font-medium">
                       Descubre tu análisis completo. 100% Gratis.
