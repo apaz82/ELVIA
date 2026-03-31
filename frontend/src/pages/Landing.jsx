@@ -208,7 +208,7 @@ export default function Landing() {
             fetch(`${API_URL}/api/events/track`, {
                method: 'POST',
                headers: { 'Content-Type': 'application/json' },
-               body: JSON.stringify({ event_name: 'simulation_completed' })
+               body: JSON.stringify({ event_name: 'demo_complete' })
             }).catch(() => {})
           }
         }, 28)
@@ -241,7 +241,7 @@ export default function Landing() {
 
     // Dynamic Config: SEO & Headline
     const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001'
-    fetch(`${API_URL}/api/events/track`, { method: 'GET' }) // Mock or custom route if needed, for now use Supabase directly
+    // LOW-2 fix: GET /api/events/track eliminado (generaba 404 en cada visita)
     
     // Using Supabase client for simple public read
     const { createClient } = import('@supabase/supabase-js').then(({ createClient }) => {
@@ -290,7 +290,7 @@ export default function Landing() {
       fetch(`${API_URL}/api/events/track`, {
          method: 'POST',
          headers: { 'Content-Type': 'application/json' },
-         body: JSON.stringify({ event_name: 'waitlist_registered', metadata: { email: waitlistForm.email, situacion: waitlistForm.situacion } })
+         body: JSON.stringify({ event_name: 'waitlist_success', metadata: { situacion: waitlistForm.situacion } })
       }).catch(() => {})
 
       setWaitlistStatus({ loading: false, success: true, error: null })

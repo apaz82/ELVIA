@@ -2,10 +2,22 @@ const express = require('express');
 const router = express.Router();
 const { supabaseAdmin } = require('../lib/supabase');
 const { sendWelcomeWaitlistEmail } = require('../services/resendService');
+const auth = require('../middleware/auth');
 
-// GET /api/waitlist — listar todos los leads (solo llamado desde Admin)
-router.get('/', async (req, res, next) => {
+// GET /api/waitlist — listar todos los leads (solo admins autenticados)
+router.get('/', auth, async (req, res, next) => {
   try {
+    // Verificar que el usuario autenticado sea admin
+    const { data: profile, error: profileError } = await supabaseAdmin
+      .from('profiles')
+      .select('is_admin')
+      .eq('id', req.user.id)
+      .single();
+
+    if (profileError || !profile?.is_admin) {
+      return res.status(403).json({ error: 'Acceso denegado' });
+    }
+
     const { data, error } = await supabaseAdmin
       .from('waitlist_leads')
       .select('*')

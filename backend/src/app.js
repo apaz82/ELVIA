@@ -23,6 +23,7 @@ const linkedinRoutes  = require('./routes/linkedin')
 const codesRoutes     = require('./routes/codes')
 const adminRoutes     = require('./routes/admin')
 const waitlistRoutes  = require('./routes/waitlist')
+const eventRoutes     = require('./routes/events')
 
 const app = express();
 
@@ -57,15 +58,7 @@ app.use(cors({
 // --- Ruta de salud (health check) ---
 // Se coloca aquí para que responda incluso si fallan otros middlewares pesados
 app.get('/', (req, res) => {
-  res.json({
-    status: 'ok',
-    producto: 'OPTIMA-CV',
-    env: {
-      has_url: !!process.env.SUPABASE_URL,
-      has_anon: !!process.env.SUPABASE_ANON_KEY,
-      has_service: !!process.env.SUPABASE_SERVICE_ROLE_KEY
-    }
-  });
+  res.json({ status: 'ok' });
 });
 
 app.use(helmet());
@@ -86,6 +79,7 @@ app.use('/api/linkedin',  linkedinRoutes)
 app.use('/api/codes',     codesRoutes)
 app.use('/api/admin',     adminRoutes)
 app.use('/api/waitlist',  waitlistRoutes)
+app.use('/api/events',    eventRoutes)
 
 // --- Manejo global de errores ---
 app.use((err, req, res, next) => {

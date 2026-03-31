@@ -1552,9 +1552,12 @@ function Dashboard({ adminUser, onLogout }) {
     const { data, error } = await db.from('profiles').select('*').order('created_at', { ascending: false })
     if (!error && data) setUsers(data)
 
-    // Waitlist: usar API backend (bypasa RLS con service role key)
+    // Waitlist: usar API backend con token de admin
     try {
-      const wRes = await fetch(`${API}/api/waitlist`)
+      const { data: { session: wSession } } = await db.auth.getSession()
+      const wRes = await fetch(`${API}/api/waitlist`, {
+        headers: { 'Authorization': `Bearer ${wSession?.access_token}` }
+      })
       const wJson = await wRes.json()
       if (wJson.leads) setWaitlistLeads(wJson.leads)
     } catch (_) {}

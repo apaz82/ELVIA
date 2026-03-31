@@ -6,6 +6,15 @@ const { Resend } = require('resend');
 const resend = new Resend(process.env.RESEND_API_KEY);
 const FROM_EMAIL = 'noreply@optimacv.cv'; // Verificar dominio en Resend
 
+// Escapa caracteres HTML para evitar XSS en emails generados con template strings
+const escapeHtml = (str) =>
+  String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#x27;');
+
 /**
  * Envía email con CV como adjunto
  * @param {string} to — Email del destinatario
@@ -85,7 +94,7 @@ const sendWelcomeWaitlistEmail = async (to, nombre) => {
     subject: '¡Bienvenido a la tribu pionera de OPTIMA-CV! 🚀',
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; line-height: 1.6;">
-        <h2 style="color: #E8541A;">¡Hola ${nombre}!</h2>
+        <h2 style="color: #E8541A;">¡Hola ${escapeHtml(nombre)}!</h2>
         <p>Gracias por unirte a la lista de espera de <strong>OPTIMA-CV</strong>.</p>
         <p>Estamos afinando los últimos detalles de nuestra plataforma potenciada por IA para que tu currículum destaque y supere todos los filtros corporativos.</p>
         <p>Por ser pionero, recibirás <strong>descuentos exclusivos y beneficios especiales</strong> cuando lancemos oficialmente al público. Muy pronto estaremos live y serás de los primeros en probar nuestra magia.</p>

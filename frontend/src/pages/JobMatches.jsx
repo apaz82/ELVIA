@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import DOMPurify from 'dompurify'
 import { useNavigate } from 'react-router-dom'
 import { useCV } from '../context/CVContext'
 import { useAuth } from '../context/AuthContext'
@@ -503,7 +504,7 @@ export default function JobMatches() {
                       </div>
                       {v.snippet && (
                         <p className="mt-2 text-sm text-gray-500 line-clamp-2"
-                          dangerouslySetInnerHTML={{ __html: v.snippet }} />
+                          dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(v.snippet) }} />
                       )}
 
                       {/* Panel de acciones IA */}

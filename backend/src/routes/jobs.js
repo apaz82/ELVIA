@@ -12,12 +12,33 @@ const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 const generarJobKey = (title, company) =>
   `${(title || '').toLowerCase().trim()}|${(company || '').toLowerCase().trim()}`;
 
+// Dominios permitidos para fetch de vacantes (whitelist anti-SSRF)
+const ALLOWED_JOB_DOMAINS = [
+  'linkedin.com', 'indeed.com', 'glassdoor.com', 'computrabajo.com',
+  'occ.com.mx', 'bumeran.com', 'elempleo.com', 'trabajando.com',
+  'infojobs.net', 'zonajobs.com.ar', 'laborum.com', 'multitrabajos.com',
+  'hh.ru', 'monster.com', 'simplyhired.com', 'ziprecruiter.com',
+  'angel.co', 'wellfound.com', 'greenhouse.io', 'lever.co',
+  'workday.com', 'smartrecruiters.com', 'jobs.ashbyhq.com',
+];
+
+const isAllowedJobUrl = (rawUrl) => {
+  try {
+    const parsed = new URL(rawUrl);
+    if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') return false;
+    const hostname = parsed.hostname.replace(/^www\./, '');
+    return ALLOWED_JOB_DOMAINS.some(d => hostname === d || hostname.endsWith(`.${d}`));
+  } catch {
+    return false;
+  }
+};
+
 // POST /api/jobs/fetch-url — obtiene el texto de una página de vacante
 router.post('/fetch-url', auth, async (req, res) => {
   const { url } = req.body;
 
-  if (!url || !url.startsWith('http')) {
-    return res.status(400).json({ error: 'URL inválida' });
+  if (!url || !isAllowedJobUrl(url)) {
+    return res.status(400).json({ error: 'URL inválida o dominio no permitido. Por favor pega la descripción manualmente.' });
   }
 
   try {
