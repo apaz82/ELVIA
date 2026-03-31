@@ -4,6 +4,7 @@ const { detectLanguage } = require('../utils/languageDetector');
 const { optimizeCV, matchCVtoJob, extraerDatosInfografia } = require('../services/claudeService');
 const { generarPDF } = require('../services/pdfService');
 const { generarWord } = require('../services/wordService');
+const { incrementDailyCap } = require('../middleware/dailyCap');
 
 // POST /api/cv/optimize
 const optimize = async (req, res, next) => {
@@ -37,6 +38,11 @@ const optimize = async (req, res, next) => {
 
     const language = req.body.language || 'es';
     const resultado = await optimizeCV(cvText, language);
+
+    // Incrementar contador diario de análisis (hard cap)
+    if (req.dailyCapDate) {
+      await incrementDailyCap(req.dailyCapDate);
+    }
 
     // Guardar resultado en Supabase para la descarga posterior
     const { data: saved, error } = await db
@@ -103,6 +109,11 @@ const matchToJob = async (req, res, next) => {
 
     const language = req.body.language || 'es';
     const resultado = await matchCVtoJob(cvText, req.body.jobText, language);
+
+    // Incrementar contador diario de análisis (hard cap)
+    if (req.dailyCapDate) {
+      await incrementDailyCap(req.dailyCapDate);
+    }
 
     const { data: saved, error } = await db
       .from('cv_results')

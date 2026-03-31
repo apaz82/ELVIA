@@ -7,15 +7,16 @@ const { planContext }       = require('../middleware/planContext');
 const checkCvOptimizeLimit  = require('../middleware/checkCvOptimizeLimit');
 const checkCvMatchLimit     = require('../middleware/checkCvMatchLimit');
 const requireActiveTrial    = require('../middleware/requireActiveTrial');
+const { dailyCap }          = require('../middleware/dailyCap');
 const upload                = require('../middleware/upload');
 const { limiterOptimize, limiterMatch } = require('../middleware/rateLimiter');
 const { optimize, matchToJob, download, extractProfile, generarInfografia } = require('../controllers/cvController');
 
-// Optimización de CV — 1 análisis gratis + rate limit (5/15min)
-router.post('/optimize', auth, planContext, limiterOptimize, checkCvOptimizeLimit, upload.single('cv'), optimize);
+// Optimización de CV — hard cap + 1 análisis gratis + rate limit (5/15min)
+router.post('/optimize', auth, dailyCap, planContext, limiterOptimize, checkCvOptimizeLimit, upload.single('cv'), optimize);
 
-// CV vs Vacante — 3 análisis gratis + rate limit (10/15min)
-router.post('/match', auth, planContext, limiterMatch, checkCvMatchLimit, upload.single('cv'), matchToJob);
+// CV vs Vacante — hard cap + 3 análisis gratis + rate limit (10/15min)
+router.post('/match', auth, dailyCap, planContext, limiterMatch, checkCvMatchLimit, upload.single('cv'), matchToJob);
 
 // Descarga del resultado — no consume crédito, pero respeta watermark según plan
 router.get('/download/:id', auth, planContext, download);

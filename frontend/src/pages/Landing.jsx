@@ -74,7 +74,8 @@ const FEATURE_ROWS = {
       Icon: Books,
       titulo: 'Biblioteca',
       desc: 'El conocimiento que nadie te enseñó. Guías para dominar las reglas del juego.',
-      cta: 'Explorar',
+      cta: 'Próximamente',
+      upcoming: true,
       gradientStyle: GRAD.blue,
       iconBg: 'bg-blue-100', iconColor: 'text-blue-600',
     },
@@ -90,7 +91,8 @@ const FEATURE_ROWS = {
       Icon: LinkedinLogo,
       titulo: 'LinkedIn Optimo',
       desc: 'Tu perfil optimizado para aparecer cuando los recruiters que importan están buscando.',
-      cta: 'Optimizar LinkedIn',
+      cta: 'Próximamente',
+      upcoming: true,
       gradientStyle: GRAD.blue,
       iconBg: 'bg-blue-100', iconColor: 'text-blue-600',
     },
@@ -98,7 +100,8 @@ const FEATURE_ROWS = {
       Icon: MicrophoneStage,
       titulo: 'Entrevista',
       desc: 'Practica hasta que no haya pregunta difícil. Llega seguro cuando más importa.',
-      cta: 'Preparar entrevista',
+      cta: 'Próximamente',
+      upcoming: true,
       gradientStyle: GRAD.blue,
       iconBg: 'bg-blue-100', iconColor: 'text-blue-600',
     },
@@ -244,7 +247,7 @@ export default function Landing() {
     // LOW-2 fix: GET /api/events/track eliminado (generaba 404 en cada visita)
     
     // Using Supabase client for simple public read
-    const { createClient } = import('@supabase/supabase-js').then(({ createClient }) => {
+    import('@supabase/supabase-js').then(({ createClient }) => {
       const db = createClient(import.meta.env.VITE_SUPABASE_URL, import.meta.env.VITE_SUPABASE_ANON_KEY)
       db.from('landing_config').select('*').then(({ data }) => {
         if (data) {
@@ -259,22 +262,36 @@ export default function Landing() {
       })
     })
 
-    fetch('https://ipapi.co/json/')
-      .then(res => res.json())
-      .then(data => {
-        if (data.country_name) {
-          // Buscar por ipName (inglés) en el catálogo
-          const pais = PAISES.find(p => p.ipName === data.country_name)
-          const paisValue  = pais ? pais.value : data.country_name
-          const indicativo = pais ? pais.code  : (data.country_calling_code || '')
-          setWaitlistForm(f => ({ ...f, pais: paisValue, indicativo }))
-        }
-      })
-      .catch(err => console.error("Error fetching IP details", err))
+    // Detección de país por idioma del navegador (sin llamadas a API externas)
+    const lang = (navigator.language || 'es-CO').toLowerCase()
+    let defaultCountry = 'Colombia' // fallback
+    if (lang.includes('es-mx') || lang.includes('mx')) defaultCountry = 'México'
+    else if (lang.includes('es-ar') || lang.includes('ar')) defaultCountry = 'Argentina'
+    else if (lang.includes('es-cl') || lang.includes('cl')) defaultCountry = 'Chile'
+    else if (lang.includes('en')) defaultCountry = 'USA'
+
+    const pais = PAISES.find(p => p.value === defaultCountry) || PAISES[0]
+    setWaitlistForm(f => ({ ...f, pais: pais.value, indicativo: pais.code }))
   }, [])
   
   const handleWaitlistSubmit = async (e) => {
     e.preventDefault()
+
+    // Validación cliente
+    if (!waitlistForm.nombre || waitlistForm.nombre.length < 2) {
+      setWaitlistStatus({ loading: false, success: false, error: 'El nombre debe tener mínimo 2 caracteres' })
+      return
+    }
+    if (!waitlistForm.apellido || waitlistForm.apellido.length < 2) {
+      setWaitlistStatus({ loading: false, success: false, error: 'El apellido debe tener mínimo 2 caracteres' })
+      return
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(waitlistForm.email)) {
+      setWaitlistStatus({ loading: false, success: false, error: 'Por favor ingresa un email válido' })
+      return
+    }
+
     setWaitlistStatus({ loading: true, success: false, error: null })
     try {
       const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001'
@@ -391,25 +408,18 @@ export default function Landing() {
             </motion.div>
 
             <motion.h1 variants={fadeInUp} className="font-headline font-black text-5xl sm:text-7xl leading-[1.05] tracking-tight mb-8">
-              Tu carrera,<br />
-              <div className="flex items-center gap-4 mt-2">
-                <span
-                  style={{
-                    background: 'linear-gradient(to right, rgb(13, 148, 136), rgb(16, 185, 129), rgb(59, 130, 246))',
-                    WebkitBackgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent',
-                    backgroundClip: 'text',
-                    display: 'inline-block'
-                  }}
-                >
-                  Acompañada por OPTIMA
-                </span>
-                <img
-                  src="/Avatar Optima.png"
-                  alt="OPTIMA Avatar"
-                  className="w-24 h-24 sm:w-32 sm:h-32 rounded-full object-cover shadow-lg border-2 border-teal-400/50 transition-transform duration-300 hover:scale-110 cursor-pointer"
-                />
-              </div>
+              Supera los filtros ATS<br />
+              <span
+                style={{
+                  background: 'linear-gradient(to right, rgb(13, 148, 136), rgb(16, 185, 129), rgb(59, 130, 246))',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  backgroundClip: 'text',
+                  display: 'inline-block'
+                }}
+              >
+                en 60 segundos
+              </span>
             </motion.h1>
 
             <motion.p variants={fadeInUp} className="text-lg sm:text-xl text-gray-500 leading-relaxed mb-10 max-w-lg">
@@ -433,23 +443,23 @@ export default function Landing() {
                 </div>
               ) : (
                 <form onSubmit={handleWaitlistSubmit} className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-xs font-bold text-white/50 mb-1">Nombre</label>
-                      <input required type="text" value={waitlistForm.nombre} onChange={e => setWaitlistForm(f => ({...f, nombre: e.target.value}))} className="w-full bg-white/5 border border-white/10 text-white rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8541A] placeholder-white/20" placeholder="Tu nombre" />
+                      <input required type="text" value={waitlistForm.nombre} onChange={e => setWaitlistForm(f => ({...f, nombre: e.target.value}))} className="w-full bg-gray-900/50 border border-white/10 text-white rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8541A] placeholder-gray-400" placeholder="Tu nombre" />
                     </div>
                     <div>
                       <label className="block text-xs font-bold text-white/50 mb-1">Apellido</label>
-                      <input required type="text" value={waitlistForm.apellido} onChange={e => setWaitlistForm(f => ({...f, apellido: e.target.value}))} className="w-full bg-white/5 border border-white/10 text-white rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8541A] placeholder-white/20" placeholder="Tu apellido" />
+                      <input required type="text" value={waitlistForm.apellido} onChange={e => setWaitlistForm(f => ({...f, apellido: e.target.value}))} className="w-full bg-gray-900/50 border border-white/10 text-white rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8541A] placeholder-gray-400" placeholder="Tu apellido" />
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-xs font-bold text-white/50 mb-1">País</label>
                       <select required value={waitlistForm.pais} onChange={e => {
                         const pais = PAISES.find(p => p.value === e.target.value)
                         setWaitlistForm(f => ({...f, pais: e.target.value, indicativo: pais?.code || ''}))
-                      }} className="w-full bg-white/5 border border-white/10 text-white rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8541A] appearance-none">
+                      }} className="w-full bg-gray-900/50 border border-white/10 text-white rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8541A] appearance-none">
                         <option value="" disabled className="text-gray-900">Selecciona país</option>
                         {PAISES.map(p => (
                           <option key={p.value} value={p.value} className="text-gray-900 bg-white">{p.value}</option>
@@ -459,23 +469,23 @@ export default function Landing() {
                     <div>
                       <label className="block text-xs font-bold text-white/50 mb-1">Teléfono</label>
                       <div className="flex gap-2">
-                        <select value={waitlistForm.indicativo} onChange={e => setWaitlistForm(f => ({...f, indicativo: e.target.value}))} className="w-24 shrink-0 bg-white/5 border border-white/10 text-white rounded-xl px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8541A] appearance-none text-center">
+                        <select value={waitlistForm.indicativo} onChange={e => setWaitlistForm(f => ({...f, indicativo: e.target.value}))} className="w-24 shrink-0 bg-gray-900/50 border border-white/10 text-white rounded-xl px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8541A] appearance-none text-center">
                           <option value="" className="text-gray-900 bg-white">+--</option>
                           {PAISES.filter(p => p.code).map(p => (
                             <option key={p.value} value={p.code} className="text-gray-900 bg-white">{p.code}</option>
                           ))}
                         </select>
-                        <input type="tel" value={waitlistForm.telefono} onChange={e => setWaitlistForm(f => ({...f, telefono: e.target.value}))} className="flex-1 bg-white/5 border border-white/10 text-white rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8541A] placeholder-white/20" placeholder="300 000 0000" />
+                        <input type="tel" value={waitlistForm.telefono} onChange={e => setWaitlistForm(f => ({...f, telefono: e.target.value}))} className="flex-1 bg-gray-900/50 border border-white/10 text-white rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8541A] placeholder-gray-400" placeholder="300 000 0000" />
                       </div>
                     </div>
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-white/50 mb-1">Email</label>
-                    <input required type="email" value={waitlistForm.email} onChange={e => setWaitlistForm(f => ({...f, email: e.target.value}))} className="w-full bg-white/5 border border-white/10 text-white rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8541A] placeholder-white/20" placeholder="tu@email.com" />
+                    <input required type="email" value={waitlistForm.email} onChange={e => setWaitlistForm(f => ({...f, email: e.target.value}))} className="w-full bg-gray-900/50 border border-white/10 text-white rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8541A] placeholder-gray-400" placeholder="tu@email.com" />
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-white/50 mb-1">Situación Actual</label>
-                    <select required value={waitlistForm.situacion} onChange={e => setWaitlistForm(f => ({...f, situacion: e.target.value}))} className="w-full bg-white/5 border border-white/10 text-white rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8541A] appearance-none">
+                    <select required value={waitlistForm.situacion} onChange={e => setWaitlistForm(f => ({...f, situacion: e.target.value}))} className="w-full bg-gray-900/50 border border-white/10 text-white rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8541A] appearance-none">
                       <option value="" disabled className="text-gray-400">Selecciona una opción</option>
                       <option value="Estoy desempleada/o" className="text-gray-900">Estoy desempleada/o</option>
                       <option value="Empleada/o pero buscando alternativas" className="text-gray-900">Empleada/o pero buscando alternativas</option>
@@ -646,7 +656,7 @@ export default function Landing() {
             viewport={{ once: true }}
             className="space-y-8 relative z-10"
           >
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/20 bg-white/5">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/20 bg-gray-900/50">
               <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
               <span className="text-xs font-bold uppercase tracking-widest text-white">Desarrollada por expertos en atracción de talento</span>
             </div>
@@ -958,11 +968,14 @@ export default function Landing() {
                     <f.Icon size={20} weight="duotone" />
                   </div>
                   <div className="flex-1">
-                    <h3 className="font-bold text-base text-gray-900 group-hover:text-white transition-colors duration-300 mb-1.5">{f.titulo}</h3>
+                    <div className="flex items-start gap-2 mb-1.5">
+                      <h3 className="font-bold text-base text-gray-900 group-hover:text-white transition-colors duration-300">{f.titulo}</h3>
+                      {f.upcoming && <span className="text-[10px] font-bold bg-amber-100 text-amber-800 px-2 py-0.5 rounded">Próximamente</span>}
+                    </div>
                     <p className="text-xs text-gray-500 group-hover:text-white/80 transition-colors duration-300 leading-relaxed">{f.desc}</p>
                   </div>
-                  <div className="mt-4 flex items-center gap-1.5 text-xs font-bold text-gray-400 group-hover:text-white transition-all duration-300 opacity-0 group-hover:opacity-100 translate-y-1 group-hover:translate-y-0">
-                    {f.cta} <ArrowRight size={12} weight="bold" />
+                  <div className={`mt-4 flex items-center gap-1.5 text-xs font-bold ${f.upcoming ? 'text-gray-300 group-hover:text-gray-400' : 'text-gray-400 group-hover:text-white'} transition-all duration-300 ${f.upcoming ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 translate-y-1 group-hover:translate-y-0'}`}>
+                    {f.cta} {!f.upcoming && <ArrowRight size={12} weight="bold" />}
                   </div>
                 </div>
               </motion.div>
@@ -989,11 +1002,14 @@ export default function Landing() {
                     <f.Icon size={20} weight="duotone" />
                   </div>
                   <div className="flex-1">
-                    <h3 className="font-bold text-base text-gray-900 group-hover:text-white transition-colors duration-300 mb-1.5">{f.titulo}</h3>
+                    <div className="flex items-start gap-2 mb-1.5">
+                      <h3 className="font-bold text-base text-gray-900 group-hover:text-white transition-colors duration-300">{f.titulo}</h3>
+                      {f.upcoming && <span className="text-[10px] font-bold bg-amber-100 text-amber-800 px-2 py-0.5 rounded">Próximamente</span>}
+                    </div>
                     <p className="text-xs text-gray-500 group-hover:text-white/80 transition-colors duration-300 leading-relaxed">{f.desc}</p>
                   </div>
-                  <div className="mt-4 flex items-center gap-1.5 text-xs font-bold text-gray-400 group-hover:text-white transition-all duration-300 opacity-0 group-hover:opacity-100 translate-y-1 group-hover:translate-y-0">
-                    {f.cta} <ArrowRight size={12} weight="bold" />
+                  <div className={`mt-4 flex items-center gap-1.5 text-xs font-bold ${f.upcoming ? 'text-gray-300 group-hover:text-gray-400' : 'text-gray-400 group-hover:text-white'} transition-all duration-300 ${f.upcoming ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 translate-y-1 group-hover:translate-y-0'}`}>
+                    {f.cta} {!f.upcoming && <ArrowRight size={12} weight="bold" />}
                   </div>
                 </div>
               </motion.div>
@@ -1077,11 +1093,11 @@ export default function Landing() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   <div>
                     <label className="block text-sm font-bold text-white/80 mb-1.5">Nombre</label>
-                    <input required type="text" value={waitlistForm.nombre} onChange={e => setWaitlistForm(f => ({...f, nombre: e.target.value}))} className="w-full bg-white/5 border border-white/10 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 placeholder-white/30" placeholder="Tu nombre" />
+                    <input required type="text" value={waitlistForm.nombre} onChange={e => setWaitlistForm(f => ({...f, nombre: e.target.value}))} className="w-full bg-gray-900/50 border border-white/10 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 placeholder-gray-400" placeholder="Tu nombre" />
                   </div>
                   <div>
                     <label className="block text-sm font-bold text-white/80 mb-1.5">Apellido</label>
-                    <input required type="text" value={waitlistForm.apellido} onChange={e => setWaitlistForm(f => ({...f, apellido: e.target.value}))} className="w-full bg-white/5 border border-white/10 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 placeholder-white/30" placeholder="Tu apellido" />
+                    <input required type="text" value={waitlistForm.apellido} onChange={e => setWaitlistForm(f => ({...f, apellido: e.target.value}))} className="w-full bg-gray-900/50 border border-white/10 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 placeholder-gray-400" placeholder="Tu apellido" />
                   </div>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
@@ -1090,7 +1106,7 @@ export default function Landing() {
                     <select required value={waitlistForm.pais} onChange={e => {
                       const pais = PAISES.find(p => p.value === e.target.value)
                       setWaitlistForm(f => ({...f, pais: e.target.value, indicativo: pais?.code || ''}))
-                    }} className="w-full bg-white/5 border border-white/10 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 appearance-none">
+                    }} className="w-full bg-gray-900/50 border border-white/10 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 appearance-none">
                       <option value="" disabled className="text-gray-900">Selecciona país</option>
                       {PAISES.map(p => (
                         <option key={p.value} value={p.value} className="text-gray-900 bg-white">{p.value}</option>
@@ -1100,23 +1116,23 @@ export default function Landing() {
                   <div>
                     <label className="block text-sm font-bold text-white/80 mb-1.5">Teléfono</label>
                     <div className="flex gap-2">
-                      <select value={waitlistForm.indicativo} onChange={e => setWaitlistForm(f => ({...f, indicativo: e.target.value}))} className="w-24 shrink-0 bg-white/5 border border-white/10 text-white rounded-xl px-2 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 appearance-none text-center">
+                      <select value={waitlistForm.indicativo} onChange={e => setWaitlistForm(f => ({...f, indicativo: e.target.value}))} className="w-24 shrink-0 bg-gray-900/50 border border-white/10 text-white rounded-xl px-2 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 appearance-none text-center">
                         <option value="" className="text-gray-900 bg-white">+--</option>
                         {PAISES.filter(p => p.code).map(p => (
                           <option key={p.value} value={p.code} className="text-gray-900 bg-white">{p.code}</option>
                         ))}
                       </select>
-                      <input type="tel" value={waitlistForm.telefono} onChange={e => setWaitlistForm(f => ({...f, telefono: e.target.value}))} className="flex-1 bg-white/5 border border-white/10 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 placeholder-white/30" placeholder="300 000 0000" />
+                      <input type="tel" value={waitlistForm.telefono} onChange={e => setWaitlistForm(f => ({...f, telefono: e.target.value}))} className="flex-1 bg-gray-900/50 border border-white/10 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 placeholder-gray-400" placeholder="300 000 0000" />
                     </div>
                   </div>
                 </div>
                 <div>
                   <label className="block text-sm font-bold text-white/80 mb-1.5">Email</label>
-                  <input required type="email" value={waitlistForm.email} onChange={e => setWaitlistForm(f => ({...f, email: e.target.value}))} className="w-full bg-white/5 border border-white/10 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 placeholder-white/30" placeholder="tu@email.com" />
+                  <input required type="email" value={waitlistForm.email} onChange={e => setWaitlistForm(f => ({...f, email: e.target.value}))} className="w-full bg-gray-900/50 border border-white/10 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 placeholder-gray-400" placeholder="tu@email.com" />
                 </div>
                 <div>
                   <label className="block text-sm font-bold text-white/80 mb-1.5">Situación Actual</label>
-                  <select required value={waitlistForm.situacion} onChange={e => setWaitlistForm(f => ({...f, situacion: e.target.value}))} className="w-full bg-white/5 border border-white/10 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 appearance-none">
+                  <select required value={waitlistForm.situacion} onChange={e => setWaitlistForm(f => ({...f, situacion: e.target.value}))} className="w-full bg-gray-900/50 border border-white/10 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 appearance-none">
                     <option value="" disabled className="text-gray-900">Selecciona una opción</option>
                     <option value="Estoy desempleada/o" className="text-gray-900">Estoy desempleada/o</option>
                     <option value="Empleada/o pero buscando alternativas" className="text-gray-900">Empleada/o pero buscando alternativas</option>
@@ -1132,7 +1148,7 @@ export default function Landing() {
 
                 <div className="flex flex-col gap-6 pt-2">
                   <label className="flex items-start gap-3 cursor-pointer group">
-                    <div className="relative flex items-center justify-center shrink-0 w-5 h-5 rounded border border-white/30 bg-white/5 mt-0.5 group-hover:border-teal-400 transition-colors">
+                    <div className="relative flex items-center justify-center shrink-0 w-5 h-5 rounded border border-white/30 bg-gray-900/50 mt-0.5 group-hover:border-teal-400 transition-colors">
                       <input type="checkbox" required checked={waitlistForm.aceptaPrivacidad} onChange={e => setWaitlistForm(f => ({...f, aceptaPrivacidad: e.target.checked}))} className="opacity-0 absolute inset-0 w-full h-full cursor-pointer" />
                       {waitlistForm.aceptaPrivacidad && <CheckCircle size={14} weight="bold" className="text-teal-400" />}
                     </div>

@@ -217,4 +217,38 @@ router.delete('/users/:id', auth, async (req, res) => {
   }
 });
 
+/**
+ * POST /api/admin/config
+ * Actualiza o crea una configuración del sistema (SEO, copy, etc.)
+ */
+router.post('/config', auth, async (req, res) => {
+  const { data: profile } = await req.supabase
+    .from('profiles')
+    .select('is_admin')
+    .eq('id', req.user.id)
+    .single();
+
+  if (!profile?.is_admin) {
+    return res.status(403).json({ error: 'Acceso denegado' });
+  }
+
+  const { config_key, config_value } = req.body;
+
+  if (!config_key) {
+    return res.status(400).json({ error: 'config_key es requerido' });
+  }
+
+  try {
+    const { error } = await supabase
+      .from('landing_config')
+      .upsert({ config_key, config_value, updated_at: new Date().toISOString() }, { onConflict: 'config_key' });
+
+    if (error) throw error;
+    res.json({ ok: true, message: `Configuración '${config_key}' actualizada.` });
+  } catch (err) {
+    console.error('[Admin] Error actualizando config:', err.message);
+    res.status(500).json({ error: 'Error actualizando configuración' });
+  }
+});
+
 module.exports = router;

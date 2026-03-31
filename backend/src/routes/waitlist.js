@@ -3,6 +3,22 @@ const router = express.Router();
 const { supabaseAdmin } = require('../lib/supabase');
 const { sendWelcomeWaitlistEmail } = require('../services/resendService');
 const auth = require('../middleware/auth');
+const rateLimit = require('express-rate-limit');
+
+// Rate limiter estricto para POST /api/waitlist: 5 por hora por IP
+const waitlistLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hora
+  max: 5, // máximo 5 registros por IP por hora
+  keyGenerator: (req) => req.ip || req.connection.remoteAddress,
+  handler: (req, res) => res.status(429).json({ error: 'Demasiados intentos. Intenta en una hora.' })
+});
+
+// Situaciones permitidas (validadas en servidor)
+const SITUACIONES_PERMITIDAS = new Set([
+  'Estoy desempleada/o',
+  'Empleada/o pero buscando alternativas',
+  'Quiero optimizar mi perfil para futuro'
+]);
 
 // GET /api/waitlist — listar todos los leads (solo admins autenticados)
 router.get('/', auth, async (req, res, next) => {
@@ -18,19 +34,43 @@ router.get('/', auth, async (req, res, next) => {
       return res.status(403).json({ error: 'Acceso denegado' });
     }
 
+    // Paginación: por defecto primeras 50, máximo 100
+    const page = Math.max(0, parseInt(req.query.page) || 0);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 50));
+    const start = page * limit;
+    const end = start + limit - 1;
+
+    // Obtener total count
+    const { count, error: countError } = await supabaseAdmin
+      .from('waitlist_leads')
+      .select('id', { count: 'exact', head: true });
+
+    if (countError) throw countError;
+
+    // Obtener datos paginados
     const { data, error } = await supabaseAdmin
       .from('waitlist_leads')
       .select('*')
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .range(start, end);
 
     if (error) throw error;
-    return res.json({ leads: data || [] });
+
+    return res.json({
+      leads: data || [],
+      pagination: {
+        page,
+        limit,
+        total: count || 0,
+        pages: Math.ceil((count || 0) / limit)
+      }
+    });
   } catch (error) {
     next(error);
   }
 });
 
-router.post('/', async (req, res, next) => {
+router.post('/', waitlistLimiter, async (req, res, next) => {
   try {
     const { nombre, apellido, indicativo, telefono, pais, email, situacion, aceptaPrivacidad } = req.body;
 
@@ -38,10 +78,23 @@ router.post('/', async (req, res, next) => {
       return res.status(400).json({ error: 'Faltan campos obligatorios' });
     }
 
-    // Email format validation broadly
+    // Validación de longitud y trim
+    if (typeof nombre !== 'string' || nombre.trim().length < 2 || nombre.length > 100) {
+      return res.status(400).json({ error: 'Nombre debe tener 2-100 caracteres' });
+    }
+    if (typeof apellido !== 'string' || apellido.trim().length < 2 || apellido.length > 100) {
+      return res.status(400).json({ error: 'Apellido debe tener 2-100 caracteres' });
+    }
+
+    // Email format validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
+    if (!emailRegex.test(email) || email.length > 150) {
       return res.status(400).json({ error: 'Formato de email inválido' });
+    }
+
+    // Validar situación contra whitelist
+    if (!SITUACIONES_PERMITIDAS.has(situacion)) {
+      return res.status(400).json({ error: 'Situación no válida' });
     }
 
     // Combinar indicativo + número para guardar teléfono completo
@@ -80,16 +133,26 @@ router.post('/', async (req, res, next) => {
   }
 });
 
-// Analytics tracking endpoint
-router.post('/track', async (req, res, next) => {
+// Analytics tracking — IP-based rate limiter (60/min by IP to prevent abuse)
+const trackLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minuto
+  max: 1, // máximo 1 por IP por minuto (suficiente para analytics)
+  keyGenerator: (req) => req.ip || req.connection.remoteAddress,
+  handler: (req, res) => res.status(200).json({ success: false }) // silent fail para no romper UX
+});
+
+router.post('/track', trackLimiter, async (req, res, next) => {
   try {
-    const { data: sData } = await supabaseAdmin.from('landing_stats').select('views').eq('id', 1).single();
-    if (sData) {
-      await supabaseAdmin.from('landing_stats').update({ views: sData.views + 1 }).eq('id', 1);
-    }
+    // TODO: Crear RPC en Supabase: CREATE FUNCTION increment_landing_views() RETURNS void AS $$ UPDATE landing_stats SET views = views + 1 WHERE id = 1; $$ LANGUAGE SQL;
+    // Usar RPC atómico en lugar de read-then-write para evitar race condition
+    const { error } = await supabaseAdmin.rpc('increment_landing_views');
+
+    if (error && error.code !== 'PGRST204') throw error; // 204 = no rows (tabla vacía, fallback)
+
     return res.status(200).json({ success: true });
   } catch (error) {
-    next(error);
+    console.error('[Analytics] Error tracking view:', error);
+    res.status(200).json({ success: false }); // silent fail para no romper UX
   }
 });
 

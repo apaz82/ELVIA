@@ -1,0 +1,28 @@
+# OptimaCV Waitlist Implementation
+
+- [x] Copiar [Landing.jsx](file:///c:/Users/G15/Documents/Claude-Antigravity%20projects/APP-HR-CVS/frontend/src/pages/Landing.jsx) a [Landing2.jsx](file:///c:/Users/G15/Documents/Claude-Antigravity%20projects/APP-HR-CVS/frontend/src/pages/Landing2.jsx).
+- [x] Actualizar [App.jsx](file:///c:/Users/G15/Documents/Claude-Antigravity%20projects/APP-HR-CVS/frontend/src/App.jsx) agregando la ruta secreta `/landing2` para testing completo.
+- [x] Proveer comando SQL al usuario para tabla `waitlist_leads`.
+- [x] Actualizar `resendService.js` con el correo de bienvenida de la Waitlist.
+- [x] Crear el endpoint backend `POST /api/waitlist` e integrarlo en [app.js](file:///c:/Users/G15/Documents/Claude-Antigravity%20projects/APP-HR-CVS/backend/src/app.js).
+- [x] Modificar [Landing.jsx](file:///c:/Users/G15/Documents/Claude-Antigravity%20projects/APP-HR-CVS/frontend/src/pages/Landing.jsx) (Waitlist) removiendo botones de inicio de sesión y registro.
+- [x] Modificar [Landing.jsx](file:///c:/Users/G15/Documents/Claude-Antigravity%20projects/APP-HR-CVS/frontend/src/pages/Landing.jsx) agregando el formulario de registro a la lista de espera (Hero/Box).
+- [x] Conectar el formulario de Waitlist al backend con loading states y manejo de errores.
+- [x] Refinar Links de auth residuales (Inversión, Mi Perfil, Iniciar sesión) en footer y navbars.
+- [x] Redirigir CTAs (Demo, Mentor, Footer) hacia formulario Waitlist o `/landing2`.
+- [x] Ajustes visuales: Botón del formulario a color primario (teal), quitar copys de LATAM, duplicar formulario final en Dark mode, y arreglar redirección del DEMO CTA.
+- [x] Formularios de Espera: Agregar IP detection, Select de "Situación" y estructurar DB.
+- [x] Admin Dashboard: Vista para lista de espera y tráfico de landing.
+- [x] Fix: Resolver importe en [waitlist.js](file:///c:/Users/G15/Documents/Claude-Antigravity%20projects/APP-HR-CVS/backend/src/routes/waitlist.js) (`lib/supabase`) causante de caída en Render.
+- [x] Fix: Ajustar redirección de CTAs (`id="waitlist-form-bottom"`) en Landing.
+- [x] Fix UI: Mejorar campos de país (select) y teléfono (indicativo separado) en formularios de lista de espera.
+- [x] Marketing: Añadir script de Microsoft Clarity a [index.html](file:///c:/Users/G15/Documents/Claude-Antigravity%20projects/APP-HR-CVS/frontend/index.html).
+- [x] Marketing: Crear sección de Marketing y Analytics en [Admin.jsx](file:///c:/Users/G15/Documents/Claude-Antigravity%20projects/APP-HR-CVS/frontend/src/pages/Admin.jsx) (ideas de contenido y auditoría).
+- [x] UI Refinements: Formulario Waitlist en Dark Mode, Select Dinámico de País/Indicativo, reubicación de Trust Badges debajo de mockup, y traducción "Compatibilidad".
+- [x] Expansion: Implementar `landing_events` y `landing_config` en DB.
+- [x] Expansion: Crear endpoint `POST /api/events/track` y `POST /api/admin/config`.
+- [x] Expansion: Visualizar Funnel de Conversión en Admin.
+- [x] Expansion: Mejorar AI Copywriter con selección de plataforma/tono.
+- [x] Expansion: Implementar SEO Manager dinámico (Tags editables).
+- [x] Optimization: Limpieza profunda de codificación de caracteres (UTF-8) en [Landing.jsx](file:///c:/Users/G15/Documents/Claude-Antigravity%20projects/APP-HR-CVS/frontend/src/pages/Landing.jsx).
+

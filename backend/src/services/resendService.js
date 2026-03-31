@@ -60,7 +60,7 @@ const sendOTPEmail = async (to, otp, targetUserEmail) => {
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2 style="color: #1e3a8a;">Confirmación de Operación Sensible</h2>
 
-        <p>Se solicita borrar la cuenta de usuario: <strong>${targetUserEmail}</strong></p>
+        <p>Se solicita borrar la cuenta de usuario: <strong>${escapeHtml(targetUserEmail)}</strong></p>
 
         <p style="color: #666; font-size: 14px;">Por razones de seguridad, requiere confirmación con código OTP.</p>
 

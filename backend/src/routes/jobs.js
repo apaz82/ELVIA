@@ -191,7 +191,7 @@ const expandirCargo = async (title) => {
 // Soporta dos modos:
 //   ?title=  → búsqueda por cargo (expande con sinónimos)
 //   ?keywords= → búsqueda por palabras clave/frases (sin expansión)
-router.get('/similar', async (req, res) => {
+router.get('/similar', auth, async (req, res) => {
   const { title, keywords, location, datecreated, employment_type, experience, radius, salary, page } = req.query;
 
   const modoKeywords = !!keywords && !title;
