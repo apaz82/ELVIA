@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext'
 import {
   FileMagnifyingGlass, MagnifyingGlass, Briefcase, Kanban,
   ArrowRight, CheckCircle, ChartBar, Coins, SignOut, Warning,
-  ShieldCheck, Lightning, Target,
+  ShieldCheck, Lightning, Target, Check,
   Folders, BookmarkSimple, Books, LinkedinLogo,
   MicrophoneStage, UsersThree
 } from '@phosphor-icons/react'
@@ -530,100 +530,73 @@ export default function Landing() {
             {/* Trust Badges moved inside the right column below mockup */}
           </motion.div>
 
-          {/* Floating UI Elements / Dashboard Mockup */}
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.9, rotateX: 10 }}
-            animate={{ opacity: 1, scale: 1, rotateX: 0 }}
+          {/* Gerente de Proyecto PMI® Widget */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{ duration: 1.2, ease: "easeOut", delay: 0.2 }}
-            className="relative hidden lg:block perspective-1000"
+            className="relative"
           >
-            <div className="absolute inset-0 bg-gradient-to-r from-teal-500/20 to-blue-500/20 blur-[100px] rounded-full" />
+            <div className="bg-white border border-gray-200 rounded-3xl p-8 shadow-[0_20px_60px_rgba(0,0,0,0.08)]">
+              {/* Header con badge PMI® */}
+              <div className="mb-6">
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-teal-50 border border-teal-200 mb-3">
+                  <span className="text-xs font-bold text-teal-700 uppercase tracking-wide">Según PMI®</span>
+                </div>
+                <h3 className="text-2xl font-black text-gray-900 mb-2">Gerente de Proyecto</h3>
+                <p className="text-sm text-gray-500">De tu búsqueda laboral</p>
+              </div>
 
-            {/* Wrapper de los dos widgets — pb-16 deja espacio para el flotante absoluto */}
-            <div className="relative pb-16">
+              {/* Definición */}
+              <div className="mb-8 pb-8 border-b border-gray-100">
+                <p className="text-sm text-gray-600 leading-relaxed">
+                  Un Gerente de Proyecto es quien <strong>planifica, ejecuta y controla</strong> un proyecto para alcanzar sus objetivos. Aplicado a tu carrera, <strong>TÚ eres ese gerente</strong>.
+                </p>
+              </div>
 
-              {/* Main Widget */}
-              <motion.div
-                animate={{ y: [0, -15, 0] }}
-                transition={{ repeat: Infinity, duration: 6, ease: "easeInOut" }}
-                className="relative bg-white border border-gray-200 p-8 rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.08)] z-20"
-              >
-                <div className="flex items-center justify-between border-b border-gray-100 pb-6 mb-6">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-teal-400 to-emerald-600 flex items-center justify-center shrink-0 shadow-lg">
-                      <svg className="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                        <polyline points="14 2 14 8 20 8" />
-                        <line x1="9" y1="12" x2="15" y2="12" />
-                        <line x1="9" y1="16" x2="15" y2="16" />
-                      </svg>
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-lg text-gray-900">Nivel de Optimización</h3>
-                      <p className="text-gray-400 text-xs">Escaneando compatibilidad...</p>
-                    </div>
+              {/* Grid 3x2 de beneficios */}
+              <div className="grid grid-cols-3 gap-4 mb-8">
+                {[
+                  { icon: MagnifyingGlass, label: 'Autodescubrimiento', desc: 'Conoce quién eres' },
+                  { icon: ShieldCheck, label: 'Fortalezas', desc: 'Sabe en qué eres bueno' },
+                  { icon: Target, label: 'Oferta de valor', desc: 'Descubre tu propuesta' },
+                  { icon: Lightning, label: 'Herramientas', desc: 'Recursos optimizados' },
+                  { icon: ChartBar, label: 'Seguimiento', desc: 'Control y visibilidad' },
+                  { icon: CheckCircle, label: 'Tranquilidad', desc: 'Te guía en el proceso' }
+                ].map((benefit, idx) => (
+                  <div key={idx} className="flex flex-col items-center text-center p-4 rounded-2xl bg-gradient-to-br from-teal-50 to-emerald-50 border border-teal-100 hover:border-teal-300 transition-colors">
+                    <benefit.icon size={24} weight="duotone" className="text-teal-600 mb-2" />
+                    <p className="text-xs font-bold text-gray-900 mb-1">{benefit.label}</p>
+                    <p className="text-[10px] text-gray-500">{benefit.desc}</p>
                   </div>
-                  <div className="text-right">
-                    <span className="block text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-teal-600 to-emerald-500">92%</span>
-                    <span className="text-[10px] text-gray-400 uppercase tracking-widest">Compatibilidad</span>
-                  </div>
-                </div>
+                ))}
+              </div>
 
-                <div className="space-y-5">
-                  {[
-                    { label: 'Densidad Palabras Clave', pct: 88, color: 'bg-teal-400' },
-                    { label: 'Estructura Harvard',      pct: 100, color: 'bg-emerald-400' },
-                    { label: 'Métricas de Impacto',     pct: 75, color: 'bg-amber-400' },
-                  ].map(({ label, pct, color }, i) => (
-                    <div key={label} className="flex items-center justify-between gap-4">
-                      <span className="text-sm text-gray-500 w-44">{label}</span>
-                      <div className="flex-1 bg-gray-100 h-2 rounded-full overflow-hidden">
-                        <motion.div
-                          initial={{ width: 0 }}
-                          animate={{ width: `${pct}%` }}
-                          transition={{ duration: 1.5, delay: 0.5 + (i*0.2), ease: "easeOut" }}
-                          className={`h-full rounded-full ${color}`}
-                        />
-                      </div>
-                      <span className="text-sm font-bold text-gray-700 w-10 text-right">{pct}%</span>
-                    </div>
-                  ))}
-                </div>
-              </motion.div>
-
-              {/* Small Floating Widget — absoluto dentro del wrapper, no toca los badges */}
-              <motion.div
-                animate={{ y: [0, 10, 0] }}
-                transition={{ repeat: Infinity, duration: 5, ease: "easeInOut", delay: 1 }}
-                className="absolute right-0 bottom-0 bg-white border border-gray-200 p-5 rounded-2xl shadow-xl z-30 flex items-center gap-4"
+              {/* CTA Button */}
+              <button
+                onClick={() => document.getElementById('waitlist-form')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
+                className="w-full flex items-center justify-center gap-2 bg-teal-500 text-white font-bold py-3 px-6 rounded-2xl hover:bg-teal-600 transition-all shadow-lg shadow-teal-500/20"
               >
-                <div className="w-10 h-10 rounded-full bg-[#E8541A]/10 border border-[#E8541A]/30 flex items-center justify-center">
-                  <CheckCircle size={20} weight="fill" className="text-[#E8541A]" />
-                </div>
-                <div>
-                  <p className="text-sm font-bold text-gray-900">Formato Optimizado</p>
-                  <p className="text-xs text-gray-400">Hace 2 minutos</p>
-                </div>
-              </motion.div>
+                Comenzar mi proceso <ArrowRight size={16} weight="bold" />
+              </button>
+            </div>
 
-            </div>{/* /wrapper widgets */}
-
-            {/* Trust Badges — debajo de ambas animaciones, sin superposición */}
+            {/* Trust Badges — debajo del widget */}
             <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="flex flex-col gap-1.5 p-4 rounded-2xl bg-white/60 backdrop-blur-sm border border-gray-200/60 shadow-sm hover:bg-white hover:border-gray-300 transition-all">
-                 <ShieldCheck size={28} weight="duotone" className="text-teal-500 mb-1" />
-                 <span className="text-sm font-black tracking-tight text-gray-900">100% ATS-Perfect</span>
-                 <span className="text-xs text-gray-500 leading-tight">Supera filtros automáticos de corporativos.</span>
+                 <MagnifyingGlass size={28} weight="duotone" className="text-teal-500 mb-1" />
+                 <span className="text-sm font-black tracking-tight text-gray-900">Autodescubrimiento</span>
+                 <span className="text-xs text-gray-500 leading-tight">Conoce quién eres y qué ofreces.</span>
               </div>
               <div className="flex flex-col gap-1.5 p-4 rounded-2xl bg-white/60 backdrop-blur-sm border border-gray-200/60 shadow-sm hover:bg-white hover:border-gray-300 transition-all">
-                 <Lightning size={28} weight="duotone" className="text-amber-500 mb-1" />
-                 <span className="text-sm font-black tracking-tight text-gray-900">10x Más Rápido</span>
-                 <span className="text-xs text-gray-500 leading-tight">Tu currículum listo en segundos, no horas.</span>
+                 <Kanban size={28} weight="duotone" className="text-amber-500 mb-1" />
+                 <span className="text-sm font-black tracking-tight text-gray-900">Proceso Estructurado</span>
+                 <span className="text-xs text-gray-500 leading-tight">De inicio a fin, como un proyecto real.</span>
               </div>
               <div className="flex flex-col gap-1.5 p-4 rounded-2xl bg-white/60 backdrop-blur-sm border border-gray-200/60 shadow-sm hover:bg-white hover:border-gray-300 transition-all">
                  <Target size={28} weight="duotone" className="text-blue-500 mb-1" />
-                 <span className="text-sm font-black tracking-tight text-gray-900">Recruiter Match</span>
-                 <span className="text-xs text-gray-500 leading-tight">Compatible matemáticamente con la vacante.</span>
+                 <span className="text-sm font-black tracking-tight text-gray-900">Control Total</span>
+                 <span className="text-xs text-gray-500 leading-tight">Tú decides el ritmo, nosotros te guiamos.</span>
               </div>
             </div>
 
@@ -1231,6 +1204,182 @@ export default function Landing() {
                   </motion.div>
                 ))}
               </div>
+            </motion.div>
+          </div>
+        </div>
+      </section>
+
+      {/* ─── Showcase: Herramientas en Acción ────────────────────────────────────── */}
+      <section className="relative z-10 py-20 px-6 bg-white border-b border-gray-200">
+        <div className="container mx-auto max-w-6xl">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-100px" }}
+            className="text-center mb-16 space-y-3"
+          >
+            <span className="text-[#E8541A] font-bold text-sm tracking-widest uppercase">En tiempo real</span>
+            <h2 className="font-headline font-black text-4xl md:text-5xl tracking-tight text-gray-900">
+              Herramientas en acción
+            </h2>
+            <p className="text-gray-500 text-lg max-w-xl mx-auto">
+              Nuestro sistema analiza cada sección de tu CV en tiempo real, recomendándote mejoras basadas en mejores prácticas del mercado laboral.
+            </p>
+          </motion.div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            {/* Left: Contextual Text */}
+            <motion.div
+              initial={{ opacity: 0, x: -30 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true, margin: "-50px" }}
+              transition={{ type: 'spring', stiffness: 280, damping: 24 }}
+              className="space-y-6"
+            >
+              <div className="space-y-4">
+                <h3 className="font-headline font-bold text-2xl text-gray-900">Optimización en cada paso</h3>
+                <p className="text-gray-600 leading-relaxed">
+                  Mientras editas tu CV, OPTIMA analiza cada sección: desde tu titular y resumen profesional, hasta tus experiencias y logros.
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex items-start gap-4">
+                  <div className="w-10 h-10 rounded-lg bg-teal-100 flex items-center justify-center shrink-0 mt-1">
+                    <Check size={20} weight="bold" className="text-teal-600" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-gray-900 mb-1">Análisis Inteligente</h4>
+                    <p className="text-sm text-gray-600">Detecta palabras clave, formato y estructura para maximizar el match con ATS</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-4">
+                  <div className="w-10 h-10 rounded-lg bg-teal-100 flex items-center justify-center shrink-0 mt-1">
+                    <Check size={20} weight="bold" className="text-teal-600" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-gray-900 mb-1">Recomendaciones Accionables</h4>
+                    <p className="text-sm text-gray-600">Sugerencias concretas para mejorar cada sección de tu perfil</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-4">
+                  <div className="w-10 h-10 rounded-lg bg-teal-100 flex items-center justify-center shrink-0 mt-1">
+                    <Check size={20} weight="bold" className="text-teal-600" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-gray-900 mb-1">Seguimiento en Tiempo Real</h4>
+                    <p className="text-sm text-gray-600">Tu índice de optimización se actualiza instantáneamente a medida que haces cambios</p>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Right: Optimization Widget (Simplified) */}
+            <motion.div
+              initial={{ opacity: 0, x: 30 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true, margin: "-50px" }}
+              transition={{ type: 'spring', stiffness: 280, damping: 24 }}
+              className="relative"
+            >
+              <div className="bg-white border-2 border-gray-200 rounded-3xl p-8 shadow-xl hover:shadow-2xl transition-shadow duration-300">
+                {/* Header */}
+                <div className="mb-8">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-50 border border-teal-200 mb-3">
+                    <span className="w-2 h-2 rounded-full bg-teal-500 animate-pulse" />
+                    <span className="text-xs font-bold text-teal-700 uppercase tracking-wide">Análisis en vivo</span>
+                  </div>
+                  <h3 className="font-headline font-bold text-xl text-gray-900">Nivel de Optimización</h3>
+                  <p className="text-sm text-gray-500 mt-1">Tu score de compatibilidad</p>
+                </div>
+
+                {/* Main Score */}
+                <div className="mb-8 text-center">
+                  <div className="inline-flex flex-col items-center gap-4">
+                    <div className="relative w-32 h-32">
+                      <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                        {/* Background circle */}
+                        <circle cx="50" cy="50" r="45" fill="none" stroke="#f3f4f6" strokeWidth="8" />
+                        {/* Progress circle */}
+                        <circle
+                          cx="50"
+                          cy="50"
+                          r="45"
+                          fill="none"
+                          stroke="url(#scoreGradient)"
+                          strokeWidth="8"
+                          strokeDasharray="141"
+                          strokeDashoffset="35"
+                          strokeLinecap="round"
+                          className="transition-all duration-500"
+                        />
+                        <defs>
+                          <linearGradient id="scoreGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stopColor="#14b8a6" />
+                            <stop offset="100%" stopColor="#06b6d4" />
+                          </linearGradient>
+                        </defs>
+                      </svg>
+                      <div className="absolute inset-0 flex flex-col items-center justify-center">
+                        <span className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-teal-600 to-cyan-600">
+                          78%
+                        </span>
+                        <span className="text-xs text-gray-500 font-semibold mt-1">Muy bien</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Score Breakdown */}
+                <div className="space-y-3">
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-700 font-semibold">Titular</span>
+                      <span className="text-teal-600 font-bold">92%</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div className="bg-gradient-to-r from-teal-500 to-cyan-500 h-2 rounded-full" style={{ width: '92%' }} />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-700 font-semibold">Experiencia</span>
+                      <span className="text-teal-600 font-bold">78%</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div className="bg-gradient-to-r from-teal-500 to-cyan-500 h-2 rounded-full" style={{ width: '78%' }} />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-700 font-semibold">Habilidades</span>
+                      <span className="text-teal-600 font-bold">65%</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div className="bg-gradient-to-r from-teal-500 to-cyan-500 h-2 rounded-full" style={{ width: '65%' }} />
+                    </div>
+                  </div>
+                </div>
+
+                {/* CTA */}
+                <button
+                  onClick={() => document.getElementById('waitlist-form-bottom')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
+                  className="w-full mt-8 bg-teal-500 hover:bg-teal-600 text-white font-bold py-3 rounded-xl transition-colors shadow-lg shadow-teal-500/20"
+                >
+                  Comenzar análisis gratuito
+                </button>
+              </div>
+
+              {/* Floating accent */}
+              <motion.div
+                animate={{ y: [0, 12, 0] }}
+                transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
+                className="absolute -bottom-4 -right-4 w-24 h-24 bg-teal-100/40 rounded-full blur-3xl pointer-events-none"
+              />
             </motion.div>
           </div>
         </div>
