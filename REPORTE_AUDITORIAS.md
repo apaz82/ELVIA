@@ -1,5 +1,61 @@
 # OPTIMA-CV — Reporte de Auditorías
-**Fecha:** 2026-03-30 | **Para leer en camino**
+**Última actualización:** 2026-03-31 | **Para leer en camino**
+
+---
+
+## 📋 ACTUALIZACIONES — 31 de Marzo 2026
+
+### Cambios realizados en Landing.jsx (Hero Section)
+
+**Fecha:** 2026-03-31
+**Commits:**
+- `d7566f5` - feat(landing): restructure hero grid with equal heights and featured Autoconocimiento widget
+- `cb3ee40` - refactor(landing): enhance hero widgets UI/UX with larger, more prominent design
+
+#### Descripción
+Se reestructuró completamente el hero section para mejorar la prominencia del concepto de "Gerente de Proyecto PMI®" y la jerarquía visual de las herramientas principales.
+
+#### Cambios principales
+
+1. **Restructuración de Grid (Commit 1)**
+   - Movimiento de `Autoconocimiento` desde array `recursos` a array `heroes`
+   - Cambio de título "CV Optimizer" → "Optimizador de CV" (españolización)
+   - Conversión a grid uniforme de 3 columnas (antes: 2+1 split)
+   - Adición de flag `featured: true` a Autoconocimiento
+   - Implementación de estilos condicionales para widget featured:
+     - Borde azul (border-blue-400)
+     - Fondo degradado (from-blue-50 to-white)
+     - Badge "Destacado" visual
+     - Sombra mejorada en hover (0 25px 50px -12px rgba(0,0,0,0.3))
+   - Aumento de altura mínima: 200px → 240px
+
+2. **Mejoras UI/UX (Commit 2)**
+   - **Altura:** 240px → 380px (proporciones más balanceadas, similar a widget PMI)
+   - **Iconos:** w-12 h-12 → w-16 h-16 (icon size 24 → 32)
+   - **Tipografía:** text-xl → text-2xl para títulos
+   - **Padding:** p-7 → p-8 (mejor espaciado interno)
+   - **Espaciado:** Mejora de gaps gap-4 → gap-5 md:gap-6
+   - **Subtítulo:** Adición de campo `subtitulo` a Autoconocimiento
+     - Render condicional: "Tu primer paso como gerente"
+     - Estilo: text-xs font-semibold uppercase tracking-wide
+   - **Jerarquía visual:** Colores de texto dinámicos según estado featured
+
+#### Resultado visual
+Los 3 widgets del hero (Optimizador de CV, CV vs Vacante, Autoconocimiento) ahora:
+- ✅ Tienen la misma altura y proporciones (380px)
+- ✅ Iconos más grandes y prominentes
+- ✅ Mejor legibilidad con más espaciado
+- ✅ Autoconocimiento destacado visualmente con estilo azul, badge y subtítulo
+- ✅ Responsive design mejorado (mobile-first)
+- ✅ Consistente con el widget PMI en presencia visual
+
+#### Archivos modificados
+- `frontend/src/pages/Landing.jsx` - Hero grid section (líneas ~20-46 data, ~883-912 render)
+
+#### Estado
+✅ Build success (npm run build)
+✅ No breaking changes
+✅ Hot reload verificado en dev
 
 ---
 
