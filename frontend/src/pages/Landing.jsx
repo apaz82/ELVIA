@@ -37,6 +37,7 @@ const FEATURE_ROWS = {
     {
       Icon: UsersThree,
       titulo: 'Autoconocimiento',
+      subtitulo: 'Tu primer paso como gerente',
       desc: 'Un onboarding para que conozcas tu momento actual y hacia donde quieres ir. Preparate para ser gerente de proyecto de tu transicion profesional.',
       cta: 'Comenzar',
       gradientStyle: GRAD.blue,
@@ -79,8 +80,6 @@ const FEATURE_ROWS = {
     },
   ],
   recursos: [
-    {
-    },
     {
       Icon: Books,
       titulo: 'Biblioteca',
@@ -879,7 +878,7 @@ export default function Landing() {
           <motion.div
             initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-60px" }}
             variants={staggerContainer}
-            className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4"
+            className="grid grid-cols-1 md:grid-cols-3 gap-5 md:gap-6 mb-4"
           >
             {/* ─── Fila 1: Herramientas IA hero (3 cols iguales) ─── */}
             {FEATURE_ROWS.heroes.map(f => (
@@ -896,16 +895,24 @@ export default function Landing() {
                   </div>
                 )}
                 <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300" style={{ background: f.gradientStyle }} />
-                <div className="relative z-10 p-7 h-full flex flex-col min-h-[240px]">
-                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-5 transition-all duration-300 ${f.iconBg} ${f.iconColor} group-hover:bg-white/20 group-hover:text-white`}>
-                    <f.Icon size={24} weight="duotone" />
+                <div className="relative z-10 p-8 h-full flex flex-col min-h-[380px]">
+                  {/* Icon */}
+                  <div className={`w-16 h-16 rounded-xl flex items-center justify-center mb-6 transition-all duration-300 ${f.iconBg} ${f.iconColor} group-hover:bg-white/20 group-hover:text-white`}>
+                    <f.Icon size={32} weight="duotone" />
                   </div>
+
+                  {/* Content */}
                   <div className="flex-1">
-                    <h3 className={`font-headline font-bold text-xl transition-colors duration-300 mb-2 ${f.featured ? 'text-blue-900 group-hover:text-white' : 'text-gray-900 group-hover:text-white'}`}>{f.titulo}</h3>
-                    <p className={`text-sm transition-colors duration-300 leading-relaxed ${f.featured ? 'text-blue-700 group-hover:text-white/80' : 'text-gray-500 group-hover:text-white/80'}`}>{f.desc}</p>
+                    <h3 className={`font-headline font-bold text-2xl transition-colors duration-300 mb-1 leading-tight ${f.featured ? 'text-blue-900 group-hover:text-white' : 'text-gray-900 group-hover:text-white'}`}>{f.titulo}</h3>
+                    {f.subtitulo && (
+                      <p className={`text-xs font-semibold uppercase tracking-wide transition-colors duration-300 mb-3 ${f.featured ? 'text-blue-600 group-hover:text-white/70' : 'text-gray-500 group-hover:text-white/60'}`}>{f.subtitulo}</p>
+                    )}
+                    <p className={`text-sm leading-relaxed transition-colors duration-300 mb-4 ${f.featured ? 'text-blue-700 group-hover:text-white/80' : 'text-gray-600 group-hover:text-white/80'}`}>{f.desc}</p>
                   </div>
-                  <div className="mt-5 flex items-center gap-2 text-sm font-bold text-gray-400 group-hover:text-white transition-all duration-300 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0">
-                    {f.cta} <ArrowRight size={15} weight="bold" />
+
+                  {/* CTA */}
+                  <div className="mt-6 flex items-center gap-2 text-sm font-bold text-gray-400 group-hover:text-white transition-all duration-300 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0">
+                    {f.cta} <ArrowRight size={16} weight="bold" />
                   </div>
                 </div>
               </motion.div>
