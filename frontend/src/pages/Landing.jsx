@@ -403,13 +403,13 @@ export default function Landing() {
 
       {/* ─── Hero Section ───────────────────────────────────────────────────────── */}
       <section className="relative z-10 pt-12 pb-20 md:pt-20 md:pb-32 px-6 lg:min-h-[85vh] flex items-center">
-        <div className="container mx-auto max-w-7xl grid lg:grid-cols-2 gap-16 items-center">
+        <div className="container mx-auto max-w-7xl grid lg:grid-cols-2 gap-16 items-stretch">
           
-          <motion.div 
-            initial="hidden" 
-            animate="visible" 
+          <motion.div
+            initial="hidden"
+            animate="visible"
             variants={staggerContainer}
-            className="max-w-2xl"
+            className="max-w-2xl h-full flex flex-col"
           >
             <motion.div variants={fadeInUp} className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-gray-200 bg-white shadow-sm mb-8">
               <span className="w-2 h-2 rounded-full bg-[#E8541A] animate-pulse" />
@@ -435,7 +435,7 @@ export default function Landing() {
               Encuentra tu propósito y ten las herramientas necesarias para encontrar tu siguiente proyecto laboral y profesional.
             </motion.p>
 
-            <motion.div variants={fadeInUp} className="mt-8 bg-gray-900 border border-white/10 rounded-3xl p-6 shadow-2xl relative overflow-hidden" id="waitlist-form">
+            <motion.div variants={fadeInUp} className="mt-8 flex-1 flex flex-col bg-gray-900 border border-white/10 rounded-3xl p-6 shadow-2xl relative overflow-hidden" id="waitlist-form">
               <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-teal-500 via-[#E8541A] to-blue-500" />
               <h3 className="text-xl font-black text-white mb-2 underline decoration-teal-500/50">Únete a la lista de espera</h3>
               <p className="text-xs text-white/60 mb-5 leading-relaxed">
@@ -443,7 +443,7 @@ export default function Landing() {
               </p>
               
               {waitlistStatus.success ? (
-                <div className="bg-teal-50 border border-teal-200 p-4 rounded-xl flex items-start gap-3">
+                <div className="bg-teal-50 border border-teal-200 p-4 rounded-xl flex items-start gap-3 flex-1">
                   <CheckCircle size={24} weight="fill" className="text-teal-500 shrink-0" />
                   <div>
                     <h4 className="font-bold text-teal-800 text-sm">¡Estás en la lista!</h4>
@@ -451,7 +451,7 @@ export default function Landing() {
                   </div>
                 </div>
               ) : (
-                <form onSubmit={handleWaitlistSubmit} className="space-y-4">
+                <form onSubmit={handleWaitlistSubmit} className="space-y-4 flex flex-col flex-1">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-xs font-bold text-white/50 mb-1">Nombre</label>
@@ -508,7 +508,7 @@ export default function Landing() {
                     </div>
                   )}
 
-                  <div className="flex flex-col gap-4 pt-2">
+                  <div className="flex flex-col gap-4 pt-2 mt-auto">
                     <label className="flex items-start gap-2 cursor-pointer group">
                       <div className="relative flex items-center justify-center shrink-0 w-5 h-5 rounded border border-gray-300 bg-white shadow-sm mt-0.5 group-hover:border-[#E8541A] transition-colors">
                         <input type="checkbox" required checked={waitlistForm.aceptaPrivacidad} onChange={e => setWaitlistForm(f => ({...f, aceptaPrivacidad: e.target.checked}))} className="opacity-0 absolute inset-0 w-full h-full cursor-pointer" />
@@ -535,9 +535,9 @@ export default function Landing() {
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{ duration: 1.2, ease: "easeOut", delay: 0.2 }}
-            className="relative"
+            className="relative h-full flex flex-col"
           >
-            <div className="bg-white border border-gray-200 rounded-3xl p-8 shadow-[0_20px_60px_rgba(0,0,0,0.08)]">
+            <div className="bg-white border border-gray-200 rounded-3xl p-8 shadow-[0_20px_60px_rgba(0,0,0,0.08)] flex-1 flex flex-col">
               {/* Header con badge PMI® */}
               <div className="mb-6">
                 <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-teal-50 border border-teal-200 mb-3">
@@ -575,7 +575,7 @@ export default function Landing() {
               {/* CTA Button */}
               <button
                 onClick={() => document.getElementById('waitlist-form')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
-                className="w-full flex items-center justify-center gap-2 bg-teal-500 text-white font-bold py-3 px-6 rounded-2xl hover:bg-teal-600 transition-all shadow-lg shadow-teal-500/20"
+                className="w-full flex items-center justify-center gap-2 bg-teal-500 text-white font-bold py-3 px-6 rounded-2xl hover:bg-teal-600 transition-all shadow-lg shadow-teal-500/20 mt-auto"
               >
                 Comenzar mi proceso <ArrowRight size={16} weight="bold" />
               </button>
