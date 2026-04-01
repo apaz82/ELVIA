@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { Resend } = require('resend');
 const auth = require('../middleware/auth');
+const { supabaseAdmin } = require('../lib/supabase');
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -325,17 +326,40 @@ router.post('/recuperacion', emailRateLimit, async (req, res) => {
   }
 
   try {
-    await resend.emails.send({
+    // Generar el link real de recuperación de Supabase (con el token de seguridad)
+    // Usamos el cliente admin para obtener este link sin enviar el correo por separado de Supabase
+    const { data: linkData, error: linkErr } = await supabaseAdmin.auth.admin.generateLink({
+      type: 'recovery',
+      email: email,
+      options: { redirectTo: resetUrl }
+    });
+
+    if (linkErr || !linkData?.properties?.action_link) {
+      console.error('[email/recuperacion] Error generating link:', linkErr?.message);
+      return res.status(500).json({ error: 'No se pudo generar el enlace de seguridad' });
+    }
+
+    const actionLink = linkData.properties.action_link;
+
+    const { data: resendData, error: resendErr } = await resend.emails.send({
       from: 'OPTIMA | CV <onboarding@resend.dev>',
       to: [email],
       subject: 'Restablece tu contraseña de OPTIMA | CV',
-      html: htmlRecuperacion(email, resetUrl),
+      html: htmlRecuperacion(email, actionLink),
     })
-    res.json({ ok: true })
+
+    if (resendErr) {
+      console.error('[email/recuperacion] Resend API error:', resendErr);
+      return res.status(500).json({ error: `Fallo de Resend API: ${resendErr.message}` });
+    }
+
+    res.json({ ok: true, data: resendData })
+
   } catch (err) {
-    console.error('[email/recuperacion]', err.message)
+    console.error('[email/recuperacion] Catch error:', err.message)
     res.status(500).json({ error: 'No se pudo enviar el email de recuperación' })
   }
 })
+
 
 module.exports = router;

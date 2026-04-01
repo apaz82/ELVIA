@@ -3,9 +3,11 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../services/authService'
+import { useAuth } from '../context/AuthContext'
 import { CheckCircle, LockKey, Eye, EyeSlash, Warning } from '@phosphor-icons/react'
 
 export default function ResetPassword() {
+  const { setIsRecovering } = useAuth()
   const navigate  = useNavigate()
   const [password, setPassword]   = useState('')
   const [confirmar, setConfirmar] = useState('')
@@ -56,6 +58,9 @@ export default function ResetPassword() {
     if (err) {
       setError(err.message || 'Error al actualizar la contraseña. El enlace puede haber expirado.')
     } else {
+      if (setIsRecovering) setIsRecovering(false) // <--- LIMPIAR ESTADO
+      sessionStorage.removeItem('optima_recovery_mode')
+      sessionStorage.removeItem('optima_recovery_hash')
       setExito(true)
       setTimeout(() => navigate('/auth'), 3000)
     }

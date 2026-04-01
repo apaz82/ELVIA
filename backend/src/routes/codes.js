@@ -8,7 +8,9 @@ const DIAS_POR_PLAN = {
   semanal:    7,
   mensual:    30,
   trimestral: 90,
+  anual:      365,
 };
+
 
 // ── POST /api/codes/redeem — canjear un código de acceso ──────
 // Requiere JWT. El frontend llama esto al iniciar sesión si hay
@@ -67,6 +69,12 @@ router.post('/redeem', auth, async (req, res) => {
   if (redeemErr) {
     return res.status(500).json({ error: 'Error al registrar la redención' });
   }
+
+  // 3.5. Incrementar usos_count manualmente (garantiza que Admin lo vea)
+  await db
+    .from('access_codes')
+    .update({ uses_count: codeRow.uses_count + 1 })
+    .eq('id', codeRow.id);
 
   // 4. Aplicar el plan al perfil del usuario
   const diasPlan      = DIAS_POR_PLAN[codeRow.plan] || 30;
@@ -134,7 +142,7 @@ router.post('/', auth, async (req, res) => {
   }
 
   if (!DIAS_POR_PLAN[plan]) {
-    return res.status(400).json({ error: 'Plan inválido. Usa: semanal, mensual o trimestral' });
+    return res.status(400).json({ error: 'Plan inválido. Usa: semanal, mensual, trimestral o anual' });
   }
 
   const { data, error } = await db

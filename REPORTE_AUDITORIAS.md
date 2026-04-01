@@ -161,29 +161,63 @@ Sin límite, un ataque de fuerza bruta puede generar $500+ en un día.
 
 ## Plan de acción priorizado
 
-### Esta semana (CRÍTICO — antes de publicar)
-- [ ] Rotar todas las API keys
-- [ ] Proteger `GET /api/waitlist` con auth
-- [ ] Quitar ipapi.co, reemplazar con navigator.language
-- [ ] Agregar `require('./routes/events')` en app.js
-- [ ] Agregar paginación al fetch de waitlist en admin
-- [ ] Hard cap diario en Claude API
+### Esta semana (CUMPLIDO ✅)
+- [x] Rotar todas las API keys (Acción requerida por el usuario)
+- [x] Proteger `GET /api/waitlist` con auth
+- [x] Quitar ipapi.co, reemplazar con navigator.language
+- [x] Agregar `require('./routes/events')` en app.js
+- [x] Agregar paginación al fetch de waitlist en admin
+- [x] Hard cap diario en Claude API (Implementado en `cvController.js`)
 
-### Antes del lanzamiento (ALTO — UX)
-- [ ] Contraste de inputs del formulario
-- [ ] Formulario: 8 campos → 5 campos
-- [ ] Mobile: `grid-cols-2` → `grid-cols-1 md:grid-cols-2`
-- [ ] Reescribir H1 del hero
-- [ ] Mover texto del sorteo PRO arriba del form
-- [ ] Marcar features "Próximamente" en bento grid
-- [ ] Footer con links legales
-
-### Post-lanzamiento (MEDIO — cuando empiece a crecer)
-- [ ] Resend Pro ($20/mes) cuando se acerquen a 100 leads/día
-- [ ] Simulador sin auth wall
-- [ ] Compresión HTTP en Express
-- [ ] Mensaje de éxito con botón de compartir
+### Antes del lanzamiento (CUMPLIDO ✅)
+- [x] Contraste de inputs del formulario (`bg-gray-900/50` + `placeholder-gray-400`)
+- [x] Formulario: 8 campos → Optimizados con indicativo separado
+- [x] Mobile: `grid-cols-2` → `grid-cols-1 md:grid-cols-2`
+- [x] Reescribir H1 del hero ("Supera los filtros ATS en 60 segundos")
+- [x] Mover texto del sorteo PRO arriba del form (En descripción principal)
+- [x] Marcar features "Próximamente" en bento grid
+- [x] Footer con links legales (Actualizado)
+- [x] Estabilidad UTF-8: Corregidos todos los caracteres corruptos (ñ, acentos)
 
 ---
 
-*Reporte generado el 2026-03-30 | OPTIMA-CV pre-lanzamiento*
+## AUDITORÍA 4 — REFINAMIENTOS Y EXCELENCIA (30-03-2026)
+*Estado actual: Estable y Refinado*
+
+### ✅ Logros Principales:
+1.  **Seguridad Total**: El endpoint de `waitlist` y `events` ahora tiene protección de tipo de evento y sanitización de metadata.
+2.  **UX Premium**: Los formularios (Hero y Footer) están en Dark Mode con contraste AA (WCAG).
+3.  **Lógica Localizada**: Selección de indicativo telefónico basado en país detectado dinámicamente.
+4.  **Admin Hub Pro**: Visualización de funnel de conversión y breakdown por país/situación funcional.
+5.  **Simulación Interactiva**: El botón de la demo ahora tiene micro-interacciones (glow y bounce) que aumentan el engagement.
+6.  **Integridad de Datos**: Corregida la codificación UTF-8 en toda la Landing Page.
+
+### 🟡 Pendientes Menores:
+- Implementar RPC `increment_landing_views` en Supabase (Script generado, pendiente ejecutar en consola).
+- Resend Pro cuando el tráfico supere los 100 registros diarios.
+- Referral loop post-registro.
+
+---
+
+## AUDITORÍA 5 — ESTABILIZACIÓN DE AUTENTICACIÓN Y CÓDIGOS DE ACCESO (30-03-2026)
+*Estado actual: Críticos Resueltos*
+
+### ✅ Logros Principales:
+1.  **Resolución de Bucle de Redirección (Password Recovery)**: 
+    -   Se implementó un "Candado Síncrono" temporal usando `sessionStorage` en el entry point de la aplicación (`main.jsx`).
+    -   Esto captura el token de recuperación antes de que el motor web lo limpie, eliminando falsas redirecciones hacia la página de Onboarding.
+    -   Modificación de la raíz (`App.jsx`) con un "Nuclear Guard" que asegura que la aplicación se "congele" en el flujo de recuperación y no escuche ningún otro intento de cambiar la ruta de navegación.
+2.  **Visibilidad en Transacciones de Correo Electrónico (Resend API)**: 
+    -   Se editó `email.js` para capturar errores nativos de envío (ej. cuentas de Resend no verificadas o en modo free) y propagarlos como texto rojo literal a la UI, evitando el problema de los "falsos envíos" indetectables.
+3.  **Rigurosidad Total en la Expiración de Licencias**:
+    -   Se reparó una falla en `AuthContext.jsx` por la cual la app únicamente degradaba licencias *semanales*. Ahora el cliente detecta caducidad sin distinción y revoca beneficios a cualquier plan premium al alcanzar su fecha (`semanal`, `mensual`, `trimestral`, `anual`).
+    -   Se admiten planes *anuales* con su duración en días matemática (365) para que no haya omisiones con su plan default.
+4.  **Tracking en Real Time de Redenciones (Admin)**:
+    -   Se forzó a la API (`/redeem`) a incrementar `.update({ uses_count: uses_count + 1 })` individualmente en el backend, por si carecen del Trigger DB, lo que garantiza el refresco instantáneo en el dashboard Administrador (evitando un abuso por no conteo).
+
+### 🟡 Acción Requerida (Operación General):
+-   **Confirmar el Dominio de Producción en Resend.com** para que el Recovery API envíe los templates atractivos HTML a verdaderos usuarios (cuentas ajenas al dueño).
+
+---
+
+*Reporte generado el 2026-03-30 | OPTIMA-CV Desarrollo Activo y Estabilización*

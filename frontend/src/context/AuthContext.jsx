@@ -35,6 +35,7 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading]             = useState(true)
   const [perfilCargado, setPerfilCargado] = useState(false)
   const [perfil, setPerfil]               = useState(null)
+  const [isRecovering, setIsRecovering]   = useState(false)
 
   const fetchPerfil = async (userId, email) => {
     const { data } = await supabase
@@ -64,6 +65,12 @@ export const AuthProvider = ({ children }) => {
     })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      console.log('Auth event:', _event)
+      
+      if (_event === 'PASSWORD_RECOVERY') {
+        setIsRecovering(true)
+      }
+
       setSession(session)
       setUser(session?.user ?? null)
       if (session?.user) {
@@ -107,16 +114,17 @@ export const AuthProvider = ({ children }) => {
     }
 
     const plan = perfil.plan || 'free'
+    const PLANES_PAGO = ['semanal', 'mensual', 'trimestral', 'anual']
 
-    // Plan semanal expirado → degradar a free en el cliente
-    const planSemanalExpirado =
-      plan === 'semanal' &&
+    // Cualquier plan de pago expirado → degradar a free en el cliente
+    const planExpirado =
+      PLANES_PAGO.includes(plan) &&
       perfil.plan_expires_at &&
       new Date(perfil.plan_expires_at) < new Date()
-    const planEfectivo = planSemanalExpirado ? 'free' : plan
+    const planEfectivo = planExpirado ? 'free' : plan
 
-    const PLANES_PAGO = ['semanal', 'mensual', 'trimestral']
     const isPaidPlan = PLANES_PAGO.includes(planEfectivo)
+
 
     // Trial: 14 días desde el registro
     const trialExpiresAt = perfil.free_trial_expires_at
@@ -172,6 +180,7 @@ export const AuthProvider = ({ children }) => {
       refreshPerfil: (uid) => fetchPerfil(uid || user?.id),
       refreshUsage:  ()    => user && fetchPerfil(user.id),
       onboardingPendiente,
+      isRecovering, setIsRecovering, // <--- EXPORTAR
       // Plan info — usa directamente estos valores en los componentes
       ...planInfo,
       // Retrocompatibilidad

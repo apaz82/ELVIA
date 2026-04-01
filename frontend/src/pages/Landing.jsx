@@ -20,7 +20,7 @@ const FEATURE_ROWS = {
   heroes: [
     {
       Icon: FileMagnifyingGlass,
-      titulo: 'CV Optimizer',
+      titulo: 'Optimizador de CV',
       desc: 'Tu CV habla primero. Haz que diga lo correcto — formato Harvard, lenguaje de impacto, filtros ATS superados.',
       cta: 'Optimizar mi CV',
       gradientStyle: GRAD.orange,
@@ -33,6 +33,15 @@ const FEATURE_ROWS = {
       cta: 'Medir mi compatibilidad',
       gradientStyle: GRAD.orange,
       iconBg: 'bg-amber-100', iconColor: 'text-amber-600',
+    },
+    {
+      Icon: UsersThree,
+      titulo: 'Autoconocimiento',
+      desc: 'Un onboarding para que conozcas tu momento actual y hacia donde quieres ir. Preparate para ser gerente de proyecto de tu transicion profesional.',
+      cta: 'Comenzar',
+      gradientStyle: GRAD.blue,
+      iconBg: 'bg-blue-100', iconColor: 'text-blue-600',
+      featured: true,
     },
   ],
   carrera: [
@@ -71,13 +80,6 @@ const FEATURE_ROWS = {
   ],
   recursos: [
     {
-      Icon: UsersThree,
-      titulo: 'Autoconocimiento',
-      desc: 'Un onboarding para que conozcas tu momento actual y hacia dónde quieres ir. Prepárate para ser gerente de proyecto de tu transición profesional.',
-      cta: 'Comenzar',
-      gradientStyle: GRAD.blue,
-      iconBg: 'bg-blue-100', iconColor: 'text-blue-600',
-      featured: true,
     },
     {
       Icon: Books,
@@ -879,48 +881,28 @@ export default function Landing() {
             variants={staggerContainer}
             className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4"
           >
-            {/* CV Optimizer â€” hero (2 cols) */}
-            {[FEATURE_ROWS.heroes[0]].map(f => (
+            {/* ─── Fila 1: Herramientas IA hero (3 cols iguales) ─── */}
+            {FEATURE_ROWS.heroes.map(f => (
               <motion.div
                 key={f.titulo}
                 variants={fadeInUp}
-                whileHover={{ y: -6, boxShadow: '0 25px 50px -12px rgba(0,0,0,0.18)' }}
+                whileHover={{ y: -6, boxShadow: f.featured ? '0 25px 50px -12px rgba(0,0,0,0.3)' : '0 25px 50px -12px rgba(0,0,0,0.18)' }}
                 transition={{ type: 'spring', stiffness: 300, damping: 22 }}
-                className="group relative overflow-hidden rounded-2xl border border-gray-200 bg-white md:col-span-2"
+                className={`group relative overflow-hidden rounded-2xl border-2 transition-all ${f.featured ? 'border-blue-400 bg-gradient-to-br from-blue-50 to-white shadow-lg shadow-blue-200/30' : 'border-gray-200 bg-white'}`}
               >
+                {f.featured && (
+                  <div className="absolute top-3 right-3 inline-flex items-center gap-1 px-3 py-1 rounded-full bg-blue-100 border border-blue-200 z-20">
+                    <span className="text-xs font-bold text-blue-700 uppercase tracking-widest">Destacado</span>
+                  </div>
+                )}
                 <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300" style={{ background: f.gradientStyle }} />
-                <div className="relative z-10 p-7 h-full flex flex-col min-h-[200px]">
+                <div className="relative z-10 p-7 h-full flex flex-col min-h-[240px]">
                   <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-5 transition-all duration-300 ${f.iconBg} ${f.iconColor} group-hover:bg-white/20 group-hover:text-white`}>
                     <f.Icon size={24} weight="duotone" />
                   </div>
                   <div className="flex-1">
-                    <h3 className="font-headline font-bold text-xl text-gray-900 group-hover:text-white transition-colors duration-300 mb-2">{f.titulo}</h3>
-                    <p className="text-sm text-gray-500 group-hover:text-white/80 transition-colors duration-300 leading-relaxed">{f.desc}</p>
-                  </div>
-                  <div className="mt-5 flex items-center gap-2 text-sm font-bold text-gray-400 group-hover:text-white transition-all duration-300 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0">
-                    {f.cta} <ArrowRight size={15} weight="bold" />
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-
-            {/* CV vs Vacante (1 col) */}
-            {[FEATURE_ROWS.heroes[1]].map(f => (
-              <motion.div
-                key={f.titulo}
-                variants={fadeInUp}
-                whileHover={{ y: -6, boxShadow: '0 25px 50px -12px rgba(0,0,0,0.18)' }}
-                transition={{ type: 'spring', stiffness: 300, damping: 22 }}
-                className="group relative overflow-hidden rounded-2xl border border-gray-200 bg-white md:col-span-1"
-              >
-                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300" style={{ background: f.gradientStyle }} />
-                <div className="relative z-10 p-7 h-full flex flex-col min-h-[200px]">
-                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-5 transition-all duration-300 ${f.iconBg} ${f.iconColor} group-hover:bg-white/20 group-hover:text-white`}>
-                    <f.Icon size={24} weight="duotone" />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="font-headline font-bold text-xl text-gray-900 group-hover:text-white transition-colors duration-300 mb-2">{f.titulo}</h3>
-                    <p className="text-sm text-gray-500 group-hover:text-white/80 transition-colors duration-300 leading-relaxed">{f.desc}</p>
+                    <h3 className={`font-headline font-bold text-xl transition-colors duration-300 mb-2 ${f.featured ? 'text-blue-900 group-hover:text-white' : 'text-gray-900 group-hover:text-white'}`}>{f.titulo}</h3>
+                    <p className={`text-sm transition-colors duration-300 leading-relaxed ${f.featured ? 'text-blue-700 group-hover:text-white/80' : 'text-gray-500 group-hover:text-white/80'}`}>{f.desc}</p>
                   </div>
                   <div className="mt-5 flex items-center gap-2 text-sm font-bold text-gray-400 group-hover:text-white transition-all duration-300 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0">
                     {f.cta} <ArrowRight size={15} weight="bold" />
@@ -1401,7 +1383,7 @@ export default function Landing() {
             <h5 className="text-xs font-bold uppercase tracking-widest text-white/30 mb-4 font-headline">Herramientas</h5>
             <ul className="space-y-2.5">
               {[
-                'CV Optimizer',
+                'Optimizador de CV',
                 'CV vs Vacante',
                 'Vacantes',
               ].map((label) => (

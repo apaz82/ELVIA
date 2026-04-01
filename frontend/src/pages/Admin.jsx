@@ -111,7 +111,16 @@ function AdminLogin({ onLogin }) {
             />
           </div>
           <div className="space-y-1.5">
-            <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Clave de Acceso</label>
+            <div className="flex items-center justify-between ml-1">
+              <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest">Clave de Acceso</label>
+              <a 
+                href="/auth?forgot=1" 
+                className="text-[9px] font-black text-blue-500/60 hover:text-blue-400 uppercase tracking-widest transition-colors"
+                title="Ir al portal de recuperación general"
+              >
+                ¿Olvidaste tu clave?
+              </a>
+            </div>
             <input
               type="password" value={password} onChange={e => setPassword(e.target.value)} required
               className="w-full bg-gray-950/50 border border-gray-800 rounded-2xl px-5 py-3.5 text-white text-sm placeholder-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium"

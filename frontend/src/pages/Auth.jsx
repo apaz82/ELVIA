@@ -7,7 +7,7 @@ import { supabase } from '../services/authService'
 const API = import.meta.env.VITE_API_URL || 'http://localhost:3001'
 
 export default function Auth() {
-  const { user, login, register, onboardingPendiente } = useAuth()
+  const { user, login, register, onboardingPendiente, isRecovering } = useAuth()
   const navigate = useNavigate()
 
   const [searchParams] = useSearchParams()
@@ -28,10 +28,22 @@ export default function Auth() {
 
   // Redirigir si ya está autenticado
   useEffect(() => {
+    const isRecoveryMode = sessionStorage.getItem('optima_recovery_mode') === 'true' || isRecovering || window.location.hash.includes('type=recovery')
+    // ── GESTIÓN DE RECUPERACIÓN (ALTA PRIORIDAD) ──
+    // Si el usuario aterrizó aquí (ej. /auth?forgot=1) pero está en recuperación,
+    // forzamos la ida a /reset-password
+    if (isRecoveryMode) {
+      if (!window.location.pathname.startsWith('/reset-password')) {
+        const savedHash = sessionStorage.getItem('optima_recovery_hash') || ''
+        navigate('/reset-password' + (window.location.hash || savedHash), { replace: true })
+      }
+      return
+    }
+
     if (!user) return
     if (onboardingPendiente) navigate('/onboarding', { replace: true })
     else navigate('/cv-optimizer', { replace: true })
-  }, [user, onboardingPendiente])
+  }, [user, onboardingPendiente, navigate, isRecovering])
 
   const cambiarModo = (nuevoModo) => {
     setModo(nuevoModo)
@@ -98,19 +110,18 @@ export default function Auth() {
 
     try {
       const resetUrl = `${window.location.origin}/reset-password`
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: resetUrl,
+      // Delegamos la generación del link y el envío del mail al backend
+      // Esto evita el mail genérico de Supabase y nos deja usar nuestro template de Resend
+      const response = await fetch(`${API}/api/email/recuperacion`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, resetUrl }),
       })
-      if (error) {
-        setError(traducirError(error.message))
+
+      if (!response.ok) {
+        const data = await response.json()
+        setError(data.error || 'No se pudo enviar el correo de recuperación.')
       } else {
-        // Email de notificación con el link real (lo maneja Supabase internamente)
-        // Enviamos adicionalmente nuestro propio email de notificación
-        fetch(`${API}/api/email/recuperacion`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, resetUrl }),
-        }).catch(() => {})
         setResetEnviado(true)
       }
     } catch {

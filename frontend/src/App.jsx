@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import Header from './components/common/Header'
 import Sidebar from './components/common/Sidebar'
 import Landing from './pages/Landing'
@@ -37,8 +37,18 @@ const RUTAS_SIN_GUARD = ['/', '/landing2', '/auth', '/onboarding', '/admin', '/p
 const RUTAS_PUBLICAS = ['/', '/auth', '/privacidad', '/reset-password', '/pricing']
 
 function PublicRoute({ children }) {
-  const { user, loading } = useAuth()
+  const { user, loading, isRecovering } = useAuth()
+  const location = useLocation()
+  
   if (loading) return null
+  
+  const isRecoveryMode = sessionStorage.getItem('optima_recovery_mode') === 'true' || isRecovering || location.hash.includes('type=recovery')
+  
+  // Si estamos en recuperación, NO redirigir (dejar que ResetPassword maneje)
+  if (isRecoveryMode || location.hash.includes('access_token')) {
+    return children
+  }
+
   if (user) {
     return <Navigate to="/dashboard" replace />
   }
@@ -46,12 +56,32 @@ function PublicRoute({ children }) {
 }
 
 function OnboardingGuard({ children }) {
-  const { onboardingPendiente } = useAuth()
+  const { onboardingPendiente, loading, isRecovering } = useAuth()
   const location = useLocation()
-  if (onboardingPendiente && !RUTAS_SIN_GUARD.includes(location.pathname)) {
+
+  if (loading) return null
+
+  const isRecoveryMode = sessionStorage.getItem('optima_recovery_mode') === 'true' || isRecovering || location.hash.includes('type=recovery')
+
+  // Nunca redirigir si estamos en el flujo de recuperación
+  const path = location.pathname.toLowerCase()
+  if (isRecoveryMode || path.startsWith('/reset-password')) {
+    return children
+  }
+
+  if (onboardingPendiente) {
     return <Navigate to="/onboarding" replace />
   }
   return children
+}
+
+function PrivateRoute({ children }) {
+  const { user, loading } = useAuth()
+  if (loading) return null
+  if (!user) {
+    return <Navigate to="/auth" replace />
+  }
+  return <OnboardingGuard>{children}</OnboardingGuard>
 }
 
 // Layout con sidebar para páginas de app
@@ -82,38 +112,65 @@ function FullLayout({ children }) {
 }
 
 export default function App() {
+  const { isRecovering } = useAuth()
   const location = useLocation()
+  const navigate = useNavigate()
+  
+  // ── BLOQUEO Y REDIRECCIÓN DE SEGURIDAD (NUCLEAR) ──
+  // 1. Si aterrizamos en cualquier parte (?forgot=1, /, etc) con un token de recuperación,
+  // forzamos la navegación a la ruta dedicada.
+  useEffect(() => {
+    const isRecoveryMode = sessionStorage.getItem('optima_recovery_mode') === 'true' || isRecovering || location.hash.includes('type=recovery')
+    if (isRecoveryMode && !location.pathname.startsWith('/reset-password')) {
+      const savedHash = sessionStorage.getItem('optima_recovery_hash') || ''
+      navigate('/reset-password' + (location.hash || savedHash), { replace: true })
+    }
+  }, [location, navigate, isRecovering])
+
+  // 2. Si ya estamos en la ruta correcta, BLOQUEAR para que nada nos saque.
+  if (location.pathname.toLowerCase().startsWith('/reset-password')) {
+    return (
+      <div className="min-h-screen bg-surface">
+        <ResetPassword />
+      </div>
+    )
+  }
+
   const isFullLayout = RUTAS_FULL.includes(location.pathname)
 
   const routes = (
-    <OnboardingGuard>
-      <Routes>
-        <Route path="/"              element={<PublicRoute><Landing /></PublicRoute>} />
-        <Route path="/landing2"      element={<PublicRoute><Landing2 /></PublicRoute>} />
-        <Route path="/cv-optimizer"  element={<CVOptimizer />} />
-        <Route path="/cv-vs-job"     element={<CVvsJob />} />
-        <Route path="/jobs"          element={<JobMatches />} />
-        <Route path="/auth"          element={<PublicRoute><Auth /></PublicRoute>} />
-        <Route path="/mis-cvs"       element={<MisCVs />} />
-        <Route path="/mis-vacantes"  element={<MisVacantes />} />
-        <Route path="/pipeline"      element={<Pipeline />} />
-        <Route path="/perfil"        element={<Perfil />} />
-        <Route path="/mi-plan"       element={<MiPlan />} />
-        <Route path="/dashboard"     element={<Dashboard />} />
-        <Route path="/onboarding"    element={<Onboarding />} />
-        <Route path="/admin"         element={<Admin />} />
-        <Route path="/entrevista"      element={<Entrevista />} />
-        <Route path="/biblioteca"      element={<Biblioteca />} />
-        <Route path="/linkedin-optima" element={<LinkedinOptima />} />
-        <Route path="/privacidad"      element={<PublicRoute><Privacidad /></PublicRoute>} />
-        <Route path="/reset-password"  element={<PublicRoute><ResetPassword /></PublicRoute>} />
-        <Route path="/expertos"        element={<Expertos />} />
-        <Route path="/infografias"     element={<Infografias />} />
-        <Route path="/pricing"              element={<PublicRoute><Pricing /></PublicRoute>} />
-        <Route path="/proyecto-laboral"     element={<ProyectoLaboral />} />
-        <Route path="/bienestar"             element={<Bienestar />} />
-      </Routes>
-    </OnboardingGuard>
+    <Routes>
+      <Route path="/reset-password"  element={<ResetPassword />} />  {/* Por si acaso falla el bloqueo anterior */}
+      <Route path="/"              element={<PublicRoute><Landing /></PublicRoute>} />
+      <Route path="/landing2"      element={<PublicRoute><Landing2 /></PublicRoute>} />
+      <Route path="/auth"          element={<PublicRoute><Auth /></PublicRoute>} />
+      <Route path="/privacidad"      element={<Privacidad />} />
+      <Route path="/pricing"              element={<PublicRoute><Pricing /></PublicRoute>} />
+      
+      {/* Admin / Especiales */}
+      <Route path="/admin"         element={<Admin />} />
+      <Route path="/expertos"        element={<Expertos />} />
+      <Route path="/infografias"     element={<Infografias />} />
+      <Route path="/proyecto-laboral"     element={<ProyectoLaboral />} />
+      <Route path="/bienestar"             element={<Bienestar />} />
+
+      {/* Privadas (Protegidas por Auth + Onboarding) */}
+      <Route path="/dashboard"     element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+      <Route path="/cv-optimizer"  element={<PrivateRoute><CVOptimizer /></PrivateRoute>} />
+      <Route path="/cv-vs-job"     element={<PrivateRoute><CVvsJob /></PrivateRoute>} />
+      <Route path="/jobs"          element={<PrivateRoute><JobMatches /></PrivateRoute>} />
+      <Route path="/mis-cvs"       element={<PrivateRoute><MisCVs /></PrivateRoute>} />
+      <Route path="/mis-vacantes"  element={<PrivateRoute><MisVacantes /></PrivateRoute>} />
+      <Route path="/pipeline"      element={<PrivateRoute><Pipeline /></PrivateRoute>} />
+      <Route path="/perfil"        element={<PrivateRoute><Perfil /></PrivateRoute>} />
+      <Route path="/mi-plan"       element={<PrivateRoute><MiPlan /></PrivateRoute>} />
+      <Route path="/entrevista"      element={<PrivateRoute><Entrevista /></PrivateRoute>} />
+      <Route path="/biblioteca"      element={<PrivateRoute><Biblioteca /></PrivateRoute>} />
+      <Route path="/linkedin-optima" element={<PrivateRoute><LinkedinOptima /></PrivateRoute>} />
+      
+      {/* Protegidas (Solo Auth) */}
+      <Route path="/onboarding"    element={<Onboarding />} />
+    </Routes>
   )
 
   return isFullLayout
