@@ -5,7 +5,7 @@ import {
   FileMagnifyingGlass, MagnifyingGlass, Briefcase, Kanban,
   ArrowRight, CheckCircle, ChartBar, Coins, SignOut, Warning,
   ShieldCheck, Lightning, Target,
-  Folders, BookmarkSimple, Books, Shapes, LinkedinLogo,
+  Folders, BookmarkSimple, Books, LinkedinLogo,
   MicrophoneStage, UsersThree
 } from '@phosphor-icons/react'
 
@@ -71,6 +71,15 @@ const FEATURE_ROWS = {
   ],
   recursos: [
     {
+      Icon: UsersThree,
+      titulo: 'Autoconocimiento',
+      desc: 'Un onboarding para que conozcas tu momento actual y hacia dónde quieres ir. Prepárate para ser gerente de proyecto de tu transición profesional.',
+      cta: 'Comenzar',
+      gradientStyle: GRAD.blue,
+      iconBg: 'bg-blue-100', iconColor: 'text-blue-600',
+      featured: true,
+    },
+    {
       Icon: Books,
       titulo: 'Biblioteca',
       desc: 'El conocimiento que nadie te enseñó. Guías para dominar las reglas del juego.',
@@ -80,10 +89,10 @@ const FEATURE_ROWS = {
       iconBg: 'bg-blue-100', iconColor: 'text-blue-600',
     },
     {
-      Icon: Shapes,
-      titulo: 'Infografías',
-      desc: 'Lo más complejo del mundo laboral, explicado en un vistazo.',
-      cta: 'Ver infografías',
+      Icon: ChartBar,
+      titulo: 'Bienestar',
+      desc: 'Ejercicios sencillos para cuando el estrés llega. Cuida tu salud mental durante la búsqueda.',
+      cta: 'Ver ejercicios',
       gradientStyle: GRAD.blue,
       iconBg: 'bg-blue-100', iconColor: 'text-blue-600',
     },
@@ -408,7 +417,7 @@ export default function Landing() {
             </motion.div>
 
             <motion.h1 variants={fadeInUp} className="font-headline font-black text-5xl sm:text-7xl leading-[1.05] tracking-tight mb-8">
-              Supera los filtros ATS<br />
+              Sé tu propio gerente<br />
               <span
                 style={{
                   background: 'linear-gradient(to right, rgb(13, 148, 136), rgb(16, 185, 129), rgb(59, 130, 246))',
@@ -418,19 +427,19 @@ export default function Landing() {
                   display: 'inline-block'
                 }}
               >
-                en 60 segundos
+                de tu búsqueda laboral
               </span>
             </motion.h1>
 
             <motion.p variants={fadeInUp} className="text-lg sm:text-xl text-gray-500 leading-relaxed mb-10 max-w-lg">
-              Supera los filtros ATS, diseña un CV formato Harvard de alto impacto y domina tu proceso de selección en empresas corporativas.
+              Encuentra tu propósito y ten las herramientas necesarias para encontrar tu siguiente proyecto laboral y profesional.
             </motion.p>
 
             <motion.div variants={fadeInUp} className="mt-8 bg-gray-900 border border-white/10 rounded-3xl p-6 shadow-2xl relative overflow-hidden" id="waitlist-form">
               <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-teal-500 via-[#E8541A] to-blue-500" />
               <h3 className="text-xl font-black text-white mb-2 underline decoration-teal-500/50">Únete a la lista de espera</h3>
               <p className="text-xs text-white/60 mb-5 leading-relaxed">
-                Supera los filtros ATS y domina tu proceso. Por ser pionero <span className="text-[#E8541A] font-bold">OPTIMA</span>, podrás ganar una de las <span className="text-teal-400 font-bold">Cuentas PRO Mensual</span> antes del lanzamiento oficial. Sorteo: 8 de Abril.
+                Nunca fue tan sencillo ser tu propio gerente de proyecto de tu búsqueda laboral, de inicio a fin, con herramientas enfocadas, acompañamiento y autogestión. Por ser pionero <span className="text-[#E8541A] font-bold">OPTIMA</span>, podrás ganar una de las <span className="text-teal-400 font-bold">Cuentas PRO Mensual</span> antes del lanzamiento oficial. Sorteo: 8 de Abril.
               </p>
               
               {waitlistStatus.success ? (
@@ -667,14 +676,14 @@ export default function Landing() {
             </h2>
             
             <p className="text-gray-400 text-lg md:text-xl leading-relaxed max-w-xl">
-              Un asistente conversacional avanzado diseñado para analizar tu perfil técnico, sugerir mejoras en tiempo real y preparar simulaciones de entrevistas de alto estrés.
+              Un asistente diseñado para acompañarte en tu proceso, a tu ritmo, con respuestas claras y sencillas de entender, para guiarte hacia los mejores resultados posibles.
             </p>
-            
+
             <ul className="space-y-4 text-gray-300 font-medium">
               {[
-                'Feedback inmediato sobre tu CV',
-                'Simulaciones de entrevistas por rol (Premium)',
-                'Consejos de negociación salarial',
+                'Feedback sobre tu CV',
+                'Temas de actualidad',
+                'Motivación',
               ].map(item => (
                 <li key={item} className="flex items-center gap-3">
                   <div className="w-6 h-6 rounded-full bg-teal-500/20 flex items-center justify-center text-teal-400">
@@ -769,7 +778,7 @@ export default function Landing() {
           <div className="text-center mb-12">
             <span className="text-[#E8541A] font-bold text-sm tracking-widest uppercase mb-2 block">Simulador en tiempo real</span>
             <h2 className="font-headline font-black text-4xl md:text-5xl text-gray-900 mb-4 tracking-tight">Prueba la magia gratis.<br className="hidden md:block"/> Sin registrarte.</h2>
-            <p className="text-gray-500 text-lg max-w-2xl mx-auto">Pega una descripción de vacante real y simularemos cómo nuestra inteligencia artificial evalúa y penaliza tu currículum frente a ella.</p>
+            <p className="text-gray-500 text-lg max-w-2xl mx-auto">Pega una descripción de vacante real y simularemos cómo nuestra inteligencia artificial recomienda ajustes a tu perfil, siempre basado en tu información, nunca inventando nada.</p>
           </div>
           
           <div className="bg-white rounded-[2rem] shadow-2xl shadow-blue-900/5 border border-gray-200 p-6 md:p-10 relative overflow-hidden">
@@ -847,7 +856,7 @@ export default function Landing() {
                   </div>
                   <h3 className="text-2xl font-black text-gray-900 mb-2 tracking-tight">¡Tienes un buen perfil!</h3>
                   <p className="text-gray-500 mb-2 text-sm leading-relaxed mx-auto px-2">
-                    Optima detectó que tu perfil es sólido, pero <b>te faltan 4 palabras clave obligatorias</b> que los filtros ATS usarán para descartarte de esta vacante.
+                    Optima detectó que tu perfil es sólido, aunque puedes incluir <b>4 palabras clave obligatorias</b> para ser más atractivo a esta vacante.
                   </p>
                   <p className="text-gray-400 mb-8 text-xs italic mx-auto px-2">
                     Este es un ejemplo — para tener esta funcionalidad, regístrate.
@@ -1077,7 +1086,7 @@ export default function Landing() {
           <div className="relative z-10 text-left">
             <h3 className="text-3xl font-black text-white mb-2 text-center">Únete a la lista de espera</h3>
             <p className="text-white/60 mb-8 text-center max-w-xl mx-auto leading-relaxed">
-              Supera los filtros ATS y domina tu proceso. Por ser pionero <span className="text-[#E8541A] font-bold">OPTIMA</span>, podrás ganar una de las <span className="text-teal-400 font-bold">Cuentas PRO Mensual</span> antes del lanzamiento oficial. Sorteo: 8 de Abril.
+              Nunca fue tan sencillo ser tu propio gerente de proyecto de tu búsqueda laboral, de inicio a fin, con herramientas enfocadas, acompañamiento y autogestión. Por ser pionero <span className="text-[#E8541A] font-bold">OPTIMA</span>, podrás ganar una de las <span className="text-teal-400 font-bold">Cuentas PRO Mensual</span> antes del lanzamiento oficial. Sorteo: 8 de Abril.
             </p>
             
             {waitlistStatus.success ? (
@@ -1165,6 +1174,63 @@ export default function Landing() {
             )}
           </div>
         </motion.div>
+      </section>
+
+      {/* ─── Banner de Estadísticas (Carrusel Animado) ──────────────────────── */}
+      <section className="relative z-10 py-20 px-6 bg-gradient-to-r from-teal-500/10 via-gray-900 to-blue-500/10 border-y border-gray-800">
+        <div className="container mx-auto max-w-4xl">
+          <div className="relative">
+            <motion.div
+              key={0}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.6 }}
+              className="text-center py-8"
+            >
+              <div className="inline-flex items-center justify-center gap-4 mb-4 px-6 py-3 rounded-full bg-white/5 border border-white/10">
+                <span className="w-2 h-2 rounded-full bg-teal-400 animate-pulse" />
+                <p className="text-white/70 text-sm font-semibold">Datos que inspiran acción</p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-10">
+                {[
+                  {
+                    stat: '3x',
+                    desc: 'Cuando te preparas para buscar tienes 3x más oportunidades de encontrar un trabajo',
+                    icon: '🎯'
+                  },
+                  {
+                    stat: '65%',
+                    desc: 'Cuando conoces tu oferta de valor, el % de compatibilidad aumenta en 65%',
+                    icon: '📈'
+                  },
+                  {
+                    stat: '40%',
+                    desc: 'Con herramientas optimizadas, incrementas tus posibilidades de entrevistas en un 40%',
+                    icon: '🚀'
+                  }
+                ].map((item, idx) => (
+                  <motion.div
+                    key={idx}
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.5, delay: idx * 0.1 }}
+                    className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6 hover:border-teal-500/50 hover:bg-white/10 transition-all duration-300"
+                  >
+                    <div className="text-4xl mb-3">{item.icon}</div>
+                    <p className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-emerald-400 mb-3">
+                      {item.stat}
+                    </p>
+                    <p className="text-white/60 text-sm leading-relaxed">
+                      {item.desc}
+                    </p>
+                  </motion.div>
+                ))}
+              </div>
+            </motion.div>
+          </div>
+        </div>
       </section>
 
       {/* ─── Footer ──────────────────────────────────────────────────────────────── */}
