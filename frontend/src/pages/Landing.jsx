@@ -1181,7 +1181,7 @@ export default function Landing() {
         <div className="container mx-auto max-w-4xl">
           <div className="relative">
             <motion.div
-              key={0}
+              key="stats"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
@@ -1190,7 +1190,7 @@ export default function Landing() {
             >
               <div className="inline-flex items-center justify-center gap-4 mb-4 px-6 py-3 rounded-full bg-white/5 border border-white/10">
                 <span className="w-2 h-2 rounded-full bg-teal-400 animate-pulse" />
-                <p className="text-white/70 text-sm font-semibold">Datos que inspiran acción</p>
+                <h2 className="text-white/70 text-sm font-semibold">Datos que inspiran acción</h2>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-10">
@@ -1198,17 +1198,20 @@ export default function Landing() {
                   {
                     stat: '3x',
                     desc: 'Cuando te preparas para buscar tienes 3x más oportunidades de encontrar un trabajo',
-                    icon: '🎯'
+                    icon: '🎯',
+                    label: 'Objetivo'
                   },
                   {
                     stat: '65%',
                     desc: 'Cuando conoces tu oferta de valor, el % de compatibilidad aumenta en 65%',
-                    icon: '📈'
+                    icon: '📈',
+                    label: 'Gráfico de crecimiento'
                   },
                   {
                     stat: '40%',
                     desc: 'Con herramientas optimizadas, incrementas tus posibilidades de entrevistas en un 40%',
-                    icon: '🚀'
+                    icon: '🚀',
+                    label: 'Despegue'
                   }
                 ].map((item, idx) => (
                   <motion.div
@@ -1218,7 +1221,7 @@ export default function Landing() {
                     transition={{ duration: 0.5, delay: idx * 0.1 }}
                     className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6 hover:border-teal-500/50 hover:bg-white/10 transition-all duration-300"
                   >
-                    <div className="text-4xl mb-3">{item.icon}</div>
+                    <div className="text-4xl mb-3" aria-label={item.label}>{item.icon}</div>
                     <p className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-emerald-400 mb-3">
                       {item.stat}
                     </p>
