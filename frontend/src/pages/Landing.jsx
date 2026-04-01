@@ -487,9 +487,9 @@ export default function Landing() {
                     <label className="block text-xs font-bold text-white/50 mb-1">Situación Actual</label>
                     <select required value={waitlistForm.situacion} onChange={e => setWaitlistForm(f => ({...f, situacion: e.target.value}))} className="w-full bg-gray-900/50 border border-white/10 text-white rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8541A] appearance-none">
                       <option value="" disabled className="text-gray-400">Selecciona una opción</option>
-                      <option value="Estoy desempleada/o" className="text-gray-900">Estoy desempleada/o</option>
-                      <option value="Empleada/o pero buscando alternativas" className="text-gray-900">Empleada/o pero buscando alternativas</option>
-                      <option value="Quiero optimizar mi perfil para futuro" className="text-gray-900">Quiero optimizar mi perfil para futuro</option>
+                      <option value="Sin empleo y en búsqueda activa" className="text-gray-900">Sin empleo y en búsqueda activa</option>
+                      <option value="Con empleo y en búsqueda activa" className="text-gray-900">Con empleo y en búsqueda activa</option>
+                      <option value="Quiero gestionar mi siguiente paso" className="text-gray-900">Quiero gestionar mi siguiente paso</option>
                     </select>
                   </div>
                   
@@ -1134,9 +1134,9 @@ export default function Landing() {
                   <label className="block text-sm font-bold text-white/80 mb-1.5">Situación Actual</label>
                   <select required value={waitlistForm.situacion} onChange={e => setWaitlistForm(f => ({...f, situacion: e.target.value}))} className="w-full bg-gray-900/50 border border-white/10 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 appearance-none">
                     <option value="" disabled className="text-gray-900">Selecciona una opción</option>
-                    <option value="Estoy desempleada/o" className="text-gray-900">Estoy desempleada/o</option>
-                    <option value="Empleada/o pero buscando alternativas" className="text-gray-900">Empleada/o pero buscando alternativas</option>
-                    <option value="Quiero optimizar mi perfil para futuro" className="text-gray-900">Quiero optimizar mi perfil para futuro</option>
+                    <option value="Sin empleo y en búsqueda activa" className="text-gray-900">Sin empleo y en búsqueda activa</option>
+                    <option value="Con empleo y en búsqueda activa" className="text-gray-900">Con empleo y en búsqueda activa</option>
+                    <option value="Quiero gestionar mi siguiente paso" className="text-gray-900">Quiero gestionar mi siguiente paso</option>
                   </select>
                 </div>
                 

@@ -83,30 +83,80 @@ const sendOTPEmail = async (to, otp, targetUserEmail) => {
   });
 };
 
-const sendWelcomeWaitlistEmail = async (to, nombre) => {
+// Templates personalizados según situación del usuario — refactorizado para DRY
+const WAITLIST_TEMPLATES = {
+  'Sin empleo y en búsqueda activa': {
+    emoji: '🚀',
+    intro: 'Sabemos que esta es una etapa crucial en tu carrera. Por eso estamos afinando los últimos detalles de nuestra plataforma potenciada por IA para ayudarte a destacar en el mercado laboral y superar todos los filtros corporativos.',
+    features: [
+      'CV optimizado en formato Harvard en segundos',
+      'Análisis de compatibilidad con cada vacante (% de match real)',
+      'Herramientas de búsqueda sin horas perdidas en portales',
+      'Pipeline visual para gestionar tu proceso de selección'
+    ],
+    cta: 'Por ser pionero, recibirás <strong>descuentos exclusivos</strong> cuando lancemos. Muy pronto estaremos live.'
+  },
+  'Con empleo y en búsqueda activa': {
+    emoji: '👋',
+    intro: 'Estamos construyendo la plataforma para profesionales como tú que buscan dar el siguiente paso en su carrera sin prisa, pero sin pausa. Nuestra IA te ayudará a destacar cuando llegue la oportunidad correcta.',
+    features: [
+      'CV siempre listo y optimizado para nuevas oportunidades',
+      'Análisis rápido de compatibilidad antes de postularte',
+      'Gestión de candidaturas en un solo lugar',
+      'Herramientas para negociar desde una posición de poder'
+    ],
+    cta: 'Por ser pionero, accederás a beneficios exclusivos cuando lancemos. Prepárate para tu siguiente proyecto.'
+  },
+  'Quiero gestionar mi siguiente paso': {
+    emoji: '🎯',
+    intro: 'Te felicitamos por ser intencional con tu carrera. Estamos construyendo la plataforma que te ayudará a ser tu propio gerente de proyecto laboral: desde el autoconocimiento hasta la ejecución perfecta.',
+    features: [
+      'Módulo de autoconocimiento: descubre tu oferta de valor real',
+      'CV optimizado para el mercado que buscas',
+      'Análisis estratégico de vacantes y empresas',
+      'Pipeline completo: seguimiento, control y tranquilidad',
+      'Acompañamiento de IA a tu ritmo'
+    ],
+    cta: 'Por ser pionero, serás de los primeros en probar nuestra solución completa. Gestiona tu carrera con las herramientas correctas.'
+  }
+};
+
+const getWaitlistEmailTemplate = (nombre, situacion) => {
+  const baseStyles = 'font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; line-height: 1.6;';
+  const nombre_escaped = escapeHtml(nombre);
+  const template = WAITLIST_TEMPLATES[situacion] || WAITLIST_TEMPLATES['Sin empleo y en búsqueda activa'];
+  const featuresHTML = template.features.map(f => `<li>${f}</li>`).join('');
+
+  return `
+    <div style="${baseStyles}">
+      <h2 style="color: #E8541A;">¡Hola ${nombre_escaped}! ${template.emoji}</h2>
+      <p>Gracias por unirte a la lista de espera de <strong>OPTIMA-CV</strong>.</p>
+      <p>${template.intro}</p>
+      <p><strong>Lo que tendrás cuando lancemos:</strong></p>
+      <ul style="color: #374151;">
+        ${featuresHTML}
+      </ul>
+      <p>${template.cta}</p>
+      <p>¡Nos encanta escucharte! Si tienes sugerencias, responde este correo.</p>
+      <p>Un saludo,<br/><strong>El equipo de OPTIMA</strong></p>
+      <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;" />
+      <p style="font-size: 12px; color: #999;">© 2026 OPTIMA-CV</p>
+    </div>
+  `;
+};
+
+const sendWelcomeWaitlistEmail = async (to, nombre, situacion) => {
   if (!process.env.RESEND_API_KEY) {
     throw new Error('RESEND_API_KEY no configurada');
   }
+
+  const html = getWaitlistEmailTemplate(nombre, situacion);
 
   return resend.emails.send({
     from: FROM_EMAIL,
     to,
     subject: '¡Bienvenido a la tribu pionera de OPTIMA-CV! 🚀',
-    html: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; line-height: 1.6;">
-        <h2 style="color: #E8541A;">¡Hola ${escapeHtml(nombre)}!</h2>
-        <p>Gracias por unirte a la lista de espera de <strong>OPTIMA-CV</strong>.</p>
-        <p>Estamos afinando los últimos detalles de nuestra plataforma potenciada por IA para que tu currículum destaque y supere todos los filtros corporativos.</p>
-        <p>Por ser pionero, recibirás <strong>descuentos exclusivos y beneficios especiales</strong> cuando lancemos oficialmente al público. Muy pronto estaremos live y serás de los primeros en probar nuestra magia.</p>
-        <br />
-        <p>Si tienes alguna sugerencia o quieres decir hola, responde este correo. ¡Nos encanta escucharte!</p>
-        <p>Un saludo,<br/><strong>El equipo de OPTIMA</strong></p>
-        <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;" />
-        <p style="font-size: 12px; color: #999;">
-          © 2026 OPTIMA-CV
-        </p>
-      </div>
-    `,
+    html,
   });
 };
 

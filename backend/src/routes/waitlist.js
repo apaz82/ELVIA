@@ -15,9 +15,9 @@ const waitlistLimiter = rateLimit({
 
 // Situaciones permitidas (validadas en servidor)
 const SITUACIONES_PERMITIDAS = new Set([
-  'Estoy desempleada/o',
-  'Empleada/o pero buscando alternativas',
-  'Quiero optimizar mi perfil para futuro'
+  'Sin empleo y en búsqueda activa',
+  'Con empleo y en búsqueda activa',
+  'Quiero gestionar mi siguiente paso'
 ]);
 
 // GET /api/waitlist — listar todos los leads (solo admins autenticados)
@@ -114,14 +114,14 @@ router.post('/', waitlistLimiter, async (req, res, next) => {
       throw dbError;
     }
 
-    // Try to send email
+    // Try to send email (personalized by situacion)
     try {
-      await sendWelcomeWaitlistEmail(email, nombre);
+      await sendWelcomeWaitlistEmail(email, nombre, situacion);
     } catch (emailError) {
       console.error('[Resend Error] Failed to send waitlist email:', emailError);
       // We don't fail the request if the email fails, we return success with a warning
-      return res.status(201).json({ 
-        message: 'Registrado con éxito a la lista de espera', 
+      return res.status(201).json({
+        message: 'Registrado con éxito a la lista de espera',
         warning: 'El email de bienvenida podría haberse retrasado'
       });
     }
