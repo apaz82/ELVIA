@@ -63,11 +63,27 @@ router.post('/fetch-url', auth, async (req, res) => {
 
     if (!response.ok) {
       if (response.status === 403) {
-        return res.status(403).json({ 
-          error: 'Acceso bloqueado por el sitio web (Indeed/LinkedIn). Por seguridad, estos sitios bloquean lectores automáticos. Te recomendamos copiar y pegar la descripción manualmente en la otra pestaña.' 
+        return res.status(403).json({
+          error: 'Acceso bloqueado por el sitio web (Indeed/LinkedIn). Por seguridad, estos sitios bloquean lectores automáticos. Te recomendamos copiar y pegar la descripción manualmente en la otra pestaña.'
         });
       }
       return res.status(400).json({ error: `No se pudo acceder a la URL (Error ${response.status})` });
+    }
+
+    // Validar content-type (solo HTML o texto)
+    const contentType = response.headers.get('content-type');
+    if (!contentType || (!contentType.includes('text/html') && !contentType.includes('text/plain'))) {
+      return res.status(400).json({
+        error: 'La URL no devuelve HTML válido. Por favor pega la descripción manualmente.'
+      });
+    }
+
+    // Validar tamaño de respuesta (no descargar >10MB)
+    const contentLength = response.headers.get('content-length');
+    if (contentLength && parseInt(contentLength) > 10 * 1024 * 1024) {
+      return res.status(413).json({
+        error: 'La página es demasiado grande. Por favor pega la descripción manualmente.'
+      });
     }
 
     const html = await response.text();
@@ -256,8 +272,29 @@ router.get('/similar', auth, async (req, res) => {
 // POST /api/jobs/compatibility — score rápido CV vs vacante (con cache por usuario)
 router.post('/compatibility', auth, planContext, checkCvMatchLimit, async (req, res) => {
   const { cvText, jobTitle, jobCompany, jobSnippet, jobLink, jobLocation, jobVia } = req.body;
+
+  // Límites de tamaño
+  const MAX_CV_TEXT = 50000;
+  const MAX_JOB_TEXT = 10000;
+
+  // Validar datos básicos
   if (!cvText || !jobTitle) {
     return res.status(400).json({ error: 'Faltan datos' });
+  }
+
+  // Validar tamaños
+  if (cvText.length > MAX_CV_TEXT) {
+    return res.status(413).json({
+      error: 'El CV es demasiado largo para analizar',
+      maxChars: MAX_CV_TEXT
+    });
+  }
+
+  if ((jobSnippet || '').length > MAX_JOB_TEXT) {
+    return res.status(413).json({
+      error: 'La descripción de la vacante es demasiado larga',
+      maxChars: MAX_JOB_TEXT
+    });
   }
 
   const db = req.supabase;

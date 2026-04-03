@@ -55,10 +55,16 @@ const planContext = async (req, res, next) => {
     });
   }
 
-  // Plan semanal expirado → degradar en memoria (no toca la DB)
+  // Plan expirado → degradar en memoria Y actualizar en DB para sincronía
   let plan = data.plan || 'free';
-  if (plan === 'semanal' && data.plan_expires_at && new Date(data.plan_expires_at) < new Date()) {
+  if (['semanal', 'mensual', 'trimestral', 'anual'].includes(plan) && data.plan_expires_at && new Date(data.plan_expires_at) < new Date()) {
     plan = 'free';
+    // Actualizar en DB para mantener sincronía
+    await db
+      .from('profiles')
+      .update({ plan: 'free' })
+      .eq('id', userId)
+      .catch(err => console.error('[planContext] Error degrading plan:', err));
   }
 
   // Trial expirado: solo aplica a usuarios free sin plan de pago activo

@@ -143,16 +143,20 @@ const trackLimiter = rateLimit({
 
 router.post('/track', trackLimiter, async (req, res, next) => {
   try {
-    // TODO: Crear RPC en Supabase: CREATE FUNCTION increment_landing_views() RETURNS void AS $$ UPDATE landing_stats SET views = views + 1 WHERE id = 1; $$ LANGUAGE SQL;
-    // Usar RPC atómico en lugar de read-then-write para evitar race condition
+    // RPC debe ser creado en Supabase (ver DB_MIGRATION_SQL.sql)
     const { error } = await supabaseAdmin.rpc('increment_landing_views');
 
-    if (error && error.code !== 'PGRST204') throw error; // 204 = no rows (tabla vacía, fallback)
+    if (error) {
+      // Log el error pero no falles (analytics no es crítico)
+      console.warn('[Analytics] RPC error:', error.message);
+      // Continuar de todos modos
+    }
 
     return res.status(200).json({ success: true });
   } catch (error) {
-    console.error('[Analytics] Error tracking view:', error);
-    res.status(200).json({ success: false }); // silent fail para no romper UX
+    // Silent fail para no romper UX — analytics no es crítico
+    console.error('[Analytics] Track error:', error);
+    res.status(200).json({ success: false });
   }
 });
 

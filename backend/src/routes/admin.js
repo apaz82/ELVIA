@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const crypto = require('crypto');
 const { supabase, supabaseAdmin } = require('../lib/supabase');
 const Anthropic = require('@anthropic-ai/sdk');
 const { createOTP, validateOTP } = require('../services/otpService');
@@ -178,12 +179,20 @@ router.delete('/users/:id', auth, async (req, res) => {
   }
 
   try {
+    // Hash SHA256 del email (GDPR compliance)
+    const emailHash = crypto
+      .createHash('sha256')
+      .update(targetUser.email)
+      .digest('hex');
+    const emailDomain = targetUser.email.split('@')[1];
+
     // Crear entrada en audit log ANTES de borrar (en caso de que falle)
     const { error: auditError } = await supabaseAdmin
       .from('deletion_audit_log')
       .insert({
         deleted_user_id: targetId,
-        deleted_user_email: targetUser.email,
+        deleted_user_email_hash: emailHash,
+        deleted_user_email_domain: emailDomain,
         admin_id: req.user.id,
         admin_email: profile.email_principal,
         status: 'completed',
@@ -192,7 +201,10 @@ router.delete('/users/:id', auth, async (req, res) => {
 
     if (auditError) {
       console.error('[Admin] Error registrando audit log:', auditError.message);
-      return res.status(500).json({ error: 'Error registrando operación en logs' });
+      return res.status(500).json({
+        error: 'Error al procesar solicitud. Contacta a soporte.',
+        errorCode: 'AUDIT_LOG_FAILED'
+      });
     }
 
     // Borrar usuario (cascade a profiles por FK)
@@ -200,13 +212,18 @@ router.delete('/users/:id', auth, async (req, res) => {
 
     if (deleteError) {
       console.error('[Admin] Error eliminando usuario:', deleteError.message);
+      console.error('[Admin] Full error:', deleteError);
       // Actualizar audit log con el error
       await supabaseAdmin
         .from('deletion_audit_log')
-        .update({ status: 'failed', error_message: deleteError.message })
-        .eq('deleted_user_id', targetId);
+        .update({ status: 'failed' })
+        .eq('deleted_user_id', targetId)
+        .catch(err => console.error('[Admin] Error updating audit log:', err));
 
-      return res.status(500).json({ error: deleteError.message });
+      return res.status(500).json({
+        error: 'Error al eliminar usuario. Contacta a soporte.',
+        errorCode: 'DELETE_USER_FAILED'
+      });
     }
 
     console.log(`[Admin] Usuario ${targetId} eliminado por ${req.user.id}`);

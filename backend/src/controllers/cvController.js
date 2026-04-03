@@ -13,8 +13,28 @@ const optimize = async (req, res, next) => {
       return res.status(400).json({ error: 'No se recibió ningún archivo' });
     }
 
+    // Validación de tamaño de archivo (MAX 50MB)
+    const MAX_CV_SIZE = 50 * 1024 * 1024;
+    if (req.file.size > MAX_CV_SIZE) {
+      return res.status(413).json({
+        error: 'El archivo es demasiado grande. Máximo 50MB permitido.',
+        maxSize: MAX_CV_SIZE,
+        receivedSize: req.file.size
+      });
+    }
+
     const db = req.supabase;
     const cvText = await parseCV(req.file.buffer, req.file.mimetype);
+
+    // Validación de longitud de texto (MAX 50K caracteres)
+    const MAX_TEXT_LENGTH = 50000;
+    if (cvText.length > MAX_TEXT_LENGTH) {
+      return res.status(413).json({
+        error: 'El CV contiene demasiado texto. Máximo 50,000 caracteres.',
+        maxChars: MAX_TEXT_LENGTH,
+        receivedChars: cvText.length
+      });
+    }
 
     // NUEVO: Validación de Identidad del Onboarding
     const { data: profile } = await db.from('profiles').select('nombre1, apellido1').eq('id', req.user.id).single();
@@ -88,6 +108,20 @@ const matchToJob = async (req, res, next) => {
       return res.status(400).json({ error: 'Falta la descripción de la vacante' });
     }
 
+    // Límites de tamaño
+    const MAX_CV_SIZE = 50 * 1024 * 1024;
+    const MAX_CV_TEXT = 50000;
+    const MAX_JOB_TEXT = 10000;
+
+    // Validar jobText
+    if ((req.body.jobText || '').length > MAX_JOB_TEXT) {
+      return res.status(413).json({
+        error: 'La descripción de la vacante es demasiado larga',
+        maxChars: MAX_JOB_TEXT,
+        receivedChars: req.body.jobText.length
+      });
+    }
+
     const db = req.supabase;
     let cvText;
 
@@ -102,9 +136,26 @@ const matchToJob = async (req, res, next) => {
       if (error || !data) return res.status(404).json({ error: 'CV base no encontrado' });
       cvText = data.contenido;
     } else if (req.file) {
+      // Validar tamaño de archivo
+      if (req.file.size > MAX_CV_SIZE) {
+        return res.status(413).json({
+          error: 'El archivo es demasiado grande. Máximo 50MB permitido.',
+          maxSize: MAX_CV_SIZE,
+          receivedSize: req.file.size
+        });
+      }
       cvText = await parseCV(req.file.buffer, req.file.mimetype);
     } else {
       return res.status(400).json({ error: 'Se requiere un archivo CV o un cvId' });
+    }
+
+    // Validar longitud de CV
+    if (cvText.length > MAX_CV_TEXT) {
+      return res.status(413).json({
+        error: 'El CV contiene demasiado texto. Máximo 50,000 caracteres.',
+        maxChars: MAX_CV_TEXT,
+        receivedChars: cvText.length
+      });
     }
 
     const language = req.body.language || 'es';

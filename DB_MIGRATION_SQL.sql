@@ -11,7 +11,7 @@
 CREATE TABLE IF NOT EXISTS public.landing_stats (
   id INT PRIMARY KEY DEFAULT 1,
   views INT NOT NULL DEFAULT 0,
-  last_updated TIMESTAMPTZ DEFAULT NOW() ON UPDATE NOW(),
+  last_updated TIMESTAMPTZ DEFAULT NOW(),
   CONSTRAINT ck_landing_stats_views CHECK (views >= 0),
   CONSTRAINT ck_landing_stats_id CHECK (id = 1)  -- Solo un registro
 );
