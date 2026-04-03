@@ -3,10 +3,10 @@ import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import {
   FileMagnifyingGlass, MagnifyingGlass, Briefcase, Kanban,
-  ArrowRight, CheckCircle, ChartBar, Coins, SignOut, Warning,
+  ArrowRight, ArrowDown, CheckCircle, ChartBar, Coins, SignOut, Warning,
   ShieldCheck, Lightning, Target, Check,
   Folders, BookmarkSimple, Books, LinkedinLogo,
-  MicrophoneStage, UsersThree
+  MicrophoneStage, UsersThree, TrendUp, RocketLaunch
 } from '@phosphor-icons/react'
 
 // ─── Features data (fuera del componente para evitar re-renders) ───────────────
@@ -118,7 +118,7 @@ const FEATURE_ROWS = {
   ],
 }
 import { supabase } from '../services/authService'
-import { motion, useScroll, useTransform, useSpring } from 'framer-motion'
+import { motion, useScroll, useTransform, useSpring, AnimatePresence } from 'framer-motion'
 
 // ─── Catálogo de países — valor ES, código IP en inglés, indicativo ────────────
 const PAISES = [
@@ -203,6 +203,24 @@ export default function Landing() {
   const demoSectionRef = useRef(null)
   const demoTypingStarted = useRef(false)
 
+  // ─── Sticky CTA (Recomendación Marketing) ──────────────────────────────
+  const [showStickyCTA, setShowStickyCTA] = useState(false)
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 800) setShowStickyCTA(true)
+      else setShowStickyCTA(false)
+    }
+    window.addEventListener('scroll', handleScroll)
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
+
+  const scrollToWaitlist = () => {
+    document.getElementById('waitlist-form-bottom')?.scrollIntoView({ 
+      behavior: 'smooth', 
+      block: 'center' 
+    })
+  }
+
   useEffect(() => {
     const section = demoSectionRef.current
     if (!section) return
@@ -226,7 +244,7 @@ export default function Landing() {
           }
         }, 28)
       }
-    }, { threshold: 0.3 })
+    }, { threshold: 0.1 })
     obs.observe(section)
     return () => obs.disconnect()
   }, [])
@@ -376,7 +394,7 @@ export default function Landing() {
             </>
           ) : (
             <>
-              <button onClick={() => { setShowDemoOverlay(false); setTimeout(() => document.getElementById('waitlist-form')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 150) }}
+              <button onClick={() => { setShowDemoOverlay(false); setTimeout(() => document.getElementById('waitlist-form-bottom')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 150) }}
                 className="flex items-center gap-2 bg-gray-900 text-white font-bold text-sm px-6 py-2.5 rounded-xl hover:bg-gray-800 transition-all shadow-md">
                 Únete a la Lista de Espera apuntándote aquí
               </button>
@@ -436,96 +454,27 @@ export default function Landing() {
               Encuentra tu propósito y ten las herramientas necesarias para encontrar tu siguiente proyecto laboral y profesional.
             </motion.p>
 
-            <motion.div variants={fadeInUp} className="mt-8 flex-1 flex flex-col bg-gray-900 border border-white/10 rounded-3xl p-6 shadow-2xl relative overflow-hidden" id="waitlist-form">
-              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-teal-500 via-[#E8541A] to-blue-500" />
-              <h3 className="text-xl font-black text-white mb-2 underline decoration-teal-500/50">Únete a la lista de espera</h3>
-              <p className="text-xs text-white/60 mb-5 leading-relaxed">
-                Nunca fue tan sencillo ser tu propio gerente de proyecto de tu búsqueda laboral, de inicio a fin, con herramientas enfocadas, acompañamiento y autogestión. Por ser pionero <span className="text-[#E8541A] font-bold">OPTIMA</span>, podrás ganar una de las <span className="text-teal-400 font-bold">Cuentas PRO Mensual</span> antes del lanzamiento oficial. Sorteo: 8 de Abril.
-              </p>
+            <motion.div variants={fadeInUp} className="mt-8 flex flex-col sm:flex-row items-center sm:items-start gap-6">
+              <div
+                className="bg-[#E8541A] text-white font-black py-4 px-8 rounded-2xl text-lg transition-all shadow-[0_8px_30px_rgb(232,84,26,0.3)] hover:shadow-[0_8px_30px_rgb(232,84,26,0.5)] flex items-center gap-2 group w-full sm:w-auto justify-center cursor-default"
+              >
+                Unete y se pionero optima
+                <ArrowDown className="w-5 h-5 group-hover:translate-y-1 transition-transform" weight="bold" />
+              </div>
               
-              {waitlistStatus.success ? (
-                <div className="bg-teal-50 border border-teal-200 p-4 rounded-xl flex items-start gap-3 flex-1">
-                  <CheckCircle size={24} weight="fill" className="text-teal-500 shrink-0" />
-                  <div>
-                    <h4 className="font-bold text-teal-800 text-sm">¡Estás en la lista!</h4>
-                    <p className="text-xs text-teal-600 mt-1">Acabamos de enviarte un correo de bienvenida. Revisa tu bandeja de entrada (y tu carpeta de spam en caso de que no lo veas).</p>
-                  </div>
+              <div className="flex items-center gap-3 text-sm text-gray-500 mt-2 sm:mt-0">
+                <div className="flex -space-x-2">
+                  <div className="w-10 h-10 rounded-full border-2 border-white bg-teal-100 flex items-center justify-center relative z-30 shadow-sm text-teal-700 font-bold text-xs tracking-tighter">AM</div>
+                  <div className="w-10 h-10 rounded-full border-2 border-white bg-blue-100 flex items-center justify-center relative z-20 shadow-sm text-blue-700 font-bold text-xs tracking-tighter">JR</div>
+                  <div className="w-10 h-10 rounded-full border-2 border-white bg-amber-100 flex items-center justify-center relative z-10 shadow-sm text-amber-700 font-bold text-xs tracking-tighter">CV</div>
                 </div>
-              ) : (
-                <form onSubmit={handleWaitlistSubmit} className="space-y-4 flex flex-col flex-1">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-bold text-white/50 mb-1">Nombre</label>
-                      <input required type="text" value={waitlistForm.nombre} onChange={e => setWaitlistForm(f => ({...f, nombre: e.target.value}))} className="w-full bg-gray-900/50 border border-white/10 text-white rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8541A] placeholder-gray-400" placeholder="Tu nombre" />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-white/50 mb-1">Apellido</label>
-                      <input required type="text" value={waitlistForm.apellido} onChange={e => setWaitlistForm(f => ({...f, apellido: e.target.value}))} className="w-full bg-gray-900/50 border border-white/10 text-white rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8541A] placeholder-gray-400" placeholder="Tu apellido" />
-                    </div>
+                <div className="flex flex-col text-left">
+                  <div className="flex items-center gap-0.5 mt-0.5">
+                    {[1,2,3,4,5].map(i => <svg key={i} className="w-3.5 h-3.5 text-amber-500" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>)}
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-bold text-white/50 mb-1">País</label>
-                      <select required value={waitlistForm.pais} onChange={e => {
-                        const pais = PAISES.find(p => p.value === e.target.value)
-                        setWaitlistForm(f => ({...f, pais: e.target.value, indicativo: pais?.code || ''}))
-                      }} className="w-full bg-gray-900/50 border border-white/10 text-white rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8541A] appearance-none">
-                        <option value="" disabled className="text-gray-900">Selecciona país</option>
-                        {PAISES.map(p => (
-                          <option key={p.value} value={p.value} className="text-gray-900 bg-white">{p.value}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-white/50 mb-1">Teléfono</label>
-                      <div className="flex gap-2">
-                        <select value={waitlistForm.indicativo} onChange={e => setWaitlistForm(f => ({...f, indicativo: e.target.value}))} className="w-24 shrink-0 bg-gray-900/50 border border-white/10 text-white rounded-xl px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8541A] appearance-none text-center">
-                          <option value="" className="text-gray-900 bg-white">+--</option>
-                          {PAISES.filter(p => p.code).map(p => (
-                            <option key={p.value} value={p.code} className="text-gray-900 bg-white">{p.code}</option>
-                          ))}
-                        </select>
-                        <input type="tel" value={waitlistForm.telefono} onChange={e => setWaitlistForm(f => ({...f, telefono: e.target.value}))} className="flex-1 bg-gray-900/50 border border-white/10 text-white rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8541A] placeholder-gray-400" placeholder="300 000 0000" />
-                      </div>
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-white/50 mb-1">Email</label>
-                    <input required type="email" value={waitlistForm.email} onChange={e => setWaitlistForm(f => ({...f, email: e.target.value}))} className="w-full bg-gray-900/50 border border-white/10 text-white rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8541A] placeholder-gray-400" placeholder="tu@email.com" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-white/50 mb-1">Situación Actual</label>
-                    <select required value={waitlistForm.situacion} onChange={e => setWaitlistForm(f => ({...f, situacion: e.target.value}))} className="w-full bg-gray-900/50 border border-white/10 text-white rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#E8541A] appearance-none">
-                      <option value="" disabled className="text-gray-400">Selecciona una opción</option>
-                      <option value="Sin empleo y en búsqueda activa" className="text-gray-900">Sin empleo y en búsqueda activa</option>
-                      <option value="Con empleo y en búsqueda activa" className="text-gray-900">Con empleo y en búsqueda activa</option>
-                      <option value="Quiero gestionar mi siguiente paso" className="text-gray-900">Quiero gestionar mi siguiente paso</option>
-                    </select>
-                  </div>
-                  
-                  {waitlistStatus.error && (
-                    <div className="text-xs font-medium text-red-600 bg-red-50 p-3 rounded-lg border border-red-100">
-                      {waitlistStatus.error}
-                    </div>
-                  )}
-
-                  <div className="flex flex-col gap-4 pt-2 mt-auto">
-                    <label className="flex items-start gap-2 cursor-pointer group">
-                      <div className="relative flex items-center justify-center shrink-0 w-5 h-5 rounded border border-gray-300 bg-white shadow-sm mt-0.5 group-hover:border-[#E8541A] transition-colors">
-                        <input type="checkbox" required checked={waitlistForm.aceptaPrivacidad} onChange={e => setWaitlistForm(f => ({...f, aceptaPrivacidad: e.target.checked}))} className="opacity-0 absolute inset-0 w-full h-full cursor-pointer" />
-                        {waitlistForm.aceptaPrivacidad && <CheckCircle size={14} weight="bold" className="text-[#E8541A]" />}
-                      </div>
-                      <span className="text-xs text-white/40 leading-relaxed">
-                        Acepto la <Link to="/privacidad" className="underline hover:text-[#E8541A]">política de privacidad</Link> y doy mi consentimiento para recibir comunicaciones.
-                      </span>
-                    </label>
-
-                    <button disabled={waitlistStatus.loading} type="submit" className="w-full flex items-center justify-center gap-2 bg-teal-500 text-white font-bold px-6 py-3.5 rounded-xl hover:bg-teal-600 transition-all shadow-md shadow-teal-500/20 disabled:opacity-50">
-                      {waitlistStatus.loading ? 'Registrando...' : 'Quiero unirme a la lista'} <ArrowRight size={16} weight="bold" />
-                    </button>
-                  </div>
-                </form>
-              )}
+                  <p className="text-xs mt-0.5"><strong className="text-gray-900">+500</strong> en lista</p>
+                </div>
+              </div>
             </motion.div>
 
             {/* Trust Badges moved inside the right column below mockup */}
@@ -574,12 +523,11 @@ export default function Landing() {
               </div>
 
               {/* CTA Button */}
-              <button
-                onClick={() => document.getElementById('waitlist-form')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
-                className="w-full flex items-center justify-center gap-2 bg-teal-500 text-white font-bold py-3 px-6 rounded-2xl hover:bg-teal-600 transition-all shadow-lg shadow-teal-500/20 mt-auto"
+              <div
+                className="w-full flex items-center justify-center gap-2 bg-teal-500 text-white font-bold py-3 px-6 rounded-2xl transition-all shadow-lg shadow-teal-500/20 mt-auto cursor-default group"
               >
-                Comenzar mi proceso <ArrowRight size={16} weight="bold" />
-              </button>
+                Unete y se pionero optima <ArrowDown size={16} weight="bold" className="group-hover:translate-y-1 transition-transform" />
+              </div>
             </div>
 
             {/* Trust Badges — debajo del widget */}
@@ -691,15 +639,15 @@ export default function Landing() {
               {/* Chat Interface Glassmorphism */}
               <div className="relative bg-[#0A1A14]/90 backdrop-blur-xl border border-white/10 p-6 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
                 <div className="flex items-center gap-4 border-b border-white/10 pb-5 mb-5">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-teal-400 to-emerald-600 p-[2px] shadow-lg">
-                    <img src="/Avatar Optima.png" alt="OPTIMA" className="w-full h-full object-cover rounded-full" />
-                  </div>
-                  <div>
-                    <h4 className="text-white font-bold text-lg leading-none">OPTIMA</h4>
-                    <span className="text-teal-400 text-xs font-semibold flex items-center gap-1 mt-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-teal-400 animate-pulse" /> En línea
-                    </span>
-                  </div>
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-teal-400 to-emerald-600 p-[1.5px] shadow-lg overflow-hidden">
+                      <img src="/Avatar%20Optima.png" alt="OPTIMA" className="w-full h-full object-cover rounded-full" />
+                    </div>
+                    <div>
+                      <h4 className="text-white font-bold text-lg leading-none">OPTIMA</h4>
+                      <span className="text-teal-400 text-xs font-semibold flex items-center gap-1 mt-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-teal-400 animate-pulse" /> En línea
+                      </span>
+                    </div>
                 </div>
 
                 <div className="space-y-4">
@@ -711,11 +659,11 @@ export default function Landing() {
                     Sí, por favor. Logramos reducir el tiempo de carga un 40%.
                   </div>
 
-                  <div className="bg-white/10 border border-white/5 p-4 rounded-2xl rounded-tl-sm text-sm text-gray-200 flex items-end gap-2">
-                    <span className="flex gap-1 mb-1">
-                      <span className="w-2 h-2 rounded-full bg-teal-400 animate-bounce" />
-                      <span className="w-2 h-2 rounded-full bg-teal-400 animate-bounce" style={{ animationDelay: '150ms' }} />
-                      <span className="w-2 h-2 rounded-full bg-teal-400 animate-bounce" style={{ animationDelay: '300ms' }} />
+                  <div className="bg-white/10 border border-white/5 p-3 px-4 rounded-2xl rounded-tl-sm flex items-center min-h-[40px]">
+                    <span className="flex gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-teal-400 animate-bounce" />
+                      <span className="w-1.5 h-1.5 rounded-full bg-teal-400 animate-bounce" style={{ animationDelay: '150ms' }} />
+                      <span className="w-1.5 h-1.5 rounded-full bg-teal-400 animate-bounce" style={{ animationDelay: '300ms' }} />
                     </span>
                   </div>
                 </div>
@@ -855,7 +803,7 @@ export default function Landing() {
       </section>
 
       {/* ─── Features Bento Grid ────────────────────────────────────────────────── */}
-      <section className="relative z-10 py-24 px-6 bg-slate-50">
+      <section id="features-section" className="relative z-10 py-24 px-6 bg-slate-50">
         <div className="container mx-auto max-w-6xl">
 
           {/* Header */}
@@ -1023,177 +971,103 @@ export default function Landing() {
               </div>
 
               {/* CTA */}
-              <button 
-                onClick={() => { setShowDemoOverlay(false); setTimeout(() => document.getElementById('waitlist-form-bottom')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 150) }}
-                className="flex items-center gap-2.5 text-white font-bold text-sm shrink-0 bg-white/10 group-hover:bg-white/20 transition-colors duration-300 px-6 py-3.5 rounded-xl border border-white/10 group-hover:border-white/20 whitespace-nowrap cursor-pointer">
-                Disponible próximamente, únete a la lista de espera
-                <ArrowRight size={16} weight="bold" className="group-hover:translate-x-1 transition-transform duration-200" />
-              </button>
+              <div
+                className="flex items-center gap-2.5 text-white/50 font-bold text-sm shrink-0 bg-white/5 px-6 py-3.5 rounded-xl border border-white/5 whitespace-nowrap cursor-default">
+                Próximamente
+              </div>
             </div>
           </motion.div>
 
         </div>
       </section>
 
-      {/* ─── CTA Final ──────────────────────────────────────────────────────────── */}
-      <section id="waitlist-form-bottom" className="relative z-10 py-24 px-6 border-t border-gray-200 bg-white">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          whileInView={{ opacity: 1, scale: 1 }}
-          viewport={{ once: true }}
-          className="container mx-auto max-w-4xl text-center bg-gray-900 rounded-3xl p-12 shadow-2xl relative overflow-hidden"
-        >
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-teal-500/10 blur-[100px] rounded-full pointer-events-none" />
 
-          <div className="relative z-10 text-left">
-            <h3 className="text-3xl font-black text-white mb-2 text-center">Únete a la lista de espera</h3>
-            <p className="text-white/60 mb-8 text-center max-w-xl mx-auto leading-relaxed">
-              Nunca fue tan sencillo ser tu propio gerente de proyecto de tu búsqueda laboral, de inicio a fin, con herramientas enfocadas, acompañamiento y autogestión. Por ser pionero <span className="text-[#E8541A] font-bold">OPTIMA</span>, podrás ganar una de las <span className="text-teal-400 font-bold">Cuentas PRO Mensual</span> antes del lanzamiento oficial. Sorteo: 8 de Abril.
-            </p>
+      {/* ─── Banner de Estadísticas Premium ─────────────────────────────────────── */}
+      <section className="relative z-10 py-24 px-6 bg-[#0a0f16] border-y border-white/[0.05] overflow-hidden">
+        {/* Glow Effects */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] bg-teal-500/10 blur-[120px] rounded-full pointer-events-none" />
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-500/10 blur-[100px] rounded-full pointer-events-none" />
+
+        <div className="container mx-auto max-w-6xl relative z-10">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-100px" }}
+            className="text-center mb-16"
+          >
+            <div className="inline-flex items-center justify-center gap-3 mb-6 px-4 py-2 rounded-full bg-white/[0.03] border border-white/[0.08] backdrop-blur-md">
+               <span className="w-1.5 h-1.5 rounded-full bg-teal-400 font-bold" />
+               <h2 className="text-white/70 text-xs font-bold uppercase tracking-[0.2em]">Impacto medible</h2>
+            </div>
+            <h3 className="font-headline font-black text-3xl md:text-5xl text-white tracking-tight">
+              Los datos hablan por sí solos
+            </h3>
+          </motion.div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-12 md:gap-0 relative">
+            <div className="hidden md:block absolute top-[40%] left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-white/10 to-transparent" />
             
-            {waitlistStatus.success ? (
-              <div className="bg-teal-500/10 border border-teal-500/30 p-6 rounded-2xl flex items-start gap-4">
-                <CheckCircle size={28} weight="fill" className="text-teal-400 shrink-0" />
-                <div>
-                  <h4 className="font-bold text-teal-300 text-lg">¡Estás en la lista!</h4>
-                  <p className="text-sm text-teal-100/70 mt-1">Acabamos de enviarte un correo de bienvenida. Revisa tu bandeja de entrada (y tu carpeta de spam en caso de que no lo veas).</p>
-                </div>
-              </div>
-            ) : (
-              <form onSubmit={handleWaitlistSubmit} className="space-y-5 max-w-2xl mx-auto">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                  <div>
-                    <label className="block text-sm font-bold text-white/80 mb-1.5">Nombre</label>
-                    <input required type="text" value={waitlistForm.nombre} onChange={e => setWaitlistForm(f => ({...f, nombre: e.target.value}))} className="w-full bg-gray-900/50 border border-white/10 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 placeholder-gray-400" placeholder="Tu nombre" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-bold text-white/80 mb-1.5">Apellido</label>
-                    <input required type="text" value={waitlistForm.apellido} onChange={e => setWaitlistForm(f => ({...f, apellido: e.target.value}))} className="w-full bg-gray-900/50 border border-white/10 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 placeholder-gray-400" placeholder="Tu apellido" />
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                  <div>
-                    <label className="block text-sm font-bold text-white/80 mb-1.5">País</label>
-                    <select required value={waitlistForm.pais} onChange={e => {
-                      const pais = PAISES.find(p => p.value === e.target.value)
-                      setWaitlistForm(f => ({...f, pais: e.target.value, indicativo: pais?.code || ''}))
-                    }} className="w-full bg-gray-900/50 border border-white/10 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 appearance-none">
-                      <option value="" disabled className="text-gray-900">Selecciona país</option>
-                      {PAISES.map(p => (
-                        <option key={p.value} value={p.value} className="text-gray-900 bg-white">{p.value}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-bold text-white/80 mb-1.5">Teléfono</label>
-                    <div className="flex gap-2">
-                      <select value={waitlistForm.indicativo} onChange={e => setWaitlistForm(f => ({...f, indicativo: e.target.value}))} className="w-24 shrink-0 bg-gray-900/50 border border-white/10 text-white rounded-xl px-2 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 appearance-none text-center">
-                        <option value="" className="text-gray-900 bg-white">+--</option>
-                        {PAISES.filter(p => p.code).map(p => (
-                          <option key={p.value} value={p.code} className="text-gray-900 bg-white">{p.code}</option>
-                        ))}
-                      </select>
-                      <input type="tel" value={waitlistForm.telefono} onChange={e => setWaitlistForm(f => ({...f, telefono: e.target.value}))} className="flex-1 bg-gray-900/50 border border-white/10 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 placeholder-gray-400" placeholder="300 000 0000" />
-                    </div>
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-bold text-white/80 mb-1.5">Email</label>
-                  <input required type="email" value={waitlistForm.email} onChange={e => setWaitlistForm(f => ({...f, email: e.target.value}))} className="w-full bg-gray-900/50 border border-white/10 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 placeholder-gray-400" placeholder="tu@email.com" />
-                </div>
-                <div>
-                  <label className="block text-sm font-bold text-white/80 mb-1.5">Situación Actual</label>
-                  <select required value={waitlistForm.situacion} onChange={e => setWaitlistForm(f => ({...f, situacion: e.target.value}))} className="w-full bg-gray-900/50 border border-white/10 text-white rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 appearance-none">
-                    <option value="" disabled className="text-gray-900">Selecciona una opción</option>
-                    <option value="Sin empleo y en búsqueda activa" className="text-gray-900">Sin empleo y en búsqueda activa</option>
-                    <option value="Con empleo y en búsqueda activa" className="text-gray-900">Con empleo y en búsqueda activa</option>
-                    <option value="Quiero gestionar mi siguiente paso" className="text-gray-900">Quiero gestionar mi siguiente paso</option>
-                  </select>
-                </div>
-                
-                {waitlistStatus.error && (
-                  <div className="text-sm font-medium text-red-400 bg-red-500/10 p-3 rounded-lg border border-red-500/20">
-                    {waitlistStatus.error}
-                  </div>
+            {[
+              {
+                stat: '3x',
+                title: 'Velocidad de contratación',
+                desc: 'Al tener una estrategia clara antes de aplicar, triplicas tu probabilidad de encontrar el trabajo ideal.',
+                Icon: Target,
+                glowClass: 'bg-teal-500/20',
+                boxClass: 'from-teal-500/10 to-teal-500/5 border-teal-500/20',
+                iconClass: 'text-teal-400'
+              },
+              {
+                stat: '65%',
+                title: 'Match con vacantes',
+                desc: 'Cuando alineas tu propuesta de valor, tu compatibilidad con el mercado laboral aumenta dramáticamente.',
+                Icon: TrendUp,
+                glowClass: 'bg-blue-500/20',
+                boxClass: 'from-blue-500/10 to-blue-500/5 border-blue-500/20',
+                iconClass: 'text-blue-400'
+              },
+              {
+                stat: '40%',
+                title: 'Entrevistas conseguidas',
+                desc: 'Al optimizar tu perfil para sistemas ATS, incrementas sustancialmente tu paso al primer filtro humano.',
+                Icon: RocketLaunch,
+                glowClass: 'bg-emerald-500/20',
+                boxClass: 'from-emerald-500/10 to-emerald-500/5 border-emerald-500/20',
+                iconClass: 'text-emerald-400'
+              }
+            ].map((item, idx) => (
+              <motion.div
+                key={idx}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-50px" }}
+                transition={{ duration: 0.6, delay: idx * 0.15 }}
+                className="relative flex flex-col items-center text-center p-4 md:p-12 group"
+              >
+                {/* Separador vertical entre columnas */}
+                {idx !== 2 && (
+                  <div className="hidden md:block absolute top-[10%] right-0 w-[1px] h-[80%] bg-gradient-to-b from-transparent via-white/10 to-transparent" />
                 )}
 
-                <div className="flex flex-col gap-6 pt-2">
-                  <label className="flex items-start gap-3 cursor-pointer group">
-                    <div className="relative flex items-center justify-center shrink-0 w-5 h-5 rounded border border-white/30 bg-gray-900/50 mt-0.5 group-hover:border-teal-400 transition-colors">
-                      <input type="checkbox" required checked={waitlistForm.aceptaPrivacidad} onChange={e => setWaitlistForm(f => ({...f, aceptaPrivacidad: e.target.checked}))} className="opacity-0 absolute inset-0 w-full h-full cursor-pointer" />
-                      {waitlistForm.aceptaPrivacidad && <CheckCircle size={14} weight="bold" className="text-teal-400" />}
-                    </div>
-                    <span className="text-sm text-white/50 leading-relaxed">
-                      Acepto la <Link to="/privacidad" className="underline hover:text-teal-400 transition-colors">política de privacidad</Link> y doy mi consentimiento para recibir comunicaciones.
-                    </span>
-                  </label>
-
-                  <button disabled={waitlistStatus.loading} type="submit" className="w-full flex items-center justify-center gap-2 bg-teal-500 text-white font-bold px-6 py-4 rounded-xl hover:bg-teal-600 transition-all shadow-lg shadow-teal-500/20 disabled:opacity-50 text-lg">
-                    {waitlistStatus.loading ? 'Registrando...' : 'Quiero unirme a la lista'} <ArrowRight size={18} weight="bold" />
-                  </button>
+                {/* Icon Wrapper con Glow Soft */}
+                <div className="relative mb-8 flex items-center justify-center w-16 h-16 transition-transform duration-500 group-hover:-translate-y-2">
+                   <div className={`absolute inset-0 ${item.glowClass} blur-[20px] rounded-full opacity-60 group-hover:opacity-100 transition-opacity duration-500`} />
+                   <div className={`relative flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br ${item.boxClass} border backdrop-blur-md shadow-inner`}>
+                     <item.Icon size={28} weight="duotone" className={item.iconClass} />
+                   </div>
                 </div>
-              </form>
-            )}
-          </div>
-        </motion.div>
-      </section>
 
-      {/* ─── Banner de Estadísticas (Carrusel Animado) ──────────────────────── */}
-      <section className="relative z-10 py-20 px-6 bg-gradient-to-r from-teal-500/10 via-gray-900 to-blue-500/10 border-y border-gray-800">
-        <div className="container mx-auto max-w-4xl">
-          <div className="relative">
-            <motion.div
-              key="stats"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.6 }}
-              className="text-center py-8"
-            >
-              <div className="inline-flex items-center justify-center gap-4 mb-4 px-6 py-3 rounded-full bg-white/5 border border-white/10">
-                <span className="w-2 h-2 rounded-full bg-teal-400 animate-pulse" />
-                <h2 className="text-white/70 text-sm font-semibold">Datos que inspiran acción</h2>
-              </div>
+                {/* Número Grande Premium */}
+                <div className="text-6xl md:text-7xl font-black mb-4 tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white to-white/40 drop-shadow-sm group-hover:scale-105 transition-transform duration-500">
+                  {item.stat}
+                </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-10">
-                {[
-                  {
-                    stat: '3x',
-                    desc: 'Cuando te preparas para buscar tienes 3x más oportunidades de encontrar un trabajo',
-                    icon: '🎯',
-                    label: 'Objetivo'
-                  },
-                  {
-                    stat: '65%',
-                    desc: 'Cuando conoces tu oferta de valor, el % de compatibilidad aumenta en 65%',
-                    icon: '📈',
-                    label: 'Gráfico de crecimiento'
-                  },
-                  {
-                    stat: '40%',
-                    desc: 'Con herramientas optimizadas, incrementas tus posibilidades de entrevistas en un 40%',
-                    icon: '🚀',
-                    label: 'Despegue'
-                  }
-                ].map((item, idx) => (
-                  <motion.div
-                    key={idx}
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.5, delay: idx * 0.1 }}
-                    className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6 hover:border-teal-500/50 hover:bg-white/10 transition-all duration-300"
-                  >
-                    <div className="text-4xl mb-3" aria-label={item.label}>{item.icon}</div>
-                    <p className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-emerald-400 mb-3">
-                      {item.stat}
-                    </p>
-                    <p className="text-white/60 text-sm leading-relaxed">
-                      {item.desc}
-                    </p>
-                  </motion.div>
-                ))}
-              </div>
-            </motion.div>
+                <h4 className="text-white font-bold text-lg mb-3 tracking-wide">{item.title}</h4>
+                <p className="text-white/50 text-sm leading-relaxed max-w-[260px] mx-auto group-hover:text-white/70 transition-colors">
+                  {item.desc}
+                </p>
+              </motion.div>
+            ))}
           </div>
         </div>
       </section>
@@ -1374,90 +1248,156 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ─── Footer ──────────────────────────────────────────────────────────────── */}
-      <footer className="relative z-10 border-t border-gray-200 bg-gray-900">
-        <div className="container mx-auto max-w-6xl px-6 py-16 grid grid-cols-1 md:grid-cols-5 gap-12">
-          <div className="space-y-6">
-            <Link to="/">
-              <img src="/optima_logo_v3_clean_1.png" alt="OPTIMA-CV" className="h-10 w-auto object-contain brightness-0 invert opacity-90" />
-            </Link>
-            <p className="text-white/50 text-sm leading-relaxed max-w-sm">
-              Potenciando carreras de alto nivel a través de Inteligencia Artificial y conocimiento estratégico del mercado laboral corporativo.
-            </p>
-          </div>
+      {/* ─── CTA Final ──────────────────────────────────────────────────────────── */}
+      <section id="waitlist-form-bottom" className="relative z-10 py-24 px-6 border-t border-gray-200 bg-white">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          whileInView={{ opacity: 1, scale: 1 }}
+          viewport={{ once: true }}
+          className="container mx-auto max-w-4xl bg-gray-900 rounded-[3rem] p-8 md:p-16 shadow-2xl relative overflow-hidden"
+        >
+          {/* Background Elements */}
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[120%] bg-teal-500/5 blur-[120px] rounded-full pointer-events-none" />
+          <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 blur-[80px] rounded-full pointer-events-none" />
 
-          <div>
-            <h5 className="text-xs font-bold uppercase tracking-widest text-white/30 mb-4 font-headline">Herramientas</h5>
-            <ul className="space-y-2.5">
-              {[
-                'Optimizador de CV',
-                'CV vs Vacante',
-                'Vacantes',
-              ].map((label) => (
-                <li key={label}>
-                  <span className="text-sm font-medium text-white/60">{label}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
+          <div className="relative z-10 grid grid-cols-1 lg:grid-cols-5 gap-12 items-center">
+            {/* Branding Column */}
+            <div className="lg:col-span-2 text-center lg:text-left space-y-8">
+              <div className="flex flex-col items-center lg:items-start gap-6">
+                <img src="/optima_logo_v3_clean_1.png" alt="OPTIMA-CV" className="h-14 w-auto brightness-0 invert" />
+                
+                <div className="relative inline-block">
+                  <div className="absolute inset-0 bg-teal-400/20 blur-2xl rounded-full" />
+                  <img 
+                    src="/Avatar%20Optima.png" 
+                    alt="OPTIMA AI" 
+                    className="relative w-32 h-32 rounded-full border-2 border-white/10 shadow-2xl object-cover" 
+                  />
+                  <div className="absolute -bottom-2 -right-2 bg-teal-500 text-white p-2 rounded-xl shadow-lg">
+                    <Lightning size={20} weight="fill" />
+                  </div>
+                </div>
+              </div>
 
-          <div>
-            <h5 className="text-xs font-bold uppercase tracking-widest text-white/30 mb-4 font-headline">Mi Carrera</h5>
-            <ul className="space-y-2.5">
-              {[
-                'Mis CVs',
-                'Mis Vacantes',
-                'Pipeline',
-              ].map((label) => (
-                <li key={label}>
-                  <span className="text-sm font-medium text-white/60">{label}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div>
-            <h5 className="text-xs font-bold uppercase tracking-widest text-white/30 mb-4 font-headline">Recursos</h5>
-            <ul className="space-y-2.5">
-              {[
-                'Biblioteca',
-                'Infografías',
-                'LinkedIn Optimo',
-                'Entrevista',
-              ].map((label) => (
-                <li key={label}>
-                  <span className="text-sm font-medium text-white/60">{label}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div>
-            <h5 className="text-xs font-bold uppercase tracking-widest text-white/30 mb-4 font-headline">Cuenta</h5>
-            <ul className="space-y-2.5">
-              {[].map(({ to, label }, i) => (
-                <li key={i}>
-                  <Link to={to} className="text-sm font-medium text-white/60 hover:text-white hover:translate-x-1 inline-block transition-all">{label}</Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-        <div className="border-t border-white/5 px-6 py-6 bg-black/20">
-          <div className="container max-w-6xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
-            <p className="text-[11px] text-white/40 uppercase tracking-widest font-bold">
-              © {new Date().getFullYear()} OPTIMA-CV. Reservados todos los derechos.
-            </p>
-            <div className="flex items-center gap-4">
-              <Link to="/privacidad" className="text-[11px] text-white/40 hover:text-white/70 transition-colors font-medium tracking-wide">
-                Política de Privacidad
-              </Link>
-              <span className="text-white/20">·</span>
-              <p className="text-[11px] text-white/40 font-medium tracking-wide"></p>
+              <div>
+                <h3 className="text-3xl font-black text-white mb-4 leading-tight">Únete a la lista de espera</h3>
+                <p className="text-white/60 leading-relaxed">
+                  Nunca fue tan sencillo ser tu propio gerente de proyecto de tu búsqueda laboral. Sé el primero en acceder a <span className="text-[#E8541A] font-bold">OPTIMA</span>.
+                </p>
+                <div className="mt-6 flex items-center gap-3 justify-center lg:justify-start">
+                   <div className="flex -space-x-2">
+                     {[1,2,3].map(i => <div key={i} className="w-8 h-8 rounded-full border-2 border-gray-900 bg-teal-900/40" />)}
+                   </div>
+                   <span className="text-xs font-bold text-teal-400 uppercase tracking-widest">+500 inscritos</span>
+                </div>
+              </div>
             </div>
+
+            {/* Form Column */}
+            <div className="lg:col-span-3">
+              {waitlistStatus.success ? (
+                <motion.div 
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-teal-500/10 border border-teal-500/30 p-8 rounded-3xl text-center"
+                >
+                  <div className="w-16 h-16 bg-teal-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg shadow-teal-500/20">
+                    <Check size={32} weight="bold" className="text-white" />
+                  </div>
+                    <h4 className="font-black text-white text-2xl mb-4">¡Bienvenido! Es tu primer paso en tu proceso de transición laboral</h4>
+                    <p className="text-teal-100/70 leading-relaxed">
+                      Recibirás un mail y estarás inscrito en nuestra comunidad de beneficios, además de participar por uno de los accesos FULL de 1 mes para utilizar la plataforma antes que nadie. Estaremos en contacto pronto.
+                    </p>
+                </motion.div>
+              ) : (
+                <form onSubmit={handleWaitlistSubmit} className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <input required type="text" value={waitlistForm.nombre} onChange={e => setWaitlistForm(f => ({...f, nombre: e.target.value}))} className="w-full bg-white/5 border border-white/10 text-white rounded-xl px-4 py-3.5 text-sm focus:ring-2 focus:ring-teal-500 placeholder-white/20 transition-all" placeholder="Nombre" />
+                    <input required type="text" value={waitlistForm.apellido} onChange={e => setWaitlistForm(f => ({...f, apellido: e.target.value}))} className="w-full bg-white/5 border border-white/10 text-white rounded-xl px-4 py-3.5 text-sm focus:ring-2 focus:ring-teal-500 placeholder-white/20 transition-all" placeholder="Apellido" />
+                  </div>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <select required value={waitlistForm.pais} onChange={e => {
+                      const pais = PAISES.find(p => p.value === e.target.value)
+                      setWaitlistForm(f => ({...f, pais: e.target.value, indicativo: pais?.code || ''}))
+                    }} className="w-full bg-white/5 border border-white/10 text-white rounded-xl px-4 py-3.5 text-sm focus:ring-2 focus:ring-teal-500 appearance-none">
+                      <option value="" disabled className="bg-gray-900">País</option>
+                      {PAISES.map(p => <option key={p.value} value={p.value} className="bg-gray-900">{p.value}</option>)}
+                    </select>
+
+                    <div className="flex gap-2">
+                       <input type="tel" value={waitlistForm.telefono} onChange={e => setWaitlistForm(f => ({...f, telefono: e.target.value}))} className="flex-1 bg-white/5 border border-white/10 text-white rounded-xl px-4 py-3.5 text-sm focus:ring-2 focus:ring-teal-500 placeholder-white/20" placeholder="Teléfono (opcional)" />
+                    </div>
+                  </div>
+
+                  <input required type="email" value={waitlistForm.email} onChange={e => setWaitlistForm(f => ({...f, email: e.target.value}))} className="w-full bg-white/5 border border-white/10 text-white rounded-xl px-4 py-3.5 text-sm focus:ring-2 focus:ring-teal-500 placeholder-white/20" placeholder="Email profesional" />
+                  
+                  <select required value={waitlistForm.situacion} onChange={e => setWaitlistForm(f => ({...f, situacion: e.target.value}))} className="w-full bg-white/5 border border-white/10 text-white rounded-xl px-4 py-3.5 text-sm focus:ring-2 focus:ring-teal-500 appearance-none">
+                    <option value="" disabled className="bg-gray-900">¿Cuál es tu situación actual?</option>
+                    <option value="Sin empleo y en búsqueda activa" className="bg-gray-900">Sin empleo y en búsqueda activa</option>
+                    <option value="Con empleo y en búsqueda activa" className="bg-gray-900">Con empleo y en búsqueda activa</option>
+                    <option value="Quiero gestionar mi siguiente paso" className="bg-gray-900">Quiero gestionar mi siguiente paso</option>
+                  </select>
+
+                  <div className="pt-2">
+                    <label className="flex items-start gap-3 cursor-pointer group mb-6">
+                      <input type="checkbox" required checked={waitlistForm.aceptaPrivacidad} onChange={e => setWaitlistForm(f => ({...f, aceptaPrivacidad: e.target.checked}))} className="mt-1 w-4 h-4 border-white/20 bg-transparent rounded focus:ring-teal-500" />
+                      <span className="text-xs text-white/40 leading-relaxed group-hover:text-white/60 transition-colors">
+                        Acepto la <Link to="/privacidad" className="underline">política de privacidad</Link> y el consentimiento para recibir comunicaciones estratégicas.
+                      </span>
+                    </label>
+
+                    <button disabled={waitlistStatus.loading} type="submit" className="w-full flex items-center justify-center gap-3 bg-teal-500 hover:bg-teal-600 text-white font-black px-6 py-4 rounded-2xl transition-all shadow-xl shadow-teal-500/20 disabled:opacity-50">
+                      {waitlistStatus.loading ? 'Procesando...' : 'Acceso Prioritario'} <ArrowRight size={20} weight="bold" />
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
+          </div>
+        </motion.div>
+      </section>
+
+      {/* ─── Footer Minimalista ───────────────────────────────────────────────────── */}
+      <footer className="relative z-10 border-t border-gray-100 bg-white">
+        <div className="container mx-auto max-w-6xl px-6 py-12 flex flex-col md:flex-row items-center justify-between gap-8">
+          <div className="flex flex-col items-center md:items-start gap-4">
+            <Link to="/">
+              <img src="/optima_logo_v3_clean_1.png" alt="OPTIMA-CV" className="h-10 w-auto opacity-90" />
+            </Link>
+            <p className="text-gray-400 text-xs font-medium uppercase tracking-widest text-center md:text-left">
+              Potenciando carreras de alto nivel con IA
+            </p>
+          </div>
+
+          <div className="flex flex-wrap justify-center gap-8">
+            <Link to="/privacidad" className="text-sm font-bold text-gray-500 hover:text-teal-600 transition-colors">Privacidad</Link>
+            <span className="text-gray-200 hidden sm:block">|</span>
+            <span className="text-sm font-bold text-gray-500">© {new Date().getFullYear()} OPTIMA-CV</span>
           </div>
         </div>
       </footer>
+
+      {/* Sticky CTA (Recomendación Marketing) */}
+      <AnimatePresence>
+        {showStickyCTA && (
+          <motion.button
+            initial={{ opacity: 0, scale: 0.8, y: 40 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.8, y: 40 }}
+            onClick={scrollToWaitlist}
+            className="fixed bottom-6 right-6 md:bottom-10 md:right-10 z-[100] flex items-center gap-3 bg-gray-900 border border-white/10 text-white font-black px-6 py-4 rounded-2xl shadow-2xl transition-all group active:scale-95"
+          >
+            <div className="flex flex-col items-start">
+               <span className="text-[10px] text-teal-400 uppercase tracking-widest leading-none mb-1">Puestos limitados</span>
+               <span className="text-sm font-black">Acceso Prioritario</span>
+            </div>
+            <div className="w-10 h-10 rounded-xl bg-teal-500 text-white flex items-center justify-center shadow-lg shadow-teal-500/20 group-hover:rotate-12 transition-transform">
+              <RocketLaunch size={22} weight="bold" />
+            </div>
+          </motion.button>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

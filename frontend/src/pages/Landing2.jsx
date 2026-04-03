@@ -3,13 +3,13 @@ import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import {
   FileMagnifyingGlass, MagnifyingGlass, Briefcase, Kanban,
-  ArrowRight, CheckCircle, ChartBar, Coins, SignOut, Warning,
-  ShieldCheck, Lightning, Target,
-  Folders, BookmarkSimple, Books, Shapes, LinkedinLogo,
-  MicrophoneStage, UsersThree
+  ArrowRight, ArrowDown, CheckCircle, ChartBar, Coins, SignOut, Warning,
+  ShieldCheck, Lightning, Target, Check,
+  Folders, BookmarkSimple, Books, LinkedinLogo,
+  MicrophoneStage, UsersThree, TrendUp, RocketLaunch
 } from '@phosphor-icons/react'
 
-// ── Features data (fuera del componente para evitar re-renders) ───────────────
+// ─── Features data (fuera del componente para evitar re-renders) ───────────────
 const GRAD = {
   orange: 'linear-gradient(135deg, #E8541A 0%, #F59E0B 100%)',
   teal:   'linear-gradient(135deg, #0D9488 0%, #059669 100%)',
@@ -20,7 +20,7 @@ const FEATURE_ROWS = {
   heroes: [
     {
       Icon: FileMagnifyingGlass,
-      titulo: 'CV Optimizer',
+      titulo: 'Optimizador de CV',
       desc: 'Tu CV habla primero. Haz que diga lo correcto — formato Harvard, lenguaje de impacto, filtros ATS superados.',
       cta: 'Optimizar mi CV',
       gradientStyle: GRAD.orange,
@@ -33,6 +33,16 @@ const FEATURE_ROWS = {
       cta: 'Medir mi compatibilidad',
       gradientStyle: GRAD.orange,
       iconBg: 'bg-amber-100', iconColor: 'text-amber-600',
+    },
+    {
+      Icon: UsersThree,
+      titulo: 'Autoconocimiento',
+      subtitulo: 'Tu primer paso como gerente',
+      desc: 'Un onboarding para que conozcas tu momento actual y hacia donde quieres ir. Preparate para ser gerente de proyecto de tu transicion profesional.',
+      cta: 'Comenzar',
+      gradientStyle: GRAD.blue,
+      iconBg: 'bg-blue-100', iconColor: 'text-blue-600',
+      featured: true,
     },
   ],
   carrera: [
@@ -74,15 +84,16 @@ const FEATURE_ROWS = {
       Icon: Books,
       titulo: 'Biblioteca',
       desc: 'El conocimiento que nadie te enseñó. Guías para dominar las reglas del juego.',
-      cta: 'Explorar',
+      cta: 'Próximamente',
+      upcoming: true,
       gradientStyle: GRAD.blue,
       iconBg: 'bg-blue-100', iconColor: 'text-blue-600',
     },
     {
-      Icon: Shapes,
-      titulo: 'Infografías',
-      desc: 'Lo más complejo del mundo laboral, explicado en un vistazo.',
-      cta: 'Ver infografías',
+      Icon: ChartBar,
+      titulo: 'Bienestar',
+      desc: 'Ejercicios sencillos para cuando el estrés llega. Cuida tu salud mental durante la búsqueda.',
+      cta: 'Ver ejercicios',
       gradientStyle: GRAD.blue,
       iconBg: 'bg-blue-100', iconColor: 'text-blue-600',
     },
@@ -90,7 +101,8 @@ const FEATURE_ROWS = {
       Icon: LinkedinLogo,
       titulo: 'LinkedIn Optimo',
       desc: 'Tu perfil optimizado para aparecer cuando los recruiters que importan están buscando.',
-      cta: 'Optimizar LinkedIn',
+      cta: 'Próximamente',
+      upcoming: true,
       gradientStyle: GRAD.blue,
       iconBg: 'bg-blue-100', iconColor: 'text-blue-600',
     },
@@ -98,16 +110,19 @@ const FEATURE_ROWS = {
       Icon: MicrophoneStage,
       titulo: 'Entrevista',
       desc: 'Practica hasta que no haya pregunta difícil. Llega seguro cuando más importa.',
-      cta: 'Preparar entrevista',
+      cta: 'Próximamente',
+      upcoming: true,
       gradientStyle: GRAD.blue,
       iconBg: 'bg-blue-100', iconColor: 'text-blue-600',
     },
   ],
 }
 import { supabase } from '../services/authService'
-import { motion, useScroll, useTransform, useSpring } from 'framer-motion'
+import { motion, useScroll, useTransform, useSpring, AnimatePresence } from 'framer-motion'
 
-// ── Animaciones ───────────────────────────────────────────────────────────────
+
+
+// ─── Animaciones ──────────────────────────────────────────────────────────────
 const fadeInUp = {
   hidden: { opacity: 0, y: 40 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.8, ease: [0.22, 1, 0.36, 1] } }
@@ -121,7 +136,7 @@ const staggerContainer = {
   }
 }
 
-// ── Contador animado ──────────────────────────────────────────────────────────
+// ─── Contador animado ────────────────────────────────────────────────────────
 function useInView(threshold = 0.15) {
   const ref = useRef(null)
   const [inView, setInView] = useState(false)
@@ -149,7 +164,7 @@ function AnimatedCounter({ target, suffix = '', duration = 1600 }) {
   return <span ref={ref}>{count}{suffix}</span>
 }
 
-// ── Componente principal ──────────────────────────────────────────────────────
+// ─── Componente principal ──────────────────────────────────────────────────
 export default function Landing() {
   const navigate  = useNavigate()
   const { user, perfil, creditosRestantes, LIMITE_PLAN } = useAuth()
@@ -159,7 +174,7 @@ export default function Landing() {
   // Detectar onboarding incompleto
   const onboardingIncompleto = user && !perfil?.nombre1
 
-  // Estados para el Simulador Interactivo (Curiosity Gap)
+  // ─── Simulador Interactivo (auto-type) ──────────────────────────────────
   const DEMO_JOB_TEXT = 'La Compañía busca un perfil de Operaciones con experiencia en la industria de alimentos. El candidato ideal tiene 3+ años liderando procesos de calidad, coordinación de proveedores y mejora continua (Lean/Six Sigma). Excelente comunicación, visión analítica y enfoque en resultados. Deseable experiencia en ERP (SAP o similar).'
   const [demoText, setDemoText] = useState('')
   const [demoTypingDone, setDemoTypingDone] = useState(false)
@@ -168,6 +183,24 @@ export default function Landing() {
   const [showDemoOverlay, setShowDemoOverlay] = useState(false)
   const demoSectionRef = useRef(null)
   const demoTypingStarted = useRef(false)
+
+  // ─── Sticky CTA (Recomendación Marketing) ──────────────────────────────
+  const [showStickyCTA, setShowStickyCTA] = useState(false)
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 800) setShowStickyCTA(true)
+      else setShowStickyCTA(false)
+    }
+    window.addEventListener('scroll', handleScroll)
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
+
+  const scrollToWaitlist = () => {
+    document.getElementById('waitlist-form-bottom')?.scrollIntoView({ 
+      behavior: 'smooth', 
+      block: 'center' 
+    })
+  }
 
   useEffect(() => {
     const section = demoSectionRef.current
@@ -179,13 +212,20 @@ export default function Landing() {
         const timer = setInterval(() => {
           i++
           setDemoText(DEMO_JOB_TEXT.slice(0, i))
-          if (i >= DEMO_JOB_TEXT.length) {
+          if (i >= DEMO_JOB_TEXT.length) { 
             clearInterval(timer)
             setDemoTypingDone(true)
+            // Analytics: Simulación terminada
+            const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001'
+            fetch(`${API_URL}/api/events/track`, {
+               method: 'POST',
+               headers: { 'Content-Type': 'application/json' },
+               body: JSON.stringify({ event_name: 'demo_complete' })
+            }).catch(() => {})
           }
         }, 28)
       }
-    }, { threshold: 0.3 })
+    }, { threshold: 0.1 })
     obs.observe(section)
     return () => obs.disconnect()
   }, [])
@@ -202,6 +242,34 @@ export default function Landing() {
   }
 
 
+
+  useEffect(() => {
+    // Analytics: Registrar visita a la Landing
+    if (window.location.hostname !== 'localhost') {
+       fetch((import.meta.env.VITE_API_URL || 'https://optima-backend-production.up.railway.app') + '/api/waitlist/track', { method: 'POST' }).catch(() => {})
+    }
+
+    // Dynamic Config: SEO & Headline
+    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001'
+    // LOW-2 fix: GET /api/events/track eliminado (generaba 404 en cada visita)
+    
+    // Using Supabase client for simple public read
+    import('@supabase/supabase-js').then(({ createClient }) => {
+      const db = createClient(import.meta.env.VITE_SUPABASE_URL, import.meta.env.VITE_SUPABASE_ANON_KEY)
+      db.from('landing_config').select('*').then(({ data }) => {
+        if (data) {
+          const title = data.find(c => c.config_key === 'seo_title')?.config_value
+          const desc  = data.find(c => c.config_key === 'seo_meta_description')?.config_value
+          if (title) document.title = title
+          if (desc) {
+            let meta = document.querySelector('meta[name="description"]')
+            if (meta) meta.setAttribute('content', desc)
+          }
+        }
+      })
+    })
+
+  }, [])
   return (
     <div className="min-h-screen bg-slate-50 font-body text-gray-900 selection:bg-[#E8541A]/20 relative overflow-hidden">
 
@@ -217,7 +285,7 @@ export default function Landing() {
         style={{ scaleX: springScroll }}
       />
 
-      {/* ── Nav landing ────────────────────────────────────────────────────── */}
+      {/* ─── Nav landing ────────────────────────────────────────────────────────── */}
       <nav className="sticky top-0 z-50 flex items-center justify-between px-6 h-24 bg-white/80 backdrop-blur-xl border-b border-gray-200/80 transition-all duration-300">
         <Link to="/" className="flex items-center">
           <img src="/optima_logo_v3_clean_1.png" alt="OPTIMA-CV" className="h-[4.5rem] py-1 w-auto object-contain" />
@@ -237,9 +305,6 @@ export default function Landing() {
               <span className="hidden md:block text-sm font-medium text-gray-600">
                 {perfil?.nombre1 || user.email?.split('@')[0]}
               </span>
-              <Link to="/pricing" className="text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors hidden md:block">
-                Inversión
-              </Link>
               <button onClick={() => navigate('/cv-optimizer')}
                 className="hidden sm:flex items-center gap-2 bg-[#E8541A] text-white font-bold text-sm px-5 py-2.5 rounded-xl hover:bg-[#E8541A]/90 transition-all shadow-md">
                 Plataforma <ArrowRight size={15} weight="bold" />
@@ -253,22 +318,20 @@ export default function Landing() {
             </>
           ) : (
             <>
-              <Link to="/pricing" className="text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors hidden sm:block">
-                Inversión
-              </Link>
-              <Link to="/auth" className="text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors hidden sm:block">
+              <button onClick={() => navigate('/auth')}
+                className="hidden sm:inline-flex items-center justify-center px-4 py-2.5 text-sm font-bold text-gray-700 bg-transparent border-2 border-gray-200 hover:border-gray-300 hover:text-gray-900 rounded-xl transition-all shadow-sm">
                 Iniciar sesión
-              </Link>
-              <Link to="/auth?register=true"
-                className="flex items-center gap-2 bg-gray-900 text-white font-bold text-sm px-6 py-2.5 rounded-xl hover:bg-gray-800 transition-all shadow-md">
+              </button>
+              <button onClick={() => navigate('/auth?register=true')}
+                className="flex items-center gap-2 bg-[#E8541A] text-white font-bold text-sm px-6 py-2.5 rounded-xl hover:bg-[#E8541A]/90 transition-all shadow-md shadow-[#E8541A]/20">
                 Empezar gratis
-              </Link>
+              </button>
             </>
           )}
         </div>
       </nav>
 
-      {/* ── Banner onboarding incompleto ──────────────────────────────────── */}
+      {/* ─── Banner onboarding incompleto ────────────────────────────────────────── */}
       {onboardingIncompleto && (
         <div className="bg-amber-50 border-b border-amber-200 px-6 py-3 flex items-center justify-center sm:justify-between gap-4 relative z-40 flex-wrap">
           <div className="flex items-center gap-3">
@@ -285,15 +348,15 @@ export default function Landing() {
         </div>
       )}
 
-      {/* ── Hero Section ──────────────────────────────────────────────────── */}
+      {/* ─── Hero Section ───────────────────────────────────────────────────────── */}
       <section className="relative z-10 pt-12 pb-20 md:pt-20 md:pb-32 px-6 lg:min-h-[85vh] flex items-center">
-        <div className="container mx-auto max-w-7xl grid lg:grid-cols-2 gap-16 items-center">
+        <div className="container mx-auto max-w-7xl grid lg:grid-cols-2 gap-16 items-stretch">
           
-          <motion.div 
-            initial="hidden" 
-            animate="visible" 
+          <motion.div
+            initial="hidden"
+            animate="visible"
             variants={staggerContainer}
-            className="max-w-2xl"
+            className="max-w-2xl h-full flex flex-col"
           >
             <motion.div variants={fadeInUp} className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-gray-200 bg-white shadow-sm mb-8">
               <span className="w-2 h-2 rounded-full bg-[#E8541A] animate-pulse" />
@@ -301,158 +364,117 @@ export default function Landing() {
             </motion.div>
 
             <motion.h1 variants={fadeInUp} className="font-headline font-black text-5xl sm:text-7xl leading-[1.05] tracking-tight mb-8">
-              Tu carrera,<br />
-              <div className="flex items-center gap-4 mt-2">
-                <span
-                  style={{
-                    background: 'linear-gradient(to right, rgb(13, 148, 136), rgb(16, 185, 129), rgb(59, 130, 246))',
-                    WebkitBackgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent',
-                    backgroundClip: 'text',
-                    display: 'inline-block'
-                  }}
-                >
-                  Acompañada por OPTIMA
-                </span>
-                <img
-                  src="/Avatar Optima.png"
-                  alt="OPTIMA Avatar"
-                  className="w-24 h-24 sm:w-32 sm:h-32 rounded-full object-cover shadow-lg border-2 border-teal-400/50 transition-transform duration-300 hover:scale-110 cursor-pointer"
-                />
-              </div>
+              Sé tu propio gerente<br />
+              <span
+                style={{
+                  background: 'linear-gradient(to right, rgb(13, 148, 136), rgb(16, 185, 129), rgb(59, 130, 246))',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  backgroundClip: 'text',
+                  display: 'inline-block'
+                }}
+              >
+                de tu búsqueda laboral
+              </span>
             </motion.h1>
 
             <motion.p variants={fadeInUp} className="text-lg sm:text-xl text-gray-500 leading-relaxed mb-10 max-w-lg">
-              Supera los filtros ATS, diseña un CV formato Harvard de alto impacto y domina tu proceso de selección en empresas corporativas.
+              Encuentra tu propósito y ten las herramientas necesarias para encontrar tu siguiente proyecto laboral y profesional.
             </motion.p>
 
-            <motion.div variants={fadeInUp} className="flex flex-col sm:flex-row gap-4">
-              {user ? (
-                <button onClick={() => navigate(perfil?.nombre1 ? '/cv-optimizer' : '/onboarding')}
-                  className="group flex justify-center items-center gap-3 bg-[#E8541A] text-white font-bold text-base px-8 py-4 rounded-xl hover:bg-[#E8541A]/90 transition-all shadow-lg shadow-[#E8541A]/20">
-                  Ir al optimizador <ArrowRight size={18} weight="bold" className="group-hover:translate-x-1 transition-transform" />
-                </button>
-              ) : (
-                <>
-                  <button onClick={() => navigate('/auth?register=true')}
-                    className="group flex items-center justify-center gap-3 bg-[#E8541A] text-white font-bold text-base px-8 py-4 rounded-xl hover:bg-[#E8541A]/90 transition-all shadow-lg shadow-[#E8541A]/20">
-                    Empezar gratis <ArrowRight size={18} weight="bold" className="group-hover:translate-x-1 transition-transform" />
-                  </button>
-                  <button onClick={() => navigate('/auth')}
-                    className="flex justify-center flex-1 sm:flex-none items-center gap-2 bg-white border border-gray-200 text-gray-700 font-medium px-8 py-4 rounded-xl hover:border-gray-300 hover:bg-gray-50 transition-colors shadow-sm">
-                    Iniciar sesión
-                  </button>
-                </>
-              )}
+            <motion.div variants={fadeInUp} className="mt-8 flex flex-col sm:flex-row items-center sm:items-start gap-4">
+              <button
+                onClick={() => navigate('/auth?register=true')}
+                className="bg-[#E8541A] text-white font-bold py-4 px-8 rounded-2xl text-lg sm:text-lg transition-all shadow-[0_8px_30px_rgba(232,84,26,0.3)] hover:shadow-[0_8px_30px_rgba(232,84,26,0.5)] flex items-center gap-2 justify-center w-full sm:w-auto h-14"
+              >
+                Empezar gratis <ArrowRight className="w-5 h-5" weight="bold" />
+              </button>
+              <button
+                onClick={() => navigate('/auth')}
+                className="bg-transparent text-gray-700 border-2 border-gray-200 hover:border-gray-300 hover:text-gray-900 font-bold py-4 px-8 rounded-2xl text-lg transition-all flex items-center justify-center w-full sm:w-auto h-14"
+              >
+                Iniciar sesión
+              </button>
             </motion.div>
 
-            <motion.div variants={fadeInUp} className="mt-8 flex flex-wrap items-center gap-6 text-sm text-gray-400 font-medium">
-              {['2 análisis gratis', 'Sin tarjeta de crédito', 'Métricas instantáneas'].map(t => (
-                <span key={t} className="flex items-center gap-2">
-                  <CheckCircle size={16} weight="fill" className="text-teal-500" />
-                  {t}
-                </span>
-              ))}
-            </motion.div>
-
-            {/* Trust Badges */}
-            <motion.div variants={fadeInUp} className="mt-10 grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="flex flex-col gap-1.5 p-4 rounded-2xl bg-white/60 backdrop-blur-sm border border-gray-200/60 shadow-[0_2px_10px_rgba(0,0,0,0.02)] hover:bg-white hover:border-gray-300 hover:shadow-md transition-all">
-                 <ShieldCheck size={28} weight="duotone" className="text-teal-500 mb-1" />
-                 <span className="text-sm font-black tracking-tight text-gray-900">100% ATS-Perfect</span>
-                 <span className="text-xs text-gray-500 leading-tight">Supera filtros automáticos de corporativos.</span>
-              </div>
-              <div className="flex flex-col gap-1.5 p-4 rounded-2xl bg-white/60 backdrop-blur-sm border border-gray-200/60 shadow-[0_2px_10px_rgba(0,0,0,0.02)] hover:bg-white hover:border-gray-300 hover:shadow-md transition-all">
-                 <Lightning size={28} weight="duotone" className="text-amber-500 mb-1" />
-                 <span className="text-sm font-black tracking-tight text-gray-900">10x Más Rápido</span>
-                 <span className="text-xs text-gray-500 leading-tight">Tu currículum listo en segundos, no horas.</span>
-              </div>
-              <div className="flex flex-col gap-1.5 p-4 rounded-2xl bg-white/60 backdrop-blur-sm border border-gray-200/60 shadow-[0_2px_10px_rgba(0,0,0,0.02)] hover:bg-white hover:border-gray-300 hover:shadow-md transition-all">
-                 <Target size={28} weight="duotone" className="text-blue-500 mb-1" />
-                 <span className="text-sm font-black tracking-tight text-gray-900">Recruiter Match</span>
-                 <span className="text-xs text-gray-500 leading-tight">Compatible matemáticamente con la vacante.</span>
-              </div>
-            </motion.div>
+            {/* Trust Badges moved inside the right column below mockup */}
           </motion.div>
 
-          {/* Floating UI Elements / Dashboard Mockup */}
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.9, rotateX: 10 }}
-            animate={{ opacity: 1, scale: 1, rotateX: 0 }}
+          {/* Gerente de Proyecto PMI® Widget */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{ duration: 1.2, ease: "easeOut", delay: 0.2 }}
-            className="relative hidden lg:block perspective-1000"
+            className="relative h-full flex flex-col"
           >
-            <div className="absolute inset-0 bg-gradient-to-r from-teal-500/20 to-blue-500/20 blur-[100px] rounded-full" />
-            
-            {/* Main Widget */}
-            <motion.div
-              animate={{ y: [0, -15, 0] }}
-              transition={{ repeat: Infinity, duration: 6, ease: "easeInOut" }}
-              className="relative bg-white border border-gray-200 p-8 rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.08)] z-20"
-            >
-              <div className="flex items-center justify-between border-b border-gray-100 pb-6 mb-6">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-teal-400 to-emerald-600 flex items-center justify-center shrink-0 shadow-lg">
-                    <svg className="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                      <polyline points="14 2 14 8 20 8" />
-                      <line x1="9" y1="12" x2="15" y2="12" />
-                      <line x1="9" y1="16" x2="15" y2="16" />
-                    </svg>
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-lg text-gray-900">ATS Resume Score</h3>
-                    <p className="text-gray-400 text-xs">Escaneando compatibilidad...</p>
-                  </div>
+            <div className="bg-white border border-gray-200 rounded-3xl p-8 shadow-[0_20px_60px_rgba(0,0,0,0.08)] flex-1 flex flex-col">
+              {/* Header con badge PMI® */}
+              <div className="mb-6">
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-teal-50 border border-teal-200 mb-3">
+                  <span className="text-xs font-bold text-teal-700 uppercase tracking-wide">Según PMI®</span>
                 </div>
-                <div className="text-right">
-                  <span className="block text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-teal-600 to-emerald-500">92%</span>
-                  <span className="text-[10px] text-gray-400 uppercase tracking-widest">Match Rating</span>
-                </div>
+                <h3 className="text-2xl font-black text-gray-900 mb-2">Gerente de Proyecto</h3>
+                <p className="text-sm text-gray-500">De tu búsqueda laboral</p>
               </div>
 
-              <div className="space-y-5">
+              {/* Definición */}
+              <div className="mb-8 pb-8 border-b border-gray-100">
+                <p className="text-sm text-gray-600 leading-relaxed">
+                  Un Gerente de Proyecto es quien <strong>planifica, ejecuta y controla</strong> un proyecto para alcanzar sus objetivos. Aplicado a tu carrera, <strong>TÚ eres ese gerente</strong>.
+                </p>
+              </div>
+
+              {/* Grid 3x2 de beneficios */}
+              <div className="grid grid-cols-3 gap-4 mb-8">
                 {[
-                  { label: 'Densidad Palabras Clave', pct: 88, color: 'bg-teal-400' },
-                  { label: 'Estructura Harvard',      pct: 100, color: 'bg-emerald-400' },
-                  { label: 'Métricas de Impacto',     pct: 75, color: 'bg-amber-400' },
-                ].map(({ label, pct, color }, i) => (
-                  <div key={label} className="flex items-center justify-between gap-4">
-                    <span className="text-sm text-gray-500 w-44">{label}</span>
-                    <div className="flex-1 bg-gray-100 h-2 rounded-full overflow-hidden">
-                      <motion.div
-                        initial={{ width: 0 }}
-                        animate={{ width: `${pct}%` }}
-                        transition={{ duration: 1.5, delay: 0.5 + (i*0.2), ease: "easeOut" }}
-                        className={`h-full rounded-full ${color}`}
-                      />
-                    </div>
-                    <span className="text-sm font-bold text-gray-700 w-10 text-right">{pct}%</span>
+                  { icon: MagnifyingGlass, label: 'Autodescubrimiento', desc: 'Conoce quién eres' },
+                  { icon: ShieldCheck, label: 'Fortalezas', desc: 'Sabe en qué eres bueno' },
+                  { icon: Target, label: 'Oferta de valor', desc: 'Descubre tu propuesta' },
+                  { icon: Lightning, label: 'Herramientas', desc: 'Recursos optimizados' },
+                  { icon: ChartBar, label: 'Seguimiento', desc: 'Control y visibilidad' },
+                  { icon: CheckCircle, label: 'Tranquilidad', desc: 'Te guía en el proceso' }
+                ].map((benefit, idx) => (
+                  <div key={idx} className="flex flex-col items-center text-center p-4 rounded-2xl bg-gradient-to-br from-teal-50 to-emerald-50 border border-teal-100 hover:border-teal-300 transition-colors">
+                    <benefit.icon size={24} weight="duotone" className="text-teal-600 mb-2" />
+                    <p className="text-xs font-bold text-gray-900 mb-1">{benefit.label}</p>
+                    <p className="text-[10px] text-gray-500">{benefit.desc}</p>
                   </div>
                 ))}
               </div>
-            </motion.div>
 
-            {/* Small Floating Widget */}
-            <motion.div
-              animate={{ y: [0, 10, 0] }}
-              transition={{ repeat: Infinity, duration: 5, ease: "easeInOut", delay: 1 }}
-              className="absolute right-0 -bottom-10 bg-white border border-gray-200 p-5 rounded-2xl shadow-xl z-30 flex items-center gap-4"
-            >
-              <div className="w-10 h-10 rounded-full bg-[#E8541A]/10 border border-[#E8541A]/30 flex items-center justify-center">
-                <CheckCircle size={20} weight="fill" className="text-[#E8541A]" />
+              {/* CTA Button */}
+              <button
+                onClick={() => navigate('/auth?register=true')}
+                className="w-full flex items-center justify-center gap-2 bg-teal-500 hover:bg-teal-600 text-white font-bold py-3.5 px-6 rounded-2xl transition-all shadow-lg shadow-teal-500/20 mt-auto group"
+              >
+                Empezar gratis ahora <ArrowRight size={16} weight="bold" className="group-hover:translate-x-1 transition-transform" />
+              </button>
+            </div>
+
+            {/* Trust Badges — debajo del widget */}
+            <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="flex flex-col gap-1.5 p-4 rounded-2xl bg-white/60 backdrop-blur-sm border border-gray-200/60 shadow-sm hover:bg-white hover:border-gray-300 transition-all">
+                 <MagnifyingGlass size={28} weight="duotone" className="text-teal-500 mb-1" />
+                 <span className="text-sm font-black tracking-tight text-gray-900">Autodescubrimiento</span>
+                 <span className="text-xs text-gray-500 leading-tight">Conoce quién eres y qué ofreces.</span>
               </div>
-              <div>
-                <p className="text-sm font-bold text-gray-900">Formato Optimizado</p>
-                <p className="text-xs text-gray-400">Hace 2 minutos</p>
+              <div className="flex flex-col gap-1.5 p-4 rounded-2xl bg-white/60 backdrop-blur-sm border border-gray-200/60 shadow-sm hover:bg-white hover:border-gray-300 transition-all">
+                 <Kanban size={28} weight="duotone" className="text-amber-500 mb-1" />
+                 <span className="text-sm font-black tracking-tight text-gray-900">Proceso Estructurado</span>
+                 <span className="text-xs text-gray-500 leading-tight">De inicio a fin, como un proyecto real.</span>
               </div>
-            </motion.div>
+              <div className="flex flex-col gap-1.5 p-4 rounded-2xl bg-white/60 backdrop-blur-sm border border-gray-200/60 shadow-sm hover:bg-white hover:border-gray-300 transition-all">
+                 <Target size={28} weight="duotone" className="text-blue-500 mb-1" />
+                 <span className="text-sm font-black tracking-tight text-gray-900">Control Total</span>
+                 <span className="text-xs text-gray-500 leading-tight">Tú decides el ritmo, nosotros te guiamos.</span>
+              </div>
+            </div>
 
           </motion.div>
         </div>
       </section>
 
-      {/* ── Stats Strip ───────────────────────────────────────────────────── */}
+      {/* ─── Stats Strip ────────────────────────────────────────────────────────── */}
       <section className="relative z-10 border-y border-gray-200 bg-white py-10">
         <div className="container mx-auto px-6 max-w-6xl">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 divide-y md:divide-y-0 md:divide-x divide-gray-200 text-center">
@@ -474,7 +496,7 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ── Seccion AI Bot 3D ───────────────────────────────────────────── */}
+      {/* ─── Seccion AI Bot 3D ───────────────────────────────────────────────────── */}
       <section className="relative z-10 py-32 px-6 overflow-hidden bg-gray-900 border-t border-gray-800">
         <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-gradient-to-bl from-teal-500/10 via-emerald-500/5 to-transparent rounded-full blur-[120px] pointer-events-none" />
         <div className="absolute bottom-[-20%] left-[-10%] w-[600px] h-[600px] bg-gradient-to-tr from-[#E8541A]/10 to-transparent rounded-full blur-[100px] pointer-events-none" />
@@ -486,7 +508,7 @@ export default function Landing() {
             viewport={{ once: true }}
             className="space-y-8 relative z-10"
           >
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/20 bg-white/5">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/20 bg-gray-900/50">
               <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
               <span className="text-xs font-bold uppercase tracking-widest text-white">Desarrollada por expertos en atracción de talento</span>
             </div>
@@ -497,14 +519,14 @@ export default function Landing() {
             </h2>
             
             <p className="text-gray-400 text-lg md:text-xl leading-relaxed max-w-xl">
-              Un asistente conversacional avanzado diseñado para analizar tu perfil técnico, sugerir mejoras en tiempo real y preparar simulaciones de entrevistas de alto estrés.
+              Un asistente diseñado para acompañarte en tu proceso, a tu ritmo, con respuestas claras y sencillas de entender, para guiarte hacia los mejores resultados posibles.
             </p>
-            
+
             <ul className="space-y-4 text-gray-300 font-medium">
               {[
-                'Feedback inmediato sobre tu CV',
-                'Simulaciones de entrevistas por rol (Premium)',
-                'Consejos de negociación salarial',
+                'Feedback sobre tu CV',
+                'Temas de actualidad',
+                'Motivación',
               ].map(item => (
                 <li key={item} className="flex items-center gap-3">
                   <div className="w-6 h-6 rounded-full bg-teal-500/20 flex items-center justify-center text-teal-400">
@@ -538,15 +560,15 @@ export default function Landing() {
               {/* Chat Interface Glassmorphism */}
               <div className="relative bg-[#0A1A14]/90 backdrop-blur-xl border border-white/10 p-6 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
                 <div className="flex items-center gap-4 border-b border-white/10 pb-5 mb-5">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-teal-400 to-emerald-600 p-[2px] shadow-lg">
-                    <img src="/Avatar Optima.png" alt="OPTIMA" className="w-full h-full object-cover rounded-full" />
-                  </div>
-                  <div>
-                    <h4 className="text-white font-bold text-lg leading-none">OPTIMA</h4>
-                    <span className="text-teal-400 text-xs font-semibold flex items-center gap-1 mt-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-teal-400 animate-pulse" /> En línea
-                    </span>
-                  </div>
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-teal-400 to-emerald-600 p-[1.5px] shadow-lg overflow-hidden">
+                      <img src="/Avatar%20Optima.png" alt="OPTIMA" className="w-full h-full object-cover rounded-full" />
+                    </div>
+                    <div>
+                      <h4 className="text-white font-bold text-lg leading-none">OPTIMA</h4>
+                      <span className="text-teal-400 text-xs font-semibold flex items-center gap-1 mt-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-teal-400 animate-pulse" /> En línea
+                      </span>
+                    </div>
                 </div>
 
                 <div className="space-y-4">
@@ -558,11 +580,11 @@ export default function Landing() {
                     Sí, por favor. Logramos reducir el tiempo de carga un 40%.
                   </div>
 
-                  <div className="bg-white/10 border border-white/5 p-4 rounded-2xl rounded-tl-sm text-sm text-gray-200 flex items-end gap-2">
-                    <span className="flex gap-1 mb-1">
-                      <span className="w-2 h-2 rounded-full bg-teal-400 animate-bounce" />
-                      <span className="w-2 h-2 rounded-full bg-teal-400 animate-bounce" style={{ animationDelay: '150ms' }} />
-                      <span className="w-2 h-2 rounded-full bg-teal-400 animate-bounce" style={{ animationDelay: '300ms' }} />
+                  <div className="bg-white/10 border border-white/5 p-3 px-4 rounded-2xl rounded-tl-sm flex items-center min-h-[40px]">
+                    <span className="flex gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-teal-400 animate-bounce" />
+                      <span className="w-1.5 h-1.5 rounded-full bg-teal-400 animate-bounce" style={{ animationDelay: '150ms' }} />
+                      <span className="w-1.5 h-1.5 rounded-full bg-teal-400 animate-bounce" style={{ animationDelay: '300ms' }} />
                     </span>
                   </div>
                 </div>
@@ -593,13 +615,13 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ── Seccion Demo Interactive (Curiosity Gap Widget) ────────────────── */}
-      <section className="relative z-10 py-24 px-6 bg-slate-50 border-t border-gray-200" id="simulador" ref={demoSectionRef}>
+      {/* ─── Seccion Demo Interactive (Curiosity Gap Widget) ────────────────────── */}
+      <section ref={demoSectionRef} className="relative z-10 py-24 px-6 bg-slate-50 border-t border-gray-200" id="simulador">
         <div className="container mx-auto max-w-4xl">
           <div className="text-center mb-12">
             <span className="text-[#E8541A] font-bold text-sm tracking-widest uppercase mb-2 block">Simulador en tiempo real</span>
             <h2 className="font-headline font-black text-4xl md:text-5xl text-gray-900 mb-4 tracking-tight">Prueba la magia gratis.<br className="hidden md:block"/> Sin registrarte.</h2>
-            <p className="text-gray-500 text-lg max-w-2xl mx-auto">Pega una descripción de vacante real y simularemos cómo nuestra inteligencia artificial evalúa y penaliza tu currículum frente a ella.</p>
+            <p className="text-gray-500 text-lg max-w-2xl mx-auto">Pega una descripción de vacante real y simularemos cómo nuestra inteligencia artificial recomienda ajustes a tu perfil, siempre basado en tu información, nunca inventando nada.</p>
           </div>
           
           <div className="bg-white rounded-[2rem] shadow-2xl shadow-blue-900/5 border border-gray-200 p-6 md:p-10 relative overflow-hidden">
@@ -619,21 +641,49 @@ export default function Landing() {
                </div>
                
                <div>
-                  <h3 className="text-base font-bold text-gray-800 mb-3 flex items-center gap-2"><div className="w-6 h-6 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center text-xs font-black">2</div> Pega la vacante deseada</h3>
-                  <textarea 
-                     value={demoText}
-                     onChange={(e) => setDemoText(e.target.value)}
-                     rows="4" 
-                     className="w-full border-2 border-gray-200 rounded-2xl px-5 py-4 text-sm focus:outline-none focus:ring-0 focus:border-[#E8541A] transition-colors resize-none placeholder-gray-400"
-                     placeholder="Ej. Buscamos un Product Manager con experiencia en metodologías ágiles, análisis de datos, liderazgo de equipos técnicos y manejo de Jira..."
-                  ></textarea>
+                  <h3 className="text-base font-bold text-gray-800 mb-3 flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center text-xs font-black">2</div>
+                    Descripción del cargo (Simulado)
+                    {!demoTypingDone && demoText.length > 0 && (
+                      <span className="ml-auto text-xs text-teal-500 font-semibold flex items-center gap-1.5">
+                        <span className="inline-block w-1.5 h-3.5 bg-teal-500 rounded-sm animate-pulse" />
+                        Escribiendo...
+                      </span>
+                    )}
+                    {demoTypingDone && (
+                      <span className="ml-auto text-xs text-emerald-600 font-semibold">✓ Listo — ¡Haz clic abajo!</span>
+                    )}
+                  </h3>
+                  <div className="relative">
+                    <textarea
+                       readOnly
+                       value={demoText}
+                       rows="5"
+                       className={`w-full border-2 rounded-2xl px-5 py-4 text-sm focus:outline-none resize-none transition-all duration-500 ${
+                         demoTypingDone
+                           ? 'border-teal-400 bg-teal-50/40 text-gray-700'
+                           : 'border-gray-200 bg-gray-50/70 text-gray-600'
+                       }`}
+                       placeholder="Cargando descripción de cargo simulada..."
+                    />
+                    {!demoTypingDone && demoText.length > 0 && (
+                      <span className="absolute bottom-4 right-5 inline-block w-0.5 h-4 bg-gray-500 animate-pulse" />
+                    )}
+                  </div>
+                  <p className="mt-2 text-xs text-gray-400 italic flex items-center gap-1.5">
+                    <span className="inline-flex text-[10px] bg-gray-100 text-gray-500 font-bold px-1.5 py-0.5 rounded uppercase tracking-wider shrink-0">Demo</span>
+                    Información ficticia utilizada únicamente para esta simulación. No representa una vacante real.
+                  </p>
                </div>
                
-               <button
+               <button 
                   onClick={handleDemoSubmit}
                   disabled={demoText.trim().length < 15 || demoLoading || showDemoOverlay}
-                  className={`w-full bg-gray-900 text-white font-bold text-lg py-5 rounded-2xl hover:bg-gray-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 shadow-xl shadow-gray-900/10 focus:ring-4 focus:ring-gray-900/20
-                    ${demoTypingDone && !demoLoading && !showDemoOverlay ? 'animate-bounce shadow-[0_0_24px_rgba(232,84,26,0.45)]' : ''}`}
+                  className={`w-full text-white font-bold text-lg py-5 rounded-2xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 shadow-xl focus:ring-4 focus:ring-gray-900/20 ${
+                    demoTypingDone 
+                      ? 'bg-[#E8541A] hover:bg-[#E8541A]/90 shadow-[#E8541A]/40 animate-bounce-subtle' 
+                      : 'bg-gray-900 hover:bg-gray-800 shadow-gray-900/10'
+                  }`}
                >
                   {demoLoading ? <span className="animate-spin rounded-full border-2 border-white/20 border-t-white w-5 h-5" /> : <MagnifyingGlass size={22} weight="bold" />}
                   {demoLoadingText}
@@ -649,17 +699,17 @@ export default function Landing() {
                   </div>
                   <h3 className="text-2xl font-black text-gray-900 mb-2 tracking-tight">¡Tienes un buen perfil!</h3>
                   <p className="text-gray-500 mb-2 text-sm leading-relaxed mx-auto px-2">
-                    Optima detectó que tu perfil es sólido, pero <b>te faltan 4 palabras clave obligatorias</b> que los filtros ATS usarán para descartarte de esta vacante.
+                    Optima detectó que tu perfil es sólido, aunque puedes incluir <b>4 palabras clave obligatorias</b> para ser más atractivo a esta vacante.
                   </p>
                   <p className="text-gray-400 mb-8 text-xs italic mx-auto px-2">
                     Este es un ejemplo — para tener esta funcionalidad, regístrate.
                   </p>
                   <div className="flex flex-col gap-3">
-                    <button
-                      onClick={() => setShowDemoOverlay(false)}
-                      className="w-full bg-gray-900 text-white font-bold py-4 px-6 rounded-2xl hover:bg-gray-800 transition-all shadow-md focus:ring-4 focus:ring-gray-900/20"
+                    <button 
+                      onClick={() => navigate('/auth?register=true')} 
+                      className="w-full bg-[#1A91F0] text-white font-bold py-4 px-6 rounded-2xl hover:bg-blue-600 hover:shadow-lg transition-all shadow-md focus:ring-4 focus:ring-blue-500/20"
                     >
-                      Volver
+                      Empezar gratis ahora
                     </button>
                     <p className="text-xs text-gray-400 mt-2 font-medium">
                       Descubre tu análisis completo. 100% Gratis.
@@ -673,8 +723,8 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ── Features Bento Grid ───────────────────────────────────────────── */}
-      <section className="relative z-10 py-24 px-6 bg-slate-50">
+      {/* ─── Features Bento Grid ────────────────────────────────────────────────── */}
+      <section id="features-section" className="relative z-10 py-24 px-6 bg-slate-50">
         <div className="container mx-auto max-w-6xl">
 
           {/* Header */}
@@ -693,64 +743,52 @@ export default function Landing() {
             </p>
           </motion.div>
 
-          {/* ── Fila 1: Herramientas IA hero (3 cols) ── */}
+          {/* ─── Fila 1: Herramientas IA hero (3 cols) ─── */}
           <motion.div
             initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-60px" }}
             variants={staggerContainer}
-            className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4"
+            className="grid grid-cols-1 md:grid-cols-3 gap-5 md:gap-6 mb-4"
           >
-            {/* CV Optimizer — hero (2 cols) */}
-            {[FEATURE_ROWS.heroes[0]].map(f => (
+            {/* ─── Fila 1: Herramientas IA hero (3 cols iguales) ─── */}
+            {FEATURE_ROWS.heroes.map(f => (
               <motion.div
                 key={f.titulo}
                 variants={fadeInUp}
-                whileHover={{ y: -6, boxShadow: '0 25px 50px -12px rgba(0,0,0,0.18)' }}
+                whileHover={{ y: -6, boxShadow: f.featured ? '0 25px 50px -12px rgba(0,0,0,0.3)' : '0 25px 50px -12px rgba(0,0,0,0.18)' }}
                 transition={{ type: 'spring', stiffness: 300, damping: 22 }}
-                className="group relative overflow-hidden rounded-2xl border border-gray-200 bg-white md:col-span-2"
+                className={`group relative overflow-hidden rounded-2xl border-2 transition-all ${f.featured ? 'border-blue-400 bg-gradient-to-br from-blue-50 to-white shadow-lg shadow-blue-200/30' : 'border-gray-200 bg-white'}`}
               >
+                {f.featured && (
+                  <div className="absolute top-3 right-3 inline-flex items-center gap-1 px-3 py-1 rounded-full bg-blue-100 border border-blue-200 z-20">
+                    <span className="text-xs font-bold text-blue-700 uppercase tracking-widest">Destacado</span>
+                  </div>
+                )}
                 <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300" style={{ background: f.gradientStyle }} />
-                <div className="relative z-10 p-7 h-full flex flex-col min-h-[200px]">
-                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-5 transition-all duration-300 ${f.iconBg} ${f.iconColor} group-hover:bg-white/20 group-hover:text-white`}>
-                    <f.Icon size={24} weight="duotone" />
+                <div className="relative z-10 p-8 h-full flex flex-col min-h-[380px]">
+                  {/* Icon */}
+                  <div className={`w-16 h-16 rounded-xl flex items-center justify-center mb-6 transition-all duration-300 ${f.iconBg} ${f.iconColor} group-hover:bg-white/20 group-hover:text-white`}>
+                    <f.Icon size={32} weight="duotone" />
                   </div>
-                  <div className="flex-1">
-                    <h3 className="font-headline font-bold text-xl text-gray-900 group-hover:text-white transition-colors duration-300 mb-2">{f.titulo}</h3>
-                    <p className="text-sm text-gray-500 group-hover:text-white/80 transition-colors duration-300 leading-relaxed">{f.desc}</p>
-                  </div>
-                  <div className="mt-5 flex items-center gap-2 text-sm font-bold text-gray-400 group-hover:text-white transition-all duration-300 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0">
-                    {f.cta} <ArrowRight size={15} weight="bold" />
-                  </div>
-                </div>
-              </motion.div>
-            ))}
 
-            {/* CV vs Vacante (1 col) */}
-            {[FEATURE_ROWS.heroes[1]].map(f => (
-              <motion.div
-                key={f.titulo}
-                variants={fadeInUp}
-                whileHover={{ y: -6, boxShadow: '0 25px 50px -12px rgba(0,0,0,0.18)' }}
-                transition={{ type: 'spring', stiffness: 300, damping: 22 }}
-                className="group relative overflow-hidden rounded-2xl border border-gray-200 bg-white md:col-span-1"
-              >
-                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300" style={{ background: f.gradientStyle }} />
-                <div className="relative z-10 p-7 h-full flex flex-col min-h-[200px]">
-                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-5 transition-all duration-300 ${f.iconBg} ${f.iconColor} group-hover:bg-white/20 group-hover:text-white`}>
-                    <f.Icon size={24} weight="duotone" />
-                  </div>
+                  {/* Content */}
                   <div className="flex-1">
-                    <h3 className="font-headline font-bold text-xl text-gray-900 group-hover:text-white transition-colors duration-300 mb-2">{f.titulo}</h3>
-                    <p className="text-sm text-gray-500 group-hover:text-white/80 transition-colors duration-300 leading-relaxed">{f.desc}</p>
+                    <h3 className={`font-headline font-bold text-2xl transition-colors duration-300 mb-1 leading-tight ${f.featured ? 'text-blue-900 group-hover:text-white' : 'text-gray-900 group-hover:text-white'}`}>{f.titulo}</h3>
+                    {f.subtitulo && (
+                      <p className={`text-xs font-semibold uppercase tracking-wide transition-colors duration-300 mb-3 ${f.featured ? 'text-blue-600 group-hover:text-white/70' : 'text-gray-500 group-hover:text-white/60'}`}>{f.subtitulo}</p>
+                    )}
+                    <p className={`text-sm leading-relaxed transition-colors duration-300 mb-4 ${f.featured ? 'text-blue-700 group-hover:text-white/80' : 'text-gray-600 group-hover:text-white/80'}`}>{f.desc}</p>
                   </div>
-                  <div className="mt-5 flex items-center gap-2 text-sm font-bold text-gray-400 group-hover:text-white transition-all duration-300 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0">
-                    {f.cta} <ArrowRight size={15} weight="bold" />
+
+                  {/* CTA */}
+                  <div className="mt-6 flex items-center gap-2 text-sm font-bold text-gray-400 group-hover:text-white transition-all duration-300 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0">
+                    {f.cta} <ArrowRight size={16} weight="bold" />
                   </div>
                 </div>
               </motion.div>
             ))}
           </motion.div>
 
-          {/* ── Fila 2: Mi Carrera (4 cols iguales) ── */}
+          {/* ─── Fila 2: Mi Carrera (4 cols iguales) ─── */}
           <motion.div
             initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-60px" }}
             variants={staggerContainer}
@@ -770,18 +808,21 @@ export default function Landing() {
                     <f.Icon size={20} weight="duotone" />
                   </div>
                   <div className="flex-1">
-                    <h3 className="font-bold text-base text-gray-900 group-hover:text-white transition-colors duration-300 mb-1.5">{f.titulo}</h3>
+                    <div className="flex items-start gap-2 mb-1.5">
+                      <h3 className="font-bold text-base text-gray-900 group-hover:text-white transition-colors duration-300">{f.titulo}</h3>
+                      {f.upcoming && <span className="text-[10px] font-bold bg-amber-100 text-amber-800 px-2 py-0.5 rounded">Próximamente</span>}
+                    </div>
                     <p className="text-xs text-gray-500 group-hover:text-white/80 transition-colors duration-300 leading-relaxed">{f.desc}</p>
                   </div>
-                  <div className="mt-4 flex items-center gap-1.5 text-xs font-bold text-gray-400 group-hover:text-white transition-all duration-300 opacity-0 group-hover:opacity-100 translate-y-1 group-hover:translate-y-0">
-                    {f.cta} <ArrowRight size={12} weight="bold" />
+                  <div className={`mt-4 flex items-center gap-1.5 text-xs font-bold ${f.upcoming ? 'text-gray-300 group-hover:text-gray-400' : 'text-gray-400 group-hover:text-white'} transition-all duration-300 ${f.upcoming ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 translate-y-1 group-hover:translate-y-0'}`}>
+                    {f.cta} {!f.upcoming && <ArrowRight size={12} weight="bold" />}
                   </div>
                 </div>
               </motion.div>
             ))}
           </motion.div>
 
-          {/* ── Fila 3: Recursos (4 cols iguales) ── */}
+          {/* ─── Fila 3: Recursos (4 cols iguales) ─── */}
           <motion.div
             initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-60px" }}
             variants={staggerContainer}
@@ -801,18 +842,21 @@ export default function Landing() {
                     <f.Icon size={20} weight="duotone" />
                   </div>
                   <div className="flex-1">
-                    <h3 className="font-bold text-base text-gray-900 group-hover:text-white transition-colors duration-300 mb-1.5">{f.titulo}</h3>
+                    <div className="flex items-start gap-2 mb-1.5">
+                      <h3 className="font-bold text-base text-gray-900 group-hover:text-white transition-colors duration-300">{f.titulo}</h3>
+                      {f.upcoming && <span className="text-[10px] font-bold bg-amber-100 text-amber-800 px-2 py-0.5 rounded">Próximamente</span>}
+                    </div>
                     <p className="text-xs text-gray-500 group-hover:text-white/80 transition-colors duration-300 leading-relaxed">{f.desc}</p>
                   </div>
-                  <div className="mt-4 flex items-center gap-1.5 text-xs font-bold text-gray-400 group-hover:text-white transition-all duration-300 opacity-0 group-hover:opacity-100 translate-y-1 group-hover:translate-y-0">
-                    {f.cta} <ArrowRight size={12} weight="bold" />
+                  <div className={`mt-4 flex items-center gap-1.5 text-xs font-bold ${f.upcoming ? 'text-gray-300 group-hover:text-gray-400' : 'text-gray-400 group-hover:text-white'} transition-all duration-300 ${f.upcoming ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 translate-y-1 group-hover:translate-y-0'}`}>
+                    {f.cta} {!f.upcoming && <ArrowRight size={12} weight="bold" />}
                   </div>
                 </div>
               </motion.div>
             ))}
           </motion.div>
 
-          {/* ── Fila 4: Mentor Experto — card premium full-width ── */}
+          {/* ─── Fila 4: Mentor Experto ─── card premium full-width ─── */}
           <motion.div
             initial={{ opacity: 0, y: 24 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -843,14 +887,14 @@ export default function Landing() {
                   Mentor Experto — cuando la IA no es suficiente
                 </h3>
                 <p className="text-white/55 text-sm leading-relaxed max-w-xl group-hover:text-white/75 transition-colors duration-300">
-                  Conecta con mentores reales que han vivido el proceso. Orientación personalizada, feedback honesto y el impulso que solo un humano puede darte.
+                  Orientación personalizada, feedback honesto y el impulso que solo un humano puede darte.
                 </p>
               </div>
 
               {/* CTA */}
-              <div className="flex items-center gap-2.5 text-white font-bold text-sm shrink-0 bg-white/10 group-hover:bg-white/20 transition-colors duration-300 px-6 py-3.5 rounded-xl border border-white/10 group-hover:border-white/20 whitespace-nowrap">
-                Conectar con mentor
-                <ArrowRight size={16} weight="bold" className="group-hover:translate-x-1 transition-transform duration-200" />
+              <div
+                className="flex items-center gap-2.5 text-white/50 font-bold text-sm shrink-0 bg-white/5 px-6 py-3.5 rounded-xl border border-white/5 whitespace-nowrap cursor-default">
+                Próximamente
               </div>
             </div>
           </motion.div>
@@ -858,140 +902,373 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ── CTA Final ─────────────────────────────────────────────────────── */}
+
+      {/* ─── Banner de Estadísticas Premium ─────────────────────────────────────── */}
+      <section className="relative z-10 py-24 px-6 bg-[#0a0f16] border-y border-white/[0.05] overflow-hidden">
+        {/* Glow Effects */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] bg-teal-500/10 blur-[120px] rounded-full pointer-events-none" />
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-500/10 blur-[100px] rounded-full pointer-events-none" />
+
+        <div className="container mx-auto max-w-6xl relative z-10">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-100px" }}
+            className="text-center mb-16"
+          >
+            <div className="inline-flex items-center justify-center gap-3 mb-6 px-4 py-2 rounded-full bg-white/[0.03] border border-white/[0.08] backdrop-blur-md">
+               <span className="w-1.5 h-1.5 rounded-full bg-teal-400 font-bold" />
+               <h2 className="text-white/70 text-xs font-bold uppercase tracking-[0.2em]">Impacto medible</h2>
+            </div>
+            <h3 className="font-headline font-black text-3xl md:text-5xl text-white tracking-tight">
+              Los datos hablan por sí solos
+            </h3>
+          </motion.div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-12 md:gap-0 relative">
+            <div className="hidden md:block absolute top-[40%] left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+            
+            {[
+              {
+                stat: '3x',
+                title: 'Velocidad de contratación',
+                desc: 'Al tener una estrategia clara antes de aplicar, triplicas tu probabilidad de encontrar el trabajo ideal.',
+                Icon: Target,
+                glowClass: 'bg-teal-500/20',
+                boxClass: 'from-teal-500/10 to-teal-500/5 border-teal-500/20',
+                iconClass: 'text-teal-400'
+              },
+              {
+                stat: '65%',
+                title: 'Match con vacantes',
+                desc: 'Cuando alineas tu propuesta de valor, tu compatibilidad con el mercado laboral aumenta dramáticamente.',
+                Icon: TrendUp,
+                glowClass: 'bg-blue-500/20',
+                boxClass: 'from-blue-500/10 to-blue-500/5 border-blue-500/20',
+                iconClass: 'text-blue-400'
+              },
+              {
+                stat: '40%',
+                title: 'Entrevistas conseguidas',
+                desc: 'Al optimizar tu perfil para sistemas ATS, incrementas sustancialmente tu paso al primer filtro humano.',
+                Icon: RocketLaunch,
+                glowClass: 'bg-emerald-500/20',
+                boxClass: 'from-emerald-500/10 to-emerald-500/5 border-emerald-500/20',
+                iconClass: 'text-emerald-400'
+              }
+            ].map((item, idx) => (
+              <motion.div
+                key={idx}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-50px" }}
+                transition={{ duration: 0.6, delay: idx * 0.15 }}
+                className="relative flex flex-col items-center text-center p-4 md:p-12 group"
+              >
+                {/* Separador vertical entre columnas */}
+                {idx !== 2 && (
+                  <div className="hidden md:block absolute top-[10%] right-0 w-[1px] h-[80%] bg-gradient-to-b from-transparent via-white/10 to-transparent" />
+                )}
+
+                {/* Icon Wrapper con Glow Soft */}
+                <div className="relative mb-8 flex items-center justify-center w-16 h-16 transition-transform duration-500 group-hover:-translate-y-2">
+                   <div className={`absolute inset-0 ${item.glowClass} blur-[20px] rounded-full opacity-60 group-hover:opacity-100 transition-opacity duration-500`} />
+                   <div className={`relative flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br ${item.boxClass} border backdrop-blur-md shadow-inner`}>
+                     <item.Icon size={28} weight="duotone" className={item.iconClass} />
+                   </div>
+                </div>
+
+                {/* Número Grande Premium */}
+                <div className="text-6xl md:text-7xl font-black mb-4 tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white to-white/40 drop-shadow-sm group-hover:scale-105 transition-transform duration-500">
+                  {item.stat}
+                </div>
+
+                <h4 className="text-white font-bold text-lg mb-3 tracking-wide">{item.title}</h4>
+                <p className="text-white/50 text-sm leading-relaxed max-w-[260px] mx-auto group-hover:text-white/70 transition-colors">
+                  {item.desc}
+                </p>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ─── Showcase: Herramientas en Acción ────────────────────────────────────── */}
+      <section className="relative z-10 py-20 px-6 bg-white border-b border-gray-200">
+        <div className="container mx-auto max-w-6xl">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-100px" }}
+            className="text-center mb-16 space-y-3"
+          >
+            <span className="text-[#E8541A] font-bold text-sm tracking-widest uppercase">En tiempo real</span>
+            <h2 className="font-headline font-black text-4xl md:text-5xl tracking-tight text-gray-900">
+              Herramientas en acción
+            </h2>
+            <p className="text-gray-500 text-lg max-w-xl mx-auto">
+              Nuestro sistema analiza cada sección de tu CV en tiempo real, recomendándote mejoras basadas en mejores prácticas del mercado laboral.
+            </p>
+          </motion.div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            {/* Left: Contextual Text */}
+            <motion.div
+              initial={{ opacity: 0, x: -30 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true, margin: "-50px" }}
+              transition={{ type: 'spring', stiffness: 280, damping: 24 }}
+              className="space-y-6"
+            >
+              <div className="space-y-4">
+                <h3 className="font-headline font-bold text-2xl text-gray-900">Optimización en cada paso</h3>
+                <p className="text-gray-600 leading-relaxed">
+                  Mientras editas tu CV, OPTIMA analiza cada sección: desde tu titular y resumen profesional, hasta tus experiencias y logros.
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex items-start gap-4">
+                  <div className="w-10 h-10 rounded-lg bg-teal-100 flex items-center justify-center shrink-0 mt-1">
+                    <Check size={20} weight="bold" className="text-teal-600" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-gray-900 mb-1">Análisis Inteligente</h4>
+                    <p className="text-sm text-gray-600">Detecta palabras clave, formato y estructura para maximizar el match con ATS</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-4">
+                  <div className="w-10 h-10 rounded-lg bg-teal-100 flex items-center justify-center shrink-0 mt-1">
+                    <Check size={20} weight="bold" className="text-teal-600" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-gray-900 mb-1">Recomendaciones Accionables</h4>
+                    <p className="text-sm text-gray-600">Sugerencias concretas para mejorar cada sección de tu perfil</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-4">
+                  <div className="w-10 h-10 rounded-lg bg-teal-100 flex items-center justify-center shrink-0 mt-1">
+                    <Check size={20} weight="bold" className="text-teal-600" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-gray-900 mb-1">Seguimiento en Tiempo Real</h4>
+                    <p className="text-sm text-gray-600">Tu índice de optimización se actualiza instantáneamente a medida que haces cambios</p>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Right: Optimization Widget (Simplified) */}
+            <motion.div
+              initial={{ opacity: 0, x: 30 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true, margin: "-50px" }}
+              transition={{ type: 'spring', stiffness: 280, damping: 24 }}
+              className="relative"
+            >
+              <div className="bg-white border-2 border-gray-200 rounded-3xl p-8 shadow-xl hover:shadow-2xl transition-shadow duration-300">
+                {/* Header */}
+                <div className="mb-8">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-50 border border-teal-200 mb-3">
+                    <span className="w-2 h-2 rounded-full bg-teal-500 animate-pulse" />
+                    <span className="text-xs font-bold text-teal-700 uppercase tracking-wide">Análisis en vivo</span>
+                  </div>
+                  <h3 className="font-headline font-bold text-xl text-gray-900">Nivel de Optimización</h3>
+                  <p className="text-sm text-gray-500 mt-1">Tu score de compatibilidad</p>
+                </div>
+
+                {/* Main Score */}
+                <div className="mb-8 text-center">
+                  <div className="inline-flex flex-col items-center gap-4">
+                    <div className="relative w-32 h-32">
+                      <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                        {/* Background circle */}
+                        <circle cx="50" cy="50" r="45" fill="none" stroke="#f3f4f6" strokeWidth="8" />
+                        {/* Progress circle */}
+                        <circle
+                          cx="50"
+                          cy="50"
+                          r="45"
+                          fill="none"
+                          stroke="url(#scoreGradient)"
+                          strokeWidth="8"
+                          strokeDasharray="141"
+                          strokeDashoffset="35"
+                          strokeLinecap="round"
+                          className="transition-all duration-500"
+                        />
+                        <defs>
+                          <linearGradient id="scoreGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stopColor="#14b8a6" />
+                            <stop offset="100%" stopColor="#06b6d4" />
+                          </linearGradient>
+                        </defs>
+                      </svg>
+                      <div className="absolute inset-0 flex flex-col items-center justify-center">
+                        <span className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-teal-600 to-cyan-600">
+                          78%
+                        </span>
+                        <span className="text-xs text-gray-500 font-semibold mt-1">Muy bien</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Score Breakdown */}
+                <div className="space-y-3">
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-700 font-semibold">Titular</span>
+                      <span className="text-teal-600 font-bold">92%</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div className="bg-gradient-to-r from-teal-500 to-cyan-500 h-2 rounded-full" style={{ width: '92%' }} />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-700 font-semibold">Experiencia</span>
+                      <span className="text-teal-600 font-bold">78%</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div className="bg-gradient-to-r from-teal-500 to-cyan-500 h-2 rounded-full" style={{ width: '78%' }} />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-700 font-semibold">Habilidades</span>
+                      <span className="text-teal-600 font-bold">65%</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div className="bg-gradient-to-r from-teal-500 to-cyan-500 h-2 rounded-full" style={{ width: '65%' }} />
+                    </div>
+                  </div>
+                </div>
+
+                {/* CTA */}
+                <button
+                  onClick={() => navigate('/auth?register=true')}
+                  className="w-full mt-8 bg-teal-500 hover:bg-teal-600 text-white font-bold py-3 rounded-xl transition-colors shadow-lg shadow-teal-500/20"
+                >
+                  Comenzar análisis gratuito
+                </button>
+              </div>
+
+              {/* Floating accent */}
+              <motion.div
+                animate={{ y: [0, 12, 0] }}
+                transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
+                className="absolute -bottom-4 -right-4 w-24 h-24 bg-teal-100/40 rounded-full blur-3xl pointer-events-none"
+              />
+            </motion.div>
+          </div>
+        </div>
+      </section>
+
+      {/* ─── CTA Final Post-Lanzamiento ──────────────────────────────────────────────────────────── */}
       <section className="relative z-10 py-24 px-6 border-t border-gray-200 bg-white">
         <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          whileInView={{ opacity: 1, scale: 1 }}
-          viewport={{ once: true }}
-          className="container mx-auto max-w-4xl text-center bg-gray-900 rounded-3xl p-12 shadow-2xl relative overflow-hidden"
+           initial={{ opacity: 0, scale: 0.95 }}
+           whileInView={{ opacity: 1, scale: 1 }}
+           viewport={{ once: true }}
+           className="container mx-auto max-w-5xl bg-[#090E17] rounded-[3rem] p-10 md:p-20 shadow-[-10px_-10px_30px_4px_rgba(0,0,0,0.1),_10px_10px_30px_4px_rgba(45,78,255,0.15)] relative overflow-hidden flex flex-col items-center text-center border border-white/10"
         >
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-teal-500/10 blur-[100px] rounded-full pointer-events-none" />
+          {/* Background Glows */}
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-2xl h-64 bg-teal-500/20 blur-[120px] rounded-full pointer-events-none" />
+          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md h-48 bg-blue-600/20 blur-[100px] rounded-full pointer-events-none" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[length:24px_24px] pointer-events-none" />
 
-          {user ? (
-            <div className="relative z-10 space-y-8">
-              <span className="inline-block px-4 py-1.5 bg-teal-500/20 border border-teal-500/30 text-teal-300 font-bold text-xs rounded-full uppercase tracking-widest">
-                Bienvenido de vuelta, {perfil?.nombre1 || user.email?.split('@')[0]}
-              </span>
-              <h2 className="font-headline font-black text-4xl md:text-5xl tracking-tight leading-tight text-white">
-                Tu siguiente paso<br className="hidden md:block" /> te está esperando.
-              </h2>
-              <p className="text-white/60 max-w-xl mx-auto leading-relaxed text-lg">
-                Tienes <strong className="text-white">{creditosRestantes} créditos</strong> disponibles. Úsalos para optimizar tu CV o medir tu match con una vacante.
-              </p>
-              <button
-                onClick={() => navigate(perfil?.nombre1 ? '/cv-optimizer' : '/onboarding')}
-                className="inline-flex items-center justify-center gap-3 text-base font-bold bg-[#E8541A] hover:bg-[#E8541A]/90 text-white px-10 py-5 rounded-2xl shadow-lg hover:-translate-y-1 transition-all"
-              >
-                Ir al optimizador <ArrowRight size={18} weight="bold" />
-              </button>
+          {/* Icon/Avatar */}
+          <div className="relative inline-block mb-10">
+            <div className="absolute inset-0 bg-teal-400/20 blur-2xl rounded-full" />
+            <img 
+              src="/Avatar Optima.png" 
+              alt="OPTIMA AI" 
+              className="relative w-28 h-28 md:w-36 md:h-36 rounded-full border border-white/10 shadow-2xl object-cover ring-8 ring-[#090E17]" 
+            />
+            <div className="absolute bottom-0 -right-2 bg-gradient-to-br from-[#E8541A] to-orange-600 text-white p-2.5 rounded-2xl shadow-xl shadow-orange-500/20 border border-white/10">
+              <Lightning size={24} weight="fill" />
             </div>
-          ) : (
-            <div className="relative z-10 space-y-8">
-              <span className="inline-block px-4 py-1.5 bg-[#E8541A]/20 border border-[#E8541A]/40 text-[#E8541A] font-bold text-xs rounded-full uppercase tracking-widest">
-                2 Análisis Gratuitos
-              </span>
-              <h2 className="font-headline font-black text-4xl md:text-5xl tracking-tight leading-tight text-white">
-                No dejes tu carrera<br className="hidden md:block" /> al azar de un algoritmo.
-              </h2>
-              <p className="text-white/60 max-w-xl mx-auto leading-relaxed text-lg">
-                Utiliza inteligencia artificial a tu favor. Mide tu compatibilidad de CV antes de postularte y genera un formato impecable.
-              </p>
-              <button
-                onClick={() => navigate('/auth?register=true')}
-                className="inline-flex items-center justify-center gap-3 text-base font-bold bg-[#E8541A] hover:bg-[#E8541A]/90 text-white px-10 py-5 rounded-2xl shadow-lg hover:-translate-y-1 transition-all"
-              >
-                Crear cuenta gratis ahora <ArrowRight size={18} weight="bold" />
-              </button>
-            </div>
-          )}
+          </div>
+
+          <h2 className="font-headline font-black text-4xl md:text-6xl tracking-tight text-white mb-6">
+            Tu futuro gerente de<br className="hidden md:block" /> proyecto te espera
+          </h2>
+          <p className="text-gray-400 text-lg md:text-xl max-w-2xl mb-12 font-medium">
+            Únete a cientos de profesionales que ya están optimizando su carrera y consiguiendo las entrevistas que merecen.
+          </p>
+
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full sm:w-auto z-10">
+            <button
+              onClick={() => navigate('/auth?register=true')}
+              className="w-full sm:w-auto bg-[#E8541A] hover:bg-[#E8541A]/90 text-white font-bold text-lg px-10 py-5 rounded-2xl transition-all shadow-[0_0_30px_rgba(232,84,26,0.3)] hover:shadow-[0_0_30px_rgba(232,84,26,0.5)] flex items-center justify-center gap-3 group"
+            >
+              Crear mi cuenta gratis ahora
+              <ArrowRight size={20} weight="bold" className="group-hover:translate-x-1 transition-transform" />
+            </button>
+          </div>
+
+          <div className="mt-8 flex items-center justify-center gap-6 text-sm font-semibold tracking-wide text-gray-500 z-10">
+            <span className="flex items-center gap-2"><CheckCircle size={18} weight="fill" className="text-teal-500" /> Sin tarjeta de crédito</span>
+            <span className="flex items-center gap-2"><CheckCircle size={18} weight="fill" className="text-teal-500" /> 2 evaluaciones gratis</span>
+          </div>
         </motion.div>
       </section>
 
-      {/* ── Footer ────────────────────────────────────────────────────────── */}
-      <footer className="relative z-10 border-t border-gray-200 bg-gray-900">
-        <div className="container mx-auto max-w-6xl px-6 py-16 grid grid-cols-1 md:grid-cols-5 gap-12">
-          <div className="space-y-6">
+      {/* ─── Footer Minimalista ───────────────────────────────────────────────────── */}
+      <footer className="relative z-10 border-t border-gray-100 bg-white">
+        <div className="container mx-auto max-w-6xl px-6 py-12 flex flex-col md:flex-row items-center justify-between gap-8">
+          <div className="flex flex-col items-center md:items-start gap-4">
             <Link to="/">
-              <img src="/optima_logo_v3_clean_1.png" alt="OPTIMA-CV" className="h-10 w-auto object-contain brightness-0 invert opacity-90" />
+              <img src="/optima_logo_v3_clean_1.png" alt="OPTIMA-CV" className="h-10 w-auto opacity-90" />
             </Link>
-            <p className="text-white/50 text-sm leading-relaxed max-w-sm">
-              Potenciando carreras de alto nivel a través de Inteligencia Artificial y conocimiento estratégico del mercado laboral corporativo.
+            <p className="text-gray-400 text-xs font-medium uppercase tracking-widest text-center md:text-left">
+              Potenciando carreras de alto nivel con IA
             </p>
           </div>
 
-          <div>
-            <h5 className="text-xs font-bold uppercase tracking-widest text-white/30 mb-4 font-headline">Herramientas</h5>
-            <ul className="space-y-2.5">
-              {[
-                'CV Optimizer',
-                'CV vs Vacante',
-                'Vacantes',
-              ].map((label) => (
-                <li key={label}>
-                  <span className="text-sm font-medium text-white/60">{label}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div>
-            <h5 className="text-xs font-bold uppercase tracking-widest text-white/30 mb-4 font-headline">Mi Carrera</h5>
-            <ul className="space-y-2.5">
-              {[
-                'Mis CVs',
-                'Mis Vacantes',
-                'Pipeline',
-              ].map((label) => (
-                <li key={label}>
-                  <span className="text-sm font-medium text-white/60">{label}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div>
-            <h5 className="text-xs font-bold uppercase tracking-widest text-white/30 mb-4 font-headline">Recursos</h5>
-            <ul className="space-y-2.5">
-              {[
-                'Biblioteca',
-                'Infografías',
-                'LinkedIn Optimo',
-                'Entrevista',
-              ].map((label) => (
-                <li key={label}>
-                  <span className="text-sm font-medium text-white/60">{label}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div>
-            <h5 className="text-xs font-bold uppercase tracking-widest text-white/30 mb-4 font-headline">Cuenta</h5>
-            <ul className="space-y-2.5">
-              {[].map(({ to, label }, i) => (
-                <li key={i}>
-                  <Link to={to} className="text-sm font-medium text-white/60 hover:text-white hover:translate-x-1 inline-block transition-all">{label}</Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-        <div className="border-t border-white/5 px-6 py-6 bg-black/20">
-          <div className="container max-w-6xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
-            <p className="text-[11px] text-white/40 uppercase tracking-widest font-bold">
-              © {new Date().getFullYear()} OPTIMA-CV. Reservados todos los derechos.
-            </p>
-            <div className="flex items-center gap-4">
-              <Link to="/privacidad" className="text-[11px] text-white/40 hover:text-white/70 transition-colors font-medium tracking-wide">
-                Política de Privacidad
-              </Link>
-              <span className="text-white/20">·</span>
-              <p className="text-[11px] text-white/40 font-medium tracking-wide"></p>
-            </div>
+          <div className="flex flex-wrap justify-center gap-8">
+            <Link to="/privacidad" className="text-sm font-bold text-gray-500 hover:text-teal-600 transition-colors">Privacidad</Link>
+            <span className="text-gray-200 hidden sm:block">|</span>
+            <span className="text-sm font-bold text-gray-500">© {new Date().getFullYear()} OPTIMA-CV</span>
           </div>
         </div>
       </footer>
+
+      {/* Sticky CTA (Mobile/Desktop) */}
+      <AnimatePresence>
+        {!user && showStickyCTA && (
+          <motion.div
+            initial={{ opacity: 0, y: 100 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 100 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+            className="fixed bottom-0 left-0 right-0 z-[100] p-4 sm:p-6 sm:left-auto sm:right-6 sm:bottom-6 sm:w-auto pointer-events-none"
+          >
+            <div className="pointer-events-auto bg-gray-900/95 backdrop-blur-xl border border-white/10 p-4 sm:p-5 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] flex items-center justify-between sm:justify-start gap-4 sm:gap-6 min-w-full sm:min-w-[400px]">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-[#E8541A] to-orange-600 p-[1.5px] shrink-0 overflow-hidden shadow-md">
+                  <img src="/Avatar Optima.png" alt="OPTIMA" className="w-full h-full object-cover rounded-full" />
+                </div>
+                <div>
+                  <p className="text-white font-bold text-sm sm:text-base leading-tight">Optimiza tu CV ahora</p>
+                  <p className="text-gray-400 text-xs sm:text-sm">2 análisis gratuitos</p>
+                </div>
+              </div>
+              <button
+                onClick={() => navigate('/auth?register=true')}
+                className="bg-[#E8541A] hover:bg-[#E8541A]/90 text-white font-bold text-sm sm:text-base px-5 sm:px-8 py-3 sm:py-3.5 rounded-xl shadow-[0_0_20px_rgba(232,84,26,0.3)] transition-all active:scale-95 shrink-0"
+              >
+                Empezar gratis
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
