@@ -363,7 +363,7 @@ function PlanCard({ plan, user, perfil, moneda, precios, onSeleccionar }) {
       )
     }
 
-    if (perfil?.is_admin) {
+    if (isAdmin) {
       return (
         <div className="w-full text-center bg-purple-50 border border-purple-200 text-purple-700 font-semibold py-3 rounded-xl text-sm">
           Panel Admin
@@ -535,7 +535,7 @@ function SelectorPais({ pais, onChange }) {
 
 export default function Pricing() {
   const navigate         = useNavigate()
-  const { user, perfil } = useAuth()
+  const { user, perfil, isAdmin } = useAuth()
   const [planModal, setPlanModal] = useState(null)
   const [pais, setPais]           = useState(PAISES[0]) // default México
 

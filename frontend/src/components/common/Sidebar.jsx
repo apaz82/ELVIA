@@ -131,7 +131,7 @@ function BienestarItem({ onClick }) {
 }
 
 export default function Sidebar({ open, onClose }) {
-  const { user, logout, perfil } = useAuth()
+  const { user, logout, perfil, isAdmin } = useAuth()
   const navigate = useNavigate()
 
   const handleLogout = async () => {
@@ -244,8 +244,8 @@ export default function Sidebar({ open, onClose }) {
         {/* Footer del sidebar */}
         {user && (
           <div className="px-3 py-4 border-t border-outline-variant/20 space-y-1 shrink-0">
-            {/* Admin — solo si es admin */}
-            {perfil?.is_admin && (
+            {/* Admin — solo si es super_admin o company_admin */}
+            {isAdmin && (
               <NavItem to="/admin" label="Admin Panel" Icon={Crown} onClick={onClose} />
             )}
 

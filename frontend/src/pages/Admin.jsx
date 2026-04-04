@@ -73,8 +73,8 @@ function AdminLogin({ onLogin }) {
     const { data, error: authErr } = await db.auth.signInWithPassword({ email, password })
     if (authErr) { setError('Credenciales de acceso no válidas'); setLoading(false); return }
 
-    const { data: perfil } = await db.from('profiles').select('is_admin').eq('id', data.user.id).single()
-    if (!perfil?.is_admin) {
+    const { data: perfil } = await db.from('profiles').select('role').eq('id', data.user.id).single()
+    if (!['super_admin', 'company_admin'].includes(perfil?.role)) {
       await db.auth.signOut()
       setError('Acceso restringido: Solamente personal autorizado.')
       setLoading(false)
@@ -1921,8 +1921,8 @@ export default function Admin() {
     const check = async () => {
       const { data: { session } } = await db.auth.getSession()
       if (session?.user) {
-        const { data } = await db.from('profiles').select('is_admin').eq('id', session.user.id).single()
-        if (data?.is_admin) {
+        const { data } = await db.from('profiles').select('role').eq('id', session.user.id).single()
+        if (['super_admin', 'company_admin'].includes(data?.role)) {
           setAdminUser(session.user)
         } else {
           await db.auth.signOut()

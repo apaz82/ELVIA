@@ -6,25 +6,15 @@ const Anthropic = require('@anthropic-ai/sdk');
 const { createOTP, validateOTP } = require('../services/otpService');
 const { sendOTPEmail } = require('../services/resendService');
 
-// El middleware de auth debe ser admin
+// Middleware
 const auth = require('../middleware/auth');
+const requireRole = require('../middleware/requireAdmin');
 
 /**
  * GET /api/admin/system-status
  * Realiza un chequeo de salud de todas las integraciones externas
  */
-router.get('/system-status', auth, async (req, res) => {
-  // Solo administradores pueden ver esto
-  // (El middleware 'auth' ya debería cargar el req.user, pero verificamos perfil)
-  const { data: profile } = await req.supabase
-    .from('profiles')
-    .select('is_admin')
-    .eq('id', req.user.id)
-    .single();
-
-  if (!profile?.is_admin) {
-    return res.status(403).json({ error: 'Acceso denegado' });
-  }
+router.get('/system-status', auth, requireRole('super_admin'), async (req, res) => {
 
   const results = {
     database: { name: 'Supabase DB', status: 'unknown', details: '' },
@@ -99,17 +89,7 @@ router.get('/system-status', auth, async (req, res) => {
  * Solicita un código OTP para borrar un usuario
  * Envía el OTP al email del admin que solicita
  */
-router.post('/users/delete-otp-request/:id', auth, async (req, res) => {
-  // Verificar que quien llama es admin
-  const { data: adminProfile } = await req.supabase
-    .from('profiles')
-    .select('is_admin')
-    .eq('id', req.user.id)
-    .single();
-
-  if (!adminProfile?.is_admin) {
-    return res.status(403).json({ error: 'Acceso denegado' });
-  }
+router.post('/users/delete-otp-request/:id', auth, requireRole('super_admin'), async (req, res) => {
 
   const targetId = req.params.id;
 
@@ -146,17 +126,12 @@ router.post('/users/delete-otp-request/:id', auth, async (req, res) => {
  * Borra un usuario (requiere OTP válido en request body)
  * Registra en audit_log para compliance legal
  */
-router.delete('/users/:id', auth, async (req, res) => {
-  // Verificar que quien llama es admin
+router.delete('/users/:id', auth, requireRole('super_admin'), async (req, res) => {
   const { data: profile } = await req.supabase
     .from('profiles')
-    .select('is_admin, email_principal')
+    .select('email_principal')
     .eq('id', req.user.id)
     .single();
-
-  if (!profile?.is_admin) {
-    return res.status(403).json({ error: 'Acceso denegado' });
-  }
 
   const targetId = req.params.id;
   const { otp } = req.body;
@@ -238,16 +213,7 @@ router.delete('/users/:id', auth, async (req, res) => {
  * POST /api/admin/config
  * Actualiza o crea una configuración del sistema (SEO, copy, etc.)
  */
-router.post('/config', auth, async (req, res) => {
-  const { data: profile } = await req.supabase
-    .from('profiles')
-    .select('is_admin')
-    .eq('id', req.user.id)
-    .single();
-
-  if (!profile?.is_admin) {
-    return res.status(403).json({ error: 'Acceso denegado' });
-  }
+router.post('/config', auth, requireRole('super_admin'), async (req, res) => {
 
   const { config_key, config_value } = req.body;
 
@@ -265,6 +231,161 @@ router.post('/config', auth, async (req, res) => {
   } catch (err) {
     console.error('[Admin] Error actualizando config:', err.message);
     res.status(500).json({ error: 'Error actualizando configuración' });
+  }
+});
+
+/**
+ * GET /api/admin/companies
+ * Lista todas las empresas B2B (solo super_admin)
+ */
+router.get('/companies', auth, requireRole('super_admin'), async (req, res) => {
+  try {
+    const { data: companies, error } = await supabaseAdmin
+      .from('companies')
+      .select('*, created_by')
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    res.json({ companies: companies || [] });
+  } catch (err) {
+    console.error('[Admin] Error listando empresas:', err.message);
+    res.status(500).json({ error: 'Error listando empresas' });
+  }
+});
+
+/**
+ * POST /api/admin/companies
+ * Crea una nueva empresa B2B (solo super_admin)
+ */
+router.post('/companies', auth, requireRole('super_admin'), async (req, res) => {
+  try {
+    const { name, email } = req.body;
+
+    if (!name || !email) {
+      return res.status(400).json({ error: 'Nombre y email son requeridos' });
+    }
+
+    const { data: company, error } = await supabaseAdmin
+      .from('companies')
+      .insert({
+        name,
+        email,
+        created_by: req.user.id,
+        is_active: true
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    res.status(201).json({ company });
+  } catch (err) {
+    console.error('[Admin] Error creando empresa:', err.message);
+    res.status(500).json({ error: 'Error creando empresa' });
+  }
+});
+
+/**
+ * POST /api/admin/companies/:id/admins
+ * Asigna un company_admin a una empresa (crea user + profile)
+ * Body: { nombre, email, apellido? }
+ */
+router.post('/companies/:id/admins', auth, requireRole('super_admin'), async (req, res) => {
+  try {
+    const companyId = req.params.id;
+    const { nombre, email, apellido } = req.body;
+
+    if (!nombre || !email) {
+      return res.status(400).json({ error: 'Nombre y email son requeridos' });
+    }
+
+    // Verificar que la empresa existe
+    const { data: company, error: companyError } = await supabaseAdmin
+      .from('companies')
+      .select('id')
+      .eq('id', companyId)
+      .single();
+
+    if (companyError || !company) {
+      return res.status(404).json({ error: 'Empresa no encontrada' });
+    }
+
+    // Crear usuario en auth
+    const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
+      email,
+      password: crypto.randomBytes(16).toString('hex'), // contraseña temporal
+      email_confirm: true,
+      user_metadata: { nombre, apellido: apellido || '' }
+    });
+
+    if (authError) {
+      console.error('[Admin] Error creando user en auth:', authError.message);
+      return res.status(400).json({ error: 'Error creando usuario. ¿El email ya existe?' });
+    }
+
+    // Crear profile con role='company_admin'
+    const { data: profile, error: profileError } = await supabaseAdmin
+      .from('profiles')
+      .insert({
+        id: authUser.user.id,
+        email_principal: email,
+        nombre1: nombre,
+        apellido1: apellido || '',
+        role: 'company_admin',
+        company_id: companyId,
+        plan: 'business',
+        is_admin: false
+      })
+      .select()
+      .single();
+
+    if (profileError) {
+      console.error('[Admin] Error creando profile:', profileError.message);
+      // Limpiar el usuario de auth si falla el profile
+      await supabaseAdmin.auth.admin.deleteUser(authUser.user.id).catch(err =>
+        console.error('[Admin] Error deletando user fallido:', err)
+      );
+      return res.status(500).json({ error: 'Error creando perfil de administrador' });
+    }
+
+    // TODO: Enviar email de bienvenida con instrucciones de reset de password
+    console.log(`[Admin] Company admin ${email} asignado a empresa ${companyId}`);
+
+    res.status(201).json({ admin: profile });
+  } catch (err) {
+    console.error('[Admin] Error asignando company_admin:', err.message);
+    res.status(500).json({ error: 'Error asignando administrador' });
+  }
+});
+
+/**
+ * PATCH /api/admin/companies/:id
+ * Activa/desactiva una empresa (soft delete)
+ * Body: { is_active: boolean }
+ */
+router.patch('/companies/:id', auth, requireRole('super_admin'), async (req, res) => {
+  try {
+    const companyId = req.params.id;
+    const { is_active } = req.body;
+
+    if (typeof is_active !== 'boolean') {
+      return res.status(400).json({ error: 'is_active debe ser boolean' });
+    }
+
+    const { data: company, error } = await supabaseAdmin
+      .from('companies')
+      .update({ is_active })
+      .eq('id', companyId)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    res.json({ company });
+  } catch (err) {
+    console.error('[Admin] Error actualizando empresa:', err.message);
+    res.status(500).json({ error: 'Error actualizando empresa' });
   }
 });
 

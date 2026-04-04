@@ -172,6 +172,12 @@ export const AuthProvider = ({ children }) => {
 
   const onboardingPendiente = !loading && perfilCargado && !!user && (!perfil || !perfil.nombre1)
 
+  // Roles y multi-tenancy
+  const role = perfil?.role || 'user'
+  const companyId = perfil?.company_id || null
+  const isAdmin = perfil?.role === 'super_admin'
+  const isCompanyAdmin = perfil?.role === 'company_admin'
+
   return (
     <AuthContext.Provider value={{
       user, session, loading,
@@ -180,7 +186,9 @@ export const AuthProvider = ({ children }) => {
       refreshPerfil: (uid) => fetchPerfil(uid || user?.id),
       refreshUsage:  ()    => user && fetchPerfil(user.id),
       onboardingPendiente,
-      isRecovering, setIsRecovering, // <--- EXPORTAR
+      isRecovering, setIsRecovering,
+      // Roles y multi-tenancy
+      role, companyId, isAdmin, isCompanyAdmin,
       // Plan info — usa directamente estos valores en los componentes
       ...planInfo,
       // Retrocompatibilidad
