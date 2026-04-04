@@ -362,4 +362,137 @@ router.post('/recuperacion', emailRateLimit, async (req, res) => {
 })
 
 
+// ── Template: email de invitación a empresa B2B ─────────────────────────────
+const htmlInvitacion = (email, nombre, companyName, inviteUrl, expiresAt) => {
+  const beneficios = [
+    { icon: '📄', titulo: 'CV Optimizer', desc: 'Transforma tu CV al formato Harvard' },
+    { icon: '🎯', titulo: 'CV vs Vacante', desc: 'Mide compatibilidad con ofertas' },
+    { icon: '🎤', titulo: 'Simulador de Entrevista', desc: 'Practica preguntas de tu rol' },
+    { icon: '📊', titulo: 'Pipeline', desc: 'Gestiona candidaturas en tablero' },
+  ]
+
+  const beneficiosHtml = beneficios.map(({ icon, titulo, desc }) => `
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:10px;">
+      <tr>
+        <td width="36" style="vertical-align:top;">
+          <div style="width:32px;height:32px;background:#eff6ff;border-radius:8px;text-align:center;line-height:32px;font-size:16px;">${icon}</div>
+        </td>
+        <td style="padding-left:12px;vertical-align:top;">
+          <p style="margin:0;font-size:13px;font-weight:700;color:#111827;">${titulo}</p>
+          <p style="margin:2px 0 0;font-size:12px;color:#6b7280;">${desc}</p>
+        </td>
+      </tr>
+    </table>
+  `).join('')
+
+  return `
+<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f1f5f9;font-family:'Segoe UI',Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f1f5f9;padding:40px 0;">
+    <tr><td align="center">
+      <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;background:#ffffff;border-radius:20px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
+
+        <!-- Header -->
+        <tr>
+          <td style="background:linear-gradient(135deg,#1e40af 0%,#1e3a8a 100%);padding:36px 40px 32px;text-align:center;">
+            <img src="https://gestioncv.netlify.app/optima_logo_v3_clean_1.png" alt="OPTIMA-CV" height="52" style="height:52px;width:auto;display:block;margin:0 auto 12px;filter:brightness(0) invert(1);" />
+            <p style="margin:0;color:rgba(255,255,255,0.6);font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;">Invitación B2B</p>
+          </td>
+        </tr>
+
+        <!-- Cuerpo -->
+        <tr>
+          <td style="padding:40px 40px 32px;">
+            <h1 style="margin:0 0 8px;font-size:24px;font-weight:800;color:#111827;line-height:1.2;">Te invitaron a ${companyName}</h1>
+            <p style="margin:0 0 24px;font-size:14px;color:#6b7280;">Tu equipo ya está usando OPTIMA | CV para optimizar candidaturas.</p>
+
+            <p style="margin:0 0 20px;font-size:15px;color:#374151;line-height:1.7;">
+              Hola ${nombre || 'usuario'},
+            </p>
+
+            <p style="margin:0 0 20px;font-size:15px;color:#374151;line-height:1.7;">
+              Alguien de tu empresa (<strong style="color:#1e40af;">${companyName}</strong>) te ha invitado a unirte a OPTIMA | CV.
+              Accede a toda la plataforma de optimización de CV, análisis de compatibilidad y más herramientas de IA para destacar.
+            </p>
+
+            <!-- Beneficios -->
+            <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 28px;">
+              <tr><td style="background:#f8fafc;border-radius:14px;padding:20px 24px;">
+                <p style="margin:0 0 14px;font-size:12px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:1px;">Acceso incluido:</p>
+                ${beneficiosHtml}
+              </td></tr>
+            </table>
+
+            <!-- CTA -->
+            <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+              <tr><td style="text-align:center;">
+                <a href="${inviteUrl}"
+                   style="display:inline-block;background:#1e40af;color:#ffffff;font-size:15px;font-weight:700;text-decoration:none;padding:14px 36px;border-radius:12px;letter-spacing:0.3px;">
+                  Aceptar invitación →
+                </a>
+              </td></tr>
+            </table>
+
+            <!-- Aviso de expiración -->
+            <table width="100%" cellpadding="0" cellspacing="0">
+              <tr><td style="background:#fef3c7;border:1px solid #fde68a;border-radius:12px;padding:14px 18px;">
+                <p style="margin:0;font-size:12px;color:#92400e;">
+                  <strong>⏰ Válido hasta:</strong> ${expiresAt}
+                </p>
+              </td></tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- Footer -->
+        <tr>
+          <td style="background:#f9fafb;border-top:1px solid #e5e7eb;padding:24px 40px;text-align:center;">
+            <p style="margin:0 0 6px;font-size:12px;color:#9ca3af;">
+              Invitación para <strong style="color:#6b7280;">${email}</strong>
+            </p>
+            <p style="margin:0;font-size:11px;color:#d1d5db;">
+              © ${new Date().getFullYear()} OPTIMA | CV · Todos los derechos reservados
+            </p>
+          </td>
+        </tr>
+
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>
+  `
+}
+
+// ── POST /api/email/invitacion — enviar invitación a empresa B2B ──
+router.post('/invitacion', auth, async (req, res) => {
+  const { email, nombre, companyName, token, inviteUrl } = req.body
+
+  if (!email || !companyName || !inviteUrl) {
+    return res.status(400).json({ error: 'Faltan datos: email, companyName, inviteUrl' })
+  }
+
+  try {
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString('es-MX', {
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric',
+    })
+
+    await resend.emails.send({
+      from: 'OPTIMA | CV <onboarding@resend.dev>',
+      to: [email],
+      subject: `Invitación: Únete a ${companyName} en OPTIMA | CV`,
+      html: htmlInvitacion(email, nombre, companyName, inviteUrl, expiresAt),
+    })
+
+    res.json({ ok: true, message: 'Invitación enviada exitosamente' })
+  } catch (err) {
+    console.error('[email/invitacion]', err.message)
+    res.status(500).json({ error: 'No se pudo enviar la invitación' })
+  }
+})
+
 module.exports = router;

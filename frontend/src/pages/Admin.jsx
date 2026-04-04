@@ -1901,7 +1901,7 @@ function SidebarItem({ id, label, icon: Icon, active, onClick }) {
   )
 }
 
-const TABS = [
+const TABS_B2C = [
   { id: 'overview',      label: 'Escritorio',     icon: PI.Kanban },
   { id: 'users',         label: 'Usuarios',       icon: PI.UsersThree },
   { id: 'suscripciones', label: 'Suscripciones',  icon: PI.Coins },
@@ -1913,42 +1913,582 @@ const TABS = [
   { id: 'sistema',       label: 'Configuración',  icon: PI.UserCircle },
 ]
 
+const TABS_B2B = [
+  { id: 'company_overview', label: 'Dashboard Empresa', icon: PI.ChartLineUp },
+  { id: 'company_users',    label: 'Usuarios & Invitaciones', icon: PI.UsersFour },
+  { id: 'company_costs',    label: 'Reporte de Costos', icon: PI.Money },
+  { id: 'company_settings', label: 'Configuración B2B', icon: PI.Gear },
+]
+
+function getTabs(role, context) {
+  if (context === 'B2C') return TABS_B2C
+  return TABS_B2B
+}
+
+// ─── B2B Sub-components ──────────────────────────────────────────────────
+
+function B2BContextSelector({ role, context, onContextChange, companies, selectedCompany, onCompanyChange }) {
+  if (role !== 'super_admin' && role !== 'company_admin') return null
+
+  return (
+    <div className="flex items-center gap-4 bg-gray-900/50 p-2 rounded-2xl border border-gray-800 mb-6">
+      {role === 'super_admin' && (
+        <div className="flex bg-gray-950 rounded-xl p-1 border border-gray-800">
+          <button
+            onClick={() => onContextChange('B2C')}
+            className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${context === 'B2C' ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-500 hover:text-gray-300'}`}
+          >
+            Global B2C
+          </button>
+          <button
+            onClick={() => onContextChange('B2B')}
+            className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${context === 'B2B' ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-500 hover:text-gray-300'}`}
+          >
+            Panel B2B
+          </button>
+        </div>
+      )}
+
+      {context === 'B2B' && role === 'super_admin' && (
+        <select
+          value={selectedCompany?.id || ''}
+          onChange={(e) => onCompanyChange(companies.find(c => c.id === e.target.value))}
+          className="bg-gray-950 border border-gray-800 rounded-xl px-3 py-1.5 text-xs text-white font-bold focus:outline-none focus:ring-2 focus:ring-blue-500/50 min-w-[200px]"
+        >
+          <option value="">Seleccionar Empresa...</option>
+          {companies.map(c => (
+            <option key={c.id} value={c.id}>{c.name}</option>
+          ))}
+        </select>
+      )}
+
+      {context === 'B2B' && role === 'company_admin' && selectedCompany && (
+        <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-600/10 border border-blue-500/20 rounded-xl">
+          <PI.Buildings size={14} className="text-blue-400" />
+          <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest">{selectedCompany.name}</span>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function CompanyDashboardTab({ company, data }) {
+  if (!company) return <div className="py-20 text-center text-gray-500">Selecciona una empresa para ver estadísticas</div>
+
+  const stats = data.stats || { activeUsers: 0, totalCredits: 0, usedCredits: 0, pendingInvitations: 0, adoptionRate: 0, cvOptimizerUse: 0, cvMatchUse: 0 }
+
+  return (
+    <div className="space-y-8 animate-fade-in">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <KpiCard label="Adopción" value={`${stats.adoptionRate}%`} icon={PI.TrendUp} color="blue" />
+        <KpiCard label="Créditos Usados" value={stats.usedCredits} icon={PI.ChartBar} color="amber" />
+        <KpiCard label="CV Optimizer" value={stats.cvOptimizerUse} icon={PI.FileText} color="green" />
+        <KpiCard label="CV vs Vacante" value={stats.cvMatchUse} icon={PI.Target} color="purple" />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="bg-[#111827] rounded-3xl p-8 border border-gray-800 shadow-2xl">
+          <h3 className="text-lg font-bold text-white mb-6">Utilización del Plan</h3>
+          <div className="space-y-6">
+             <div>
+                <div className="flex justify-between items-end mb-2">
+                   <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Cuota de créditos</span>
+                   <span className="text-sm font-black text-white">{stats.usedCredits} / {stats.totalCredits || 100}</span>
+                </div>
+                <div className="h-4 bg-gray-800 rounded-full overflow-hidden">
+                   <div
+                     className="h-full bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full transition-all duration-1000"
+                     style={{ width: `${(stats.usedCredits / (stats.totalCredits || 100)) * 100}%` }}
+                   />
+                </div>
+             </div>
+
+             <div className="pt-4 border-t border-gray-800/50">
+                <h4 className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-4">Consumo Herramientas</h4>
+                <div className="space-y-4">
+                   <div className="flex items-center gap-4">
+                      <span className="w-24 text-[10px] font-bold text-gray-400">CV Optimizer</span>
+                      <div className="flex-1 h-2 bg-gray-800 rounded-full overflow-hidden">
+                         <div className="h-full bg-green-500" style={{ width: `${stats.cvOptimizerUse ? '60%' : '0%'}` }} />
+                      </div>
+                      <span className="text-[10px] font-black text-white">{stats.cvOptimizerUse}</span>
+                   </div>
+                   <div className="flex items-center gap-4">
+                      <span className="w-24 text-[10px] font-bold text-gray-400">CV vs Vacante</span>
+                      <div className="flex-1 h-2 bg-gray-800 rounded-full overflow-hidden">
+                         <div className="h-full bg-purple-500" style={{ width: `${stats.cvMatchUse ? '40%' : '0%'}` }} />
+                      </div>
+                      <span className="text-[10px] font-black text-white">{stats.cvMatchUse}</span>
+                   </div>
+                </div>
+             </div>
+          </div>
+        </div>
+
+        <div className="bg-[#111827] rounded-3xl p-8 border border-gray-800 shadow-2xl flex flex-col justify-center items-center text-center">
+           <div className="relative w-40 h-40 mb-6">
+              <svg className="w-full h-full transform -rotate-90">
+                 <circle cx="80" cy="80" r="70" stroke="currentColor" strokeWidth="12" fill="transparent" className="text-gray-800" />
+                 <circle cx="80" cy="80" r="70" stroke="currentColor" strokeWidth="12" fill="transparent" className="text-blue-500"
+                   strokeDasharray={440}
+                   strokeDashoffset={440 - (440 * stats.adoptionRate) / 100}
+                   strokeLinecap="round"
+                 />
+              </svg>
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                 <span className="text-4xl font-black text-white">{stats.adoptionRate}%</span>
+                 <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest">Adopción</span>
+              </div>
+           </div>
+           <p className="text-xs text-gray-400 max-w-[200px]">Porcentaje de empleados invitados que han realizado al menos una optimización.</p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function CompanyCostsTab({ company, costs, onExport }) {
+  if (!company) return null
+
+  const summary = costs?.summary || { totalCost: 0, totalUserPlans: 0, totalMentorPackages: 0 }
+  const plans = costs?.userPlans || []
+
+  return (
+    <div className="space-y-8 animate-fade-in">
+       <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-black text-white">Reporte de Inversión</h2>
+            <p className="text-xs text-gray-500 font-bold uppercase tracking-widest">Resumen detallado de facturación</p>
+          </div>
+          <button
+            onClick={() => onExport()}
+            className="bg-gray-800 hover:bg-gray-700 text-white text-xs font-black uppercase tracking-widest px-6 py-3 rounded-2xl border border-gray-700 shadow-lg transition-all flex items-center gap-2"
+          >
+            <PI.DownloadSimple size={16} weight="bold" /> Exportar Reporte
+          </button>
+       </div>
+
+       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="bg-[#111827] p-6 rounded-3xl border border-gray-800 shadow-xl">
+             <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">Total Planes B2B</p>
+             <p className="text-2xl font-black text-white">MX$ {summary.totalUserPlans.toLocaleString()}</p>
+          </div>
+          <div className="bg-[#111827] p-6 rounded-3xl border border-gray-800 shadow-xl">
+             <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">Mentoria / Paquetes</p>
+             <p className="text-2xl font-black text-white">MX$ {summary.totalMentorPackages.toLocaleString()}</p>
+          </div>
+          <div className="bg-blue-600/10 p-6 rounded-3xl border border-blue-500/20 shadow-xl">
+             <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-1">Inversión Total</p>
+             <p className="text-2xl font-black text-blue-400">MX$ {summary.totalCost.toLocaleString()}</p>
+          </div>
+       </div>
+
+       <div className="bg-[#111827] rounded-3xl border border-gray-800 shadow-2xl overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-800">
+             <h3 className="text-xs font-black text-gray-500 uppercase tracking-widest">Desglose por Usuario</h3>
+          </div>
+          <div className="overflow-x-auto">
+             <table className="w-full text-left">
+                <thead className="bg-gray-900/50 border-b border-gray-800">
+                   <tr>
+                      <th className="px-6 py-4 text-[10px] font-black text-gray-500 uppercase">Beneficiario</th>
+                      <th className="px-6 py-4 text-[10px] font-black text-gray-500 uppercase">Plan</th>
+                      <th className="px-6 py-4 text-[10px] font-black text-gray-500 uppercase">Precio</th>
+                      <th className="px-6 py-4 text-[10px] font-black text-gray-500 uppercase">Estado</th>
+                   </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-800/50">
+                   {plans.map((p, idx) => (
+                      <tr key={idx} className="hover:bg-gray-800/30 transition-colors">
+                         <td className="px-6 py-4 text-xs font-bold text-white uppercase">{p.assigned_to || 'Sin asignar'}</td>
+                         <td className="px-6 py-4 text-xs text-gray-400 font-bold uppercase">{p.plan_type}</td>
+                         <td className="px-6 py-4 text-xs text-white font-black">MX$ {p.price_mxn}</td>
+                         <td className="px-6 py-4">
+                            <Badge color="green">Activo</Badge>
+                         </td>
+                      </tr>
+                   ))}
+                   {plans.length === 0 && (
+                      <tr>
+                         <td colSpan="4" className="px-6 py-20 text-center text-gray-600 text-[10px] font-bold uppercase tracking-widest">No hay registros de facturación</td>
+                      </tr>
+                   )}
+                </tbody>
+             </table>
+          </div>
+       </div>
+    </div>
+  )
+}
+
+function CompanySettingsTab({ company, onRefresh }) {
+  const [formData, setFormData] = useState({ name: '', country: '' })
+  const [loading, setLoading] = useState(false)
+  const API = import.meta.env.VITE_API_URL || 'http://localhost:3001'
+
+  useEffect(() => {
+    if (company) setFormData({ name: company.name, country: company.country || 'México' })
+  }, [company])
+
+  const handleUpdate = async (e) => {
+    e.preventDefault()
+    setLoading(true)
+    try {
+      const { data: { session } } = await db.auth.getSession()
+      const res = await fetch(`${API}/api/company/profile`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${session?.access_token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(formData)
+      })
+      if (res.ok) {
+        alert('Perfil actualizado con éxito')
+        onRefresh()
+      }
+    } catch (err) {
+      console.error('Error updating company profile:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (!company) return null
+
+  return (
+    <div className="max-w-2xl mx-auto py-8 animate-fade-in">
+       <div className="bg-[#111827] rounded-[2.5rem] p-10 border border-gray-800 shadow-2xl">
+          <div className="flex items-center gap-4 mb-10">
+             <div className="p-4 rounded-2xl bg-blue-600/10 border border-blue-500/20">
+                <PI.Buildings size={32} className="text-blue-400" />
+             </div>
+             <div>
+                <h2 className="text-2xl font-black text-white">Configuración de Empresa</h2>
+                <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Identidad y preferencias de cuenta</p>
+             </div>
+          </div>
+
+          <form onSubmit={handleUpdate} className="space-y-6">
+             <div className="space-y-2">
+                <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Nombre de la Organización</label>
+                <input
+                   type="text"
+                   value={formData.name}
+                   onChange={e => setFormData({ ...formData, name: e.target.value })}
+                   className="w-full bg-gray-950 border border-gray-800 rounded-2xl px-5 py-4 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 font-bold"
+                />
+             </div>
+
+             <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-2">
+                   <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">País / Región</label>
+                   <select
+                      value={formData.country}
+                      onChange={e => setFormData({ ...formData, country: e.target.value })}
+                      className="w-full bg-gray-950 border border-gray-800 rounded-2xl px-5 py-4 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 font-bold"
+                   >
+                      <option>México</option>
+                      <option>Estados Unidos</option>
+                      <option>Colombia</option>
+                      <option>Chile</option>
+                      <option>Perú</option>
+                      <option>España</option>
+                   </select>
+                </div>
+                <div className="space-y-2">
+                   <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Slug Identificador (Lock)</label>
+                   <div className="w-full bg-gray-900 border border-gray-800 rounded-2xl px-5 py-4 text-sm text-gray-500 font-bold opacity-60">
+                      /{company.slug}
+                   </div>
+                </div>
+             </div>
+
+             <div className="pt-6">
+                <button
+                   type="submit"
+                   disabled={loading}
+                   className="w-full py-4 rounded-2xl bg-blue-600 text-white text-xs font-black uppercase tracking-widest hover:bg-blue-500 shadow-xl disabled:opacity-50 transition-all flex items-center justify-center gap-3"
+                >
+                   {loading ? <PI.ArrowClockwise className="animate-spin" /> : <PI.FloppyDiskBack size={18} />}
+                   {loading ? 'Guardando...' : 'Guardar Cambios'}
+                </button>
+             </div>
+          </form>
+
+          <div className="mt-12 p-6 bg-amber-500/5 border border-amber-500/10 rounded-2xl">
+             <div className="flex gap-4">
+                <PI.WarningCircle size={24} className="text-amber-500 flex-shrink-0" />
+                <div>
+                   <h4 className="text-[11px] font-black text-amber-500 uppercase tracking-widest mb-1">Zona de Peligro</h4>
+                   <p className="text-[10px] text-gray-500 leading-relaxed">Para desactivar la cuenta corporativa o cambiar el plan principal, debes contactar con tu Account Manager asignado.</p>
+                </div>
+             </div>
+          </div>
+       </div>
+    </div>
+  )
+}
+
+function InviteUserModal({ company, onClose, onRefresh }) {
+  const [email, setEmail] = useState('')
+  const [loading, setLoading] = useState(false)
+  const API = import.meta.env.VITE_API_URL || 'http://localhost:3001'
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    if (!email) return alert('Ingresa un email')
+    
+    setLoading(true)
+    try {
+      const { data: { session } } = await db.auth.getSession()
+      const res = await fetch(`${API}/api/company/invitations`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session?.access_token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ email, company_id: company.id })
+      })
+      const json = await res.json()
+      if (res.ok) {
+        alert('Invitación enviada con éxito')
+        onRefresh()
+        onClose()
+      } else {
+        alert('Error: ' + (json.error || 'No se pudo enviar la invitación'))
+      }
+    } catch (err) {
+      console.error('Error inviting user:', err)
+      alert('Error en el servidor')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[80] flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-[#111827] border border-gray-800 rounded-[2.5rem] p-8 w-full max-w-sm shadow-2xl animate-fade-in" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center gap-3 mb-6">
+          <div className="p-3 rounded-2xl bg-blue-600/10 border border-blue-500/20">
+            <PI.EnvelopeSimple size={24} className="text-blue-400" />
+          </div>
+          <div>
+            <h3 className="font-black text-white uppercase tracking-tight">Invitar Colaborador</h3>
+            <p className="text-[10px] text-gray-500 font-bold uppercase">{company.name}</p>
+          </div>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <label className="block text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Correo Electrónico</label>
+            <input
+              type="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              placeholder="talento@empresa.com"
+              required
+              className="w-full bg-gray-950 border border-gray-800 rounded-2xl px-4 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 font-bold transition-all"
+            />
+          </div>
+
+          <div className="pt-4 flex gap-3">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 py-3 rounded-2xl border border-gray-800 text-gray-400 text-xs font-black uppercase tracking-widest hover:bg-gray-800 transition-all"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex-1 py-3 rounded-2xl bg-blue-600 text-white text-xs font-black uppercase tracking-widest hover:bg-blue-500 shadow-lg disabled:opacity-50 transition-all flex items-center justify-center gap-2"
+            >
+              {loading ? <PI.ArrowClockwise size={14} className="animate-spin" /> : <PI.PaperPlaneTilt size={14} />}
+              {loading ? 'Enviando...' : 'Enviar'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+function CompanyUsersTab({ company, users, invitations, onRefresh }) {
+  const [showInviteModal, setShowInviteModal] = useState(false)
+
+  return (
+    <div className="space-y-8 animate-fade-in">
+       <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-black text-white">Gestión de Personal</h2>
+          <button
+            onClick={() => setShowInviteModal(true)}
+            className="bg-blue-600 hover:bg-blue-500 text-white text-xs font-black uppercase tracking-widest px-6 py-3 rounded-2xl shadow-lg transition-all flex items-center gap-2"
+          >
+            <PI.Plus size={16} weight="bold" /> Invitar Usuario
+          </button>
+       </div>
+
+       {/* Sub-tabs or sections for Registered vs Invited */}
+       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="bg-[#111827] rounded-3xl border border-gray-800 shadow-2xl overflow-hidden">
+             <div className="px-6 py-4 border-b border-gray-800 flex items-center justify-between">
+                <h3 className="text-xs font-black text-gray-500 uppercase tracking-widest">Usuarios Registrados</h3>
+                <span className="bg-blue-600/10 text-blue-400 px-2.5 py-0.5 rounded-lg text-[10px] font-black">{users.length}</span>
+             </div>
+             <div className="divide-y divide-gray-800/50">
+                {users.map(u => (
+                   <div key={u.id} className="p-4 flex items-center justify-between hover:bg-gray-800/30 transition-colors">
+                      <div className="flex items-center gap-3">
+                         <div className="w-8 h-8 rounded-lg bg-gray-800 flex items-center justify-center text-[10px] font-black text-blue-400 border border-gray-700">
+                            {u.nombre1?.[0] || u.email_principal?.[0]}
+                         </div>
+                         <div>
+                            <p className="text-xs font-bold text-white">{u.nombre1} {u.apellido1}</p>
+                            <p className="text-[9px] text-gray-500">{u.email_principal}</p>
+                         </div>
+                      </div>
+                      <Badge color="blue">{u.plan || 'Empresa'}</Badge>
+                   </div>
+                ))}
+                {users.length === 0 && <div className="p-10 text-center text-gray-600 text-[10px] font-bold uppercase tracking-widest">Sin usuarios activos</div>}
+             </div>
+          </div>
+
+          <div className="bg-[#111827] rounded-3xl border border-gray-800 shadow-2xl overflow-hidden">
+             <div className="px-6 py-4 border-b border-gray-800 flex items-center justify-between">
+                <h3 className="text-xs font-black text-gray-500 uppercase tracking-widest">Invitaciones Pendientes</h3>
+                <span className="bg-purple-600/10 text-purple-400 px-2.5 py-0.5 rounded-lg text-[10px] font-black">{invitations.length}</span>
+             </div>
+             <div className="divide-y divide-gray-800/50">
+                {invitations.map(inv => (
+                   <div key={inv.id} className="p-4 flex items-center justify-between hover:bg-gray-800/30 transition-colors">
+                      <div>
+                         <p className="text-xs font-bold text-white">{inv.email}</p>
+                         <p className="text-[9px] text-gray-500">Expira: {fmtDate(inv.expires_at)}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                         <span className="text-[9px] font-black uppercase text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded-lg border border-amber-500/20 italic">Pendiente</span>
+                      </div>
+                   </div>
+                ))}
+                {invitations.length === 0 && <div className="p-10 text-center text-gray-600 text-[10px] font-bold uppercase tracking-widest">No hay invitaciones enviadas</div>}
+             </div>
+          </div>
+       </div>
+
+       {showInviteModal && (
+         <InviteUserModal 
+            company={company} 
+            onClose={() => setShowInviteModal(false)} 
+            onRefresh={onRefresh} 
+         />
+       )}
+    </div>
+  )
+}
+
 function Dashboard({ adminUser, onLogout }) {
   const [tab, setTab]         = useState('overview')
   const [users, setUsers]     = useState([])
   const [loading, setLoading] = useState(true)
+
+  // B2B States
+  const [adminContext, setAdminContext] = useState('B2C') // 'B2C' | 'B2B'
+  const [selectedCompany, setSelectedCompany] = useState(null)
+  const [adminRole, setAdminRole] = useState(null)
+  const [companies, setCompanies] = useState([])
+  const [companyData, setCompanyData] = useState({ stats: null, users: [], invitations: [], costs: null })
 
   const [waitlistLeads, setWaitlistLeads] = useState([])
   const [landingViews, setLandingViews] = useState(0)
   const [events, setEvents] = useState([])
   const [config, setConfig] = useState([])
 
+  const fetchB2BData = useCallback(async (companyId) => {
+    if (!companyId) return
+    try {
+      const { data: { session } } = await db.auth.getSession()
+      // Fetch users linked to company
+      const { data: cUsers } = await db.from('profiles').select('*').eq('company_id', companyId)
+      // Fetch invitations (using API endpoint for better control)
+      const invRes = await fetch(`${API}/api/company/invitations?company_id=${companyId}`, {
+        headers: { 'Authorization': `Bearer ${session?.access_token}` }
+      })
+      const invJson = await invRes.json()
+
+      const dashRes = await fetch(`${API}/api/company/dashboard?company_id=${companyId}`, {
+        headers: { 'Authorization': `Bearer ${session?.access_token}` }
+      })
+      const dashJson = await dashRes.json()
+
+      const costsRes = await fetch(`${API}/api/company/costs?company_id=${companyId}`, {
+        headers: { 'Authorization': `Bearer ${session?.access_token}` }
+      })
+      const costsJson = await costsRes.json()
+      
+      setCompanyData({
+        stats: dashJson.stats,
+        users: cUsers || [],
+        invitations: invJson.invitations || [],
+        costs: costsJson.costs
+      })
+    } catch (err) {
+      console.error('Error fetching B2B data:', err)
+    }
+  }, [])
+
   const fetchUsers = useCallback(async () => {
     setLoading(true)
-    const { data, error } = await db.from('profiles').select('*').order('created_at', { ascending: false })
-    if (!error && data) setUsers(data)
+    
+    // Get Admin Profile and Role
+    const { data: profile } = await db.from('profiles').select('*, companies(*)').eq('id', adminUser?.id).single()
+    if (profile) {
+      setAdminRole(profile.role)
+      // If company_admin, lock to B2B and their company
+      if (profile.role === 'company_admin' && profile.companies) {
+        setAdminContext('B2B')
+        setSelectedCompany(profile.companies)
+        setTab('company_overview')
+        await fetchB2BData(profile.companies.id)
+      }
+      
+      // If super_admin, fetch companies list
+      if (profile.role === 'super_admin') {
+        const { data: comps } = await db.from('companies').select('*')
+        setCompanies(comps || [])
+      }
+    }
 
-    // Waitlist: usar API backend con token de admin y paginación
-    try {
-      const { data: { session: wSession } } = await db.auth.getSession()
-      const wRes = await fetch(`${API}/api/waitlist?page=0&limit=50`, {
-        headers: { 'Authorization': `Bearer ${wSession?.access_token}` }
-      })
-      const wJson = await wRes.json()
-      if (wJson.leads) setWaitlistLeads(wJson.leads)
-    } catch (_) {}
+    if (adminContext === 'B2C') {
+      const { data, error } = await db.from('profiles').select('*').order('created_at', { ascending: false })
+      if (!error && data) setUsers(data)
 
-    const { data: sData } = await db.from('landing_stats').select('views').eq('id', 1).single()
-    if (sData) setLandingViews(sData.views)
+      // Waitlist
+      try {
+        const { data: { session: wSession } } = await db.auth.getSession()
+        const wRes = await fetch(`${API}/api/waitlist?page=0&limit=50`, {
+          headers: { 'Authorization': `Bearer ${wSession?.access_token}` }
+        })
+        const wJson = await wRes.json()
+        if (wJson.leads) setWaitlistLeads(wJson.leads)
+      } catch (_) {}
 
-    const { data: eData } = await db.from('landing_events').select('*').order('created_at', { ascending: false })
-    if (eData) setEvents(eData)
+      const { data: sData } = await db.from('landing_stats').select('views').eq('id', 1).single()
+      if (sData) setLandingViews(sData.views)
 
-    const { data: cData } = await db.from('landing_config').select('*')
-    if (cData) setConfig(cData)
+      const { data: eData } = await db.from('landing_events').select('*').order('created_at', { ascending: false })
+      if (eData) setEvents(eData)
+
+      const { data: cData } = await db.from('landing_config').select('*')
+      if (cData) setConfig(cData)
+    } else if (selectedCompany) {
+      await fetchB2BData(selectedCompany.id)
+    }
     
     setLoading(false)
-  }, [])
+  }, [adminUser, adminContext, selectedCompany, fetchB2BData])
 
   useEffect(() => { fetchUsers() }, [fetchUsers])
 
@@ -1977,7 +2517,7 @@ function Dashboard({ adminUser, onLogout }) {
         </div>
 
         <nav className="flex-1 px-4 py-4 space-y-1">
-          {TABS.map(t => (
+          {getTabs(adminRole, adminContext).map(t => (
             <SidebarItem 
               key={t.id} 
               id={t.id} 
@@ -1997,7 +2537,7 @@ function Dashboard({ adminUser, onLogout }) {
               </div>
               <div className="min-w-0">
                 <p className="text-xs font-bold text-white truncate">{adminUser.email}</p>
-                <p className="text-[10px] text-blue-400 font-medium">Master Admin</p>
+                <p className="text-[10px] text-blue-400 font-medium">{adminRole === 'super_admin' ? 'Master Admin' : 'Admin Empresa'}</p>
               </div>
             </div>
             <button 
@@ -2012,12 +2552,19 @@ function Dashboard({ adminUser, onLogout }) {
 
       <main className="flex-1 flex flex-col overflow-hidden">
         <header className="h-16 border-b border-gray-800 flex items-center px-8 justify-between bg-[#111827]/50 backdrop-blur-md sticky top-0 z-10">
-          <div className="flex items-center gap-2">
-            <h1 className="text-lg font-bold text-white uppercase tracking-tight">
-              {TABS.find(t => t.id === tab)?.label}
-            </h1>
-            <span className="text-gray-600 text-sm">/</span>
-            <span className="text-gray-400 text-xs font-medium">Panel de Control</span>
+          <div className="flex flex-col">
+            <div className="flex items-center gap-2">
+              <h1 className="text-lg font-bold text-white uppercase tracking-tight">
+                {getTabs(adminRole, adminContext).find(t => t.id === tab)?.label}
+              </h1>
+              <span className="text-gray-600 text-sm">/</span>
+              <span className="text-gray-400 text-xs font-medium">Panel de Control</span>
+            </div>
+            {adminRole === 'super_admin' && (
+              <p className="text-[9px] font-black text-blue-500 uppercase tracking-widest mt-0.5">
+                Modo: {adminContext}
+              </p>
+            )}
           </div>
           
           <div className="flex items-center gap-4">
@@ -2048,6 +2595,18 @@ function Dashboard({ adminUser, onLogout }) {
               </div>
             ) : (
               <div className="fade-in">
+                <B2BContextSelector 
+                  role={adminRole} 
+                  context={adminContext} 
+                  onContextChange={setAdminContext}
+                  companies={companies}
+                  selectedCompany={selectedCompany}
+                  onCompanyChange={(comp) => {
+                    setSelectedCompany(comp)
+                    if (comp) fetchB2BData(comp.id)
+                  }}
+                />
+
                 {tab === 'overview'  && <OverviewTab stats={stats} />}
                 {tab === 'users'     && <UsersTab users={users} onRefresh={fetchUsers} />}
                 {tab === 'waitlist'  && <WaitlistTab leads={waitlistLeads} views={landingViews} events={events} onRefresh={fetchUsers} />}
@@ -2057,6 +2616,44 @@ function Dashboard({ adminUser, onLogout }) {
                 {tab === 'codigos'     && <CodigosTab />}
                 {tab === 'empresas'    && <EmpresasB2BTab />}
                 {tab === 'sistema'   && <SistemaTab />}
+
+                {/* B2B Context Tabs */}
+                {tab === 'company_overview' && <CompanyDashboardTab company={selectedCompany} data={companyData} />}
+                {tab === 'company_users'    && (
+                  <CompanyUsersTab 
+                    company={selectedCompany} 
+                    users={companyData.users} 
+                    invitations={companyData.invitations}
+                    onRefresh={() => fetchB2BData(selectedCompany.id)}
+                  />
+                )}
+                {tab === 'company_costs' && (
+                   <CompanyCostsTab 
+                      company={selectedCompany} 
+                      costs={companyData.costs} 
+                      onExport={async () => {
+                         const { data: { session } } = await db.auth.getSession()
+                         const res = await fetch(`${API}/api/company/costs/export`, {
+                            method: 'POST',
+                            headers: {
+                               'Authorization': `Bearer ${session?.access_token}`,
+                               'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ sendEmail: true })
+                         })
+                         if (res.ok) alert('El reporte ha sido enviado a tu email')
+                      }}
+                   />
+                )}
+                {tab === 'company_settings' && (
+                  <CompanySettingsTab 
+                     company={selectedCompany} 
+                     onRefresh={async () => {
+                        const { data } = await db.from('companies').select('*').eq('id', selectedCompany.id).single()
+                        if (data) setSelectedCompany(data)
+                     }}
+                  />
+                )}
               </div>
             )}
           </div>

@@ -24,6 +24,7 @@ const codesRoutes     = require('./routes/codes')
 const adminRoutes     = require('./routes/admin')
 const waitlistRoutes  = require('./routes/waitlist')
 const eventRoutes     = require('./routes/events')
+const companyRoutes   = require('./routes/company')
 
 const app = express();
 
@@ -78,6 +79,7 @@ app.use('/api/interview', interviewRoutes)
 app.use('/api/linkedin',  linkedinRoutes)
 app.use('/api/codes',     codesRoutes)
 app.use('/api/admin',     adminRoutes)
+app.use('/api/company',   companyRoutes)
 app.use('/api/waitlist',  waitlistRoutes)
 app.use('/api/events',    eventRoutes)
 
