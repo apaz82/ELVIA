@@ -483,10 +483,15 @@ function UserRow({ u, onEdit, onView }) {
         </div>
       </td>
       <td className="px-6 py-4">
-        {u.is_admin ? (
+        {u.role === 'super_admin' ? (
           <div className="flex items-center gap-1 text-purple-400">
             <PI.UserCircle size={16} weight="fill" />
-            <span className="text-[10px] font-black uppercase">Admin</span>
+            <span className="text-[10px] font-black uppercase">Super Admin</span>
+          </div>
+        ) : u.role === 'company_admin' ? (
+          <div className="flex items-center gap-1 text-blue-400">
+            <PI.Briefcase size={16} weight="fill" />
+            <span className="text-[10px] font-black uppercase">Empresa</span>
           </div>
         ) : (
           <span className="text-[10px] font-bold text-gray-600 uppercase">Usuario</span>
@@ -526,7 +531,7 @@ function UserEditModal({ user: u, onClose, onSave }) {
     usage_count:        u.usage_count        || 0,
     cv_optimizer_count: u.cv_optimizer_count || 0,
     cv_match_count:     u.cv_match_count     || 0,
-    is_admin:           u.is_admin  || false,
+    role:               u.role || 'user',
     suspended:          u.suspended || false,
   })
   const [saving, setSaving]         = useState(false)
@@ -743,7 +748,18 @@ function UserEditModal({ user: u, onClose, onSave }) {
           </div>
 
           <div className="space-y-2 pt-2">
-            <Toggle label="Privilegios Admin" field="is_admin"  color="purple" />
+            <div>
+              <label className="text-xs text-gray-400 uppercase tracking-wider mb-2 block font-semibold">Rol</label>
+              <select
+                value={form.role}
+                onChange={e => setForm(f => ({ ...f, role: e.target.value }))}
+                className="w-full bg-gray-900 border border-gray-700 rounded-xl px-3 py-2 text-sm text-white hover:border-gray-600 transition-colors"
+              >
+                <option value="user">Usuario</option>
+                <option value="company_admin">Admin de Empresa</option>
+                <option value="super_admin">Super Admin</option>
+              </select>
+            </div>
             <Toggle label="Bloquear Cuenta"   field="suspended" color="red"    />
           </div>
         </div>
@@ -1375,6 +1391,356 @@ function CodigosTab() {
   )
 }
 
+function EmpresasB2BTab() {
+  const [companies, setCompanies] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [showCreateModal, setShowCreateModal] = useState(false)
+  const [showAdminModal, setShowAdminModal] = useState(false)
+  const [newCompany, setNewCompany] = useState(null)
+  const [creating, setCreating] = useState(false)
+  const [assigningAdmin, setAssigningAdmin] = useState(false)
+
+  useEffect(() => {
+    fetchCompanies()
+  }, [])
+
+  const fetchCompanies = async () => {
+    try {
+      setLoading(true)
+      const { data: { session } } = await db.auth.getSession()
+      const response = await fetch(`${API}/api/admin/companies`, {
+        headers: { Authorization: `Bearer ${session.access_token}` }
+      })
+      const json = await response.json()
+      setCompanies(json.companies || [])
+    } catch (err) {
+      console.error('[EmpresasB2B] Error fetching companies:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleCreateCompany = async (name, email) => {
+    try {
+      setCreating(true)
+      const { data: { session } } = await db.auth.getSession()
+      const response = await fetch(`${API}/api/admin/companies`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ name, email })
+      })
+      const json = await response.json()
+      if (response.ok) {
+        setNewCompany(json.company)
+        setShowCreateModal(false)
+        setShowAdminModal(true)
+      } else {
+        alert('Error creando empresa: ' + (json.error || 'Unknown error'))
+      }
+    } catch (err) {
+      console.error('[EmpresasB2B] Error creating company:', err)
+      alert('Error creando empresa')
+    } finally {
+      setCreating(false)
+    }
+  }
+
+  const handleAssignAdmin = async (nombre, apellido, email) => {
+    try {
+      setAssigningAdmin(true)
+      const { data: { session } } = await db.auth.getSession()
+      const response = await fetch(`${API}/api/admin/companies/${newCompany.id}/admins`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ nombre, apellido, email })
+      })
+      const json = await response.json()
+      if (response.ok) {
+        setShowAdminModal(false)
+        setNewCompany(null)
+        await fetchCompanies()
+      } else {
+        alert('Error asignando admin: ' + (json.error || 'Unknown error'))
+      }
+    } catch (err) {
+      console.error('[EmpresasB2B] Error assigning admin:', err)
+      alert('Error asignando admin')
+    } finally {
+      setAssigningAdmin(false)
+    }
+  }
+
+  const handleToggleActive = async (id, isActive) => {
+    try {
+      const { data: { session } } = await db.auth.getSession()
+      const response = await fetch(`${API}/api/admin/companies/${id}`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ is_active: !isActive })
+      })
+      if (response.ok) {
+        await fetchCompanies()
+      }
+    } catch (err) {
+      console.error('[EmpresasB2B] Error toggling company:', err)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="text-gray-400">Cargando empresas...</div>
+      </div>
+    )
+  }
+
+  const activeCount = companies.filter(c => c.is_active).length
+
+  return (
+    <div className="space-y-6 animate-fade-in">
+      {/* KPI Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <KpiCard
+          label="Empresas activas"
+          value={activeCount}
+          sub="Clientes B2B"
+          icon={PI.Buildings}
+          color="blue"
+        />
+        <KpiCard
+          label="Total de empresas"
+          value={companies.length}
+          sub="Registradas"
+          icon={PI.Briefcase}
+          color="green"
+        />
+      </div>
+
+      {/* Tabla de Empresas */}
+      <div className="bg-[#111827] rounded-3xl border border-gray-800 shadow-2xl overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-800 flex items-center justify-between">
+          <h3 className="text-sm font-bold text-white">Empresas</h3>
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold px-3 py-1.5 rounded-lg transition-colors"
+          >
+            <PI.Plus size={16} weight="bold" />
+            Nueva Empresa
+          </button>
+        </div>
+        {companies.length === 0 ? (
+          <div className="px-6 py-8 text-center text-gray-400 text-sm">
+            Sin empresas registradas
+          </div>
+        ) : (
+          <table className="w-full text-left text-sm">
+            <thead className="bg-gray-900/50 border-b border-gray-800">
+              <tr>
+                {['Empresa', 'Email', 'Estado', 'Creada', 'Acciones'].map(h => (
+                  <th key={h} className="px-6 py-3 text-[10px] font-black text-gray-500 uppercase tracking-[0.2em]">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-800">
+              {companies.map(c => (
+                <tr key={c.id} className="hover:bg-gray-900/20 transition-colors">
+                  <td className="px-6 py-4 font-semibold text-gray-100">{c.name}</td>
+                  <td className="px-6 py-4 text-gray-400">{c.email}</td>
+                  <td className="px-6 py-4">
+                    <span className={`text-[10px] font-bold uppercase px-2 py-1 rounded-full ${c.is_active ? 'bg-green-600/20 text-green-400' : 'bg-red-600/20 text-red-400'}`}>
+                      {c.is_active ? 'Activa' : 'Inactiva'}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 text-gray-400 text-xs">{c.created_at ? new Date(c.created_at).toLocaleDateString('es-ES') : '—'}</td>
+                  <td className="px-6 py-4 space-x-2">
+                    <button
+                      onClick={() => handleToggleActive(c.id, c.is_active)}
+                      className="text-xs px-2 py-1 rounded bg-gray-700 hover:bg-gray-600 text-white transition-colors"
+                    >
+                      {c.is_active ? 'Desactivar' : 'Activar'}
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      {/* Modal Paso 1: Crear Empresa */}
+      {showCreateModal && (
+        <CreateCompanyModal
+          onClose={() => setShowCreateModal(false)}
+          onSubmit={handleCreateCompany}
+          loading={creating}
+        />
+      )}
+
+      {/* Modal Paso 2: Asignar Admin */}
+      {showAdminModal && newCompany && (
+        <AssignAdminModal
+          company={newCompany}
+          onClose={() => {
+            setShowAdminModal(false)
+            setNewCompany(null)
+          }}
+          onSubmit={handleAssignAdmin}
+          loading={assigningAdmin}
+        />
+      )}
+    </div>
+  )
+}
+
+function CreateCompanyModal({ onClose, onSubmit, loading }) {
+  const [name, setName] = useState('')
+  const [email, setEmail] = useState('')
+
+  const handleSubmit = (e) => {
+    e.preventDefault()
+    if (!name || !email) {
+      alert('Completa todos los campos')
+      return
+    }
+    onSubmit(name, email)
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[70] flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-[#111827] border border-gray-800 rounded-[2.5rem] p-8 w-full max-w-sm shadow-2xl animate-fade-in" onClick={e => e.stopPropagation()}>
+        <h2 className="text-lg font-bold text-white mb-1">Nueva Empresa B2B</h2>
+        <p className="text-xs text-gray-400 mb-6">Crea una nueva empresa cliente</p>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-2">Nombre</label>
+            <input
+              type="text"
+              value={name}
+              onChange={e => setName(e.target.value)}
+              className="w-full bg-gray-900 border border-gray-700 rounded-xl px-3 py-2 text-white text-sm"
+              placeholder="Acme Corp"
+            />
+          </div>
+
+          <div>
+            <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-2">Email</label>
+            <input
+              type="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              className="w-full bg-gray-900 border border-gray-700 rounded-xl px-3 py-2 text-white text-sm"
+              placeholder="empresa@acme.com"
+            />
+          </div>
+
+          <div className="pt-4 space-y-2">
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 text-white font-semibold py-2.5 rounded-xl transition-colors text-sm"
+            >
+              {loading ? 'Creando...' : 'Crear empresa →'}
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="w-full bg-gray-800 hover:bg-gray-700 text-gray-300 font-semibold py-2.5 rounded-xl transition-colors text-sm"
+            >
+              Cancelar
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+function AssignAdminModal({ company, onClose, onSubmit, loading }) {
+  const [nombre, setNombre] = useState('')
+  const [apellido, setApellido] = useState('')
+  const [email, setEmail] = useState('')
+
+  const handleSubmit = (e) => {
+    e.preventDefault()
+    if (!nombre || !email) {
+      alert('Completa nombre y email')
+      return
+    }
+    onSubmit(nombre, apellido, email)
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[70] flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-[#111827] border border-gray-800 rounded-[2.5rem] p-8 w-full max-w-sm shadow-2xl animate-fade-in" onClick={e => e.stopPropagation()}>
+        <h2 className="text-lg font-bold text-white mb-1">Asignar Administrador</h2>
+        <p className="text-xs text-gray-400 mb-4">Empresa: <span className="font-semibold text-green-400">{company.name}</span> ✅</p>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-2">Nombre</label>
+            <input
+              type="text"
+              value={nombre}
+              onChange={e => setNombre(e.target.value)}
+              className="w-full bg-gray-900 border border-gray-700 rounded-xl px-3 py-2 text-white text-sm"
+              placeholder="Juan"
+            />
+          </div>
+
+          <div>
+            <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-2">Apellido</label>
+            <input
+              type="text"
+              value={apellido}
+              onChange={e => setApellido(e.target.value)}
+              className="w-full bg-gray-900 border border-gray-700 rounded-xl px-3 py-2 text-white text-sm"
+              placeholder="Pérez"
+            />
+          </div>
+
+          <div>
+            <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-2">Email</label>
+            <input
+              type="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              className="w-full bg-gray-900 border border-gray-700 rounded-xl px-3 py-2 text-white text-sm"
+              placeholder="juan@acme.com"
+            />
+          </div>
+
+          <div className="pt-4 space-y-2">
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-green-600 hover:bg-green-500 disabled:bg-gray-700 text-white font-semibold py-2.5 rounded-xl transition-colors text-sm"
+            >
+              {loading ? 'Asignando...' : 'Asignar Admin'}
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="w-full bg-gray-800 hover:bg-gray-700 text-gray-300 font-semibold py-2.5 rounded-xl transition-colors text-sm"
+            >
+              Saltar (hacerlo después)
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
 function SistemaTab() {
   const [status, setStatus]   = useState(null)
   const [loading, setLoading] = useState(true)
@@ -1540,6 +1906,7 @@ const TABS = [
   { id: 'users',         label: 'Usuarios',       icon: PI.UsersThree },
   { id: 'suscripciones', label: 'Suscripciones',  icon: PI.Coins },
   { id: 'codigos',       label: 'Códigos',        icon: PI.Tag },
+  { id: 'empresas',      label: 'Empresas B2B',  icon: PI.Buildings },
   { id: 'waitlist',      label: 'Lista de Espera', icon: PI.ListStar },
   { id: 'marketing',     label: 'Marketing Hub',  icon: PI.TrendUp },
   { id: 'analytics',     label: 'Métricas',       icon: PI.ChartBar },
@@ -1588,7 +1955,7 @@ function Dashboard({ adminUser, onLogout }) {
   const stats = {
     totalUsers:    users.length,
     conOnboarding: users.filter(u => u.nombre1).length,
-    admins:        users.filter(u => u.is_admin).length,
+    admins:        users.filter(u => u.role === 'super_admin' || u.role === 'company_admin').length,
     totalUsage:    users.reduce((s, u) => s + (u.usage_count || 0), 0),
     planes: users.reduce((acc, u) => { const k = u.plan || 'free'; acc[k] = (acc[k] || 0) + 1; return acc }, {}),
     paises: users.reduce((acc, u) => { if (u.pais) { acc[u.pais] = (acc[u.pais] || 0) + 1 }; return acc }, {}),
@@ -1688,6 +2055,7 @@ function Dashboard({ adminUser, onLogout }) {
                 {tab === 'analytics' && <AnalyticsTab users={users} />}
                 {tab === 'suscripciones'  && <SubscriptionsTab users={users} />}
                 {tab === 'codigos'     && <CodigosTab />}
+                {tab === 'empresas'    && <EmpresasB2BTab />}
                 {tab === 'sistema'   && <SistemaTab />}
               </div>
             )}
