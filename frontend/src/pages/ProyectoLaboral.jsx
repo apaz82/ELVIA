@@ -209,14 +209,14 @@ function convertirDesdeMXN(montoMXN, moneda) {
 }
 
 const RECURSOS_DEFAULT = [
-  { id:'1', nombre:'Espacio de trabajo tranquilo',  descripcion:'Un lugar donde puedas concentrarte sin interrupciones.', costo:0,   tengo:true  },
-  { id:'2', nombre:'Conexión a internet estable',   descripcion:'Necesaria para aplicar, videollamadas y LinkedIn.',      costo:350, tengo:true  },
-  { id:'3', nombre:'Celular activo',                descripcion:'Para recibir llamadas de reclutadores.',                 costo:0,   tengo:true  },
-  { id:'4', nombre:'LinkedIn Premium',              descripcion:'La red #1 para ser encontrado por reclutadores.',        costo:0,   tengo:false },
-  { id:'5', nombre:'Transporte a entrevistas',      descripcion:'Transporte público o privado + estacionamiento.',        costo:200, tengo:true  },
-  { id:'6', nombre:'Ropa de presentación',          descripcion:'Outfit adecuado para entrevistas presenciales.',         costo:0,   tengo:true  },
-  { id:'7', nombre:'Café / Coworking',              descripcion:'Si prefieres salir de casa para más productividad.',    costo:0,   tengo:false },
-  { id:'optima', nombre:'Suscripción Optima',      descripcion:'Tu plan activo de OPTIMA-CV.',                          costo:0,   tengo:false, obligatorio:true },
+  { id:'1', nombre:'Espacio de trabajo tranquilo',  descripcion:'Un lugar donde puedas concentrarte sin interrupciones.', costo:0, tengo:false },
+  { id:'2', nombre:'Conexión a internet estable',   descripcion:'Necesaria para aplicar, videollamadas y LinkedIn.',      costo:0, tengo:false },
+  { id:'3', nombre:'Celular activo',                descripcion:'Para recibir llamadas de reclutadores.',                 costo:0, tengo:false },
+  { id:'4', nombre:'LinkedIn Premium',              descripcion:'La red #1 para ser encontrado por reclutadores.',        costo:0, tengo:false },
+  { id:'5', nombre:'Transporte a entrevistas',      descripcion:'Transporte público o privado + estacionamiento.',        costo:0, tengo:false },
+  { id:'6', nombre:'Ropa de presentación',          descripcion:'Outfit adecuado para entrevistas presenciales.',         costo:0, tengo:false },
+  { id:'7', nombre:'Café / Coworking',              descripcion:'Si prefieres salir de casa para más productividad.',     costo:0, tengo:false },
+  { id:'optima', nombre:'Suscripción Optima',       descripcion:'Tu plan activo de OPTIMA-CV.',                           costo:0, tengo:false, obligatorio:true },
 ]
 
 const DOCS_LIST = [
