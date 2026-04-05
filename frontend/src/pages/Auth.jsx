@@ -228,7 +228,7 @@ export default function Auth() {
 
           {/* Logo + título */}
           <div className="text-center mb-7">
-            <img src="/optima_logo_v3_clean_1.png" alt="ELVIA" className="h-14 w-auto mx-auto mb-4 object-contain" />
+            <img src="/elvia-logo-transparent.png" alt="ELVIA" className="h-14 w-auto mx-auto mb-4 object-contain" />
             <h1 className="text-2xl font-bold text-gray-900">
               {modo === 'login'    ? 'Iniciar sesión'
                : modo === 'register' ? 'Crear cuenta gratis'

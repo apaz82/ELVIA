@@ -1264,7 +1264,7 @@ export default function Landing() {
             {/* Branding Column */}
             <div className="lg:col-span-2 text-center lg:text-left space-y-8">
               <div className="flex flex-col items-center lg:items-start gap-6">
-                <img src="/optima_logo_v3_clean_1.png" alt="ELVIA" className="h-14 w-auto brightness-0 invert" />
+                <img src="/elvia-logo-transparent.png" alt="ELVIA" className="h-14 w-auto" />
                 
                 <div className="relative inline-block">
                   <div className="absolute inset-0 bg-teal-400/20 blur-2xl rounded-full" />
@@ -1284,11 +1284,18 @@ export default function Landing() {
                 <p className="text-white/60 leading-relaxed">
                   Nunca fue tan sencillo ser tu propio gerente de proyecto de tu búsqueda laboral. Sé el primero en acceder a <span className="text-[#E8541A] font-bold">ELVIA</span>.
                 </p>
-                <div className="mt-6 flex items-center gap-3 justify-center lg:justify-start">
-                   <div className="flex -space-x-2">
-                     {[1,2,3].map(i => <div key={i} className="w-8 h-8 rounded-full border-2 border-gray-900 bg-teal-900/40" />)}
+                <div className="mt-6 flex flex-col lg:flex-row items-center gap-4 lg:gap-6 justify-center lg:justify-start">
+                   <div className="flex items-center gap-2">
+                     <div className="flex -space-x-2">
+                       <div className="w-9 h-9 rounded-full border-2 border-gray-900 bg-[#CCFBF1] text-[#115E59] flex items-center justify-center text-[10px] font-black shadow-lg ring-2 ring-white/5">AM</div>
+                       <div className="w-9 h-9 rounded-full border-2 border-gray-900 bg-[#DBEAFE] text-[#1E40AF] flex items-center justify-center text-[10px] font-black shadow-lg ring-2 ring-white/5">JR</div>
+                       <div className="w-9 h-9 rounded-full border-2 border-gray-900 bg-[#FEF3C7] text-[#92400E] flex items-center justify-center text-[10px] font-black shadow-lg ring-2 ring-white/5">CV</div>
+                     </div>
+                     <div className="flex items-center gap-0.5 ml-2">
+                        {[1,2,3,4,5].map(i => <Star key={i} size={14} weight="fill" className="text-amber-400" />)}
+                     </div>
                    </div>
-                   <span className="text-xs font-bold text-teal-400 uppercase tracking-widest">+500 inscritos</span>
+                   <span className="text-xs font-black text-white/50 uppercase tracking-[0.15em]">+500 en lista</span>
                 </div>
               </div>
             </div>
@@ -1363,7 +1370,7 @@ export default function Landing() {
         <div className="container mx-auto max-w-6xl px-6 py-12 flex flex-col md:flex-row items-center justify-between gap-8">
           <div className="flex flex-col items-center md:items-start gap-4">
             <Link to="/">
-              <img src="/optima_logo_v3_clean_1.png" alt="ELVIA" className="h-10 w-auto opacity-90" />
+              <img src="/elvia-logo-transparent.png" alt="ELVIA" className="h-10 w-auto opacity-90" />
             </Link>
             <p className="text-gray-400 text-xs font-medium uppercase tracking-widest text-center md:text-left">
               Potenciando carreras de alto nivel con IA

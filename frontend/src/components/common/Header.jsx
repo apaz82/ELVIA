@@ -44,7 +44,7 @@ export default function Header({ onMenuToggle }) {
 
       {/* Logo — solo en móvil */}
       <Link to="/" className="flex items-center gap-2 md:hidden">
-        <img src="/optima_logo_v3_clean_1.png" alt="ELVIA" className="h-[4.5rem] w-auto object-contain py-1 brightness-0 invert" />
+        <img src="/elvia-logo-transparent.png" alt="ELVIA" className="h-[4.5rem] w-auto object-contain py-1" />
       </Link>
 
       <div className="flex-1" />
