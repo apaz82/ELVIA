@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext'
 import {
   FileMagnifyingGlass, MagnifyingGlass, Briefcase, Kanban,
   ArrowRight, ArrowDown, CheckCircle, ChartBar, Coins, SignOut, Warning,
-  ShieldCheck, Lightning, Target, Check,
+  ShieldCheck, Lightning, Target, Check, Star,
   Folders, BookmarkSimple, Books, LinkedinLogo,
   MicrophoneStage, UsersThree, TrendUp, RocketLaunch
 } from '@phosphor-icons/react'
@@ -1180,13 +1180,13 @@ export default function Landing() {
           <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md h-48 bg-blue-600/20 blur-[100px] rounded-full pointer-events-none" />
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[length:24px_24px] pointer-events-none" />
 
-          {/* Icon/Avatar */}
+          {/* Icon/Logo */}
           <div className="relative inline-block mb-10">
             <div className="absolute inset-0 bg-teal-400/20 blur-2xl rounded-full" />
             <img 
-              src="/Avatar Optima.png" 
+              src="/elvia-logo-transparent.png" 
               alt="ELVIA" 
-              className="relative w-28 h-28 md:w-36 md:h-36 rounded-full border border-white/10 shadow-2xl object-cover ring-8 ring-[#090E17]" 
+              className="relative w-36 h-auto border border-white/10 shadow-2xl p-6 bg-white/5 rounded-3xl ring-8 ring-[#090E17]" 
             />
             <div className="absolute bottom-0 -right-2 bg-gradient-to-br from-[#E8541A] to-orange-600 text-white p-2.5 rounded-2xl shadow-xl shadow-orange-500/20 border border-white/10">
               <Lightning size={24} weight="fill" />
@@ -1196,9 +1196,23 @@ export default function Landing() {
           <h2 className="font-headline font-black text-4xl md:text-6xl tracking-tight text-white mb-6">
             Tu futuro gerente de<br className="hidden md:block" /> proyecto te espera
           </h2>
-          <p className="text-gray-400 text-lg md:text-xl max-w-2xl mb-12 font-medium">
+          <p className="text-gray-400 text-lg md:text-xl max-w-2xl mb-8 font-medium">
             Únete a cientos de profesionales que ya están optimizando su carrera y consiguiendo las entrevistas que merecen.
           </p>
+
+          <div className="flex flex-col items-center gap-4 mb-12">
+             <div className="flex -space-x-2">
+               <div className="w-10 h-10 rounded-full border-2 border-[#090E17] bg-[#CCFBF1] text-[#115E59] flex items-center justify-center text-[11px] font-black shadow-lg">AM</div>
+               <div className="w-10 h-10 rounded-full border-2 border-[#090E17] bg-[#DBEAFE] text-[#1E40AF] flex items-center justify-center text-[11px] font-black shadow-lg">JR</div>
+               <div className="w-10 h-10 rounded-full border-2 border-[#090E17] bg-[#FEF3C7] text-[#92400E] flex items-center justify-center text-[11px] font-black shadow-lg">CV</div>
+             </div>
+             <div className="flex items-center gap-4">
+                <div className="flex items-center gap-0.5">
+                   {[1,2,3,4,5].map(i => <Star key={i} size={16} weight="fill" className="text-amber-400" />)}
+                </div>
+                <span className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">+500 en lista</span>
+             </div>
+          </div>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full sm:w-auto z-10">
             <button
@@ -1249,12 +1263,12 @@ export default function Landing() {
           >
             <div className="pointer-events-auto bg-gray-900/95 backdrop-blur-xl border border-white/10 p-4 sm:p-5 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] flex items-center justify-between sm:justify-start gap-4 sm:gap-6 min-w-full sm:min-w-[400px]">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-[#E8541A] to-orange-600 p-[1.5px] shrink-0 overflow-hidden shadow-md">
-                  <img src="/Avatar Optima.png" alt="ELVIA" className="w-full h-full object-cover rounded-full" />
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-slate-800 flex items-center justify-center text-[10px] font-black text-teal-400 border border-white/10 shrink-0">
+                  EL
                 </div>
                 <div>
-                  <p className="text-white font-bold text-sm sm:text-base leading-tight">Optimiza tu CV ahora</p>
-                  <p className="text-gray-400 text-xs sm:text-sm">2 análisis gratuitos</p>
+                  <p className="text-white font-bold text-sm sm:text-base leading-tight">Optimiza tu carrera con ELVIA</p>
+                  <p className="text-gray-400 text-xs sm:text-sm">Únete a los +500 profesionales</p>
                 </div>
               </div>
               <button
