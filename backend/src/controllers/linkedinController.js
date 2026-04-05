@@ -1,4 +1,5 @@
-const { analizarLinkedin } = require('../services/claudeService')
+const { analizarLinkedin, extraerDatosLinkedin } = require('../services/claudeService')
+const { extraerTextoPDF } = require('../utils/pdfParser')
 
 // POST /api/linkedin/analizar
 const analizarPerfil = async (req, res, next) => {
@@ -19,4 +20,40 @@ const analizarPerfil = async (req, res, next) => {
   }
 }
 
-module.exports = { analizarPerfil }
+// POST /api/linkedin/extraer-pdf
+const extraerPerfilPDF = async (req, res, next) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No se subió ningún archivo' })
+    }
+
+    // 1. Extraer texto plano del PDF
+    const rawText = await extraerTextoPDF(req.file.buffer)
+
+    // 2. Estructurar con IA
+    const data = await extraerDatosLinkedin(rawText)
+
+    return res.json(data)
+  } catch (err) {
+    next(err)
+  }
+}
+
+// POST /api/linkedin/extraer-texto
+const extraerPerfilTexto = async (req, res, next) => {
+  try {
+    const { blob } = req.body
+    if (!blob || blob.trim().length < 50) {
+      return res.status(400).json({ error: 'El texto proporcionado es demasiado corto' })
+    }
+
+    // Estructurar con IA
+    const data = await extraerDatosLinkedin(blob)
+
+    return res.json(data)
+  } catch (err) {
+    next(err)
+  }
+}
+
+module.exports = { analizarPerfil, extraerPerfilPDF, extraerPerfilTexto }

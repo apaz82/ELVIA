@@ -499,4 +499,59 @@ REGLAS:
   return JSON.parse(jsonText)
 }
 
-module.exports = { optimizeCV, matchCVtoJob, generateChatResponse, generarPreguntasEntrevista, evaluarEntrevista, analizarLinkedin, extraerDatosInfografia };
+/**
+ * Extrae datos estructurados de un texto "sucio" de LinkedIn (PDF o Copy-Paste)
+ * Usa Haiku para velocidad y economía — es una tarea de extracción/formateo
+ */
+const extraerDatosLinkedin = async (rawText) => {
+  // Truncar para ahorrar tokens si el texto es excesivo
+  const fragmento = rawText.substring(0, 10000)
+
+  const prompt = `Analiza el siguiente texto extraído de un perfil de LinkedIn (puede ser de un PDF o de un copiado-pegado de la web) y extrae las secciones principales de forma estructurada.
+Responde ÚNICAMENTE con JSON válido, sin texto adicional ni markdown.
+
+TEXTO DEL PERFIL:
+${fragmento}
+
+Devuelve exactamente esta estructura:
+{
+  "titular": "Frase debajo del nombre",
+  "extracto": "Sección 'Acerca de' completa",
+  "experiencia": "Lista detallada de cargos, empresas, fechas y logros",
+  "habilidades": "Lista de habilidades separadas por coma",
+  "educacion": "Instituciones y títulos obtenidos"
+}
+
+REGLAS:
+- Si una sección no se encuentra o está vacía, usa string vacío "".
+- Limpia ruidos del PDF (como 'Página 1 de 2', 'LinkedIn', etc.) pero mantén el contenido profesional intacto.
+- En 'experiencia', trata de mantener el formato descriptivo original.`
+
+  const response = await client.messages.create({
+    model: MODELO_RAPIDO,
+    max_tokens: 2500,
+    messages: [{ role: 'user', content: prompt }],
+  })
+
+  let jsonText = response.content[0].text.trim()
+  // Limpieza robusta de markdown
+  jsonText = jsonText.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim()
+  
+  try {
+    return JSON.parse(jsonText)
+  } catch (error) {
+    console.error('[extraerDatosLinkedin] Error al parsear JSON de la IA:', error.message)
+    throw new Error('La IA no pudo estructurar los datos correctamente. Intenta con el pegado manual.')
+  }
+}
+
+module.exports = { 
+  optimizeCV, 
+  matchCVtoJob, 
+  generateChatResponse, 
+  generarPreguntasEntrevista, 
+  evaluarEntrevista, 
+  analizarLinkedin, 
+  extraerDatosLinkedin, 
+  extraerDatosInfografia 
+};
