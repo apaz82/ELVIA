@@ -3,6 +3,7 @@ import * as PI from '@phosphor-icons/react'
 import KpiCard from '../shared/KpiCard'
 import SectionHeading from '../shared/SectionHeading'
 import Badge from '../shared/Badge'
+import { toast } from 'react-hot-toast'
 
 function generarCodigo() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
@@ -17,7 +18,6 @@ const CodesTab = ({ db, fmtDate }) => {
   const [loadingC, setLoadingC]       = useState(true)
   const [showForm, setShowForm]       = useState(false)
   const [saving, setSaving]           = useState(false)
-  const [formErr, setFormErr]         = useState('')
   const [form, setForm] = useState({
     code:      generarCodigo(),
     plan:      'mensual',
@@ -50,8 +50,11 @@ const CodesTab = ({ db, fmtDate }) => {
 
   const handleCreate = async (e) => {
     e.preventDefault()
-    if (!form.code.trim()) { setFormErr('Ingresa un código'); return }
-    setSaving(true); setFormErr('')
+    if (!form.code.trim()) { 
+      toast.error('Especifica un código de acceso')
+      return 
+    }
+    setSaving(true)
     const payload = {
       code:      form.code.trim().toUpperCase(),
       plan:      form.plan,
@@ -61,8 +64,9 @@ const CodesTab = ({ db, fmtDate }) => {
     }
     const { error } = await db.from('access_codes').insert(payload)
     if (error) {
-      setFormErr(error.code === '23505' ? 'Ya existe un código con ese nombre' : error.message)
+      toast.error(error.code === '23505' ? 'Este código ya está en uso' : error.message)
     } else {
+      toast.success(`Llave Maestra [${payload.code}] activada`)
       setShowForm(false)
       setForm({ code: generarCodigo(), plan: 'mensual', max_uses: 1, expires_at: '', notes: '' })
       fetchAll()
@@ -70,9 +74,15 @@ const CodesTab = ({ db, fmtDate }) => {
     setSaving(false)
   }
 
-  const handleDeactivate = async (id) => {
-    await db.from('access_codes').update({ is_active: false }).eq('id', id)
-    fetchAll()
+  const handleDeactivate = async (id, code) => {
+    try {
+      const { error } = await db.from('access_codes').update({ is_active: false }).eq('id', id)
+      if (error) throw error
+      toast.success(`Código ${code} revocado`)
+      fetchAll()
+    } catch (err) {
+      toast.error('No se pudo revocar el código')
+    }
   }
 
   const porPlan = redenidos.reduce((acc, r) => {
@@ -171,12 +181,6 @@ const CodesTab = ({ db, fmtDate }) => {
               className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-6 py-4 text-[10px] font-black uppercase tracking-widest text-white placeholder:text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 italic"
             />
           </div>
-
-          {formErr && (
-            <div className="flex items-center gap-3 bg-rose-500/10 border border-rose-500/20 rounded-2xl p-5 text-rose-400 text-[10px] font-black uppercase tracking-widest italic animate-shake">
-              <PI.Warning size={18} /> {formErr}
-            </div>
-          )}
 
           <div className="flex gap-4 pt-4">
             <button type="button" onClick={() => setShowForm(false)}

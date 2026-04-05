@@ -6,6 +6,7 @@ import {
 } from 'recharts'
 import KpiCard from '../shared/KpiCard'
 import SectionHeading from '../shared/SectionHeading'
+import { toast } from 'react-hot-toast'
 
 const WaitlistTab = ({ leads, views, events, onRefresh, fmtDate }) => {
   const [search, setSearch] = useState('')
@@ -44,14 +45,19 @@ const WaitlistTab = ({ leads, views, events, onRefresh, fmtDate }) => {
   )
 
   const exportCSV = () => {
-    const header = 'Nombre,Apellido,Email,País,Teléfono,Situación,Fecha\n'
-    const rows = leads.map(l =>
-      [l.nombre, l.apellido, l.email, l.pais, l.telefono, l.situacion, fmtDate(l.created_at)].join(',')
-    ).join('\n')
-    const blob = new Blob([header + rows], { type: 'text/csv' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a'); a.href = url; a.download = 'ELVIA_waitlist_leads.csv'; a.click()
-    URL.revokeObjectURL(url)
+    try {
+      const header = 'Nombre,Apellido,Email,País,Teléfono,Situación,Fecha\n'
+      const rows = leads.map(l =>
+        [l.nombre, l.apellido, l.email, l.pais, l.telefono, l.situacion, fmtDate(l.created_at)].join(',')
+      ).join('\n')
+      const blob = new Blob([header + rows], { type: 'text/csv' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a'); a.href = url; a.download = 'ELVIA_waitlist_leads.csv'; a.click()
+      URL.revokeObjectURL(url)
+      toast.success('Base de datos exportada (CSV)')
+    } catch (err) {
+      toast.error('Error al generar el archivo de exportación')
+    }
   }
 
   return (

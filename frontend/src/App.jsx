@@ -19,7 +19,7 @@ import BienvenidaOnboarding from './pages/BienvenidaOnboarding'
 import Admin from './pages/Admin'
 import Entrevista from './pages/Entrevista'
 import Biblioteca from './pages/Biblioteca'
-import LinkedinOptima from './pages/LinkedinOptima'
+import LinkedinPro from './pages/LinkedinPro'
 import Privacidad from './pages/Privacidad'
 import ResetPassword from './pages/ResetPassword'
 import Expertos from './pages/Expertos'
@@ -29,6 +29,7 @@ import ProyectoLaboral from './pages/ProyectoLaboral'
 import Bienestar from './pages/Bienestar'
 import AiChatBot from './components/chat/AiChatBot'
 import { useAuth } from './context/AuthContext'
+import { Toaster } from 'react-hot-toast'
 
 // Rutas que NO muestran sidebar ni header estándar
 const RUTAS_FULL = ['/', '/landing2', '/auth', '/bienvenida', '/admin', '/privacidad', '/reset-password', '/pricing']
@@ -184,14 +185,31 @@ export default function App() {
       <Route path="/mi-plan"       element={<PrivateRoute><MiPlan /></PrivateRoute>} />
       <Route path="/entrevista"      element={<PrivateRoute><Entrevista /></PrivateRoute>} />
       <Route path="/biblioteca"      element={<PrivateRoute><Biblioteca /></PrivateRoute>} />
-      <Route path="/linkedin-optima" element={<PrivateRoute><LinkedinOptima /></PrivateRoute>} />
+      <Route path="/linkedin-pro"    element={<PrivateRoute><LinkedinPro /></PrivateRoute>} />
       
       {/* /onboarding redirige a /bienvenida — ruta legacy */}
       <Route path="/onboarding"    element={<Navigate to="/bienvenida" replace />} />
     </Routes>
   )
 
-  return isFullLayout
-    ? <FullLayout>{routes}</FullLayout>
-    : <AppLayout>{routes}</AppLayout>
+  return (
+    <>
+      <Toaster 
+        position="top-right"
+        toastOptions={{
+          style: {
+            background: '#111827',
+            color: '#fff',
+            border: '1px solid #1f2937',
+            borderRadius: '1rem',
+            fontSize: '13px',
+            fontFamily: 'Inter, sans-serif'
+          },
+          success: { iconTheme: { primary: '#10b981', secondary: '#fff' } },
+          error: { iconTheme: { primary: '#ef4444', secondary: '#fff' } }
+        }}
+      />
+      {isFullLayout ? <FullLayout>{routes}</FullLayout> : <AppLayout>{routes}</AppLayout>}
+    </>
+  )
 }

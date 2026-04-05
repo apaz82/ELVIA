@@ -16,7 +16,7 @@ const INICIO = [
 
 const HERRAMIENTAS = [
   { to: '/cv-optimizer',    label: 'CV Optimizer',          Icon: FileMagnifyingGlass },
-  { to: '/linkedin-optima', label: 'LinkedIn Óptimo',       Icon: LinkedinLogo, beta: true },
+  { to: '/linkedin-pro',     label: 'LinkedIn Pro',          Icon: LinkedinLogo, beta: true },
   { to: '/cv-vs-job',       label: 'CV vs Vacante',         Icon: MagnifyingGlass },
   { to: '/jobs',            label: 'Vacantes',              Icon: Briefcase },
   { to: '/entrevista',      label: 'Prepara tu Entrevista', Icon: MicrophoneStage, beta: true },
@@ -223,7 +223,7 @@ export default function Sidebar({ open, onClose }) {
         {/* Logo */}
         <div className="flex items-center justify-between px-5 py-4 h-24 border-b border-outline-variant/20 shrink-0">
           <Link to={locked ? '/proyecto-laboral' : '/'} onClick={onClose} className="flex items-center">
-            <img src="/optima_logo_v3_clean_1.png" alt="ELVIA" className="h-[4.5rem] w-auto object-contain" />
+            <img src="/elvia-logo-transparent.png" alt="ELVIA" className="h-[4.5rem] w-auto object-contain" />
           </Link>
           <button onClick={onClose} className="md:hidden p-1 rounded-lg text-on-surface-variant hover:bg-surface-container transition-colors">
             <X size={18} />

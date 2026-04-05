@@ -3,6 +3,8 @@ import * as PI from '@phosphor-icons/react'
 import KpiCard from '../shared/KpiCard'
 import SectionHeading from '../shared/SectionHeading'
 import Badge from '../shared/Badge'
+import AdminSkeleton from '../shared/AdminSkeleton'
+import { toast } from 'react-hot-toast'
 
 const CreateCompanyModal = ({ onClose, onSubmit, loading }) => {
   const [name, setName] = useState('')
@@ -10,7 +12,10 @@ const CreateCompanyModal = ({ onClose, onSubmit, loading }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    if (!name || !email) { alert('Completa todos los campos'); return }
+    if (!name || !email) { 
+        toast.error('Nombre y Email son obligatorios')
+        return 
+    }
     onSubmit(name, email)
   }
 
@@ -58,6 +63,7 @@ const CreateCompanyModal = ({ onClose, onSubmit, loading }) => {
               disabled={loading}
               className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-black uppercase tracking-widest py-4 rounded-2xl transition-all text-[11px] shadow-xl shadow-blue-900/20 italic"
             >
+              {loading ? <PI.CircleNotch size={18} className="animate-spin inline mr-2" /> : null}
               {loading ? 'Inicializando...' : 'Crear Empresa →'}
             </button>
             <button
@@ -81,7 +87,10 @@ const AssignAdminModal = ({ company, onClose, onSubmit, loading }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    if (!nombre || !email) { alert('Completa nombre y email'); return }
+    if (!nombre || !email) { 
+        toast.error('Nombre y Email del gestor son requeridos')
+        return 
+    }
     onSubmit(nombre, apellido, email)
   }
 
@@ -96,7 +105,7 @@ const AssignAdminModal = ({ company, onClose, onSubmit, loading }) => {
             </div>
             <div>
                 <h2 className="text-lg font-black text-white uppercase italic tracking-tight">Asignar Gestor</h2>
-                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Enlace para: <span className="text-emerald-400">{company.name}</span></p>
+                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Enlace para: <span className="text-emerald-400">{company?.name}</span></p>
             </div>
         </div>
 
@@ -135,6 +144,7 @@ const AssignAdminModal = ({ company, onClose, onSubmit, loading }) => {
               disabled={loading}
               className="w-full bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-black uppercase tracking-widest py-4 rounded-2xl transition-all text-[11px] shadow-xl shadow-emerald-900/20 italic"
             >
+              {loading ? <PI.CircleNotch size={18} className="animate-spin inline mr-2" /> : null}
               {loading ? 'Asignando...' : 'Confirmar Gestor →'}
             </button>
             <button
@@ -173,6 +183,7 @@ const B2BTab = ({ db, API_URL }) => {
       setCompanies(json.companies || [])
     } catch (err) {
       console.error('[B2BTab] Error:', err)
+      toast.error('Error al sincronizar alianzas')
     } finally {
       setLoading(false)
     }
@@ -195,11 +206,12 @@ const B2BTab = ({ db, API_URL }) => {
         setNewCompany(json.company)
         setShowCreateModal(false)
         setShowAdminModal(true)
+        toast.success('Empresa registrada correctamente')
       } else {
-        alert('Error: ' + (json.error || 'Unknown error'))
+        toast.error('Error: ' + (json.error || 'No se pudo crear la empresa'))
       }
     } catch (err) {
-      alert('Error de conexión')
+      toast.error('Error de conexión con el servidor')
     } finally {
       setCreating(false)
     }
@@ -220,13 +232,14 @@ const B2BTab = ({ db, API_URL }) => {
       if (response.ok) {
         setShowAdminModal(false)
         setNewCompany(null)
+        toast.success('Gestor corporativo asignado')
         await fetchCompanies()
       } else {
         const json = await response.json()
-        alert('Error: ' + (json.error || 'Unknown error'))
+        toast.error('Error: ' + (json.error || 'No se pudo asignar el gestor'))
       }
     } catch (err) {
-      alert('Error de conexión')
+      toast.error('Error de conexión')
     } finally {
       setAssigningAdmin(false)
     }
@@ -243,19 +256,25 @@ const B2BTab = ({ db, API_URL }) => {
         },
         body: JSON.stringify({ is_active: !isActive })
       })
-      if (response.ok) await fetchCompanies()
+      if (response.ok) {
+          toast.success(isActive ? 'Cuenta suspendida' : 'Cuenta reactivada')
+          await fetchCompanies()
+      }
     } catch (err) {
       console.error('[B2BTab] Toggle error:', err)
+      toast.error('No se pudo cambiar el estado de la cuenta')
     }
   }
 
   const activeCount = companies.filter(c => c.is_active).length
 
+  if (loading && companies.length === 0) return <AdminSkeleton type="table" />
+
   return (
     <div className="space-y-10 animate-fade-in max-w-6xl">
       <SectionHeading 
         title="Unidades de Negocio" 
-        subtitle="Gestión de alianzas estratégicas y cuentas corporativas"
+        subtitle="Gestión de alianzas estratégicas y cuentas corporativas ELVIA"
         icon={PI.Buildings}
       >
         <button
@@ -271,7 +290,16 @@ const B2BTab = ({ db, API_URL }) => {
         <KpiCard label="Pipeline Total" value={companies.length} sub="ENTIDADES REGISTRADAS" icon={PI.Briefcase} color="green" />
       </div>
 
-      <div className="bg-[#111827] rounded-[2.5rem] border border-slate-800 shadow-2xl overflow-hidden mt-8">
+      <div className="bg-[#111827] rounded-[2.5rem] border border-slate-800 shadow-2xl overflow-hidden mt-8 relative">
+        {loading && (
+          <div className="absolute inset-0 bg-slate-950/20 backdrop-blur-[1px] z-10 flex items-center justify-center">
+             <div className="bg-indigo-600/10 border border-indigo-500/30 px-6 py-3 rounded-2xl flex items-center gap-3">
+               <PI.CircleNotch size={20} className="text-indigo-500 animate-spin" />
+               <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Sincronizando Alianzas...</span>
+             </div>
+          </div>
+        )}
+
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead className="bg-slate-900/50 border-b border-slate-800">
@@ -284,9 +312,7 @@ const B2BTab = ({ db, API_URL }) => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/50">
-              {loading ? (
-                <tr><td colSpan={5} className="px-10 py-24 text-center text-slate-600 text-[10px] font-black uppercase tracking-widest">Sincronizando entidades...</td></tr>
-              ) : companies.length === 0 ? (
+              {companies.length === 0 && !loading ? (
                 <tr><td colSpan={5} className="px-10 py-24 text-center text-slate-600 text-[10px] font-black uppercase tracking-widest">No hay alianzas registradas</td></tr>
               ) : companies.map(c => (
                 <tr key={c.id} className="hover:bg-slate-800/40 transition-colors group">

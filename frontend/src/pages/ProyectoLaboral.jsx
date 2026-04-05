@@ -161,14 +161,14 @@ const COLORES = {
     ring:   'ring-blue-200',
   },
   teal: {
-    pill:   'bg-teal-50 text-teal-700 border-teal-200 hover:bg-teal-100',
-    active: 'bg-teal-600 text-white border-teal-600',
-    header: 'bg-teal-50 border-teal-100',
-    icon:   'text-teal-600',
-    bar:    'bg-teal-500',
-    soft:   'bg-teal-50',
-    badge:  'bg-teal-100 text-teal-700',
-    ring:   'ring-teal-200',
+    pill:   'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100',
+    active: 'bg-emerald-600 text-white border-emerald-600',
+    header: 'bg-emerald-50 border-emerald-100',
+    icon:   'text-emerald-600',
+    bar:    'bg-emerald-500',
+    soft:   'bg-emerald-50',
+    badge:  'bg-emerald-100 text-emerald-700',
+    ring:   'ring-emerald-200',
   },
   amber: {
     pill:   'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100',
@@ -1134,13 +1134,13 @@ function DashboardResumen({ data, pct, onSelect, perfil, activePilar }) {
         {isUnlocked && (
           <div className="mt-4 flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-50 border border-emerald-200">
             <CheckFat size={16} weight="fill" className="text-emerald-600 shrink-0"/>
-            <p className="text-xs font-bold text-emerald-700">¡Todas las funcionalidades desbloqueadas! Completaste los 5 pilares base.</p>
+            <p className="text-xs font-bold text-emerald-700">¡Todas las funcionalidades desbloqueadas! Completaste los 6 pilares estratégicos.</p>
           </div>
         )}
         {!isUnlocked && (
           <div className="mt-4">
             <div className="flex justify-between items-center mb-1.5">
-              <p className="text-[10px] font-semibold text-slate-400">Completa los 5 pilares para desbloquear todo</p>
+              <p className="text-[10px] font-semibold text-slate-400">Completa los 6 pilares para desbloquear todo</p>
               <p className="text-[10px] font-bold text-violet-600">{pct} / 83%</p>
             </div>
             <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
@@ -1165,7 +1165,7 @@ function DashboardResumen({ data, pct, onSelect, perfil, activePilar }) {
 
             return (
               <button key={p.id} onClick={function(){ if(!isLocked) onSelect(p.id) }}
-                title={isLocked ? 'Completa los 5 pilares base para desbloquear' : pp===100 ? '¡Sección completa!' : 'Te falta '+(100-pp)+'% para terminar esta sección'}
+                title={isLocked ? 'Completa los 6 pilares estratégicos para desbloquear' : pp===100 ? '¡Sección completa!' : 'Te falta '+(100-pp)+'% para terminar esta sección'}
                 className={'group relative flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-all text-center '
                   + (isLocked
                     ? 'border-slate-200 bg-slate-50 cursor-not-allowed opacity-60'

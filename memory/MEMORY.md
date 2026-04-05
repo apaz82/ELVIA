@@ -1,11 +1,12 @@
 # OPTIMA-CV · MEMORY
 
-## Última Actualización: 2026-04-05
-**Foco**: Recalibración Onboarding (100%) y Persistencia de CVs.
+## Última Actualización: 2026-04-05 (Sesión 2)
+**Foco**: Auditoría y Refinamiento UI/UX (Pulido Final).
 
 ### Resumen del Último Trabajo
 - **Autoconocimiento 100%**: Se ajustó la lógica de progreso a 5 secciones (Aspiraciones, Hard, Soft, Power Skills, Compañías) con requisitos mínimos (3 skills, 2 compañías).
 - **Persistencia de CV**: Se aseguró que tanto los CVs subidos en el onboarding como los creados en el wizard se guarden como `tipo: original` para ser accesibles en la pestaña "CV Inicial" de Mis CVs.
+- **Auditoría UI/UX Finalizada**: Se corrigieron errores ortográficos en Sidebar y Proyecto Laboral, se unificaron colores de tags a Índigo, se ajustó la lógica del trofeo de documentos y se redujo el tamaño del Chatbot para ser menos intrusivo.
 - **Desbloqueo de Features**: Se verificó que el progreso al 100% libera las secciones protegidas (Mis CVs y Gerente de Búsqueda).
 
 ### Pendientes Críticos

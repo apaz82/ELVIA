@@ -123,7 +123,7 @@ const CompanyUsersTab = ({ company, users, invitations, onRefresh, fmtDate, db, 
                 ))}
                 {users.length === 0 && (
                   <div className="py-24 text-center">
-                    <PI.UserSlash size={48} className="mx-auto text-slate-800 mb-4" weight="duotone" />
+                    <PI.UserCircleDashed size={48} className="mx-auto text-slate-800 mb-4" weight="duotone" />
                     <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Aún no hay usuarios activos</p>
                   </div>
                 )}

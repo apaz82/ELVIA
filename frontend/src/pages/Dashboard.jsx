@@ -317,7 +317,7 @@ export default function Dashboard() {
             {proyectoPct === 100 ? '🎉 Proyecto 100% completo — estás listo para postular con estrategia' :
              proyectoPct >= 70  ? 'Muy buen avance — afina los últimos detalles' :
              proyectoPct >= 40  ? 'Buen inicio — completa las secciones restantes' :
-             proyectoPct > 0    ? 'Recién empezando — completa tu perfil de proyecto' :
+             proyectoPct > 0    ? 'Recién empezando — Completa tu perfil de proyecto' :
                                   'Aún no has iniciado tu plan — te toma menos de 10 min'}
           </p>
         </div>

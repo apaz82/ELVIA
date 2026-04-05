@@ -1,7 +1,9 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import * as PI from '@phosphor-icons/react'
 import Badge from '../shared/Badge'
 import SectionHeading from '../shared/SectionHeading'
+import AdminSkeleton from '../shared/AdminSkeleton'
+import { toast } from 'react-hot-toast'
 
 const UserRow = ({ u, onEdit, onView, fmtDate }) => {
   const nombre = [u.nombre1, u.nombre2, u.apellido1, u.apellido2].filter(Boolean).join(' ') || '—'
@@ -94,7 +96,15 @@ const UsersTab = ({ users, onRefresh, fmtDate, db, API_URL }) => {
   const [editUser, setEditUser] = useState(null)
   const [viewUser, setViewUser] = useState(null)
   const [page, setPage]         = useState(0)
+  const [localLoading, setLocalLoading] = useState(false)
   const PER_PAGE = 10
+
+  const handleRefresh = async () => {
+    setLocalLoading(true)
+    await onRefresh()
+    setLocalLoading(false)
+    toast.success('Directorio sincronizado', { id: 'sync-users' })
+  }
 
   const filtered = users.filter(u => {
     const q = search.toLowerCase()
@@ -107,11 +117,13 @@ const UsersTab = ({ users, onRefresh, fmtDate, db, API_URL }) => {
   const paginated  = filtered.slice(page * PER_PAGE, (page + 1) * PER_PAGE)
   const totalPages = Math.ceil(filtered.length / PER_PAGE)
 
+  if (localLoading && users.length === 0) return <AdminSkeleton type="table" />
+
   return (
     <div className="space-y-8 animate-fade-in">
       <SectionHeading 
         title="Gestión de Talento" 
-        subtitle="Administración de perfiles y accesos del sistema"
+        subtitle="Administración de perfiles y accesos del sistema ELVIA"
         icon={PI.UsersThree}
       >
         <div className="flex items-center gap-4 bg-slate-900/50 p-2 rounded-[1.5rem] border border-slate-800">
@@ -123,14 +135,23 @@ const UsersTab = ({ users, onRefresh, fmtDate, db, API_URL }) => {
               className="w-full bg-slate-950/50 border border-slate-800 rounded-2xl pl-12 pr-4 py-3 text-[10px] font-black uppercase tracking-widest text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50 placeholder:text-slate-700 transition-all"
             />
           </div>
-          <button onClick={onRefresh}
-            className="bg-indigo-600 hover:bg-indigo-500 text-white p-3 rounded-2xl shadow-xl shadow-indigo-900/20 transition-all active:scale-95">
-            <PI.ArrowClockwise size={20} weight="bold" />
+          <button onClick={handleRefresh} disabled={localLoading}
+            className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white p-3 rounded-2xl shadow-xl shadow-indigo-900/20 transition-all active:scale-95">
+            <PI.ArrowClockwise size={20} weight="bold" className={localLoading ? 'animate-spin' : ''} />
           </button>
         </div>
       </SectionHeading>
 
-      <div className="bg-[#111827] rounded-[2.5rem] border border-slate-800 shadow-2xl overflow-hidden">
+      <div className="bg-[#111827] rounded-[2.5rem] border border-slate-800 shadow-2xl overflow-hidden relative">
+        {localLoading && (
+          <div className="absolute inset-0 bg-slate-950/20 backdrop-blur-[1px] z-10 flex items-center justify-center">
+             <div className="bg-indigo-600/10 border border-indigo-500/30 px-6 py-3 rounded-2xl flex items-center gap-3">
+               <PI.CircleNotch size={20} className="text-indigo-500 animate-spin" />
+               <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Refrescando Red...</span>
+             </div>
+          </div>
+        )}
+
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead className="bg-slate-900/50 border-b border-slate-800">
@@ -142,7 +163,7 @@ const UsersTab = ({ users, onRefresh, fmtDate, db, API_URL }) => {
             </thead>
             <tbody className="divide-y divide-slate-800/50">
               {paginated.length === 0
-                ? <tr><td colSpan={8} className="px-6 py-24 text-center text-slate-600 text-[10px] font-black uppercase tracking-[0.3em]">No se detectaron usuarios</td></tr>
+                ? <tr><td colSpan={8} className="px-6 py-24 text-center text-slate-600 text-[10px] font-black uppercase tracking-[0.3em]">No se detectaron usuarios registrados</td></tr>
                 : paginated.map(u => <UserRow key={u.id} u={u} onEdit={setEditUser} onView={setViewUser} fmtDate={fmtDate} />)
               }
             </tbody>
@@ -167,8 +188,6 @@ const UsersTab = ({ users, onRefresh, fmtDate, db, API_URL }) => {
           </div>
         )}
       </div>
-
-      {/* Modals placeholders - to be integrated later or kept if handled by parent */}
     </div>
   )
 }

@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react'
 import * as PI from '@phosphor-icons/react'
 import SectionHeading from '../shared/SectionHeading'
+import { toast } from 'react-hot-toast'
 
 const SystemTab = ({ db, API_URL }) => {
   const [status, setStatus]   = useState(null)
   const [loading, setLoading] = useState(true)
-  const [copied, setCopied]   = useState('')
 
   const fetchStatus = async () => {
     setLoading(true)
@@ -20,6 +20,7 @@ const SystemTab = ({ db, API_URL }) => {
       setStatus(data)
     } catch (err) {
       console.error('Error fetching system status:', err)
+      toast.error('Fallo en la comunicación con el núcleo del sistema')
     } finally {
       setLoading(false)
     }
@@ -29,8 +30,7 @@ const SystemTab = ({ db, API_URL }) => {
 
   const copy = (text, key) => {
     navigator.clipboard.writeText(text)
-    setCopied(key)
-    setTimeout(() => setCopied(''), 2000)
+    toast.success('Script SQL copiado al portapapeles', { id: `copy-${key}` })
   }
 
   const SQL_COLUMNS = `-- Agregar columnas necesarias

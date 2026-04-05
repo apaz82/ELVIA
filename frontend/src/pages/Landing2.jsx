@@ -98,7 +98,7 @@ const FEATURE_ROWS = {
     },
     {
       Icon: LinkedinLogo,
-      titulo: 'LinkedIn Optimo',
+      titulo: 'LinkedIn Pro',
       desc: 'Tu perfil optimizado para aparecer cuando los recruiters que importan están buscando.',
       cta: 'Optimizar perfil',
       gradientStyle: GRAD.blue,

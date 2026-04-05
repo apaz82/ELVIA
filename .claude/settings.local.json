@@ -1,6 +1,5 @@
 {
   "permissions": {
-    "defaultMode": "acceptEdits",
     "allow": [
       "Bash(npm run:*)",
       "Bash(npm list:*)",
@@ -11,8 +10,11 @@
       "Bash(git log:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "WebFetch(domain:www.yeldra.com)"
-    ]
+      "WebFetch(domain:www.yeldra.com)",
+      "Bash(python3)",
+      "Bash(grep -v \"//.*comment\")"
+    ],
+    "defaultMode": "acceptEdits"
   },
   "hooks": {
     "PreToolUse": [
