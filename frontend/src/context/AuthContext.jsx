@@ -44,10 +44,32 @@ export const AuthProvider = ({ children }) => {
       .eq('id', userId)
       .maybeSingle()
     if (data) {
-      setPerfil(data)
+      let perfActualizado = { ...data }
+
+      // Si no tiene nombre1, intentar recuperarlo de los metadatos del registro
+      if (!data.nombre1) {
+        const { data: { user: authUser } } = await supabase.auth.getUser()
+        const meta = authUser?.user_metadata || {}
+        if (meta.nombre1 || meta.apellido1) {
+          const nombreCompleto = [meta.nombre1, meta.apellido1].filter(Boolean).join(' ')
+          const updates = {
+            nombre1:     meta.nombre1    || null,
+            apellido1:   meta.apellido1  || null,
+            indicativo1: meta.indicativo1 || null,
+            telefono1:   meta.telefono1  || null,
+            nombre:      nombreCompleto  || null,
+          }
+          await supabase.from('profiles').update(updates).eq('id', userId)
+          perfActualizado = { ...perfActualizado, ...updates }
+        }
+      }
+
       if (email && !data.email_principal) {
         await supabase.from('profiles').update({ email_principal: email }).eq('id', userId)
+        perfActualizado.email_principal = email
       }
+
+      setPerfil(perfActualizado)
     }
     setPerfilCargado(true)
   }
@@ -92,7 +114,11 @@ export const AuthProvider = ({ children }) => {
   }, [])
 
   const login    = (email, password) => supabase.auth.signInWithPassword({ email, password })
-  const register = (email, password) => supabase.auth.signUp({ email, password })
+
+  // register guarda nombre/apellido/teléfono en user_metadata para recuperarlos
+  // en fetchPerfil cuando el usuario confirme su email y haga primer login
+  const register = (email, password, extraData = {}) =>
+    supabase.auth.signUp({ email, password, options: { data: extraData } })
   const logout   = () => supabase.auth.signOut()
 
   // ── Lógica de plan y acceso ───────────────────────────────────────────────

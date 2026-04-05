@@ -28,6 +28,18 @@ export const obtenerInfografia = async (id) => {
   return api.get(`/api/cv/infografia/${id}`)
 }
 
+// Extraer datos del perfil del CV para pre-llenar el onboarding
+export const extractarPerfilCV = async (archivo) => {
+  const formData = new FormData()
+  formData.append('cv', archivo)
+  return api.postForm('/api/cv/extract-profile', formData)
+}
+
+// Generar CV desde formulario estructurado
+export const generarCVDesdeCero = async (datos, language = 'es') => {
+  return api.post('/api/cv/generar', { datos, language })
+}
+
 // Descargar CV generado como PDF o Word
 export const descargarCV = async (id, format = 'pdf') => {
   const res = await api.download(`/api/cv/download/${id}?format=${format}`)

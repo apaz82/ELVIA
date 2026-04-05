@@ -8,9 +8,10 @@ const rateLimit = require('express-rate-limit');
 // Rate limiter estricto para POST /api/waitlist: 5 por hora por IP
 const waitlistLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hora
-  max: 5, // máximo 5 registros por IP por hora
+  max: 5,
+  validate:     { keyGeneratorIpFallback: false },
   keyGenerator: (req) => req.ip || req.connection.remoteAddress,
-  handler: (req, res) => res.status(429).json({ error: 'Demasiados intentos. Intenta en una hora.' })
+  handler:      (req, res) => res.status(429).json({ error: 'Demasiados intentos. Intenta en una hora.' })
 });
 
 // Situaciones permitidas (validadas en servidor)
@@ -136,9 +137,10 @@ router.post('/', waitlistLimiter, async (req, res, next) => {
 // Analytics tracking — IP-based rate limiter (60/min by IP to prevent abuse)
 const trackLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minuto
-  max: 1, // máximo 1 por IP por minuto (suficiente para analytics)
+  max: 1,
+  validate:     { keyGeneratorIpFallback: false },
   keyGenerator: (req) => req.ip || req.connection.remoteAddress,
-  handler: (req, res) => res.status(200).json({ success: false }) // silent fail para no romper UX
+  handler:      (req, res) => res.status(200).json({ success: false }) // silent fail para no romper UX
 });
 
 router.post('/track', trackLimiter, async (req, res, next) => {

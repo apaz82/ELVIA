@@ -1,0 +1,194 @@
+// Generador de CV desde cero — formulario estructurado → Claude → Harvard
+const generarCV = async (req, res, next) => {
+  try {
+    const { datos, language = 'es' } = req.body
+    const userId = req.user.id
+
+    // Validar campos mínimos
+    if (!datos || !datos.nombre || !datos.apellido) {
+      return res.status(400).json({ error: 'Nombre y apellido son requeridos' })
+    }
+
+    // Al menos un campo de contenido (resumen O experiencia)
+    const tieneResumen = datos.resumen && datos.resumen.trim().length > 20
+    const tieneExp = Array.isArray(datos.experiencias) && datos.experiencias.some(e => e.empresa && e.cargo)
+    if (!tieneResumen && !tieneExp) {
+      return res.status(400).json({ error: 'Completa al menos el resumen o una experiencia laboral' })
+    }
+
+    // Construir texto estructurado para enviar a Claude
+    const nombreCompleto = [datos.nombre, datos.nombre2, datos.apellido, datos.apellido2]
+      .filter(Boolean).join(' ').trim()
+
+    const contacto = [
+      datos.email,
+      datos.telefono ? `${datos.indicativo || '+1'} ${datos.telefono}` : null,
+      datos.ciudad && datos.pais ? `${datos.ciudad}, ${datos.pais}` : (datos.ciudad || datos.pais || null)
+    ].filter(Boolean).join(' • ')
+
+    const experienciasFormato = (Array.isArray(datos.experiencias) && datos.experiencias.length > 0)
+      ? datos.experiencias
+          .filter(e => e.empresa || e.cargo)
+          .map(e => `${e.empresa || 'Empresa'} | ${e.cargo || 'Cargo'} (${e.fecha_inicio || 'Inicio'} - ${e.fecha_fin || 'Presente'})\n${e.descripcion || ''}`)
+          .join('\n\n')
+      : 'No proporcionada'
+
+    const educacionFormato = (Array.isArray(datos.educacion) && datos.educacion.length > 0)
+      ? datos.educacion
+          .filter(e => e.institucion || e.titulo)
+          .map(e => `${e.institucion || 'Institución'} | ${e.titulo || 'Título'} (${e.anio || 'Año'})`)
+          .join('\n')
+      : 'No proporcionada'
+
+    const habilidadesFormato = (Array.isArray(datos.habilidades) && datos.habilidades.length > 0)
+      ? datos.habilidades.join(', ')
+      : 'No proporcionadas'
+
+    const idiomasFormato = (Array.isArray(datos.idiomas) && datos.idiomas.length > 0)
+      ? datos.idiomas.map(i => `${i.idioma || 'Idioma'} - ${i.nivel || 'N/A'}`).join(', ')
+      : 'No proporcionados'
+
+    const idiomaLabel = language === 'en' ? 'ENGLISH' : language === 'pt' ? 'PORTUGUES' : 'ESPANOL'
+
+    // Sistema base (inline — no depende del export de claudeService)
+    const SISTEMA_CV = `Eres un experto en recursos humanos y redaccion de CV con 20 anos de experiencia
+en el mercado laboral de LATAM y USA. Tus analisis son objetivos.
+
+REGLAS ESTRICTAS:
+- Nunca inventes informacion que no este en los datos provistos
+- Solo optimiza y reformula lo que ya existe
+- Usa verbos de accion en los logros (lidere, implemente, aumente, reduje, gestioné)
+- Cuantifica logros solo si los datos ya estan presentes
+
+ESTRUCTURA HARVARD OBLIGATORIA:
+NOMBRE COMPLETO
+Email | Telefono | Ciudad, Pais
+───────────────────────────────────────────
+RESUMEN PROFESIONAL
+Parrafo de 3-4 lineas con propuesta de valor.
+───────────────────────────────────────────
+EXPERIENCIA PROFESIONAL
+Empresa — Cargo | Ciudad, Pais | Mes Año – Mes Año
+• Logro o responsabilidad con verbo de accion
+───────────────────────────────────────────
+EDUCACION
+Institucion — Titulo | Año
+───────────────────────────────────────────
+HABILIDADES
+• Habilidades clave
+───────────────────────────────────────────
+IDIOMAS
+• Idioma - Nivel`
+
+    // Llamar a Claude
+    const Anthropic = require('@anthropic-ai/sdk')
+    const anthropic = new Anthropic()
+
+    const response = await anthropic.messages.create({
+      model: 'claude-haiku-4-5-20251001',  // Haiku es suficiente para generar desde datos estructurados
+      max_tokens: 4096,
+      system: SISTEMA_CV,
+      messages: [{
+        role: 'user',
+        content: `Construye un CV profesional en formato Harvard a partir de los siguientes datos estructurados.
+
+REGLAS CRITICAS:
+- USA SOLO la informacion provista. NO inventes datos ni logros
+- Aplica verbos de impacto y cuantifica logros cuando hay numeros en los datos
+- Sigue el formato Harvard estrictamente
+- Todo el CV DEBE estar en ${idiomaLabel}
+- Usa bullets con "•" y lineas divisoras "──────────────────────────────────────────────"
+- NO incluyas fecha de nacimiento, estado civil, ni foto
+
+DATOS DEL CANDIDATO:
+Nombre: ${nombreCompleto}
+Cargo objetivo: ${datos.cargo_objetivo || 'No especificado'}
+Contacto: ${contacto}
+Resumen profesional: ${datos.resumen || 'No proporcionado'}
+
+EXPERIENCIA LABORAL:
+${experienciasFormato}
+
+EDUCACION:
+${educacionFormato}
+
+HABILIDADES:
+${habilidadesFormato}
+
+IDIOMAS:
+${idiomasFormato}
+
+Responde EXACTAMENTE con estos delimitadores XML (sin texto fuera de ellos):
+<CV>[CV completo optimizado en formato Harvard]</CV>
+<CAMBIOS>- mejora aplicada 1\n- mejora 2</CAMBIOS>
+<RECOMENDACIONES>- recomendacion 1\n- recomendacion 2</RECOMENDACIONES>`
+      }]
+    })
+
+    const text = response.content[0].text
+
+    // Parsear respuesta con delimitadores XML
+    const cvMatch  = text.match(/<CV>([\s\S]*?)<\/CV>/)
+    const cambiosMatch = text.match(/<CAMBIOS>([\s\S]*?)<\/CAMBIOS>/)
+    const recMatch = text.match(/<RECOMENDACIONES>([\s\S]*?)<\/RECOMENDACIONES>/)
+
+    const cvText = cvMatch ? cvMatch[1].trim() : text.trim()
+    const cambios = cambiosMatch
+      ? cambiosMatch[1].trim().split('\n').map(l => l.replace(/^[-•]\s*/, '').trim()).filter(Boolean)
+      : []
+    const recomendaciones = recMatch
+      ? recMatch[1].trim().split('\n').map(l => l.replace(/^[-•]\s*/, '').trim()).filter(Boolean)
+      : []
+
+    if (!cvText) {
+      return res.status(500).json({ error: 'No se pudo generar la CV. Intenta de nuevo.' })
+    }
+
+    // Guardar en cv_results
+    const supabase = req.supabase
+    const { data: savedCV, error: errorSave } = await supabase.from('cv_results').insert({
+      user_id: userId,
+      tipo: 'desde_cero',
+      contenido: cvText,
+      metadata: { datos_originales: datos, cambios, recomendaciones, language }
+    }).select('id').single()
+
+    if (errorSave) {
+      console.error('Error saving CV to cv_results:', errorSave)
+      return res.status(500).json({ error: 'Error al guardar la CV generada' })
+    }
+
+    // Incrementar contadores (sin .raw() — Supabase JS v2 no lo soporta)
+    const { data: profileData } = await supabase.from('profiles')
+      .select('cv_optimizer_count, usage_count, plan')
+      .eq('id', userId)
+      .single()
+
+    await supabase.from('profiles').update({
+      cv_optimizer_count: (profileData?.cv_optimizer_count || 0) + 1,
+      usage_count:        (profileData?.usage_count || 0) + 1
+    }).eq('id', userId)
+
+    const isPaidPlan = profileData && ['semanal', 'mensual', 'trimestral', 'anual'].includes(profileData.plan)
+
+    res.json({
+      id: savedCV.id,
+      optimizedCV: cvText,
+      changes: cambios,
+      recommendations: recomendaciones,
+      language,
+      usageCount: (profileData?.usage_count || 0) + 1,
+      cv_optimizer_count: (profileData?.cv_optimizer_count || 0) + 1,
+      watermark: !isPaidPlan
+    })
+  } catch (err) {
+    console.error('Error en generarCV:', err.message, err.stack)
+    res.status(500).json({
+      error: 'Error al generar la CV.',
+      detalle: err.message,   // temporal para debug — remover en producción
+      stack: err.stack?.split('\n').slice(0, 4).join(' | ')
+    })
+  }
+}
+
+module.exports = { generarCV }

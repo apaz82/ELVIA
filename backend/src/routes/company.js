@@ -4,10 +4,10 @@
 // Requiere: auth + requireRole('company_admin')
 // ============================================================================
 
-import express from 'express'
-import { createClient } from '@supabase/supabase-js'
-import { auth } from '../middleware/auth.js'
-import { requireRole } from '../middleware/requireAdmin.js'
+const express = require('express')
+const { createClient } = require('@supabase/supabase-js')
+const auth = require('../middleware/auth')
+const requireRole = require('../middleware/requireAdmin')
 
 const router = express.Router()
 const db = createClient(
@@ -651,4 +651,4 @@ router.post('/costs/export', auth, requireRole('company_admin'), async (req, res
   }
 })
 
-export default router
+module.exports = router

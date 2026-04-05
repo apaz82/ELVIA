@@ -6,6 +6,23 @@ import { supabase } from '../services/authService'
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:3001'
 
+const INDICATIVOS_REG = [
+  {code:'+52',label:'MX +52'},{code:'+57',label:'CO +57'},{code:'+54',label:'AR +54'},
+  {code:'+56',label:'CL +56'},{code:'+51',label:'PE +51'},{code:'+58',label:'VE +58'},
+  {code:'+593',label:'EC +593'},{code:'+591',label:'BO +591'},{code:'+598',label:'UY +598'},
+  {code:'+506',label:'CR +506'},{code:'+507',label:'PA +507'},{code:'+503',label:'SV +503'},
+  {code:'+502',label:'GT +502'},{code:'+504',label:'HN +504'},{code:'+505',label:'NI +505'},
+  {code:'+1',label:'DO +1'},{code:'+53',label:'CU +53'},{code:'+34',label:'ES +34'},
+  {code:'+1',label:'US +1'},{code:'+1',label:'CA +1'},{code:'+55',label:'BR +55'},
+]
+
+const checkPassword = (pwd) => ({
+  length:  pwd.length >= 8,
+  upper:   /[A-Z]/.test(pwd),
+  number:  /[0-9]/.test(pwd),
+  special: /[!@#$%^&*()\-_=+\[\]{};:'"\\|,.<>/?]/.test(pwd),
+})
+
 export default function Auth() {
   const { user, login, register, onboardingPendiente, isRecovering } = useAuth()
   const navigate = useNavigate()
@@ -15,12 +32,21 @@ export default function Auth() {
     searchParams.get('register') ? 'register' :
     searchParams.get('forgot')   ? 'forgot'   : 'login'
   )
-  const [email, setEmail]       = useState('')
-  const [password, setPassword] = useState('')
+  const [email, setEmail]         = useState('')
+  const [password, setPassword]   = useState('')
+  const [showPwd, setShowPwd]     = useState(false)
+  const [nombre, setNombre]       = useState('')
+  const [apellido, setApellido]   = useState('')
+  const [indicativo, setIndicativo] = useState('+52')
+  const [telefono, setTelefono]   = useState('')
   const [loading, setLoading]           = useState(false)
   const [error, setError]               = useState('')
   const [aceptaPolitica, setAceptaPolitica] = useState(false)
   const [codigoAcceso, setCodigoAcceso] = useState('')
+
+  const pwdChecks = checkPassword(password)
+  const pwdScore  = Object.values(pwdChecks).filter(Boolean).length
+  const pwdStrong = pwdScore === 4
 
   // Estados de pantallas de confirmación
   const [verificando, setVerificando]     = useState(false) // post-registro
@@ -49,6 +75,7 @@ export default function Auth() {
     setModo(nuevoModo)
     setError('')
     setPassword('')
+    setNombre(''); setApellido(''); setTelefono('')
   }
 
   // ── Traducción de errores de Supabase ─────────────────────────────────────
@@ -56,7 +83,7 @@ export default function Auth() {
     if (msg.includes('Invalid login credentials')) return 'Email o contraseña incorrectos.'
     if (msg.includes('Email not confirmed'))        return 'Debes verificar tu email antes de iniciar sesión.'
     if (msg.includes('User already registered'))    return 'Ya existe una cuenta con este email.'
-    if (msg.includes('Password should be'))         return 'La contraseña debe tener al menos 6 caracteres.'
+    if (msg.includes('Password should be'))         return 'La contraseña no cumple los requisitos mínimos de seguridad.'
     if (msg.includes('rate limit'))                 return 'Demasiados intentos. Espera unos minutos.'
     return msg
   }
@@ -72,25 +99,29 @@ export default function Auth() {
         const { error } = await login(email, password)
         if (error) setError(traducirError(error.message))
       } else {
-        if (!aceptaPolitica) {
-          setError('Debes aceptar la política de tratamiento de datos para registrarte.')
-          setLoading(false)
-          return
-        }
-        const { error } = await register(email, password)
+        // Validaciones de registro
+        if (!nombre.trim())    { setError('El nombre es requerido.'); setLoading(false); return }
+        if (!apellido.trim())  { setError('El apellido es requerido.'); setLoading(false); return }
+        if (!pwdStrong)        { setError('La contraseña no cumple los requisitos de seguridad.'); setLoading(false); return }
+        if (!aceptaPolitica)   { setError('Debes aceptar la política de tratamiento de datos.'); setLoading(false); return }
+
+        const { error } = await register(email, password, {
+          nombre1:    nombre.trim(),
+          apellido1:  apellido.trim(),
+          indicativo1: indicativo,
+          telefono1:  telefono.trim() || null,
+        })
         if (error) {
           setError(traducirError(error.message))
         } else {
-          // Guardar código de acceso para canjearlo tras el primer login
           if (codigoAcceso.trim()) {
             localStorage.setItem('pending_access_code', codigoAcceso.trim().toUpperCase())
           }
-          // Enviar email de bienvenida via Resend (no bloquea el flujo)
           fetch(`${API}/api/email/bienvenida`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email }),
-          }).catch(() => {}) // silenciar errores del email, no son críticos
+          }).catch(() => {})
           setVerificando(true)
         }
       }
@@ -251,8 +282,56 @@ export default function Auth() {
           ) : (
             /* ── Formulario login / registro ── */
             <form onSubmit={handleSubmit} className="space-y-4">
+
+              {/* Nombre + Apellido — solo en registro */}
+              {modo === 'register' && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-600 mb-1">Nombre <span className="text-red-400">*</span></label>
+                    <input
+                      type="text" value={nombre} onChange={e => setNombre(e.target.value)} required
+                      placeholder="Ej: María"
+                      className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-colors"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-600 mb-1">Apellido <span className="text-red-400">*</span></label>
+                    <input
+                      type="text" value={apellido} onChange={e => setApellido(e.target.value)} required
+                      placeholder="Ej: García"
+                      className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-colors"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Teléfono — solo en registro */}
+              {modo === 'register' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-600 mb-1">
+                    Teléfono <span className="text-gray-400 font-normal">(opcional)</span>
+                  </label>
+                  <div className="flex gap-2">
+                    <select
+                      value={indicativo} onChange={e => setIndicativo(e.target.value)}
+                      className="border border-gray-200 rounded-xl px-2 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 bg-white text-gray-700 shrink-0"
+                    >
+                      {INDICATIVOS_REG.map((i, idx) => (
+                        <option key={idx} value={i.code}>{i.label}</option>
+                      ))}
+                    </select>
+                    <input
+                      type="tel" value={telefono} onChange={e => setTelefono(e.target.value.replace(/\D/g, ''))}
+                      placeholder="55 1234 5678"
+                      className="flex-1 border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-colors"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Email */}
               <div>
-                <label className="block text-sm font-medium text-gray-600 mb-1">Email</label>
+                <label className="block text-sm font-medium text-gray-600 mb-1">Email <span className="text-red-400">*</span></label>
                 <input
                   type="email" value={email} onChange={e => setEmail(e.target.value)} required
                   placeholder="tu@email.com"
@@ -260,26 +339,61 @@ export default function Auth() {
                 />
               </div>
 
+              {/* Contraseña */}
               <div>
                 <div className="flex items-center justify-between mb-1">
-                  <label className="block text-sm font-medium text-gray-600">Contraseña</label>
+                  <label className="block text-sm font-medium text-gray-600">
+                    Contraseña <span className="text-red-400">*</span>
+                  </label>
                   {modo === 'login' && (
-                    <button
-                      type="button"
-                      onClick={() => cambiarModo('forgot')}
-                      className="text-xs text-teal-600 hover:underline font-medium"
-                    >
+                    <button type="button" onClick={() => cambiarModo('forgot')}
+                      className="text-xs text-teal-600 hover:underline font-medium">
                       ¿Olvidaste tu contraseña?
                     </button>
                   )}
                 </div>
-                <input
-                  type="password" value={password} onChange={e => setPassword(e.target.value)} required
-                  placeholder="••••••••" minLength={6}
-                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-colors bg-transparent text-gray-900"
-                />
-                {modo === 'register' && (
-                  <p className="text-xs text-gray-400 mt-1">Mínimo 6 caracteres</p>
+                <div className="relative">
+                  <input
+                    type={showPwd ? 'text' : 'password'}
+                    value={password} onChange={e => setPassword(e.target.value)} required
+                    placeholder="••••••••"
+                    className="w-full border border-gray-200 rounded-xl px-4 py-2.5 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-colors bg-transparent text-gray-900"
+                  />
+                  <button type="button" onClick={() => setShowPwd(v => !v)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xs font-medium">
+                    {showPwd ? 'Ocultar' : 'Ver'}
+                  </button>
+                </div>
+
+                {/* Indicador de fortaleza — solo en registro */}
+                {modo === 'register' && password.length > 0 && (
+                  <div className="mt-2 space-y-1.5">
+                    {/* Barra */}
+                    <div className="flex gap-1">
+                      {[0,1,2,3].map(i => (
+                        <div key={i} className={'h-1 flex-1 rounded-full transition-colors '+(
+                          pwdScore > i
+                            ? pwdScore === 4 ? 'bg-emerald-500'
+                            : pwdScore === 3 ? 'bg-amber-400'
+                            : 'bg-red-400'
+                            : 'bg-gray-200'
+                        )}/>
+                      ))}
+                    </div>
+                    {/* Checklist */}
+                    <div className="grid grid-cols-2 gap-x-3 gap-y-0.5">
+                      {[
+                        { key:'length',  label:'8+ caracteres'  },
+                        { key:'upper',   label:'1 mayúscula'    },
+                        { key:'number',  label:'1 número'       },
+                        { key:'special', label:'1 símbolo (!@#…)'},
+                      ].map(c => (
+                        <p key={c.key} className={'text-xs flex items-center gap-1 '+(pwdChecks[c.key]?'text-emerald-600':'text-gray-400')}>
+                          <span>{pwdChecks[c.key] ? '✓' : '○'}</span> {c.label}
+                        </p>
+                      ))}
+                    </div>
+                  </div>
                 )}
               </div>
 
@@ -287,16 +401,13 @@ export default function Auth() {
               {modo === 'register' && (
                 <div>
                   <label className="block text-sm font-medium text-gray-600 mb-1">
-                    Código de acceso{' '}
-                    <span className="text-gray-400 font-normal">(opcional)</span>
+                    Código de acceso <span className="text-gray-400 font-normal">(opcional)</span>
                   </label>
                   <input
-                    type="text"
-                    value={codigoAcceso}
+                    type="text" value={codigoAcceso}
                     onChange={e => setCodigoAcceso(e.target.value.toUpperCase())}
-                    placeholder="Ej: BETA2025"
-                    maxLength={30}
-                    className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-colors bg-transparent text-gray-900 uppercase tracking-widest placeholder-normal"
+                    placeholder="Ej: BETA2025" maxLength={30}
+                    className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-colors uppercase tracking-widest"
                   />
                   <p className="text-xs text-gray-400 mt-1">¿Te compartieron un código? Ingrésalo aquí para activar tu plan.</p>
                 </div>
@@ -305,9 +416,7 @@ export default function Auth() {
               {/* Checkbox política — solo en registro */}
               {modo === 'register' && (
                 <label className="flex items-start gap-3 cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    checked={aceptaPolitica}
+                  <input type="checkbox" checked={aceptaPolitica}
                     onChange={e => { setAceptaPolitica(e.target.checked); setError('') }}
                     className="mt-0.5 w-4 h-4 accent-teal-600 shrink-0 cursor-pointer"
                   />
@@ -316,8 +425,7 @@ export default function Auth() {
                     <a href="/privacidad" target="_blank" rel="noreferrer"
                        className="text-teal-600 font-semibold hover:underline">
                       Política de Privacidad y Tratamiento de Datos
-                    </a>
-                    {' '}de OPTIMA | CV.
+                    </a>{' '}de OPTIMA | CV.
                   </span>
                 </label>
               )}
@@ -327,12 +435,13 @@ export default function Auth() {
               )}
 
               <button
-                type="submit" disabled={loading || (modo === 'register' && !aceptaPolitica)}
+                type="submit"
+                disabled={loading || (modo === 'register' && (!aceptaPolitica || !pwdStrong))}
                 className="btn-primary w-full disabled:opacity-60"
               >
                 {loading
                   ? <span className="flex items-center justify-center gap-2">
-                      <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                      <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin"/>
                       {modo === 'login' ? 'Entrando...' : 'Registrando...'}
                     </span>
                   : modo === 'login' ? 'Entrar' : 'Registrarme'

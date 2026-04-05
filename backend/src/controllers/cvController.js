@@ -10,14 +10,14 @@ const { incrementDailyCap } = require('../middleware/dailyCap');
 const optimize = async (req, res, next) => {
   try {
     if (!req.file) {
-      return res.status(400).json({ error: 'No se recibió ningún archivo' });
+      return res.status(400).json({ error: 'No se recibio ningun archivo' });
     }
 
-    // Validación de tamaño de archivo (MAX 50MB)
+    // Validacion de tamano de archivo (MAX 50MB)
     const MAX_CV_SIZE = 50 * 1024 * 1024;
     if (req.file.size > MAX_CV_SIZE) {
       return res.status(413).json({
-        error: 'El archivo es demasiado grande. Máximo 50MB permitido.',
+        error: 'El archivo es demasiado grande. Maximo 50MB permitido.',
         maxSize: MAX_CV_SIZE,
         receivedSize: req.file.size
       });
@@ -26,25 +26,24 @@ const optimize = async (req, res, next) => {
     const db = req.supabase;
     const cvText = await parseCV(req.file.buffer, req.file.mimetype);
 
-    // Validación de longitud de texto (MAX 50K caracteres)
+    // Validacion de longitud de texto (MAX 50K caracteres)
     const MAX_TEXT_LENGTH = 50000;
     if (cvText.length > MAX_TEXT_LENGTH) {
       return res.status(413).json({
-        error: 'El CV contiene demasiado texto. Máximo 50,000 caracteres.',
+        error: 'El CV contiene demasiado texto. Maximo 50,000 caracteres.',
         maxChars: MAX_TEXT_LENGTH,
         receivedChars: cvText.length
       });
     }
 
-    // NUEVO: Validación de Identidad del Onboarding
+    // Validacion de Identidad del Onboarding
     const { data: profile } = await db.from('profiles').select('nombre1, apellido1').eq('id', req.user.id).single();
     if (profile) {
-      const cvTextNorm = cvText.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-      const n1 = profile.nombre1 ? profile.nombre1.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim() : '';
-      const a1 = profile.apellido1 ? profile.apellido1.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim() : '';
-      
+      const cvTextNorm = cvText.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+      const n1 = profile.nombre1 ? profile.nombre1.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim() : '';
+      const a1 = profile.apellido1 ? profile.apellido1.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim() : '';
+
       let faltan = false;
-      // Buscamos la primera palabra del nombre o apellido por si registraron nombres compuestos
       const primerNombre = n1.split(' ')[0];
       const primerApellido = a1.split(' ')[0];
 
@@ -52,14 +51,14 @@ const optimize = async (req, res, next) => {
       if (primerApellido && !cvTextNorm.includes(primerApellido)) faltan = true;
 
       if (faltan) {
-        return res.status(400).json({ error: 'Este cv no concuerda con con la informaciòn del onboarding.' });
+        return res.status(400).json({ error: 'Este cv no concuerda con la informacion del onboarding.' });
       }
     }
 
     const language = req.body.language || 'es';
     const resultado = await optimizeCV(cvText, language);
 
-    // Incrementar contador diario de análisis (hard cap)
+    // Incrementar contador diario de analisis (hard cap)
     if (req.dailyCapDate) {
       await incrementDailyCap(req.dailyCapDate);
     }
@@ -105,10 +104,10 @@ const optimize = async (req, res, next) => {
 const matchToJob = async (req, res, next) => {
   try {
     if (!req.body.jobText) {
-      return res.status(400).json({ error: 'Falta la descripción de la vacante' });
+      return res.status(400).json({ error: 'Falta la descripcion de la vacante' });
     }
 
-    // Límites de tamaño
+    // Limites de tamano
     const MAX_CV_SIZE = 50 * 1024 * 1024;
     const MAX_CV_TEXT = 50000;
     const MAX_JOB_TEXT = 10000;
@@ -116,7 +115,7 @@ const matchToJob = async (req, res, next) => {
     // Validar jobText
     if ((req.body.jobText || '').length > MAX_JOB_TEXT) {
       return res.status(413).json({
-        error: 'La descripción de la vacante es demasiado larga',
+        error: 'La descripcion de la vacante es demasiado larga',
         maxChars: MAX_JOB_TEXT,
         receivedChars: req.body.jobText.length
       });
@@ -136,10 +135,10 @@ const matchToJob = async (req, res, next) => {
       if (error || !data) return res.status(404).json({ error: 'CV base no encontrado' });
       cvText = data.contenido;
     } else if (req.file) {
-      // Validar tamaño de archivo
+      // Validar tamano de archivo
       if (req.file.size > MAX_CV_SIZE) {
         return res.status(413).json({
-          error: 'El archivo es demasiado grande. Máximo 50MB permitido.',
+          error: 'El archivo es demasiado grande. Maximo 50MB permitido.',
           maxSize: MAX_CV_SIZE,
           receivedSize: req.file.size
         });
@@ -152,7 +151,7 @@ const matchToJob = async (req, res, next) => {
     // Validar longitud de CV
     if (cvText.length > MAX_CV_TEXT) {
       return res.status(413).json({
-        error: 'El CV contiene demasiado texto. Máximo 50,000 caracteres.',
+        error: 'El CV contiene demasiado texto. Maximo 50,000 caracteres.',
         maxChars: MAX_CV_TEXT,
         receivedChars: cvText.length
       });
@@ -161,7 +160,7 @@ const matchToJob = async (req, res, next) => {
     const language = req.body.language || 'es';
     const resultado = await matchCVtoJob(cvText, req.body.jobText, language);
 
-    // Incrementar contador diario de análisis (hard cap)
+    // Incrementar contador diario de analisis (hard cap)
     if (req.dailyCapDate) {
       await incrementDailyCap(req.dailyCapDate);
     }
@@ -212,9 +211,9 @@ const matchToJob = async (req, res, next) => {
 // Genera nombre de archivo con nomenclatura: "CV Optimizado - Nombre Apellido - MMDDAA"
 const generarNombreArchivo = (contenido, metadata, tipo, extension) => {
   let nombre = contenido?.split('\n')[0]?.trim() || 'Candidato';
-  // Limpiar el nombre de caracteres que no deberían ir en un filename (ej: |)
+  // Limpiar el nombre de caracteres que no deberian ir en un filename (ej: |)
   nombre = nombre.split('|')[0].trim();
-  
+
   const lang = metadata?.language || 'es';
   const ahora = new Date();
   const mm = String(ahora.getMonth() + 1).padStart(2, '0');
@@ -259,7 +258,6 @@ const download = async (req, res, next) => {
       const buffer = await generarWord(data.contenido, { watermark });
       const nombre = generarNombreArchivo(data.contenido, data.metadata, data.tipo, 'docx');
       res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
-      // RFC 6266 for UTF-8 filenames
       res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(nombre)}`);
       return res.send(buffer);
     }
@@ -267,7 +265,6 @@ const download = async (req, res, next) => {
     const buffer = await generarPDF(data.contenido, { watermark });
     const nombre = generarNombreArchivo(data.contenido, data.metadata, data.tipo, 'pdf');
     res.setHeader('Content-Type', 'application/pdf');
-    // RFC 6266 for UTF-8 filenames
     res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(nombre)}`);
     return res.send(buffer);
   } catch (err) {
@@ -275,60 +272,112 @@ const download = async (req, res, next) => {
   }
 };
 
-// POST /api/cv/extract-profile — extrae datos personales del CV para pre-llenar onboarding
+// POST /api/cv/extract-profile
+// Extrae datos del CV para pre-llenar el wizard de CVDesdeCero.
+// Devuelve mismatch:true si el nombre/apellido del CV no coincide con el perfil registrado
+// (en lugar de un 400) para que el frontend pueda gestionar el flujo de confirmacion.
 const extractProfile = async (req, res, next) => {
   try {
-    if (!req.file) return res.status(400).json({ error: 'No se recibió ningún archivo' });
+    if (!req.file) return res.status(400).json({ error: 'No se recibio ningun archivo' });
 
     const Anthropic = require('@anthropic-ai/sdk');
     const anthropic = new Anthropic();
 
     const cvText = await parseCV(req.file.buffer, req.file.mimetype);
+    if (!cvText || cvText.trim().length === 0) {
+      return res.status(400).json({ error: 'No se pudo extraer texto del CV. Verifica que sea un PDF o Word valido.' });
+    }
+
     const fragmento = cvText.substring(0, 4000);
 
     const response = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001', // Haiku: extracción de datos estructurados, no requiere Sonnet
-      max_tokens: 800,
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 1500,
       messages: [{
         role: 'user',
-        content: `Extrae la siguiente información del CV. Responde SOLO con JSON válido, sin texto adicional. Si no encuentras un dato, usa null o array vacío según corresponda.
+        content: `Extract information from this resume/CV. Reply ONLY with valid JSON, no additional text. Use null or empty array when data is not found.
 
-Para el campo "pais", devuelve el nombre completo del país en español (ej: "México", "Colombia", "Argentina", "España"). Infiere el país a partir de la ciudad, dirección, código de área telefónico, o cualquier otra pista en el CV.
+Rules:
+- "pais" field: full country name in Spanish (e.g. "Mexico", "Colombia", "Espana"). Infer from city, address, phone code, or any context clue.
+- "idiomas": CEFR level. "fluent/advanced" -> C1; "intermediate" -> B2; "basic" -> A2; "native/mother tongue" -> Nativo.
+- "educacion": max 4 entries. "nivel" must be one of: "Preparatoria / Bachillerato", "Tecnico / Tecnologo", "Universidad / Licenciatura", "Especializacion", "Maestria", "Doctorado", "Certificacion Profesional".
+- IMPORTANT: Keep "resumen", "experiencias[].descripcion" and "habilidades" in the ORIGINAL LANGUAGE of the CV. Do NOT translate them.
+- "experiencias": last 4 jobs. Keep descriptions in original language.
+- "habilidades": up to 12 skills in original language of the CV.
+- "resumen": profile/summary section from the beginning of the CV in original language, or null if not present.
+- "cargo_actual": most recent job title in original language, or null.
+- "edad": integer or null.
 
-Para "idiomas": extrae todos los idiomas mencionados con su nivel CEFR (A1,A2,B1,B2,C1,C2,Nativo). Si el CV dice "fluido", "avanzado" → C1; "intermedio" → B2; "básico" → A2; "nativo" o idioma materno → Nativo.
-
-Para "educacion": extrae todas las entradas de educación (máximo 4). El campo "nivel" debe ser uno de: "Preparatoria / Bachillerato", "Técnico / Tecnólogo", "Universidad / Licenciatura", "Especialización", "Maestría", "Doctorado", "Certificación Profesional".
-
-CV:
+CV text:
 ${fragmento}
 
-Formato de respuesta:
+Return ONLY this JSON:
 {
-  "nombre1": "primer nombre",
-  "nombre2": "segundo nombre o null",
-  "apellido1": "primer apellido",
-  "apellido2": "segundo apellido o null",
-  "telefono1": "teléfono principal o null",
-  "ciudad": "ciudad de residencia o null",
-  "pais": "país inferido en español o null",
-  "edad": número entero o null,
-  "idiomas": [{ "idioma": "Inglés", "nivel": "B2" }],
-  "educacion": [{ "nivel": "Universidad / Licenciatura", "titulo": "Ingeniería Industrial", "institucion": "UNAM", "anio": "2018" }]
+  "nombre1": "first name",
+  "nombre2": "second name or null",
+  "apellido1": "first surname",
+  "apellido2": "second surname or null",
+  "telefono1": "phone or null",
+  "ciudad": "city or null",
+  "pais": "country in Spanish or null",
+  "edad": null,
+  "cargo_actual": "most recent title (original language) or null",
+  "resumen": "profile summary (original language) or null",
+  "idiomas": [{ "idioma": "Ingles", "nivel": "B2" }],
+  "educacion": [{ "nivel": "Universidad / Licenciatura", "titulo": "...", "institucion": "...", "anio": "2018" }],
+  "experiencias": [{ "empresa": "...", "cargo": "...", "fecha_inicio": "...", "fecha_fin": "...", "descripcion": "..." }],
+  "habilidades": ["Excel", "Leadership", "Power BI"]
 }`,
       }],
     });
 
+    if (!response.content || !response.content[0]) {
+      return res.status(500).json({ error: 'Respuesta invalida de la IA. Intenta de nuevo.' });
+    }
+
     let jsonText = response.content[0].text.trim();
-    // Limpiar markdown si Claude lo envuelve en ```json ... ```
     jsonText = jsonText.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
     const perfil = JSON.parse(jsonText);
-    // Garantizar arrays aunque Claude devuelva null
-    if (!Array.isArray(perfil.idiomas))   perfil.idiomas   = [];
-    if (!Array.isArray(perfil.educacion)) perfil.educacion = [];
-    res.json(perfil);
+
+    if (!perfil.nombre1) {
+      return res.status(400).json({ error: 'No se encontro nombre en el CV. Verifica que sea un CV valido.' });
+    }
+
+    // Asegurar arrays bien formados
+    if (!Array.isArray(perfil.idiomas))      perfil.idiomas      = [];
+    if (!Array.isArray(perfil.educacion))    perfil.educacion    = [];
+    if (!Array.isArray(perfil.experiencias)) perfil.experiencias = [];
+    if (!Array.isArray(perfil.habilidades))  perfil.habilidades  = [];
+
+    // Validacion de identidad: compara nombre/apellido extraido con el perfil registrado.
+    // Devuelve mismatch:true (no 400) para que el frontend gestione el banner de confirmacion.
+    const db = req.supabase;
+    const { data: registeredProfile } = await db
+      .from('profiles')
+      .select('nombre1, apellido1')
+      .eq('id', req.user.id)
+      .maybeSingle();
+
+    let mismatch = false;
+    if (registeredProfile && (registeredProfile.nombre1 || registeredProfile.apellido1)) {
+      const norm = (s) => (s || '').toLowerCase().trim()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '').split(' ')[0];
+      const cvN  = norm(perfil.nombre1);
+      const cvA  = norm(perfil.apellido1);
+      const regN = norm(registeredProfile.nombre1);
+      const regA = norm(registeredProfile.apellido1);
+      if ((regN && cvN && regN !== cvN) || (regA && cvA && regA !== cvA)) {
+        mismatch = true;
+      }
+    }
+
+    res.json({ ...perfil, mismatch });
   } catch (err) {
     console.error('Error en extractProfile:', err.message);
-    res.json({ nombre1: null, nombre2: null, apellido1: null, apellido2: null, telefono1: null, ciudad: null, pais: null, edad: null, idiomas: [], educacion: [] });
+    if (err instanceof SyntaxError) {
+      return res.status(400).json({ error: 'No se pudo procesar la informacion del CV. Intenta con otro archivo.' });
+    }
+    res.status(500).json({ error: 'Error al procesar el CV. Intenta de nuevo.' });
   }
 };
 

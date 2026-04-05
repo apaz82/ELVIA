@@ -5,6 +5,7 @@ import Sidebar from './components/common/Sidebar'
 import Landing from './pages/Landing'
 import Landing2 from './pages/Landing2'
 import CVOptimizer from './pages/CVOptimizer'
+import CVDesdeCero from './pages/CVDesdeCero'
 import CVvsJob from './pages/CVvsJob'
 import JobMatches from './pages/JobMatches'
 import Auth from './pages/Auth'
@@ -14,7 +15,7 @@ import Pipeline from './pages/Pipeline'
 import Perfil from './pages/Perfil'
 import MiPlan from './pages/MiPlan'
 import Dashboard from './pages/Dashboard'
-import Onboarding from './pages/Onboarding'
+import BienvenidaOnboarding from './pages/BienvenidaOnboarding'
 import Admin from './pages/Admin'
 import Entrevista from './pages/Entrevista'
 import Biblioteca from './pages/Biblioteca'
@@ -30,9 +31,9 @@ import AiChatBot from './components/chat/AiChatBot'
 import { useAuth } from './context/AuthContext'
 
 // Rutas que NO muestran sidebar ni header estándar
-const RUTAS_FULL = ['/', '/landing2', '/auth', '/onboarding', '/admin', '/privacidad', '/reset-password', '/pricing']
-// Rutas excluidas del guard de onboarding
-const RUTAS_SIN_GUARD = ['/', '/landing2', '/auth', '/onboarding', '/admin', '/privacidad', '/reset-password', '/pricing', '/proyecto-laboral']
+const RUTAS_FULL = ['/', '/landing2', '/auth', '/bienvenida', '/admin', '/privacidad', '/reset-password', '/pricing']
+// Rutas excluidas del guard de onboarding (no redirigen a /bienvenida aunque haya onboarding pendiente)
+const RUTAS_SIN_GUARD = ['/', '/landing2', '/auth', '/bienvenida', '/admin', '/privacidad', '/reset-password', '/pricing', '/proyecto-laboral', '/cv-desde-cero']
 // Rutas públicas (solo para usuarios NO autenticados)
 const RUTAS_PUBLICAS = ['/', '/auth', '/privacidad', '/reset-password', '/pricing']
 
@@ -69,8 +70,13 @@ function OnboardingGuard({ children }) {
     return children
   }
 
+  // No redirigir si estamos en una ruta excluida del guard
+  if (RUTAS_SIN_GUARD.includes(path)) {
+    return children
+  }
+
   if (onboardingPendiente) {
-    return <Navigate to="/onboarding" replace />
+    return <Navigate to="/bienvenida" replace />
   }
   return children
 }
@@ -146,7 +152,8 @@ export default function App() {
       <Route path="/auth"          element={<PublicRoute><Auth /></PublicRoute>} />
       <Route path="/privacidad"      element={<Privacidad />} />
       <Route path="/pricing"              element={<PublicRoute><Pricing /></PublicRoute>} />
-      
+      <Route path="/bienvenida"     element={<BienvenidaOnboarding />} />
+
       {/* Admin / Especiales */}
       <Route path="/admin"         element={<Admin />} />
       <Route path="/expertos"        element={<Expertos />} />
@@ -157,6 +164,7 @@ export default function App() {
       {/* Privadas (Protegidas por Auth + Onboarding) */}
       <Route path="/dashboard"     element={<PrivateRoute><Dashboard /></PrivateRoute>} />
       <Route path="/cv-optimizer"  element={<PrivateRoute><CVOptimizer /></PrivateRoute>} />
+      <Route path="/cv-desde-cero" element={<PrivateRoute><CVDesdeCero /></PrivateRoute>} />
       <Route path="/cv-vs-job"     element={<PrivateRoute><CVvsJob /></PrivateRoute>} />
       <Route path="/jobs"          element={<PrivateRoute><JobMatches /></PrivateRoute>} />
       <Route path="/mis-cvs"       element={<PrivateRoute><MisCVs /></PrivateRoute>} />
@@ -168,8 +176,8 @@ export default function App() {
       <Route path="/biblioteca"      element={<PrivateRoute><Biblioteca /></PrivateRoute>} />
       <Route path="/linkedin-optima" element={<PrivateRoute><LinkedinOptima /></PrivateRoute>} />
       
-      {/* Protegidas (Solo Auth) */}
-      <Route path="/onboarding"    element={<Onboarding />} />
+      {/* /onboarding redirige a /bienvenida — ruta legacy */}
+      <Route path="/onboarding"    element={<Navigate to="/bienvenida" replace />} />
     </Routes>
   )
 

@@ -17,9 +17,12 @@ const limiterOptimize = rateLimit({
   max:               5,
   standardHeaders:   true,
   legacyHeaders:     false,
-  keyGenerator:      (req) => req.user?.id || ipKeyGenerator(req), // por usuario autenticado, por IP como fallback
+  // validate.keyGeneratorIpFallback: false → desactiva la validación estricta de express-rate-limit v7
+  // que detecta cuando el keyGenerator usa IP de forma "implícita". Nuestro fallback es intencional.
+  validate:          { keyGeneratorIpFallback: false },
+  keyGenerator:      (req) => req.user?.id || ipKeyGenerator(req),
   handler:           (_req, res) => res.status(429).json(mensaje429('optimización de CV')),
-  skip:              (req) => req.planInfo?.isPaidPlan, // planes pagos sin límite de rate
+  skip:              (req) => req.planInfo?.isPaidPlan,
 });
 
 // ── CV Match: máximo 10 análisis por usuario por 15 minutos ────
@@ -29,6 +32,7 @@ const limiterMatch = rateLimit({
   max:               10,
   standardHeaders:   true,
   legacyHeaders:     false,
+  validate:          { keyGeneratorIpFallback: false },
   keyGenerator:      (req) => req.user?.id || ipKeyGenerator(req),
   handler:           (_req, res) => res.status(429).json(mensaje429('análisis de compatibilidad')),
   skip:              (req) => req.planInfo?.isPaidPlan,
