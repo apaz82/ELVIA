@@ -228,7 +228,7 @@ export default function Auth() {
 
           {/* Logo + título */}
           <div className="text-center mb-7">
-            <img src="/elvia-logo-transparent.png" alt="ELVIA" className="h-14 w-auto mx-auto mb-4 object-contain" />
+            {/* Logo removido temporalmente por solicitud del usuario */}
             <h1 className="text-2xl font-bold text-gray-900">
               {modo === 'login'    ? 'Iniciar sesión'
                : modo === 'register' ? 'Crear cuenta gratis'

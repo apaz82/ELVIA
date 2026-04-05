@@ -1264,7 +1264,7 @@ export default function Landing() {
             {/* Branding Column */}
             <div className="lg:col-span-2 text-center lg:text-left space-y-8">
               <div className="flex flex-col items-center lg:items-start gap-6">
-                <img src="/elvia-logo-transparent.png" alt="ELVIA" className="h-14 w-auto" />
+                {/* Logo removido temporalmente */}
                 
                 <div className="relative inline-block">
                   <div className="absolute inset-0 bg-teal-400/20 blur-2xl rounded-full" />

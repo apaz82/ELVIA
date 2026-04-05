@@ -286,7 +286,7 @@ export default function Landing() {
       {/* ─── Nav landing ────────────────────────────────────────────────────────── */}
       <nav className="sticky top-0 z-50 flex items-center justify-between px-6 h-24 bg-white/80 backdrop-blur-xl border-b border-gray-200/80 transition-all duration-300">
         <Link to="/" className="flex items-center">
-          <img src="/elvia-logo-transparent.png" alt="ELVIA" className="h-[4.5rem] py-1 w-auto object-contain" />
+          <img src="/elvia-logo-transparent.png" alt="ELVIA" className="h-12 py-1 w-auto object-contain" />
         </Link>
 
         {/* Acciones nav */}
@@ -1183,11 +1183,7 @@ export default function Landing() {
           {/* Icon/Logo */}
           <div className="relative inline-block mb-10">
             <div className="absolute inset-0 bg-teal-400/20 blur-2xl rounded-full" />
-            <img 
-              src="/elvia-logo-transparent.png" 
-              alt="ELVIA" 
-              className="relative w-36 h-auto border border-white/10 shadow-2xl p-6 bg-white/5 rounded-3xl ring-8 ring-[#090E17]" 
-            />
+            {/* Logo removido temporalmente */}
             <div className="absolute bottom-0 -right-2 bg-gradient-to-br from-[#E8541A] to-orange-600 text-white p-2.5 rounded-2xl shadow-xl shadow-orange-500/20 border border-white/10">
               <Lightning size={24} weight="fill" />
             </div>
