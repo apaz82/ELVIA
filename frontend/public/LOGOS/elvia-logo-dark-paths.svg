@@ -1,0 +1,58 @@
+<svg viewBox="0 0 800 220" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="ELVIA">
+  <defs>
+    <radialGradient id="bgGrad" cx="68%" cy="55%" r="50%">
+      <stop offset="0%" stop-color="#0E2440"/>
+      <stop offset="100%" stop-color="#060D18"/>
+    </radialGradient>
+
+    <linearGradient id="swooshGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%"   stop-color="#00D4E8" stop-opacity="0"/>
+      <stop offset="28%"  stop-color="#00D4E8" stop-opacity="0.55"/>
+      <stop offset="62%"  stop-color="#00F0FF" stop-opacity="1"/>
+      <stop offset="80%"  stop-color="#00D4E8" stop-opacity="0.65"/>
+      <stop offset="100%" stop-color="#00D4E8" stop-opacity="0"/>
+    </linearGradient>
+
+    <filter id="swooshGlow" x="-10%" y="-200%" width="120%" height="500%">
+      <feGaussianBlur stdDeviation="7" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <radialGradient id="haloGrad" cx="50%" cy="50%" r="50%">
+      <stop offset="0%"   stop-color="#00E8FF" stop-opacity="0.25"/>
+      <stop offset="100%" stop-color="#00E8FF" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="800" height="220" fill="url(#bgGrad)"/>
+
+  <ellipse cx="600" cy="158" rx="130" ry="45" fill="url(#haloGrad)" filter="url(#swooshGlow)"/>
+
+  <!-- Texto ELVIA en paths (Arial Black, self-contained sin Google Fonts) -->
+  <g transform="translate(50, 26) scale(0.044, -0.044)" fill="white">
+    <!-- E -->
+    <path d="M149 1466H1363V1153H603V920H1308V621H603V332H1385V0H149Z"/>
+    <!-- L -->
+    <g transform="translate(1550, 0)">
+      <path d="M274 1466H1297V1153H774V0H274Z"/>
+    </g>
+    <!-- V -->
+    <g transform="translate(3100, 0)">
+      <path d="M0 1466H554L1097 0H563L281 1099L0 0Z"/>
+    </g>
+    <!-- I -->
+    <g transform="translate(4800, 0)">
+      <path d="M106 1466H501V0H106Z"/>
+    </g>
+    <!-- A -->
+    <g transform="translate(5300, 0)">
+      <path d="M0 0L588 1466H1176L1764 0H1286L1084 450H680L478 0Z"/>
+    </g>
+  </g>
+
+  <path d="M 235,164 C 340,150 480,144 595,157 C 640,162 690,159 740,154 L 740,161 C 690,167 640,170 595,165 C 480,154 340,162 235,173 Z"
+    fill="url(#swooshGrad)" filter="url(#swooshGlow)"/>
+</svg>

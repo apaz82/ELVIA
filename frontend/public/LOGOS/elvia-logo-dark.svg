@@ -1,0 +1,76 @@
+<svg viewBox="0 0 800 220" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="ELVIA">
+  <defs>
+    <!-- Fondo radial centrado en la A -->
+    <radialGradient id="bgGrad" cx="68%" cy="55%" r="50%">
+      <stop offset="0%" stop-color="#0E2440"/>
+      <stop offset="100%" stop-color="#060D18"/>
+    </radialGradient>
+
+    <!-- Gradiente del swoosh: fade-in desde izquierda, pico brillante bajo la A, fade-out -->
+    <linearGradient id="swooshGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%"   stop-color="#00D4E8" stop-opacity="0"/>
+      <stop offset="28%"  stop-color="#00D4E8" stop-opacity="0.55"/>
+      <stop offset="62%"  stop-color="#00F0FF" stop-opacity="1"/>
+      <stop offset="80%"  stop-color="#00D4E8" stop-opacity="0.65"/>
+      <stop offset="100%" stop-color="#00D4E8" stop-opacity="0"/>
+    </linearGradient>
+
+    <!-- Glow del swoosh -->
+    <filter id="swooshGlow" x="-10%" y="-200%" width="120%" height="500%">
+      <feGaussianBlur stdDeviation="7" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Halo suave bajo la A -->
+    <radialGradient id="haloGrad" cx="50%" cy="50%" r="50%">
+      <stop offset="0%"   stop-color="#00E8FF" stop-opacity="0.25"/>
+      <stop offset="100%" stop-color="#00E8FF" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Texto con leve glow -->
+    <filter id="textGlow" x="-5%" y="-20%" width="110%" height="140%">
+      <feGaussianBlur stdDeviation="2.5" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Fondo -->
+  <rect width="800" height="220" fill="url(#bgGrad)"/>
+
+  <!-- Halo bajo la A (x≈600) -->
+  <ellipse cx="600" cy="158" rx="130" ry="45"
+           fill="url(#haloGrad)" filter="url(#swooshGlow)"/>
+
+  <!-- Texto ELVIA — Orbitron con fallback geométrico -->
+  <text x="400" y="152"
+        font-family="'Orbitron', 'Exo 2', 'Arial Black', sans-serif"
+        font-weight="700"
+        font-size="112"
+        letter-spacing="6"
+        fill="white"
+        text-anchor="middle"
+        filter="url(#textGlow)">ELVIA</text>
+
+  <!--
+    Swoosh: forma de lente afilada
+    Empieza ~x=240 (bajo la V), pico brillo bajo A ~x=590, termina ~x=740
+    Top edge: curva suave subiendo hacia la derecha
+    Bottom edge: curva espejo
+  -->
+  <path d="
+    M 235,164
+    C 340,150 480,144 595,157
+    C 640,162 690,159 740,154
+    L 740,161
+    C 690,167 640,170 595,165
+    C 480,154 340,162 235,173
+    Z"
+    fill="url(#swooshGrad)"
+    filter="url(#swooshGlow)"/>
+</svg>
