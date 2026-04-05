@@ -194,6 +194,20 @@ const COLORES = {
 const DIAS     = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
 const HORARIOS = ['7am-9am','9am-11am','11am-1pm','1pm-3pm','3pm-5pm','5pm-7pm','7pm-9pm']
 
+// Precios de Suscripción Optima en MXN según plan
+const PRECIO_OPTIMA_MXN = { free: 0, semanal: 99, mensual: 249, trimestral: 659 }
+
+// Tasas de conversión aproximadas (base MXN)
+const TASAS_DESDE_MXN = {
+  MXN: 1, USD: 0.059, EUR: 0.054, COP: 232, ARS: 17.2,
+  CLP: 55, PEN: 0.22, BRL: 0.30, UYU: 2.35, CAD: 0.080,
+}
+
+function convertirDesdeMXN(montoMXN, moneda) {
+  const tasa = TASAS_DESDE_MXN[moneda] || 1
+  return Math.round(montoMXN * tasa)
+}
+
 const RECURSOS_DEFAULT = [
   { id:'1', nombre:'Espacio de trabajo tranquilo',  descripcion:'Un lugar donde puedas concentrarte sin interrupciones.', costo:0,   tengo:true  },
   { id:'2', nombre:'Conexión a internet estable',   descripcion:'Necesaria para aplicar, videollamadas y LinkedIn.',      costo:350, tengo:true  },
@@ -246,7 +260,10 @@ function calcularProgreso(data, perfil) {
 
   const rec = (data&&data.recursos&&data.recursos.recursos) ? data.recursos.recursos : RECURSOS_DEFAULT
   const activos = rec.filter(function(r){return r.tengo===true})
-  core += Math.min(activos.length, 4) * 3.75
+  const optimaActiva = activos.some(function(r){return r.id==='optima'})
+  const otrosActivos = activos.filter(function(r){return r.id!=='optima'}).length
+  const recPts = (optimaActiva && otrosActivos >= 3) ? 15 : 0
+  core += recPts
 
   const oferta = (data&&data.oferta) ? data.oferta : {}
   let ofertaPts = 0
@@ -284,7 +301,9 @@ function calcularPorPilar(data, perfil) {
 
   const rec = (data&&data.recursos&&data.recursos.recursos) ? data.recursos.recursos : RECURSOS_DEFAULT
   const activos = rec.filter(function(r){return r.tengo===true})
-  let recPts = Math.min(activos.length, 4) * 3.75
+  const optimaActiva = activos.some(function(r){return r.id==='optima'})
+  const otrosActivos = activos.filter(function(r){return r.id!=='optima'}).length
+  let recPts = (optimaActiva && otrosActivos >= 3) ? 15 : 0
 
   const oferta = (data&&data.oferta) ? data.oferta : {}
   let ofertaPts = 0
@@ -1256,22 +1275,28 @@ function PilarAutoconocimiento({ data, onChange, onSave, justSaved }) {
 
 // ─── Pilar 2: Recursos ───────────────────────────────────────────────────────
 
-function PilarRecursos({ data, onChange, onSave, justSaved }) {
+function PilarRecursos({ data, onChange, onSave, justSaved, pais }) {
   const recursos = (data&&data.recursos)?data.recursos:RECURSOS_DEFAULT
+  const moneda = detectarMoneda(pais)
   const upR = function(id,f,v){onChange({recursos:recursos.map(function(r){return r.id===id?Object.assign({},r,{[f]:v}):r})})}
   const addR = function(){onChange({recursos:recursos.concat([{id:String(Date.now()),nombre:'',descripcion:'',costo:0,tengo:false}])})}
   const delR = function(id){onChange({recursos:recursos.filter(function(r){return r.id!==id})})}
   const totalAll = recursos.reduce(function(s,r){return s+(Number(r.costo)||0)},0)
+  const monedaSymbol = MONEDAS_LIST.find(function(m){return m.code===moneda})?.symbol || '$'
+
   return (
     <div className="space-y-6">
       <div className="p-5 rounded-2xl bg-blue-50 border border-blue-100">
         <p className="text-sm text-slate-700 leading-relaxed">
           <span className="text-blue-700 font-bold">¿Cuánto cuesta tu búsqueda laboral?</span>{' '}
-          Identifica lo que ya tienes y lo que aún necesitas. Todos los costos son <strong>mensuales en MXN</strong>.
+          Identifica lo que ya tienes y lo que aún necesitas. Todos los costos son <strong>mensuales en {moneda}</strong>.
         </p>
       </div>
       <div className="space-y-2.5">
-        {recursos.map(function(r){return(
+        {recursos.map(function(r){
+          const isOptima = r.id==='optima'
+          const optimaValor = isOptima && r.tengo ? convertirDesdeMXN(PRECIO_OPTIMA_MXN['free'], moneda) : r.costo
+          return(
           <div key={r.id} className={'border rounded-2xl p-4 transition-all '+(r.tengo?'bg-green-50 border-green-200':'bg-white border-slate-200')}>
             <div className="flex items-center gap-4">
               <button onClick={function(){
@@ -1296,14 +1321,14 @@ function PilarRecursos({ data, onChange, onSave, justSaved }) {
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     <div className="flex items-center gap-1 bg-slate-100 rounded-lg px-2.5 py-1.5">
-                      <span className="text-xs text-slate-500">$</span>
-                      <input type="number" value={r.costo} onChange={function(e){const v=e.target.value; if(v===''||!isNaN(v)&&Number(v)>=0) upR(r.id,'costo',v)}} disabled={!r.tengo}
+                      <span className="text-xs text-slate-500">{monedaSymbol}</span>
+                      <input type="number" value={isOptima && r.tengo ? optimaValor : r.costo} onChange={function(e){if(!isOptima || !r.tengo){const v=e.target.value; if(v===''||!isNaN(v)&&Number(v)>=0) upR(r.id,'costo',v)}}} disabled={!r.tengo || (isOptima && r.tengo)}
                         className="w-14 text-xs text-slate-700 font-bold bg-transparent focus:outline-none text-right disabled:text-slate-400 disabled:cursor-not-allowed" min="0"/>
-                      <span className="text-xs text-slate-400">MXN</span>
+                      <span className="text-xs text-slate-400">{moneda}</span>
                     </div>
-                    <button onClick={function(){delR(r.id)}} className="text-slate-300 hover:text-red-400 transition-colors p-1 cursor-pointer">
+                    {!r.obligatorio && <button onClick={function(){delR(r.id)}} className="text-slate-300 hover:text-red-400 transition-colors p-1 cursor-pointer">
                       <Trash size={14}/>
-                    </button>
+                    </button>}
                   </div>
                 </div>
               </div>
@@ -1316,7 +1341,7 @@ function PilarRecursos({ data, onChange, onSave, justSaved }) {
       </button>
       <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200">
         <p className="text-xs text-slate-500 font-bold uppercase tracking-widest mb-1">Total mensual</p>
-        <p className="text-2xl font-black text-slate-800">${totalAll.toLocaleString()} <span className="text-sm text-slate-400 font-normal">MXN</span></p>
+        <p className="text-2xl font-black text-slate-800">{monedaSymbol}{totalAll.toLocaleString()} <span className="text-sm text-slate-400 font-normal">{moneda}</span></p>
       </div>
 
       {/* Botón de guardar */}
@@ -1947,7 +1972,7 @@ export default function ProyectoLaboral() {
           <div className="p-6 md:p-8">
             {pilarId==='perfil'        &&<PilarMiPerfil perfil={perfil} extraData={data.perfil} onChange={function(v){updatePilar('perfil',v)}} onSavePerfil={savePerfil} saving={saving} isPaidPlan={isPaidPlan} data={data}/>}
             {pilarId==='autoconocimiento'&&<PilarAutoconocimiento data={data.autoconocimiento} onChange={function(v){updatePilar('autoconocimiento',v)}} onSave={function(){handlePilarSave('autoconocimiento')}} justSaved={justSaved==='autoconocimiento'}/>}
-            {pilarId==='recursos'      &&<PilarRecursos         data={data.recursos}         onChange={function(v){updatePilar('recursos',v)}} onSave={function(){handlePilarSave('recursos')}} justSaved={justSaved==='recursos'}/>}
+            {pilarId==='recursos'      &&<PilarRecursos         data={data.recursos}         onChange={function(v){updatePilar('recursos',v)}} onSave={function(){handlePilarSave('recursos')}} justSaved={justSaved==='recursos'} pais={perfil?.pais_prestaciones || perfil?.pais || ''}/>}
             {pilarId==='semana'        &&<PilarSemana           data={data.semana}           onChange={function(v){updatePilar('semana',v)}} onSave={function(){handlePilarSave('semana')}} justSaved={justSaved==='semana'}/>}
             {pilarId==='oferta'        &&<PilarOfertaDeValor    data={data.oferta}           onChange={function(v){updatePilar('oferta',v)}} onSave={function(){handlePilarSave('oferta')}} justSaved={justSaved==='oferta'}/>}
             {pilarId==='documentos'    &&<PilarDocumentos       data={data.documentos}       onChange={function(v){updatePilar('documentos',v)}} onSave={function(){handlePilarSave('documentos')}} justSaved={justSaved==='documentos'}/>}
