@@ -44,10 +44,14 @@ const AdminSidebar = ({ activeTab, onTabChange, context = 'B2C', onLogout }) => 
     <aside className="w-72 bg-[#0B0F1A] border-r border-slate-800 h-screen flex flex-col fixed left-0 top-0 z-50">
       {/* Branding */}
       <div className="p-8 pb-10 flex flex-col items-center">
-        <div className="w-16 h-16 rounded-[1.5rem] bg-gradient-to-br from-indigo-600 to-violet-700 flex items-center justify-center mb-4 shadow-2xl shadow-indigo-900/40 border border-white/10">
-          <span className="text-white font-black text-2xl italic">E</span>
+        <div className="mb-4 group">
+          <img 
+            src="/elvia-logo-transparent.png" 
+            alt="ELVIA Logo" 
+            className="h-8 drop-shadow-[0_0_20px_rgba(79,70,229,0.2)] hover:scale-105 transition-transform duration-500" 
+          />
         </div>
-        <h1 className="text-white text-xl font-black tracking-tighter italic uppercase">ELVIA ADMIN</h1>
+        <h1 className="text-white text-xl font-black tracking-tighter italic uppercase">ELVIA <span className="text-indigo-500">ADMIN</span></h1>
         <p className="text-indigo-500/60 text-[9px] font-black tracking-[0.4em] mt-1 uppercase">Ops Center</p>
       </div>
 

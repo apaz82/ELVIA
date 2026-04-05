@@ -72,10 +72,14 @@ const AdminLogin = ({ onLogin }) => {
 
       <div className="w-full max-w-sm relative z-10">
         <div className="text-center mb-10">
-          <div className="w-24 h-24 rounded-[2.5rem] bg-gradient-to-br from-indigo-600 to-indigo-800 flex items-center justify-center mx-auto mb-8 shadow-2xl shadow-indigo-900/40 border border-white/10 ring-8 ring-indigo-600/5 group">
-            <PI.Fingerprint size={48} className="text-white group-hover:scale-110 transition-transform" weight="duotone" />
+          <div className="mb-8 p-1 group">
+            <img 
+              src="/elvia-logo-transparent.png" 
+              alt="ELVIA Logo" 
+              className="h-16 mx-auto drop-shadow-[0_0_30px_rgba(79,70,229,0.3)] hover:scale-105 transition-transform duration-500" 
+            />
           </div>
-          <h1 className="text-white text-4xl font-black tracking-tighter uppercase italic">ELVIA <span className="text-indigo-500">ADMIN</span></h1>
+          <h1 className="text-white text-4xl font-black tracking-tighter uppercase italic">ADMIN <span className="text-indigo-500">CENTER</span></h1>
           <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.3em] mt-2 italic">Secure Operations Center</p>
         </div>
 

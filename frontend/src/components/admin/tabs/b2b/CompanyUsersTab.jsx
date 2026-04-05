@@ -91,12 +91,44 @@ const CompanyUsersTab = ({ company, users, invitations, onRefresh, fmtDate, db, 
           subtitle="Gestión de colaboradores registrados e invitaciones en tránsito"
           icon={PI.UsersFour}
        >
-          <button
-            onClick={() => setShowInviteModal(true)}
-            className="bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-black uppercase tracking-widest px-8 py-3 rounded-2xl shadow-xl shadow-indigo-900/20 transition-all flex items-center gap-3 italic active:scale-95"
-          >
-            <PI.Plus size={18} weight="bold" /> Invitar Colaborador
-          </button>
+          <div className="flex gap-4">
+            <button
+              onClick={() => {
+                const headers = ["Nombre", "Email", "Plan", "CVs Optimizadas", "Llamados Bot", "Uso Total", "Expiración", "Estado"]
+                const rows = users.map(u => [
+                  `${u.nombre1 || ''} ${u.apellido1 || ''}`.trim() || 'Sin Nombre',
+                  u.email_principal,
+                  u.plan || 'Corporativo',
+                  u.cv_optimizer_count || 0,
+                  u.cv_match_count || 0,
+                  u.usage_count || 0,
+                  u.plan_expires_at ? new Date(u.plan_expires_at).toLocaleDateString() : 'N/A',
+                  u.suspended ? 'Suspendido' : 'Activo'
+                ])
+                
+                const csvContent = "data:text/csv;charset=utf-8," 
+                  + headers.join(",") + "\n"
+                  + rows.map(e => e.join(",")).join("\n")
+
+                const encodedUri = encodeURI(csvContent)
+                const link = document.createElement("a")
+                link.setAttribute("href", encodedUri)
+                link.setAttribute("download", `Reporte_Talento_${company.name.replace(/\s+/g, '_')}.csv`)
+                document.body.appendChild(link)
+                link.click()
+                document.body.removeChild(link)
+              }}
+              className="bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-black uppercase tracking-widest px-8 py-3 rounded-2xl border border-slate-700 transition-all flex items-center gap-3 italic active:scale-95"
+            >
+              <PI.FileCsv size={18} weight="duotone" /> Exportar Reporte
+            </button>
+            <button
+              onClick={() => setShowInviteModal(true)}
+              className="bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-black uppercase tracking-widest px-8 py-3 rounded-2xl shadow-xl shadow-indigo-900/20 transition-all flex items-center gap-3 italic active:scale-95"
+            >
+              <PI.Plus size={18} weight="bold" /> Invitar Colaborador
+            </button>
+          </div>
        </SectionHeading>
 
        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
