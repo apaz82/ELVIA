@@ -364,7 +364,7 @@ export default function Landing() {
       {/* ─── Nav landing ────────────────────────────────────────────────────────── */}
       <nav className="sticky top-0 z-50 flex items-center justify-between px-6 h-24 bg-white/80 backdrop-blur-xl border-b border-gray-200/80 transition-all duration-300">
         <Link to="/" className="flex items-center">
-          <img src="/optima_logo_v3_clean_1.png" alt="OPTIMA-CV" className="h-[4.5rem] py-1 w-auto object-contain" />
+          <img src="/optima_logo_v3_clean_1.png" alt="ELVIA" className="h-[4.5rem] py-1 w-auto object-contain" />
         </Link>
 
         {/* Acciones nav */}
@@ -432,7 +432,7 @@ export default function Landing() {
           >
             <motion.div variants={fadeInUp} className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-gray-200 bg-white shadow-sm mb-8">
               <span className="w-2 h-2 rounded-full bg-[#E8541A] animate-pulse" />
-              <span className="text-xs font-bold uppercase tracking-widest text-gray-500">OPTIMA-CV Está en vivo</span>
+              <span className="text-xs font-bold uppercase tracking-widest text-gray-500">ELVIA Está en vivo</span>
             </motion.div>
 
             <motion.h1 variants={fadeInUp} className="font-headline font-black text-5xl sm:text-7xl leading-[1.05] tracking-tight mb-8">
@@ -458,7 +458,7 @@ export default function Landing() {
               <div
                 className="bg-[#E8541A] text-white font-black py-4 px-8 rounded-2xl text-lg transition-all shadow-[0_8px_30px_rgb(232,84,26,0.3)] hover:shadow-[0_8px_30px_rgb(232,84,26,0.5)] flex items-center gap-2 group w-full sm:w-auto justify-center cursor-default"
               >
-                Unete y se pionero optima
+                Únete y sé pionero ELVIA
                 <ArrowDown className="w-5 h-5 group-hover:translate-y-1 transition-transform" weight="bold" />
               </div>
               
@@ -526,7 +526,7 @@ export default function Landing() {
               <div
                 className="w-full flex items-center justify-center gap-2 bg-teal-500 text-white font-bold py-3 px-6 rounded-2xl transition-all shadow-lg shadow-teal-500/20 mt-auto cursor-default group"
               >
-                Unete y se pionero optima <ArrowDown size={16} weight="bold" className="group-hover:translate-y-1 transition-transform" />
+                Únete y sé pionero ELVIA <ArrowDown size={16} weight="bold" className="group-hover:translate-y-1 transition-transform" />
               </div>
             </div>
 
@@ -593,7 +593,7 @@ export default function Landing() {
             </div>
             
             <h2 className="font-headline font-black text-4xl md:text-5xl lg:text-6xl text-white tracking-tight leading-[1.1]">
-              Conoce a <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-emerald-400">OPTIMA</span>,<br />
+              Conoce a <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-emerald-400">ELVIA</span>,<br />
               tu mentora 24/7.
             </h2>
             
@@ -640,10 +640,10 @@ export default function Landing() {
               <div className="relative bg-[#0A1A14]/90 backdrop-blur-xl border border-white/10 p-6 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
                 <div className="flex items-center gap-4 border-b border-white/10 pb-5 mb-5">
                     <div className="w-12 h-12 rounded-full bg-gradient-to-br from-teal-400 to-emerald-600 p-[1.5px] shadow-lg overflow-hidden">
-                      <img src="/Avatar%20Optima.png" alt="OPTIMA" className="w-full h-full object-cover rounded-full" />
+                      <img src="/Avatar%20Optima.png" alt="ELVIA" className="w-full h-full object-cover rounded-full" />
                     </div>
                     <div>
-                      <h4 className="text-white font-bold text-lg leading-none">OPTIMA</h4>
+                      <h4 className="text-white font-bold text-lg leading-none">ELVIA</h4>
                       <span className="text-teal-400 text-xs font-semibold flex items-center gap-1 mt-1">
                         <span className="w-1.5 h-1.5 rounded-full bg-teal-400 animate-pulse" /> En línea
                       </span>
@@ -713,7 +713,7 @@ export default function Landing() {
                        <FileMagnifyingGlass size={24} className="text-white" weight="duotone" />
                      </div>
                      <div>
-                       <p className="text-sm font-bold text-blue-950">TU CV Optimizado con OPTIMA | CV</p>
+                       <p className="text-sm font-bold text-blue-950">TU CV Optimizado con ELVIA</p>
                        <p className="text-xs text-blue-700 font-medium">Perfil intermedio precargado para esta demostración</p>
                      </div>
                   </div>
@@ -778,7 +778,7 @@ export default function Landing() {
                   </div>
                   <h3 className="text-2xl font-black text-gray-900 mb-2 tracking-tight">¡Tienes un buen perfil!</h3>
                   <p className="text-gray-500 mb-2 text-sm leading-relaxed mx-auto px-2">
-                    Optima detectó que tu perfil es sólido, aunque puedes incluir <b>4 palabras clave obligatorias</b> para ser más atractivo a esta vacante.
+                    ELVIA detectó que tu perfil es sólido, aunque puedes incluir <b>4 palabras clave obligatorias</b> para ser más atractivo a esta vacante.
                   </p>
                   <p className="text-gray-400 mb-8 text-xs italic mx-auto px-2">
                     Este es un ejemplo — para tener esta funcionalidad, regístrate.
@@ -1102,7 +1102,7 @@ export default function Landing() {
               <div className="space-y-4">
                 <h3 className="font-headline font-bold text-2xl text-gray-900">Optimización en cada paso</h3>
                 <p className="text-gray-600 leading-relaxed">
-                  Mientras editas tu CV, OPTIMA analiza cada sección: desde tu titular y resumen profesional, hasta tus experiencias y logros.
+                  Mientras editas tu CV, ELVIA analiza cada sección: desde tu titular y resumen profesional, hasta tus experiencias y logros.
                 </p>
               </div>
 
@@ -1264,13 +1264,13 @@ export default function Landing() {
             {/* Branding Column */}
             <div className="lg:col-span-2 text-center lg:text-left space-y-8">
               <div className="flex flex-col items-center lg:items-start gap-6">
-                <img src="/optima_logo_v3_clean_1.png" alt="OPTIMA-CV" className="h-14 w-auto brightness-0 invert" />
+                <img src="/optima_logo_v3_clean_1.png" alt="ELVIA" className="h-14 w-auto brightness-0 invert" />
                 
                 <div className="relative inline-block">
                   <div className="absolute inset-0 bg-teal-400/20 blur-2xl rounded-full" />
                   <img 
                     src="/Avatar%20Optima.png" 
-                    alt="OPTIMA AI" 
+                    alt="ELVIA" 
                     className="relative w-32 h-32 rounded-full border-2 border-white/10 shadow-2xl object-cover" 
                   />
                   <div className="absolute -bottom-2 -right-2 bg-teal-500 text-white p-2 rounded-xl shadow-lg">
@@ -1282,7 +1282,7 @@ export default function Landing() {
               <div>
                 <h3 className="text-3xl font-black text-white mb-4 leading-tight">Únete a la lista de espera</h3>
                 <p className="text-white/60 leading-relaxed">
-                  Nunca fue tan sencillo ser tu propio gerente de proyecto de tu búsqueda laboral. Sé el primero en acceder a <span className="text-[#E8541A] font-bold">OPTIMA</span>.
+                  Nunca fue tan sencillo ser tu propio gerente de proyecto de tu búsqueda laboral. Sé el primero en acceder a <span className="text-[#E8541A] font-bold">ELVIA</span>.
                 </p>
                 <div className="mt-6 flex items-center gap-3 justify-center lg:justify-start">
                    <div className="flex -space-x-2">
@@ -1363,7 +1363,7 @@ export default function Landing() {
         <div className="container mx-auto max-w-6xl px-6 py-12 flex flex-col md:flex-row items-center justify-between gap-8">
           <div className="flex flex-col items-center md:items-start gap-4">
             <Link to="/">
-              <img src="/optima_logo_v3_clean_1.png" alt="OPTIMA-CV" className="h-10 w-auto opacity-90" />
+              <img src="/optima_logo_v3_clean_1.png" alt="ELVIA" className="h-10 w-auto opacity-90" />
             </Link>
             <p className="text-gray-400 text-xs font-medium uppercase tracking-widest text-center md:text-left">
               Potenciando carreras de alto nivel con IA
@@ -1373,7 +1373,7 @@ export default function Landing() {
           <div className="flex flex-wrap justify-center gap-8">
             <Link to="/privacidad" className="text-sm font-bold text-gray-500 hover:text-teal-600 transition-colors">Privacidad</Link>
             <span className="text-gray-200 hidden sm:block">|</span>
-            <span className="text-sm font-bold text-gray-500">© {new Date().getFullYear()} OPTIMA-CV</span>
+            <span className="text-sm font-bold text-gray-500">© {new Date().getFullYear()} ELVIA</span>
           </div>
         </div>
       </footer>

@@ -6,6 +6,42 @@ Instrucción: leer solo cuando se necesite recap del estado actual.
 
 ---
 
+## Sesión 2026-04-05 (2) · Gemini (Antigravity)
+
+### Contexto de partida
+- Se solicitó un recorrido por todas las secciones (Dashboard y Proyecto Laboral) con un enfoque de UI/UX para detectar mejoras estéticas, errores ortográficos y fricciones de uso.
+- El objetivo era documentar hallazgos sin realizar cambios inmediatos, y luego proceder con un plan de implementación aprobado.
+
+### Qué se hizo
+
+**1. Auditoría de UI/UX**
+- Se generó un informe completo (`ui_ux_audit_report.md`) detectando:
+  - Errores de tildes y concordancia de género.
+  - Inconsistencia de colores en tags de selección.
+  - Falla lógica en el disparador del trofeo de "Carpeta 100% lista".
+  - Chatbot OPTIMA con dimensiones demasiado intrusivas.
+
+**2. Implementación de Mejoras (Visto Bueno del Usuario)**
+- **Ortografía**:
+  - `Sidebar.jsx`: `LinkedIn Optimo` → `LinkedIn Óptimo`.
+  - `ProyectoLaboral.jsx`: `Generada` → `Generado` y `MIS CVS` → `MIS CVs`.
+- **Consistencia Visual**:
+  - `ProyectoLaboral.jsx`: Se unificaron los colores de selección en el pilar de perfil al color **Índigo** (antes mezcla con Teal/Blue/Violet).
+- **Lógica UX**:
+  - `ProyectoLaboral.jsx`: El trofeo de documentos ahora solo se muestra si `pctDocs === 100%`, independientemente del progreso global.
+- **Optimización de Espacio**:
+  - `AiChatBot.jsx`: Reducción del FAB (de 24 a 16) y la ventana de chat (de 400px a 360px de ancho) para una interfaz más limpia.
+
+### Estado del repo
+- Branch: `main`
+- **Estado**: Interfaz pulida, profesionalizada y con mejores jerarquías visuales.
+
+### Pendientes
+- Implementar micro-animaciones (hover effects) en los iconos de los pilares.
+- Evaluar la transición a "Glassmorphism" 3D para iconos principales.
+
+---
+
 ## Sesión 2026-04-05 · Gemini (Antigravity)
 
 ### Contexto de partida

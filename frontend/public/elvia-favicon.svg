@@ -1,0 +1,73 @@
+<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="ELVIA">
+  <defs>
+    <!-- Fondo -->
+    <radialGradient id="bgF" cx="55%" cy="45%" r="55%">
+      <stop offset="0%"   stop-color="#0E2440"/>
+      <stop offset="100%" stop-color="#060D18"/>
+    </radialGradient>
+
+    <!-- Gradiente swoosh horizontal: fade desde izquierda, pico en centro-derecha -->
+    <linearGradient id="swooshF" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%"   stop-color="#00D4E8" stop-opacity="0.1"/>
+      <stop offset="30%"  stop-color="#00D4E8" stop-opacity="0.7"/>
+      <stop offset="55%"  stop-color="#00F0FF" stop-opacity="1"/>
+      <stop offset="75%"  stop-color="#00D4E8" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#00D4E8" stop-opacity="0"/>
+    </linearGradient>
+
+    <!-- Glow swoosh -->
+    <filter id="glow" x="-20%" y="-150%" width="140%" height="400%">
+      <feGaussianBlur stdDeviation="10" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Glow suave texto E -->
+    <filter id="glowE" x="-15%" y="-15%" width="130%" height="130%">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Halo bajo swoosh -->
+    <radialGradient id="haloF" cx="50%" cy="50%" r="50%">
+      <stop offset="0%"   stop-color="#00E8FF" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#00E8FF" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Fondo cuadrado con esquinas redondeadas (estilo app icon) -->
+  <rect width="512" height="512" rx="90" ry="90" fill="url(#bgF)"/>
+
+  <!-- Halo central -->
+  <ellipse cx="285" cy="265" rx="160" ry="60"
+           fill="url(#haloF)" filter="url(#glow)"/>
+
+  <!-- Letra E centrada -->
+  <text x="256" y="330"
+        font-family="'Orbitron', 'Exo 2', 'Arial Black', sans-serif"
+        font-weight="700"
+        font-size="310"
+        fill="white"
+        text-anchor="middle"
+        filter="url(#glowE)">E</text>
+
+  <!--
+    Swoosh horizontal que "atraviesa" la E a mitad de altura (~y=265)
+    Forma de lente: puntas a izquierda (~x=30) y derecha (~x=490), grueso en centro
+  -->
+  <path d="
+    M 35,258
+    C 120,240 220,234 300,248
+    C 360,257 420,254 480,248
+    L 480,260
+    C 420,267 360,270 300,261
+    C 220,248 120,256 35,272
+    Z"
+    fill="url(#swooshF)"
+    filter="url(#glow)"/>
+</svg>

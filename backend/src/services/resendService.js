@@ -4,7 +4,7 @@
 const { Resend } = require('resend');
 
 const resend = new Resend(process.env.RESEND_API_KEY);
-const FROM_EMAIL = 'noreply@optimacv.cv'; // Verificar dominio en Resend
+const FROM_EMAIL = 'noreply@elvia.lat'; // Dominio verificado en Resend
 
 // Escapa caracteres HTML para evitar XSS en emails generados con template strings
 const escapeHtml = (str) =>
@@ -76,7 +76,7 @@ const sendOTPEmail = async (to, otp, targetUserEmail) => {
 
         <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;" />
         <p style="font-size: 12px; color: #999;">
-          © 2026 OPTIMA-CV — Sistema de Gestión
+          © 2026 ELVIA — Sistema de Gestión
         </p>
       </div>
     `,
@@ -130,7 +130,7 @@ const getWaitlistEmailTemplate = (nombre, situacion) => {
   return `
     <div style="${baseStyles}">
       <h2 style="color: #E8541A;">¡Hola ${nombre_escaped}! ${template.emoji}</h2>
-      <p>Gracias por unirte a la lista de espera de <strong>OPTIMA-CV</strong>.</p>
+      <p>Gracias por unirte a la lista de espera de <strong>ELVIA</strong>.</p>
       <p>${template.intro}</p>
       <p><strong>Lo que tendrás cuando lancemos:</strong></p>
       <ul style="color: #374151;">
@@ -138,9 +138,9 @@ const getWaitlistEmailTemplate = (nombre, situacion) => {
       </ul>
       <p>${template.cta}</p>
       <p>¡Nos encanta escucharte! Si tienes sugerencias, responde este correo.</p>
-      <p>Un saludo,<br/><strong>El equipo de OPTIMA</strong></p>
+      <p>Un saludo,<br/><strong>El equipo de ELVIA</strong></p>
       <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;" />
-      <p style="font-size: 12px; color: #999;">© 2026 OPTIMA-CV</p>
+      <p style="font-size: 12px; color: #999;">© 2026 ELVIA</p>
     </div>
   `;
 };
@@ -155,7 +155,7 @@ const sendWelcomeWaitlistEmail = async (to, nombre, situacion) => {
   return resend.emails.send({
     from: FROM_EMAIL,
     to,
-    subject: '¡Bienvenido a la tribu pionera de OPTIMA-CV! 🚀',
+    subject: '¡Bienvenido a la tribu pionera de ELVIA! 🚀',
     html,
   });
 };

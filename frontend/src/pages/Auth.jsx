@@ -228,7 +228,7 @@ export default function Auth() {
 
           {/* Logo + título */}
           <div className="text-center mb-7">
-            <img src="/optima_logo_v3_clean_1.png" alt="OPTIMA-CV" className="h-14 w-auto mx-auto mb-4 object-contain" />
+            <img src="/optima_logo_v3_clean_1.png" alt="ELVIA" className="h-14 w-auto mx-auto mb-4 object-contain" />
             <h1 className="text-2xl font-bold text-gray-900">
               {modo === 'login'    ? 'Iniciar sesión'
                : modo === 'register' ? 'Crear cuenta gratis'
@@ -435,7 +435,7 @@ export default function Auth() {
                     <a href="/privacidad" target="_blank" rel="noreferrer"
                        className="text-teal-600 font-semibold hover:underline">
                       Política de Privacidad y Tratamiento de Datos
-                    </a>{' '}de OPTIMA | CV.
+                    </a>{' '}de ELVIA.
                   </span>
                 </label>
               )}
@@ -483,7 +483,7 @@ export default function Auth() {
 
             {[
               {
-                texto: 'En 3 días de usar OPTIMA conseguí 4 entrevistas. Mi CV pasó de ser ignorado a destacar en cada postulación.',
+                texto: 'En 3 días de usar ELVIA conseguí 4 entrevistas. Mi CV pasó de ser ignorado a destacar en cada postulación.',
                 nombre: 'Carlos M.',
                 cargo: 'Gerente de Proyectos · CDMX',
                 iniciales: 'CM',
@@ -497,7 +497,7 @@ export default function Auth() {
                 color: 'bg-indigo-500',
               },
               {
-                texto: 'Nunca pensé que mi CV estuviera tan mal estructurado. OPTIMA lo transformó completamente en minutos.',
+                texto: 'Nunca pensé que mi CV estuviera tan mal estructurado. ELVIA lo transformó completamente en minutos.',
                 nombre: 'Miguel T.',
                 cargo: 'Ingeniero de Software · Buenos Aires',
                 iniciales: 'MT',

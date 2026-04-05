@@ -226,14 +226,14 @@ function ModalPlan({ plan, user, perfil, moneda, precios, onClose }) {
   const CONTACTO_EMAIL = ''
 
   const msgWA = encodeURIComponent(
-    `Hola! Quiero activar el plan *${plan.nombre}* (${precioStr}) en OPTIMA-CV.\n` +
+    `Hola! Quiero activar el plan *${plan.nombre}* (${precioStr}) en ELVIA.\n` +
     `${nombre ? `Nombre: ${nombre}\n` : ''}` +
     `${email   ? `Email: ${email}\n`  : ''}` +
     `Por favor indíquenme los pasos para completar el pago. ¡Gracias!`
   )
   const waLink     = WA_NUMBER      ? `https://wa.me/${WA_NUMBER}?text=${msgWA}` : null
   const mailtoLink = CONTACTO_EMAIL
-    ? `mailto:${CONTACTO_EMAIL}?subject=${encodeURIComponent(`Quiero activar ${plan.nombre} - OPTIMA-CV`)}&body=${encodeURIComponent(`Hola equipo OPTIMA-CV,\n\nQuiero activar el plan ${plan.nombre} (${precioStr}).\n\n${nombre ? `Nombre: ${nombre}\n` : ''}${email ? `Email: ${email}\n` : ''}\n\nQuedo al pendiente de sus instrucciones para el pago.\n\nGracias!`)}`
+    ? `mailto:${CONTACTO_EMAIL}?subject=${encodeURIComponent(`Quiero activar ${plan.nombre} - ELVIA`)}&body=${encodeURIComponent(`Hola equipo ELVIA,\n\nQuiero activar el plan ${plan.nombre} (${precioStr}).\n\n${nombre ? `Nombre: ${nombre}\n` : ''}${email ? `Email: ${email}\n` : ''}\n\nQuedo al pendiente de sus instrucciones para el pago.\n\nGracias!`)}`
     : null
 
   return (
@@ -483,7 +483,7 @@ function NavPublic({ user }) {
   return (
     <nav className="sticky top-0 z-50 flex items-center justify-between px-6 h-16 bg-white border-b border-gray-200 shadow-sm">
       <Link to="/" className="flex items-center">
-        <img src="/optima_logo_v3_clean_1.png" alt="OPTIMA-CV" className="h-10 w-auto object-contain" />
+        <img src="/optima_logo_v3_clean_1.png" alt="ELVIA" className="h-10 w-auto object-contain" />
       </Link>
       <div className="flex items-center gap-4">
         {user ? (
@@ -580,7 +580,7 @@ export default function Pricing() {
         <div className="text-center">
           <h1 className="text-4xl font-black text-gray-900 mb-3">Planes y precios</h1>
           <p className="text-gray-500 text-base max-w-xl mx-auto">
-            Optima te ayuda a optimizar tu CV para cualquier mercado laboral. Sin inventar, sin sesgo, con la mentoría que necesitas.
+            ELVIA te ayuda a optimizar tu CV para cualquier mercado laboral. Sin inventar, sin sesgo, con la mentoría que necesitas.
           </p>
 
           {credAgotados && (
@@ -627,14 +627,14 @@ export default function Pricing() {
           </p>
         </div>
 
-        {/* ¿Por qué Optima-CV? */}
+        {/* ¿Por qué ELVIA? */}
         <div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">¿Por qué Optima?</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">¿Por qué ELVIA?</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {[
-              { titulo: 'Tu mentora inteligente',    desc: 'Optima no solo reformatea — analiza profundamente tu experiencia y mejora el impacto de cada sección de tu CV.',                 icon: '👩‍💼', color: 'bg-blue-50 border-blue-100'     },
+              { titulo: 'Tu mentora inteligente',    desc: 'ELVIA no solo reformatea — analiza profundamente tu experiencia y mejora el impacto de cada sección de tu CV.',                 icon: '👩‍💼', color: 'bg-blue-50 border-blue-100'     },
               { titulo: 'Sin inventar información',  desc: 'Solo optimizamos lo que ya está en tu CV. Sin datos ficticios, sin inflación de experiencia. Ética y efectividad.',            icon: '✅',   color: 'bg-emerald-50 border-emerald-100' },
-              { titulo: 'Para cualquier industria',  desc: 'Tecnología, finanzas, salud, marketing, ventas — Optima adapta su análisis a tu sector y contexto laboral.',                   icon: '🌍',   color: 'bg-amber-50 border-amber-100'    },
+              { titulo: 'Para cualquier industria',  desc: 'Tecnología, finanzas, salud, marketing, ventas — ELVIA adapta su análisis a tu sector y contexto laboral.',                   icon: '🌍',   color: 'bg-amber-50 border-amber-100'    },
               { titulo: '% de match con la vacante', desc: 'Sube la descripción de la vacante y descubre qué tan compatible eres, más consejos específicos para mejorar tu candidatura.', icon: '🎯',   color: 'bg-purple-50 border-purple-100'  },
             ].map((item, i) => (
               <div key={i} className={`rounded-2xl border p-5 ${item.color}`}>
@@ -667,7 +667,7 @@ export default function Pricing() {
 
         {/* CTA Final */}
         <div className="bg-[#002650] rounded-2xl py-10 px-6 text-center">
-          <h2 className="text-2xl font-black text-white mb-2">Conoce a Optima, tu mentora en búsqueda laboral</h2>
+          <h2 className="text-2xl font-black text-white mb-2">Conoce a ELVIA, tu mentora en búsqueda laboral</h2>
           <p className="text-blue-200 mb-6 text-sm">3 análisis gratuitos · Sin tarjeta · Sin renovación automática</p>
           <button
             onClick={() => navigate(user ? '/cv-optimizer' : '/auth')}

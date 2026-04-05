@@ -36,10 +36,10 @@ export default function AiChatBot() {
       {/* Botón Flotante FAB */}
       <button
         onClick={() => setIsOpen(true)}
-        className={`fixed bottom-6 right-6 z-50 w-24 h-24 rounded-full bg-[#0A3D2A] text-white shadow-float hover:scale-105 transition-all duration-300 flex items-center justify-center overflow-hidden border-2 border-[#0A3D2A] ${isOpen ? 'opacity-0 pointer-events-none scale-75' : 'opacity-100 scale-100 delay-100'}`}
+        className={`fixed bottom-6 right-6 z-50 w-16 h-16 rounded-full bg-[#0A3D2A] text-white shadow-float hover:scale-105 transition-all duration-300 flex items-center justify-center overflow-hidden border-2 border-[#0A3D2A] ${isOpen ? 'opacity-0 pointer-events-none scale-75' : 'opacity-100 scale-100 delay-100'}`}
         aria-label="Abrir asistente IA"
       >
-        <img src="/Avatar Optima.png" alt="OPTIMA" className="w-full h-full object-cover rounded-full" />
+        <img src="/Avatar Optima.png" alt="ELVIA" className="w-full h-full object-cover rounded-full" />
         <span className="absolute top-0 right-0 w-3 h-3 bg-[#E8541A] rounded-full border-2 border-surface animate-pulse"></span>
       </button>
 
@@ -49,17 +49,17 @@ export default function AiChatBot() {
           ${isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none origin-bottom-right scale-50'}
           ${isExpanded 
              ? 'inset-0 w-full h-[100dvh] sm:inset-4 sm:w-[calc(100vw-2rem)] sm:h-[calc(100dvh-2rem)] rounded-none sm:rounded-3xl' 
-             : 'bottom-6 right-6 sm:bottom-8 sm:right-8 w-[calc(100vw-2rem)] sm:w-[400px] h-[580px] max-h-[85vh] rounded-3xl origin-bottom-right scale-100'
+             : 'bottom-6 right-6 sm:bottom-8 sm:right-8 w-[calc(100vw-2rem)] sm:w-[360px] h-[520px] max-h-[85vh] rounded-3xl origin-bottom-right scale-100'
           }`}
       >
         {/* Header del Chat */}
         <div className="h-16 px-5 bg-gradient-to-r from-[#0A3D2A] to-primary flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-full bg-white overflow-hidden flex items-center justify-center shrink-0 border border-white/20">
-              <img src="/Avatar Optima.png" alt="OPTIMA" className="w-full h-full object-cover rounded-full" />
+              <img src="/Avatar Optima.png" alt="ELVIA" className="w-full h-full object-cover rounded-full" />
             </div>
             <div>
-              <h3 className="text-white text-sm font-bold tracking-tight">OPTIMA</h3>
+              <h3 className="text-white text-sm font-bold tracking-tight">ELVIA</h3>
               <p className="text-white/70 text-[10px] uppercase tracking-widest font-bold">Tu mentora 24X7</p>
             </div>
           </div>
@@ -205,7 +205,7 @@ export default function AiChatBot() {
             </button>
           </form>
           <div className="flex items-center justify-between mt-2 px-1">
-            <span className="text-[10px] text-on-surface-variant/50 font-medium">BETA • OPTIMA-CV AI</span>
+            <span className="text-[10px] text-on-surface-variant/50 font-medium">BETA • ELVIA AI</span>
             <span className={`text-[10px] font-semibold ${limitAlcanzado ? 'text-red-400' : mensajesUsuario >= maxMensajes * 0.8 ? 'text-amber-500' : 'text-on-surface-variant/40'}`}>
               {mensajesUsuario}/{maxMensajes} mensajes
             </span>

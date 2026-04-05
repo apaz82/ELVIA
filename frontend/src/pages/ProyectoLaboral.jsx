@@ -213,7 +213,7 @@ function convertirDesdeMXN(montoMXN, moneda) {
 const RECURSOS_DEFAULT = RECURSOS_DEFAULT_BASE
 
 const DOCS_LIST = [
-  { id:'cv',          label:'CV optimizado con OPTIMA',            link:'/cv-optimizer',   Icon:FileMagnifyingGlass },
+  { id:'cv',          label:'CV optimizado con ELVIA',            link:'/cv-optimizer',   Icon:FileMagnifyingGlass },
   { id:'linkedin',    label:'LinkedIn actualizado y auditado',      link:'/linkedin-optima', Icon:LinkedinLogo       },
   { id:'cv_vacante',  label:'CV adaptado a una vacante objetivo',  link:'/cv-vs-job',      Icon:MagnifyingGlass    },
   { id:'entrevista',  label:'Práctica de entrevista realizada',    link:'/entrevista',     Icon:Robot              },
@@ -547,7 +547,7 @@ function PilarMiPerfil({ perfil, extraData, onChange, onSavePerfil, saving, isPa
         {/* Disclaimer */}
         <div className="mt-3 p-3 rounded-lg bg-amber-50 border border-amber-200">
           <p className="text-[10px] font-semibold text-amber-800 leading-relaxed">
-            <span className="font-bold">⚠️ Aviso importante:</span> Si usas la información de otra persona sin autorización expresa, se incumplen los términos y condiciones de OPTIMA así como la privacidad de la información. Solo debes subir CVs propios o autorizados.
+            <span className="font-bold">⚠️ Aviso importante:</span> Si usas la información de otra persona sin autorización expresa, se incumplen los términos y condiciones de ELVIA así como la privacidad de la información. Solo debes subir CVs propios o autorizados.
           </p>
         </div>
 
@@ -573,7 +573,7 @@ function PilarMiPerfil({ perfil, extraData, onChange, onSavePerfil, saving, isPa
                   <div className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 ${isComplete ? 'bg-emerald-500 text-white' : 'bg-slate-400 text-white'}`}>
                     {isComplete ? <CheckCircle size={14} weight="bold" /> : <Lock size={12} weight="bold" />}
                   </div>
-                  <p className="text-sm font-black text-slate-800">Tu CV Inicial Generada</p>
+                  <p className="text-sm font-black text-slate-800">Tu CV Inicial Generado</p>
                 </div>
                 {!isComplete && (
                   <p className="text-[10px] font-bold text-amber-600 mb-2 uppercase tracking-tight bg-amber-50 px-2 py-0.5 rounded border border-amber-100 w-fit">
@@ -586,11 +586,11 @@ function PilarMiPerfil({ perfil, extraData, onChange, onSavePerfil, saving, isPa
                 <div className="flex items-center gap-1.5">
                   {isComplete ? (
                     <Link to="/mis-cvs" className="text-[11px] font-bold text-emerald-700 hover:text-emerald-800 flex items-center gap-1 transition-colors">
-                      <Folders size={14} weight="bold" /> Ver en MIS CVS
+                      <Folders size={14} weight="bold" /> Ver en MIS CVs
                     </Link>
                   ) : (
                     <span className="text-[11px] font-bold text-slate-400 flex items-center gap-1 cursor-not-allowed">
-                      <Folders size={14} weight="bold" /> Ver en MIS CVS
+                      <Folders size={14} weight="bold" /> Ver en MIS CVs
                     </span>
                   )}
                 </div>
@@ -897,21 +897,21 @@ function PilarMiPerfil({ perfil, extraData, onChange, onSavePerfil, saving, isPa
           <div><h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Industrias de interés</h3>
             <div className="flex flex-wrap gap-2">{[...INDUSTRIAS_LATAM,'Otro'].map(ind=>{const sel=Array.isArray(d.industrias_deseadas)&&d.industrias_deseadas.includes(ind);return(
               <button key={ind} onClick={()=>toggleInd(ind)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors cursor-pointer ${sel?'bg-teal-600 text-white border-teal-600':'border-slate-300 text-slate-600 hover:border-teal-400'}`}>{ind}</button>
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors cursor-pointer ${sel?'bg-indigo-600 text-white border-indigo-600':'border-slate-300 text-slate-600 hover:border-indigo-400'}`}>{ind}</button>
             )})}</div>
             {Array.isArray(d.industrias_deseadas)&&d.industrias_deseadas.includes('Otro')&&(
               <div className="mt-3 flex gap-2">
                 <input value={d.industria_otro||''} onChange={e=>up('industria_otro',e.target.value)} placeholder="Especifica la industria..."
-                  className="flex-1 border border-slate-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400/40"/>
+                  className="flex-1 border border-slate-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400/40"/>
                 <button onClick={()=>{const val=(d.industria_otro||'').trim();if(val){const arr=Array.isArray(d.industrias_deseadas)?d.industrias_deseadas:[]; onChange({ ...d, industrias_deseadas: [...arr.filter(x=>x!=='Otro'), val], industria_otro: '' })}}}
                   disabled={!d.industria_otro||!d.industria_otro.trim()}
-                  className="px-4 py-2.5 bg-teal-600 hover:bg-teal-700 text-white rounded-xl font-bold text-sm transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">+</button>
+                  className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-sm transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">+</button>
               </div>
             )}</div>
           <div><h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Tipo de trabajo</h3>
             <div className="flex flex-wrap gap-2">{TIPOS_TRABAJO.map(t=>(
               <button key={t} onClick={()=>up('tipo_trabajo',t)}
-                className={`px-4 py-2 rounded-xl text-sm font-semibold border transition-colors cursor-pointer ${d.tipo_trabajo===t?'bg-blue-600 text-white border-blue-600':'border-slate-300 text-slate-600 hover:border-blue-400'}`}>{t}</button>
+                className={`px-4 py-2 rounded-xl text-sm font-semibold border transition-colors cursor-pointer ${d.tipo_trabajo===t?'bg-indigo-600 text-white border-indigo-600':'border-slate-300 text-slate-600 hover:border-indigo-400'}`}>{t}</button>
             ))}</div></div>
           <div><h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Ciudades / Países de búsqueda</h3>
             <div className="flex items-center gap-3 mb-3">
@@ -968,19 +968,19 @@ function PilarMiPerfil({ perfil, extraData, onChange, onSavePerfil, saving, isPa
           <div><h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Años de experiencia profesional</h3>
             <div className="flex flex-wrap gap-2">{ANIOS_EXP.map(a=>(
               <button key={a} onClick={()=>up('anios_experiencia',a)}
-                className={`px-4 py-2 rounded-xl text-sm font-semibold border transition-colors cursor-pointer ${d.anios_experiencia===a?'bg-violet-600 text-white border-violet-600':'border-slate-300 text-slate-600 hover:border-violet-400'}`}>{a}</button>
+                className={`px-4 py-2 rounded-xl text-sm font-semibold border transition-colors cursor-pointer ${d.anios_experiencia===a?'bg-indigo-600 text-white border-indigo-600':'border-slate-300 text-slate-600 hover:border-indigo-400'}`}>{a}</button>
             ))}</div></div>
           <div><h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Idiomas</h3>
             <div className="flex flex-wrap gap-2 mb-3">{IDIOMAS_LIST.map(id=>{const sel=Array.isArray(d.idiomas)&&d.idiomas.find(i=>i.idioma===id);return(
               <button key={id} onClick={()=>toggleIdioma(id)}
-                className={`px-3 py-1.5 rounded-lg text-sm font-semibold border transition-colors cursor-pointer ${sel?'bg-violet-600 text-white border-violet-600':'border-slate-300 text-slate-600 hover:border-violet-400'}`}>{id}</button>
+                className={`px-3 py-1.5 rounded-lg text-sm font-semibold border transition-colors cursor-pointer ${sel?'bg-indigo-600 text-white border-indigo-600':'border-slate-300 text-slate-600 hover:border-indigo-400'}`}>{id}</button>
             )})}</div>
             {Array.isArray(d.idiomas)&&d.idiomas.length>0&&(
               <div className="space-y-2">{d.idiomas.map(i=>(
-                <div key={i.idioma} className="flex items-center gap-3 p-3 rounded-xl bg-violet-50 border border-violet-100">
-                  <span className="text-sm font-semibold text-violet-700 flex-1">{i.idioma}</span>
+                <div key={i.idioma} className="flex items-center gap-3 p-3 rounded-xl bg-indigo-50 border border-indigo-100">
+                  <span className="text-sm font-semibold text-indigo-700 flex-1">{i.idioma}</span>
                   <select value={i.nivel} onChange={e=>updNivelIdioma(i.idioma,e.target.value)}
-                    className="border border-violet-200 rounded-lg px-2 py-1 text-xs bg-white focus:outline-none">
+                    className="border border-indigo-200 rounded-lg px-2 py-1 text-xs bg-white focus:outline-none">
                     {NIVELES_CEFR.map(n=><option key={n} value={n}>{n}</option>)}</select>
                 </div>
               ))}</div>)}
@@ -1692,7 +1692,7 @@ function PilarDocumentos({ data, onChange, onSave, justSaved, pct }) {
           )
         })}
       </div>
-      {pct===100&&(
+      {pctDocs===100&&(
         <div className="p-6 rounded-2xl bg-gradient-to-br from-amber-50 to-teal-50 border-2 border-amber-200 text-center">
           <Trophy size={40} weight="duotone" className="text-amber-500 mx-auto mb-2"/>
           <h3 className="font-black text-slate-800 text-lg mb-1">¡Carpeta 100% lista!</h3>

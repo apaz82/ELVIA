@@ -18,7 +18,7 @@ function ModalPrivacidad({ onClose }) {
             </div>
             <div>
               <h2 className="font-black text-slate-800 text-base">Política de Privacidad y Tratamiento de Datos</h2>
-              <p className="text-xs text-slate-400">Sesión de Mentoría — OPTIMA-CV</p>
+              <p className="text-xs text-slate-400">Sesión de Mentoría — ELVIA</p>
             </div>
           </div>
           <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer">
@@ -31,7 +31,7 @@ function ModalPrivacidad({ onClose }) {
 
           <div>
             <h3 className="font-bold text-slate-800 mb-1">1. Datos recopilados</h3>
-            <p>Para la prestación del servicio de mentoría, OPTIMA-CV recopila únicamente los datos que usted proporciona voluntariamente en el formulario de solicitud: nombre de usuario, tipo de asesoría solicitada y la descripción detallada de su requerimiento. <strong>Solo comparta información que usted considere que puede compartir libremente con un profesional de confianza.</strong></p>
+            <p>Para la prestación del servicio de mentoría, ELVIA recopila únicamente los datos que usted proporciona voluntariamente en el formulario de solicitud: nombre de usuario, tipo de asesoría solicitada y la descripción detallada de su requerimiento. <strong>Solo comparta información que usted considere que puede compartir libremente con un profesional de confianza.</strong></p>
           </div>
 
           <div>
@@ -56,7 +56,7 @@ function ModalPrivacidad({ onClose }) {
 
           <div>
             <h3 className="font-bold text-slate-800 mb-1">5. Derechos del usuario (ARCO)</h3>
-            <p>Usted tiene derecho en todo momento a: <strong>Acceder</strong> a sus datos, <strong>Rectificarlos</strong>, <strong>Cancelar</strong> su tratamiento y <strong>Oponerse</strong> al mismo. Para ejercer estos derechos, contacte a: <a href="mailto:privacidad@optimacv.com" className="text-emerald-600 font-semibold hover:underline">privacidad@optimacv.com</a></p>
+            <p>Usted tiene derecho en todo momento a: <strong>Acceder</strong> a sus datos, <strong>Rectificarlos</strong>, <strong>Cancelar</strong> su tratamiento y <strong>Oponerse</strong> al mismo. Para ejercer estos derechos, contacte a: <a href="mailto:privacidad@elvia.lat" className="text-emerald-600 font-semibold hover:underline">privacidad@elvia.lat</a></p>
           </div>
 
           <div>
@@ -95,7 +95,7 @@ export default function Expertos() {
   const handleEnviar = () => {
     if (!puedeEnviar) return
     // En producción aquí se llamaría a la API del backend
-    const mailto = `mailto:expertos@optimacv.com?subject=${encodeURIComponent('Solicitud de Mentoría — ' + servicio)}&body=${encodeURIComponent('Tipo de asesoría: ' + servicio + '\n\nDetalle del requerimiento:\n' + detalle)}`
+    const mailto = `mailto:expertos@elvia.lat?subject=${encodeURIComponent('Solicitud de Mentoría — ' + servicio)}&body=${encodeURIComponent('Tipo de asesoría: ' + servicio + '\n\nDetalle del requerimiento:\n' + detalle)}`
     window.open(mailto, '_blank')
     setEnviado(true)
     setTimeout(() => setEnviado(false), 4000)
@@ -269,7 +269,7 @@ export default function Expertos() {
                   <Lock size={18} weight="fill" className="text-white" />
                 </div>
                 <div>
-                  <p className="text-sm font-black text-emerald-800">Sello de Confidencialidad OPTIMA-CV</p>
+                  <p className="text-sm font-black text-emerald-800">Sello de Confidencialidad ELVIA</p>
                   <p className="text-xs text-emerald-600 leading-relaxed mt-0.5">
                     Tus datos están protegidos bajo las Leyes internacionales de privacidad (GDPR · LFPDPPP). Esta sesión es <strong>100% privada y encriptada</strong>. La información que compartas es estrictamente confidencial y nunca será divulgada a terceros.
                   </p>

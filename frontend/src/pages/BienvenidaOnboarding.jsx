@@ -101,7 +101,7 @@ export default function BienvenidaOnboarding() {
 
         {/* ── Logo bar ── */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 28, paddingBottom: 0 }}>
-          <img src="/optima_logo_v3_clean_1.png" alt="OPTIMA" style={{ height: 40, width: 'auto', opacity: 0.92 }} />
+          <img src="/optima_logo_v3_clean_1.png" alt="ELVIA" style={{ height: 40, width: 'auto', opacity: 0.92 }} />
           <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
             <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#34d399', boxShadow: '0 0 8px #34d399', animation: 'pulse 2s infinite' }} />
             <span style={{ fontSize: 11, letterSpacing: '0.12em', color: 'rgba(255,255,255,0.35)', fontWeight: 600, textTransform: 'uppercase' }}>
@@ -150,7 +150,7 @@ export default function BienvenidaOnboarding() {
 
         {/* ── Motivational copy — full, large ── */}
         <div style={{ ...fade(200), fontSize: '1.1rem', lineHeight: 1.85, color: 'rgba(255,255,255,0.92)', marginBottom: 18 }}>
-          El tiempo que te tomes <strong style={{ color: 'rgba(255,255,255,0.95)', fontWeight: 700 }}>no importa</strong> — lo que importa es conocerte. Por muy trivial que parezca una pregunta, todo nos sirve para sacar el mayor potencial de OPTIMA y acompañarte durante todo el proceso. Sean 5, 15 o 45 minutos, lo que realmente importa es que el tiempo que le dediques <strong style={{ color: 'rgba(255,255,255,0.95)', fontWeight: 700 }}>sea el de mayor valor posible</strong>.
+          El tiempo que te tomes <strong style={{ color: 'rgba(255,255,255,0.95)', fontWeight: 700 }}>no importa</strong> — lo que importa es conocerte. Por muy trivial que parezca una pregunta, todo nos sirve para sacar el mayor potencial de ELVIA y acompañarte durante todo el proceso. Sean 5, 15 o 45 minutos, lo que realmente importa es que el tiempo que le dediques <strong style={{ color: 'rgba(255,255,255,0.95)', fontWeight: 700 }}>sea el de mayor valor posible</strong>.
         </div>
 
         <div style={{ ...fade(260), fontSize: '1.1rem', lineHeight: 1.85, color: 'rgba(255,255,255,0.92)', marginBottom: 18 }}>

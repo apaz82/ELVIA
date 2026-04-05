@@ -517,7 +517,7 @@ export default function CVDesdeCero() {
     try {
       const hoy = new Date()
       const ddmmaa = hoy.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: '2-digit' }).replace(/\//g, '')
-      const nombreLimpio = `${datos.nombre} ${datos.apellido}`.trim() || 'Usuario Optima'
+      const nombreLimpio = `${datos.nombre} ${datos.apellido}`.trim() || 'Usuario ELVIA'
       const nombreArchivo = `CV_${nombreLimpio} - original ${ddmmaa}.txt`
 
       // 1. Subir texto generado a Storage

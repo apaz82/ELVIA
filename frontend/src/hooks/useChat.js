@@ -5,7 +5,7 @@ import { api } from '../services/api';
 // Límite de mensajes de usuario por sesión de chat
 const MAX_MENSAJES_SESION = 20;
 
-const MENSAJE_DASHBOARD = `¡Hola! Soy **OPTIMA**, tu mentora de carrera 24/7. 👋
+const MENSAJE_DASHBOARD = `¡Hola! Soy **ELVIA**, tu mentora de carrera 24/7. 👋
 
 Estás en tu **Dashboard** — tu centro de control.
 
@@ -13,7 +13,7 @@ Este es el mejor momento para tomarte un respiro y dedicar el tiempo que necesit
 
 ¿En qué te puedo ayudar hoy?`;
 
-const MENSAJE_GENERAL = `Hola, soy **OPTIMA**, tu asistente y mentora en todo tu proceso de crecimiento profesional. Puedes preguntarme cómo usar cualquier función de la app o pedirme consejos sobre tu carrera.`;
+const MENSAJE_GENERAL = `Hola, soy **ELVIA**, tu asistente y mentora en todo tu proceso de crecimiento profesional. Puedes preguntarme cómo usar cualquier función de la app o pedirme consejos sobre tu carrera.`;
 
 export function useChat() {
   const location = useLocation();

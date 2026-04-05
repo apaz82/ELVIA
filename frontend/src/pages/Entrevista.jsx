@@ -361,7 +361,7 @@ export default function Entrevista() {
               <Crown size={10} weight="fill" /> Premium
             </span>
           </div>
-          <p className="text-sm text-gray-500">Practica con OPTIMA y recibe feedback profesional en tiempo real.</p>
+          <p className="text-sm text-gray-500">Practica con ELVIA y recibe feedback profesional en tiempo real.</p>
         </div>
         {paso === 'entrevista' && (
           <button onClick={() => setConfirmSalir(true)}
@@ -514,7 +514,7 @@ export default function Entrevista() {
               {/* Avatar */}
               <div className="shrink-0 relative">
                 <div className={`w-14 h-14 rounded-2xl overflow-hidden border-2 transition-all ${hablando ? 'border-primary shadow-lg shadow-primary/20' : 'border-gray-200'}`}>
-                  <img src="/Avatar Optima.png" alt="OPTIMA" className="w-full h-full object-cover rounded-full" />
+                  <img src="/Avatar Optima.png" alt="ELVIA" className="w-full h-full object-cover rounded-full" />
                 </div>
                 {hablando && (
                   <span className="absolute -bottom-1 -right-1 flex h-4 w-4">
@@ -528,7 +528,7 @@ export default function Entrevista() {
               {/* Pregunta */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-2">
-                  <p className="text-xs font-bold text-primary">OPTIMA</p>
+                  <p className="text-xs font-bold text-primary">ELVIA</p>
                   <button onClick={() => leerEnVoz(preguntaActual.pregunta)} title="Escuchar de nuevo"
                     className="text-gray-400 hover:text-primary transition-colors">
                     <SpeakerHigh size={14} weight="duotone" />
@@ -550,7 +550,7 @@ export default function Entrevista() {
           {feedbackInmediato && !loadingFeedbackInm && (
             <div className="card border-l-4 border-primary space-y-3">
               <div className="flex items-center justify-between">
-                <p className="text-sm font-bold text-gray-800">Feedback de OPTIMA</p>
+                <p className="text-sm font-bold text-gray-800">Feedback de ELVIA</p>
                 <Estrellas n={feedbackInmediato.calificacion || 3} />
               </div>
               <p className="text-sm text-gray-600 leading-relaxed">{feedbackInmediato.comentario}</p>
@@ -726,7 +726,7 @@ export default function Entrevista() {
           <div className="bg-white rounded-2xl p-8 flex flex-col items-center gap-4 shadow-2xl max-w-xs mx-4">
             <Spinner size={40} className="animate-spin text-primary" />
             <p className="text-base font-bold text-gray-800 text-center">Analizando tu entrevista...</p>
-            <p className="text-sm text-gray-500 text-center">OPTIMA está evaluando tus respuestas</p>
+            <p className="text-sm text-gray-500 text-center">ELVIA está evaluando tus respuestas</p>
           </div>
         </div>
       )}

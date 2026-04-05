@@ -99,7 +99,7 @@ const generarWord = async (cvText, opciones = {}) => {
           new Paragraph({
             alignment: AlignmentType.CENTER,
             children: [new TextRun({
-              text: 'Generado con OptimaCV — optimacv.com — Versión gratuita',
+              text: 'Generado con ELVIA — elvia.lat — Versión gratuita',
               size: 16,
               color: '999999',
               font: FUENTE,

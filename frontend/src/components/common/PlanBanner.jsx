@@ -21,7 +21,7 @@ export default function PlanBanner({ tipo = 'upgrade_teaser', mensaje, ctaText, 
       bg:    'bg-primary/8 border-primary/20',
       text:  'text-primary',
       icono: <RocketLaunch size={18} weight="fill" className="text-primary shrink-0" />,
-      msg:   'Desbloquea todo OptimaCV con un plan de pago.',
+      msg:   'Desbloquea todo ELVIA con un plan de pago.',
     },
     trial_warning: {
       bg:    'bg-amber-50 border-amber-200',

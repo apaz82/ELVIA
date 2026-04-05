@@ -97,7 +97,7 @@ function AdminLogin({ onLogin }) {
           <div className="w-20 h-20 rounded-[2.5rem] bg-gradient-to-br from-blue-600 to-violet-700 flex items-center justify-center mx-auto mb-6 shadow-2xl shadow-blue-900/40 border border-white/10 ring-8 ring-blue-600/5 anim-float">
             <span className="text-white font-black text-3xl">O</span>
           </div>
-          <h1 className="text-white text-3xl font-black tracking-tighter uppercase italic">OPTIMA ADMIN</h1>
+          <h1 className="text-white text-3xl font-black tracking-tighter uppercase italic">ELVIA ADMIN</h1>
           <p className="text-blue-500/60 text-[10px] font-black tracking-[0.4em] mt-2 uppercase">Centro de Operaciones</p>
         </div>
 
@@ -107,7 +107,7 @@ function AdminLogin({ onLogin }) {
             <input
               type="email" value={email} onChange={e => setEmail(e.target.value)} required
               className="w-full bg-gray-950/50 border border-gray-800 rounded-2xl px-5 py-3.5 text-white text-sm placeholder-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium"
-              placeholder="admin@optima.pro"
+              placeholder="admin@elvia.lat"
             />
           </div>
           <div className="space-y-1.5">
@@ -142,7 +142,7 @@ function AdminLogin({ onLogin }) {
         </form>
         
         <p className="text-center text-gray-600 text-[9px] font-bold uppercase tracking-widest mt-12">
-            © 2026 OPTIMA CAREER MENTOR — SISTEMA DE GESTIÓN PROPIA
+            © 2026 ELVIA CAREER MENTOR — SISTEMA DE GESTIÓN PROPIA
         </p>
       </div>
     </div>
@@ -2511,7 +2511,7 @@ function Dashboard({ adminUser, onLogout }) {
             <span className="text-white font-black text-xl">A</span>
           </div>
           <div>
-            <h2 className="font-bold text-sm tracking-tight text-white">OPTIMA Admin</h2>
+            <h2 className="font-bold text-sm tracking-tight text-white">ELVIA Admin</h2>
             <p className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Control Center</p>
           </div>
         </div>
@@ -2683,12 +2683,12 @@ function MarketingTab({ config, onRefresh }) {
     setTimeout(() => {
       const ideas = {
         linkedin: {
-          profesional: "🚀 ¿Sabías que el 75% de los CVs son descartados por filtros ATS antes de que un humano los vea?\n\nNo dejes tu carrera al azar. Con OPTIMA CV puedes analizar tu currículum contra cualquier vacante en tiempo real y obtener un formato Harvard que resalte tu impacto real.\n\n🔗 Pruébalo gratis hoy en optima.pro \n\n#Talento #DesarrolloProfesional #ATS #BusquedaDeEmpleo #OPTIMACV",
-          agresivo: "⚠️ TU CV ES BASURA PARA LOS ATS... y tú ni lo sabes.\n\nDeja de enviar aplicaciones al vacío. El 90% de las empresas usan software para filtrarte. Si no hablas su idioma, no existes.\n\nUsa IA para ganarles en su propio juego. optima.pro te da la ventaja injusta.\n\n#CareerHack #ATS #Empleo #IA",
+          profesional: "🚀 ¿Sabías que el 75% de los CVs son descartados por filtros ATS antes de que un humano los vea?\n\nNo dejes tu carrera al azar. Con ELVIA puedes analizar tu currículum contra cualquier vacante en tiempo real y obtener un formato Harvard que resalte tu impacto real.\n\n🔗 Pruébalo gratis hoy en elvia.lat \n\n#Talento #DesarrolloProfesional #ATS #BusquedaDeEmpleo #ELVIA",
+          agresivo: "⚠️ TU CV ES BASURA PARA LOS ATS... y tú ni lo sabes.\n\nDeja de enviar aplicaciones al vacío. El 90% de las empresas usan software para filtrarte. Si no hablas su idioma, no existes.\n\nUsa IA para ganarles en su propio juego. elvia.lat te da la ventaja injusta.\n\n#CareerHack #ATS #Empleo #IA",
         },
         twitter: {
-          profesional: "Tu CV no es malo, es invisible para los ATS. 🤖\n\nOptimiza tus palabras clave y vence al algoritmo en 30 segundos. Harvard Style Ready.\n\nGratis en: optima.pro #CareerTech #IA",
-          agresivo: "Deja de mendigar empleo. Empieza a cazar ofertas ganándole a los ATS con IA. 🎯\n\noptima.pro — Entra, optimiza, consigue la entrevista. Punto.",
+          profesional: "Tu CV no es malo, es invisible para los ATS. 🤖\n\nOptimiza tus palabras clave y vence al algoritmo en 30 segundos. Harvard Style Ready.\n\nGratis en: elvia.lat #CareerTech #IA",
+          agresivo: "Deja de mendigar empleo. Empieza a cazar ofertas ganándole a los ATS con IA. 🎯\n\nelvia.lat — Entra, optimiza, consigue la entrevista. Punto.",
         }
       }
       setIdea(ideas[platform]?.[tone] || ideas.linkedin.profesional)
@@ -2862,8 +2862,8 @@ function MarketingTab({ config, onRefresh }) {
             <div className="bg-gray-950 rounded-2xl p-6 border border-gray-800 flex flex-col justify-center">
                <p className="text-[10px] font-black text-gray-700 uppercase mb-4 tracking-tighter">Vista previa en buscadores</p>
                <div className="space-y-1 max-w-[320px]">
-                  <p className="text-blue-400 text-lg hover:underline cursor-pointer truncate">{seoForm.seo_title || 'Optima CV | Optimización IA'}</p>
-                  <p className="text-emerald-700 text-xs truncate">https://optima.pro › cv-optimizer</p>
+                  <p className="text-blue-400 text-lg hover:underline cursor-pointer truncate">{seoForm.seo_title || 'ELVIA | Optimización IA'}</p>
+                  <p className="text-emerald-700 text-xs truncate">https://elvia.lat › cv-optimizer</p>
                   <p className="text-gray-500 text-xs line-clamp-2 leading-relaxed">
                     {seoForm.seo_meta_description || 'Analiza tu currículum contra cualquier vacante en tiempo real y vence a los filtros ATS...'}
                   </p>

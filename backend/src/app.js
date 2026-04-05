@@ -36,7 +36,9 @@ app.set('trust proxy', 1);
 // --- CORS Configuración Segura ---
 const ALLOWED_ORIGINS = [
   process.env.FRONTEND_URL || 'https://gestioncv.netlify.app',
-  'https://optimacv.cv',
+  'https://elvia.lat',
+  'https://www.elvia.lat',
+  'https://optimacv.cv',         // legado — remover tras cutover de dominio
   'http://localhost:5173',
   'http://localhost:5174',
   'http://localhost:5175',

@@ -131,7 +131,7 @@ const generarPDF = async (cvText, opciones = {}) => {
     for (const pg of paginas) {
       const { width: w, height: h } = pg.getSize();
       // Línea superior: logo/nombre de la app
-      pg.drawText('OptimaCV', {
+      pg.drawText('ELVIA', {
         x: w / 2 - 55,
         y: h - 22,
         size: 11,
@@ -139,7 +139,7 @@ const generarPDF = async (cvText, opciones = {}) => {
         color: rgb(0.55, 0.55, 0.55),
       });
       // Marca diagonal en el centro de cada página
-      pg.drawText('OPTIMA CV', {
+      pg.drawText('ELVIA', {
         x: w / 2 - 95,
         y: h / 2 - 20,
         size: 42,

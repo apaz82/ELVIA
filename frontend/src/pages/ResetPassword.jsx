@@ -147,7 +147,7 @@ export default function ResetPassword() {
 
           {/* Header */}
           <div className="text-center mb-7">
-            <img src="/optima_logo_v3_clean_1.png" alt="OPTIMA-CV" className="h-12 w-auto mx-auto mb-4 object-contain" />
+            <img src="/optima_logo_v3_clean_1.png" alt="ELVIA" className="h-12 w-auto mx-auto mb-4 object-contain" />
             <div className="w-14 h-14 bg-teal-50 rounded-full flex items-center justify-center mx-auto mb-3">
               <LockKey size={26} weight="duotone" className="text-teal-600" />
             </div>

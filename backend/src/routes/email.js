@@ -90,7 +90,7 @@ router.post('/send', auth, async (req, res) => {
         <div style="font-family: sans-serif; max-width: 500px; margin: 0 auto; padding: 32px;">
           <h2 style="color: #1C1C1E;">Tu CV optimizado está listo</h2>
           <p style="color: #6b7280;">Adjunto encontrarás tu CV en formato ${format === 'word' ? 'Word' : 'PDF'}, listo para enviar a reclutadores.</p>
-          <p style="color: #6b7280; font-size: 13px;">Generado con <strong>OPTIMA-CV</strong> — sin inventar información, solo mejoramos lo que ya tienes.</p>
+          <p style="color: #6b7280; font-size: 13px;">Generado con <strong>ELVIA</strong> — sin inventar información, solo mejoramos lo que ya tienes.</p>
         </div>
       `,
       attachments: [
@@ -122,7 +122,7 @@ const htmlBienvenida = (email) => `
         <!-- Header -->
         <tr>
           <td style="background:linear-gradient(135deg,#0A3D2A 0%,#0d5c3e 100%);padding:36px 40px 32px;text-align:center;">
-            <img src="https://gestioncv.netlify.app/optima_logo_v3_clean_1.png" alt="OPTIMA-CV" height="52" style="height:52px;width:auto;display:block;margin:0 auto 12px;" />
+            <img src="https://www.elvia.lat/optima_logo_v3_clean_1.png" alt="OPTIMA-CV" height="52" style="height:52px;width:auto;display:block;margin:0 auto 12px;" />
             <p style="margin:0;color:rgba(255,255,255,0.6);font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;">Tu carrera, optimizada</p>
           </td>
         </tr>
@@ -130,11 +130,11 @@ const htmlBienvenida = (email) => `
         <!-- Cuerpo -->
         <tr>
           <td style="padding:40px 40px 32px;">
-            <h1 style="margin:0 0 8px;font-size:26px;font-weight:800;color:#111827;line-height:1.2;">¡Bienvenido/a a OPTIMA | CV! 🎉</h1>
+            <h1 style="margin:0 0 8px;font-size:26px;font-weight:800;color:#111827;line-height:1.2;">¡Bienvenido/a a ELVIA! 🎉</h1>
             <p style="margin:0 0 24px;font-size:14px;color:#6b7280;">Tu cuenta ha sido creada con éxito.</p>
 
             <p style="margin:0 0 20px;font-size:15px;color:#374151;line-height:1.7;">
-              Hola, nos alegra mucho tenerte en la plataforma. Con <strong style="color:#0A3D2A;">OPTIMA | CV</strong> vas a tener acceso a las herramientas de IA más avanzadas para destacar en el mercado laboral de LATAM y USA.
+              Hola, nos alegra mucho tenerte en la plataforma. Con <strong style="color:#0A3D2A;">ELVIA</strong> vas a tener acceso a las herramientas de IA más avanzadas para destacar en el mercado laboral de LATAM y USA.
             </p>
 
             <!-- Beneficios -->
@@ -192,7 +192,7 @@ const htmlBienvenida = (email) => `
               Este correo fue enviado a <strong style="color:#6b7280;">${email}</strong>
             </p>
             <p style="margin:0;font-size:11px;color:#d1d5db;">
-              © ${new Date().getFullYear()} OPTIMA | CV · Todos los derechos reservados ·
+              © ${new Date().getFullYear()} ELVIA · Todos los derechos reservados ·
               <a href="https://gestioncv.netlify.app/privacidad" style="color:#9ca3af;text-decoration:underline;">Política de Privacidad</a>
             </p>
           </td>
@@ -217,7 +217,7 @@ const htmlRecuperacion = (email, resetUrl) => `
         <!-- Header -->
         <tr>
           <td style="background:linear-gradient(135deg,#1e293b 0%,#334155 100%);padding:36px 40px 32px;text-align:center;">
-            <img src="https://gestioncv.netlify.app/optima_logo_v3_clean_1.png" alt="OPTIMA-CV" height="52" style="height:52px;width:auto;display:block;margin:0 auto 12px;filter:brightness(0) invert(1);" />
+            <img src="https://www.elvia.lat/optima_logo_v3_clean_1.png" alt="OPTIMA-CV" height="52" style="height:52px;width:auto;display:block;margin:0 auto 12px;filter:brightness(0) invert(1);" />
             <p style="margin:0;color:rgba(255,255,255,0.5);font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;">Seguridad de cuenta</p>
           </td>
         </tr>
@@ -260,7 +260,7 @@ const htmlRecuperacion = (email, resetUrl) => `
                   <strong>⚠️ No reconozco esta solicitud</strong><br>
                   Si no solicitaste cambiar tu contraseña, ignora este email. Tu cuenta está segura.
                   Si crees que alguien intenta acceder a tu cuenta, contáctanos a
-                  <a href="mailto:privacidad@optimacv.com" style="color:#991b1b;font-weight:700;">privacidad@optimacv.com</a>.
+                  <a href="mailto:privacidad@elvia.lat" style="color:#991b1b;font-weight:700;">privacidad@elvia.lat</a>.
                 </p>
               </td></tr>
             </table>
@@ -280,7 +280,7 @@ const htmlRecuperacion = (email, resetUrl) => `
               Solicitud generada para <strong style="color:#6b7280;">${email}</strong>
             </p>
             <p style="margin:0;font-size:11px;color:#d1d5db;">
-              © ${new Date().getFullYear()} OPTIMA | CV · Todos los derechos reservados ·
+              © ${new Date().getFullYear()} ELVIA · Todos los derechos reservados ·
               <a href="https://gestioncv.netlify.app/privacidad" style="color:#9ca3af;text-decoration:underline;">Política de Privacidad</a>
             </p>
           </td>
@@ -301,9 +301,9 @@ router.post('/bienvenida', emailRateLimit, async (req, res) => {
 
   try {
     await resend.emails.send({
-      from: 'OPTIMA | CV <onboarding@resend.dev>',
+      from: 'ELVIA <onboarding@resend.dev>',
       to: [email],
-      subject: '¡Bienvenido/a a OPTIMA | CV! 🎉 Tu cuenta está lista',
+      subject: '¡Bienvenido/a a ELVIA! 🎉 Tu cuenta está lista',
       html: htmlBienvenida(email),
     })
     res.json({ ok: true })
@@ -342,9 +342,9 @@ router.post('/recuperacion', emailRateLimit, async (req, res) => {
     const actionLink = linkData.properties.action_link;
 
     const { data: resendData, error: resendErr } = await resend.emails.send({
-      from: 'OPTIMA | CV <onboarding@resend.dev>',
+      from: 'ELVIA <onboarding@resend.dev>',
       to: [email],
-      subject: 'Restablece tu contraseña de OPTIMA | CV',
+      subject: 'Restablece tu contraseña de ELVIA',
       html: htmlRecuperacion(email, actionLink),
     })
 
@@ -397,7 +397,7 @@ const htmlInvitacion = (email, nombre, companyName, inviteUrl, expiresAt) => {
         <!-- Header -->
         <tr>
           <td style="background:linear-gradient(135deg,#1e40af 0%,#1e3a8a 100%);padding:36px 40px 32px;text-align:center;">
-            <img src="https://gestioncv.netlify.app/optima_logo_v3_clean_1.png" alt="OPTIMA-CV" height="52" style="height:52px;width:auto;display:block;margin:0 auto 12px;filter:brightness(0) invert(1);" />
+            <img src="https://www.elvia.lat/optima_logo_v3_clean_1.png" alt="OPTIMA-CV" height="52" style="height:52px;width:auto;display:block;margin:0 auto 12px;filter:brightness(0) invert(1);" />
             <p style="margin:0;color:rgba(255,255,255,0.6);font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;">Invitación B2B</p>
           </td>
         </tr>
@@ -406,14 +406,14 @@ const htmlInvitacion = (email, nombre, companyName, inviteUrl, expiresAt) => {
         <tr>
           <td style="padding:40px 40px 32px;">
             <h1 style="margin:0 0 8px;font-size:24px;font-weight:800;color:#111827;line-height:1.2;">Te invitaron a ${companyName}</h1>
-            <p style="margin:0 0 24px;font-size:14px;color:#6b7280;">Tu equipo ya está usando OPTIMA | CV para optimizar candidaturas.</p>
+            <p style="margin:0 0 24px;font-size:14px;color:#6b7280;">Tu equipo ya está usando ELVIA para optimizar candidaturas.</p>
 
             <p style="margin:0 0 20px;font-size:15px;color:#374151;line-height:1.7;">
               Hola ${nombre || 'usuario'},
             </p>
 
             <p style="margin:0 0 20px;font-size:15px;color:#374151;line-height:1.7;">
-              Alguien de tu empresa (<strong style="color:#1e40af;">${companyName}</strong>) te ha invitado a unirte a OPTIMA | CV.
+              Alguien de tu empresa (<strong style="color:#1e40af;">${companyName}</strong>) te ha invitado a unirte a ELVIA.
               Accede a toda la plataforma de optimización de CV, análisis de compatibilidad y más herramientas de IA para destacar.
             </p>
 
@@ -453,7 +453,7 @@ const htmlInvitacion = (email, nombre, companyName, inviteUrl, expiresAt) => {
               Invitación para <strong style="color:#6b7280;">${email}</strong>
             </p>
             <p style="margin:0;font-size:11px;color:#d1d5db;">
-              © ${new Date().getFullYear()} OPTIMA | CV · Todos los derechos reservados
+              © ${new Date().getFullYear()} ELVIA · Todos los derechos reservados
             </p>
           </td>
         </tr>
@@ -482,9 +482,9 @@ router.post('/invitacion', auth, async (req, res) => {
     })
 
     await resend.emails.send({
-      from: 'OPTIMA | CV <onboarding@resend.dev>',
+      from: 'ELVIA <onboarding@resend.dev>',
       to: [email],
-      subject: `Invitación: Únete a ${companyName} en OPTIMA | CV`,
+      subject: `Invitación: Únete a ${companyName} en ELVIA`,
       html: htmlInvitacion(email, nombre, companyName, inviteUrl, expiresAt),
     })
 

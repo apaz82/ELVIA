@@ -1,4 +1,4 @@
-// Política de Privacidad y Tratamiento de Datos — OPTIMA | CV
+// Política de Privacidad y Tratamiento de Datos — ELVIA
 import { Link } from 'react-router-dom'
 import { ArrowLeft, ShieldCheck } from '@phosphor-icons/react'
 
@@ -8,10 +8,10 @@ const SECCIONES = [
     titulo: 'Responsable del tratamiento de datos',
     contenido: (
       <div className="space-y-1 text-sm text-gray-600">
-        <p><strong className="text-gray-800">Empresa:</strong> OPTIMA CV SA</p>
+        <p><strong className="text-gray-800">Empresa:</strong> Elvia SA de CV</p>
         <p><strong className="text-gray-800">Domicilio:</strong> Chicontepec 57</p>
-        <p><strong className="text-gray-800">Correo de privacidad:</strong> privacidad@optimacv.com</p>
-        <p><strong className="text-gray-800">Sitio web:</strong> www.optima-cv.com</p>
+        <p><strong className="text-gray-800">Correo de privacidad:</strong> privacidad@elvia.lat</p>
+        <p><strong className="text-gray-800">Sitio web:</strong> www.elvia.lat</p>
       </div>
     ),
   },
@@ -20,7 +20,7 @@ const SECCIONES = [
     titulo: 'Datos personales que recopilamos',
     contenido: (
       <div className="space-y-3 text-sm text-gray-600">
-        <p>Al usar OPTIMA | CV recopilamos las siguientes categorías de datos:</p>
+        <p>Al usar ELVIA recopilamos las siguientes categorías de datos:</p>
         <div className="overflow-x-auto">
           <table className="w-full border-collapse text-xs sm:text-sm">
             <thead>
@@ -76,7 +76,7 @@ const SECCIONES = [
         {[
           'Ejecución del contrato de servicio que aceptas al registrarte.',
           'Consentimiento expreso que otorgas al subir tu CV y al aceptar esta política.',
-          'Interés legítimo de OPTIMA | CV para operar y mejorar la plataforma.',
+          'Interés legítimo de ELVIA para operar y mejorar la plataforma.',
           'Cumplimiento de obligaciones legales aplicables.',
         ].map((item, i) => <li key={i}>{item}</li>)}
       </ul>
@@ -91,7 +91,7 @@ const SECCIONES = [
           <p className="font-semibold text-blue-700 text-xs uppercase tracking-wide mb-1">Sección relevante</p>
           <p>Al subir tu CV, su contenido es procesado por modelos de inteligencia artificial para brindarte el servicio.</p>
         </div>
-        <p>Al respecto, OPTIMA | CV garantiza que:</p>
+        <p>Al respecto, ELVIA garantiza que:</p>
         <ul className="space-y-1.5 list-disc pl-5">
           {[
             'Tu CV se procesa con el único propósito de brindarte el servicio solicitado.',
@@ -108,7 +108,7 @@ const SECCIONES = [
     titulo: 'Datos de pago',
     contenido: (
       <div className="space-y-2 text-sm text-gray-600">
-        <p>OPTIMA | CV no almacena datos de tarjetas de crédito o débito en sus propios servidores. Los pagos son procesados por proveedores certificados bajo el estándar PCI DSS. Solo conservamos:</p>
+        <p>ELVIA no almacena datos de tarjetas de crédito o débito en sus propios servidores. Los pagos son procesados por proveedores certificados bajo el estándar PCI DSS. Solo conservamos:</p>
         <ul className="list-disc pl-5 space-y-1">
           <li>El historial de transacciones (fecha, monto, plan) para efectos de facturación y cumplimiento fiscal.</li>
           <li>Los últimos cuatro dígitos del instrumento de pago y su tipo, como referencia para el usuario.</li>
@@ -165,7 +165,7 @@ const SECCIONES = [
         </div>
         <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
           <p className="font-semibold text-amber-700 text-xs uppercase tracking-wide mb-1">¿Cómo ejercer tus derechos?</p>
-          <p className="text-xs text-amber-800">Envía tu solicitud a <strong>privacidad@optimacv.com</strong> indicando: nombre completo, dato de contacto, copia de identificación oficial y descripción clara de tu solicitud. Responderemos en un plazo máximo de 20 días hábiles.</p>
+          <p className="text-xs text-amber-800">Envía tu solicitud a <strong>privacidad@elvia.lat</strong> indicando: nombre completo, dato de contacto, copia de identificación oficial y descripción clara de tu solicitud. Responderemos en un plazo máximo de 20 días hábiles.</p>
         </div>
       </div>
     ),
@@ -190,7 +190,7 @@ const SECCIONES = [
     num: '11',
     titulo: 'Menores de edad',
     contenido: (
-      <p className="text-sm text-gray-600">OPTIMA | CV está dirigido a personas mayores de 18 años. No recopilamos de manera consciente datos de menores de edad. Si tienes conocimiento de que un menor nos ha proporcionado datos personales, contáctanos a <strong>privacidad@optimacv.com</strong> para proceder a su eliminación inmediata.</p>
+      <p className="text-sm text-gray-600">ELVIA está dirigido a personas mayores de 18 años. No recopilamos de manera consciente datos de menores de edad. Si tienes conocimiento de que un menor nos ha proporcionado datos personales, contáctanos a <strong>privacidad@elvia.lat</strong> para proceder a su eliminación inmediata.</p>
     ),
   },
   {
@@ -237,7 +237,7 @@ const SECCIONES = [
     contenido: (
       <div className="space-y-1 text-sm text-gray-600">
         <p>Para cualquier duda, solicitud o reclamación relacionada con esta Política de Privacidad:</p>
-        <p><strong className="text-gray-800">Correo electrónico:</strong> privacidad@optimacv.com</p>
+        <p><strong className="text-gray-800">Correo electrónico:</strong> privacidad@elvia.lat</p>
         <p><strong className="text-gray-800">Domicilio:</strong> Chicontepec 57, México</p>
       </div>
     ),
@@ -254,7 +254,7 @@ export default function Privacidad() {
             <ArrowLeft size={16} weight="bold" />
             Volver al inicio
           </Link>
-          <img src="/optima_logo_v3_clean_1.png" alt="OPTIMA-CV" className="h-9 w-auto object-contain" />
+          <img src="/optima_logo_v3_clean_1.png" alt="ELVIA" className="h-9 w-auto object-contain" />
         </div>
       </div>
 
@@ -272,7 +272,7 @@ export default function Privacidad() {
         {/* Introducción */}
         <div className="bg-white border border-gray-200 rounded-2xl p-6 mb-6 shadow-sm">
           <p className="text-sm text-gray-600 leading-relaxed">
-            En <strong className="text-gray-900">OPTIMA | CV</strong> ("la Plataforma", "nosotros") nos comprometemos a proteger la privacidad y los datos personales de quienes utilizan nuestros servicios de optimización y generación de currículums vitae. La presente Política de Privacidad describe qué datos recopilamos, para qué los usamos, cómo los protegemos y cuáles son tus derechos como titular.
+            En <strong className="text-gray-900">ELVIA</strong> ("la Plataforma", "nosotros") nos comprometemos a proteger la privacidad y los datos personales de quienes utilizan nuestros servicios de optimización y generación de currículums vitae. La presente Política de Privacidad describe qué datos recopilamos, para qué los usamos, cómo los protegemos y cuáles son tus derechos como titular.
           </p>
         </div>
 
@@ -295,7 +295,7 @@ export default function Privacidad() {
 
         {/* Footer del documento */}
         <div className="mt-10 text-center text-xs text-gray-400 border-t border-gray-200 pt-6">
-          <p>© {new Date().getFullYear()} OPTIMA | CV · Todos los derechos reservados</p>
+          <p>© {new Date().getFullYear()} ELVIA · Todos los derechos reservados</p>
           <p className="mt-1">Nota: Este documento es de carácter informativo. Se recomienda consultar con un abogado especializado en protección de datos para validación legal en cada jurisdicción.</p>
         </div>
       </div>

@@ -88,7 +88,7 @@ export default function CVInfographic({ datos, matchScore, jobData, analisis, wa
               userSelect: 'none',
               whiteSpace: 'nowrap',
             }}>
-              OPTIMA-CV DEMO
+              ELVIA DEMO
             </div>
           </div>
         )}
@@ -377,7 +377,7 @@ export default function CVInfographic({ datos, matchScore, jobData, analisis, wa
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         }}>
           <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)' }}>
-            Generado por <span style={{ color: '#52b788', fontWeight: 700 }}>OPTIMA-CV</span>
+            Generado por <span style={{ color: '#52b788', fontWeight: 700 }}>ELVIA</span>
           </div>
           <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>
             {new Date().toLocaleDateString('es-MX', { month: 'short', year: 'numeric' })}

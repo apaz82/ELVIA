@@ -52,7 +52,7 @@ const ARTICULOS = [
         '"¿Cuánto ganas actualmente?" → En LATAM puedes responder con un rango de mercado en vez de tu salario actual.',
       ]},
       { t: 'h2', v: '5. Practica con voz alta, no en tu cabeza' },
-      { t: 'p', v: 'La diferencia entre pensar una respuesta y verbalizarla es enorme. Usa el Simulador de Entrevista de OPTIMA para practicar con preguntas reales y recibir feedback de IA antes de la entrevista real.' },
+      { t: 'p', v: 'La diferencia entre pensar una respuesta y verbalizarla es enorme. Usa el Simulador de Entrevista de ELVIA para practicar con preguntas reales y recibir feedback de IA antes de la entrevista real.' },
       { t: 'tip', title: 'DATO', v: 'Los candidatos que practican en voz alta al menos 3 veces antes de una entrevista reportan hasta un 40% menos de ansiedad durante el proceso real.' },
       { t: 'h2', v: '6. Maneja la conversación de salario' },
       { t: 'p', v: 'Investiga el rango de mercado antes (LinkedIn Salary, Glassdoor, oferta de la vacante). Si te preguntan primero, responde con un rango: "Basado en el mercado para este rol en [ciudad], estoy buscando entre X y Y". Nunca des un número sin haber investigado.' },
