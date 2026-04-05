@@ -6,6 +6,108 @@ Instrucción: leer solo cuando se necesite recap del estado actual.
 
 ---
 
+## Sesión 2026-04-05 · Gemini (Antigravity)
+
+### Contexto de partida
+- El onboarding de "Autoconocimiento" tenía una lógica inconsistente y no permitía alcanzar el 100% fácilmente.
+- El usuario solicitó una distribución de 5 secciones (20% cada una) con requisitos mínimos claros.
+- Los CVs subidos o creados desde cero no siempre persistían en la sección "Mis CVs".
+
+### Qué se hizo
+
+**1. Recalibración 100% de Autoconocimiento**
+- `frontend/src/utils/progresoLaboral.js` y `ProyectoLaboral.jsx`:
+  - Se implementó una lógica de 5 secciones (5 pts cada una, total 25 pts del pilar).
+  - Requisitos:
+    - **Aspiraciones**: 2 áreas + 1 industria.
+    - **Hard/Soft/Power Skills**: Mínimo 3 seleccionadas en cada una.
+    - **Compañías**: Mínimo 2 llenas (de 5).
+- `ProyectoLaboral.jsx`: Se añadieron etiquetas visuales de ayuda (ej: "Debes seleccionar al menos 3") para guiar al usuario.
+
+**2. Persistencia de CV Original**
+- `backend/src/controllers/cvController.js`: `extractProfile` ahora guarda automáticamente el CV subido en `cv_results` con `tipo: 'original'`.
+- `backend/src/controllers/cvGenerarController.js`: `generarCV` ahora guarda el resultado con `tipo: 'original'` en lugar de `desde_cero`, para que aparezca en la pestaña "CV Inicial" de `MisCVs.jsx`.
+
+**3. Verificación de Desbloqueo**
+- Se validó que al llegar al 100% del progreso total, la sección de **Mis CVs** y el **Gerente de Búsqueda** se desbloquean correctamente.
+
+### Estado del repo
+- Branch: `main`
+- Commits: Finalización de recalibración + fixes de persistencia.
+- **Estado**: 100% operativo y verificado en entorno local.
+
+### Pendientes
+- Monitorear la carga de CVs originales de gran tamaño (>5MB) en `cv_results`.
+
+---
+
+## Sesión 2026-04-04 · Claude (Sesión 3 — continuación)
+
+
+### Contexto de partida
+- Sesión 2 había dejado varias fixes commiteadas y pusheadas (commit `831e6a8`)
+- El usuario probó producción y reportó: página recarga al navegar, datos viejos al cambiar pilar, 3 bugs nuevos en el wizard CV
+
+### Qué se hizo
+
+**Fix: sessionStorage cache para carga instantánea (commit `665b092`)**
+- `CVDesdeCero.jsx`: en `cargar()`, verifica `sessionStorage.getItem('cv_draft_${user.id}')` primero antes de hacer fetch a Supabase. Si existe, carga instantáneo (sin spinner). Si no, fetch normal y guarda en caché.
+- `CVDesdeCero.jsx`: `guardarBorrador()` ahora también actualiza `sessionStorage` después del save exitoso.
+- `CVDesdeCero.jsx`: flush en unmount guarda en `sessionStorage` síncrono ANTES del fire-and-forget a Supabase.
+- `ProyectoLaboral.jsx`: mismo patrón para `job_search_profile` — caché `jsp_${user.id}`.
+- `ProyectoLaboral.jsx`: `saveData()` actualiza el caché inmediatamente antes del request a Supabase.
+- **Resultado**: al regresar a `/cv-desde-cero` o `/proyecto-laboral` no hay spinner — carga < 1ms desde caché. El caché se limpia al cerrar el navegador (sessionStorage).
+
+**Fix: tips contextuales por sección en CVDesdeCero + auto-poblar Mi Perfil + fix datos viejos al cambiar pilar (commit `de78fb4`)**
+
+`CVDesdeCero.jsx`:
+- Nueva función `generarTipsPorPaso(datos)` calcula tips en tiempo real basados en:
+  - **Datos**: nombre completo, título profesional, email, teléfono, ciudad/país
+  - **Resumen**: longitud (min 200 chars), presencia de dato numérico
+  - **Experiencia**: descripciones < 60 chars, ausencia de métricas numéricas, ausencia de verbos de acción STAR, fechas faltantes
+  - **Educación**: secciones vacías, años faltantes
+  - **Habilidades**: menos de 5 habilidades
+  - **Idiomas**: sin idioma nativo, sin inglés detectado
+- Box `💡 Tips para mejorar esta sección:` aparece al final de cada paso — desaparece cuando el usuario llena la info correctamente (reactivo via `useMemo`)
+- Antes de navegar a `/proyecto-laboral?exito=cv_creada`: limpia `sessionStorage` para forzar re-fetch fresco en ProyectoLaboral: `removeItem(jsp_${user.id})`, `removeItem(cv_draft_${user.id})`, `removeItem(perfil_lp_${user.id})`
+
+`ProyectoLaboral.jsx`:
+- **Fix datos viejos al cambiar pilar**: `PilarMiPerfil` ahora recibe prop `userId`. Al inicializar, lee `sessionStorage.getItem('perfil_lp_${userId}')` primero. Al desmontar (cambiar de pilar), guarda `lp` síncrono en `sessionStorage` antes del Supabase async. `savePerfil()` en el parent también actualiza el caché al inicio de cada guardado.
+- **Detección de `?exito=cv_creada`**: `useEffect` que corre cuando `cargando = false` + query param presente:
+  1. Marca banner de éxito (`bannerCvCreada = true`)
+  2. Limpia la URL con `navigate('/proyecto-laboral', { replace: true })`
+  3. Lee `data.cv_datos_originales.datos` (guardado al confirmar CV)
+  4. Solo llena campos vacíos del perfil: `nombre1`, `apellido1`, `nombre2`, `apellido2`, `telefono1`, `ciudad`, `pais`, `indicativo1`
+  5. Llama `supabase.from('profiles').update(updates)` + `refreshPerfil()`
+  6. Limpia `perfil_lp_${user.id}` para que `PilarMiPerfil` reinicialice con datos nuevos
+- **Banner verde**: "¡Tu CV fue guardada! Hemos pre-llenado tu perfil con la información detectada. Revisa y completa los campos en Mi Perfil." Tiene botón X para cerrar.
+- Importación: añadido `useLocation`, `X` a los imports.
+
+### Estado del repo
+- Branch: `main`
+- Commits esta sesión:
+  - `665b092` — sessionStorage cache para carga instantánea
+  - `de78fb4` — tips por sección + auto-poblar perfil + fix datos viejos al cambiar pilar
+- **Todo en producción** (Railway + Netlify) — ambos commits pusheados a `origin/main`
+
+### Pendientes (para la próxima sesión)
+**Deuda técnica (planificada, aún no implementada):**
+- HIGH-2: `Math.random()` en `backend/src/routes/company.js:177` → reemplazar con `crypto.randomBytes(10).toString('hex')`
+- HIGH-3: Falta rate limiter en `POST /api/company/registration/:slug` (endpoint público B2B)
+- MED-4a: Remover `detalle: err.message` y `stack: err.stack` del catch de `cvGenerarController.js` (debug info expuesto en producción)
+- MED-4b: Crear `backend/migrations/006_cv_results_rls.sql` para habilitar RLS en `cv_results` y eliminar el fallback con `supabaseAdmin`
+- **Precio Optima**: En `ProyectoLaboral.jsx`, `valorOptima` usa plan hardcodeado `'free'` (= $0). Debe leer `perfil.plan` y mapear a precios reales de `Pricing.jsx`:
+  ```js
+  const PRECIOS = {
+    MXN: { semanal: 99, mensual: 299, trim_total: 699 },
+    COP: { semanal: 20000, mensual: 60000, trim_total: 140000 },
+    ARS: { semanal: 5000, mensual: 15000, trim_total: 35000 },
+    USD: { semanal: 5, mensual: 15, trim_total: 35 },
+  }
+  ```
+
+---
+
 ## Sesión 2026-04-04 · Claude (Sesión 2 — continuación)
 
 ### Qué se hizo

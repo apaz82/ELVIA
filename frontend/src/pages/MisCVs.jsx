@@ -89,7 +89,8 @@ export default function MisCVs() {
   const navigate = useNavigate()
 
   const [cvsOptimizados, setCvsOptimizados] = useState([])
-  const [cvsMatch, setCvsMatch]             = useState([])
+  const [cvsOriginal,    setCvsOriginal]    = useState([])
+  const [cvsMatch,       setCvsMatch]       = useState([])
   const [checks, setChecks]                 = useState([])
   const [loading, setLoading]               = useState(true)
   const [descargando, setDescargando]       = useState({})
@@ -109,12 +110,15 @@ export default function MisCVs() {
     const [{ data: cvData }, { data: checkData }, { data: savedData }] = await Promise.all([
       supabase.from('cv_results')
         .select('id, tipo, contenido, metadata, created_at')
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false }),
       supabase.from('job_checks')
         .select('id, job_key, score, motivos, job_data, created_at')
-        .order('score', { ascending: false }), // ordenar de mayor a menor %
+        .eq('user_id', user.id)
+        .order('score', { ascending: false }),
       supabase.from('saved_jobs')
-        .select('job_key, job_data'),
+        .select('job_key, job_data')
+        .eq('user_id', user.id),
     ])
 
     const savedMap = {}
@@ -122,6 +126,7 @@ export default function MisCVs() {
 
     const todos = cvData || []
     setCvsOptimizados(todos.filter(c => c.tipo === 'optimize'))
+    setCvsOriginal(todos.filter(c => c.tipo === 'original'))
     setCvsMatch(todos.filter(c => c.tipo === 'match').map(cv => {
       const jobTitle   = cv.metadata?.jobData?.title || ''
       const jobCompany = cv.metadata?.jobData?.company || cv.metadata?.jobData?.empresa || ''
@@ -183,9 +188,10 @@ export default function MisCVs() {
   const checksBajo = checks.filter(c => c.score < 70).length
 
   const tabs = [
-    { key: 'optimizados', label: `CV Optimizado (${cvsOptimizados.length})` },
+    { key: 'optimizados',     label: `CV Optimizado (${cvsOptimizados.length})` },
+    { key: 'original',        label: `CV Inicial (${cvsOriginal.length})` },
     { key: 'compatibilidades', label: `Compatibilidad (${checks.length})` },
-    { key: 'match', label: `CV vs Vacante (${cvsMatch.length})` },
+    { key: 'match',           label: `CV vs Vacante (${cvsMatch.length})` },
   ]
 
   return (
@@ -225,6 +231,26 @@ export default function MisCVs() {
                           )}
                         </div>
                         <p className="text-sm font-medium text-gray-800 mt-1 truncate">{extraerNombre(item.contenido)}</p>
+                        <p className="text-xs text-gray-400 mt-0.5">{formatFecha(item.created_at)}</p>
+                      </div>
+                      <BotonesDescarga id={item.id} descargando={descargando} onDescargar={handleDescargar} />
+                    </div>
+                  ))}
+                </div>
+          )}
+
+          {/* Tab 1.5: CV Original */}
+          {tab === 'original' && (
+            cvsOriginal.length === 0
+              ? <EmptyState mensaje="Aún no has generado tu CV inicial." cta="Crear mi CV desde cero →" ruta="/cv-desde-cero" />
+              : <div className="space-y-3">
+                  {cvsOriginal.map(item => (
+                    <div key={item.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 border border-gray-100 rounded-xl hover:border-gray-200 transition-colors">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600">CV Inicial</span>
+                        </div>
+                        <p className="text-sm font-medium text-gray-800 mt-1 truncate">{item.metadata?.filename || extraerNombre(item.contenido)}</p>
                         <p className="text-xs text-gray-400 mt-0.5">{formatFecha(item.created_at)}</p>
                       </div>
                       <BotonesDescarga id={item.id} descargando={descargando} onDescargar={handleDescargar} />

@@ -17,13 +17,13 @@ const DOCS_IDS = ['cv', 'linkedin', 'cv_vacante', 'entrevista', 'carta', 'refere
 
 export function calcPerfilPts(perfil, jpData) {
   let pts = 0
-  if (String(perfil?.nombre1||'').trim().length>1) pts+=6
-  if (String(perfil?.pais||'').trim().length>1) pts+=2
-  if (String(perfil?.telefono1||'').trim().length>4) pts+=3
+  if (String(perfil?.nombre1||'').trim().length>1) pts+=8
+  if (String(perfil?.pais||'').trim().length>1) pts+=4
+  if (String(perfil?.telefono1||'').trim().length>4) pts+=4
   if (String(perfil?.salario_esperado||'').trim().length>1) pts+=4
-  if (String(jpData?.perfil?.nivel_educativo||'').length>1) pts+=2
-  if (String(jpData?.perfil?.anios_experiencia||'').length>0) pts+=1
-  return Math.min(pts, 18)
+  if (String(jpData?.perfil?.nivel_educativo||'').length>1) pts+=3
+  if (String(jpData?.perfil?.anios_experiencia||'').length>0) pts+=2
+  return Math.min(pts, 25)
 }
 
 export function calcularProgreso(data, perfil) {
@@ -31,34 +31,44 @@ export function calcularProgreso(data, perfil) {
   core += calcPerfilPts(perfil, data)
 
   const auto = (data&&data.autoconocimiento) ? data.autoconocimiento : {}
+  const perf = (data&&data.perfil) ? data.perfil : {}
   let autoPts = 0
-  if (Array.isArray(auto.areas)&&auto.areas.length>=2) autoPts+=7
-  if (Array.isArray(auto.industrias)&&auto.industrias.length>=1) autoPts+=5
-  if (Array.isArray(auto.top5empresas)&&auto.top5empresas.filter(function(e){return e&&String(e).trim()}).length>=3) autoPts+=4
-  if ((Array.isArray(auto.habilidades_hard)&&auto.habilidades_hard.length>=1)||(Array.isArray(auto.areas)&&auto.areas.length>=1)) autoPts+=4
-  core += Math.min(autoPts, 20)
+  
+  // 1. Aspiraciones (Areas + Industrias) - 5 pts
+  const areas = auto.areas || perf.areas || []
+  const ind   = auto.industrias || perf.industrias_deseadas || []
+  if (areas.length >= 2 && ind.length >= 1) autoPts += 5
+  
+  // 2. Hard Skills - 5 pts
+  if (Array.isArray(auto.hard_skills) && auto.hard_skills.length >= 3) autoPts += 5
+  
+  // 3. Soft Skills - 5 pts
+  if (Array.isArray(auto.soft_skills) && auto.soft_skills.length >= 3) autoPts += 5
+  
+  // 4. Power Skills - 5 pts
+  if (Array.isArray(auto.power_skills) && auto.power_skills.length >= 3) autoPts += 5
+  
+  // 5. Compañías - 5 pts
+  if (Array.isArray(auto.top5empresas) && auto.top5empresas.filter(function(e){return e && String(e).trim()}).length >= 2) autoPts += 5
+
+  core += Math.min(autoPts, 25)
+
+
 
   const bloques = (data&&data.semana&&data.semana.bloques) ? data.semana.bloques : {}
   const bN = Object.values(bloques).filter(Boolean).length
-  if (bN>=8) core+=15; else if (bN>=5) core+=11; else if (bN>=2) core+=7; else if (bN>=1) core+=3
+  if (bN>=5) core+=10; else if (bN>=2) core+=5; else if (bN>=1) core+=2
 
   const rawRec = data&&data.recursos ? (Array.isArray(data.recursos) ? data.recursos : (data.recursos.recursos||null)) : null
   const rec = (rawRec&&rawRec.length>0) ? rawRec : RECURSOS_DEFAULT
-  const activos = rec.filter(function(r){return r.tengo===true})
-  const optimaActiva = activos.some(function(r){return r.id==='optima'})
-  const otrosActivos = activos.filter(function(r){return r.id!=='optima'}).length
-  core += (optimaActiva && otrosActivos >= 3) ? 15 : 0
+  const nActivos = rec.filter(function(r){return r.tengo===true}).length
+  core += (nActivos >= 4) ? 10 : (nActivos * 2.5) // 4 items = 10 pts
 
   const oferta = (data&&data.oferta) ? data.oferta : {}
   let ofertaPts = 0
-  if (Array.isArray(oferta.cultura)&&oferta.cultura.length>=2) ofertaPts+=7
-  if (String(oferta.oferta_valor||'').trim().length>=50) ofertaPts+=8
-  core += Math.min(ofertaPts, 15)
-  core = Math.min(core, 83)
+  if (Array.isArray(oferta.cultura)&&oferta.cultura.length>=3) ofertaPts+=10
+  if (String(oferta.oferta_valor||'').trim().length>=50) ofertaPts+=20
+  core += Math.min(ofertaPts, 30)
 
-  const checks = (data&&data.documentos&&data.documentos.checks) ? data.documentos.checks : {}
-  const docsDone = DOCS_IDS.filter(function(id){return checks[id]}).length
-  const docsPts = Math.round((docsDone / DOCS_IDS.length) * 17)
-
-  return Math.min(core + docsPts, 100)
+  return Math.min(core, 100)
 }

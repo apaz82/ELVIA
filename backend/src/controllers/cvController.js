@@ -227,6 +227,13 @@ const generarNombreArchivo = (contenido, metadata, tipo, extension) => {
     return `CV Adaptado - ${vacante} - ${nombre} - ${fecha}.${extension}`;
   }
 
+  // Formato: CV_nombre apellido - original DDMMAA
+  if (tipo === 'original') {
+    const d = new Date();
+    const ddmmaa = d.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: '2-digit' }).replace(/\//g, '');
+    return `CV_${nombre} - original ${ddmmaa}.${extension}`;
+  }
+
   // Formato: CV Optimizado - Nombre Apellido - MMDDAA
   return `CV Optimizado - ${nombre} - ${fecha}.${extension}`;
 };
@@ -371,7 +378,16 @@ Return ONLY this JSON:
       }
     }
 
-    res.json({ ...perfil, mismatch });
+    // Guardar el CV original en cv_results para que aparezca en Mis CVs
+    const { data: savedCV } = await db.from('cv_results').insert({
+      user_id: req.user.id,
+      tipo: 'original',
+      contenido: cvText,
+      metadata: { filename: req.file.originalname, extracted: true }
+    }).select('id').single();
+
+    res.json({ ...perfil, mismatch, id: savedCV?.id });
+
   } catch (err) {
     console.error('Error en extractProfile:', err.message);
     if (err instanceof SyntaxError) {

@@ -40,7 +40,7 @@ export const AuthProvider = ({ children }) => {
   const [jpData, setJpData]               = useState(null)
   const [jpLoaded, setJpLoaded]           = useState(false)
 
-  const fetchPerfil = async (userId, email) => {
+  const fetchPerfil = useCallback(async (userId, email) => {
     const { data } = await supabase
       .from('profiles')
       .select('*')
@@ -75,9 +75,9 @@ export const AuthProvider = ({ children }) => {
       setPerfil(perfActualizado)
     }
     setPerfilCargado(true)
-  }
+  }, [])
 
-  const fetchJpData = async (userId) => {
+  const fetchJpData = useCallback(async (userId) => {
     const { data } = await supabase
       .from('profiles')
       .select('job_search_profile')
@@ -85,7 +85,7 @@ export const AuthProvider = ({ children }) => {
       .maybeSingle()
     setJpData(data?.job_search_profile || null)
     setJpLoaded(true)
-  }
+  }, [])
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -126,15 +126,12 @@ export const AuthProvider = ({ children }) => {
     })
 
     return () => subscription.unsubscribe()
-  }, [])
+  }, [fetchPerfil, fetchJpData])
 
-  const login    = (email, password) => supabase.auth.signInWithPassword({ email, password })
-
-  // register guarda nombre/apellido/teléfono en user_metadata para recuperarlos
-  // en fetchPerfil cuando el usuario confirme su email y haga primer login
-  const register = (email, password, extraData = {}) =>
-    supabase.auth.signUp({ email, password, options: { data: extraData } })
-  const logout   = () => supabase.auth.signOut()
+  const login    = useCallback((email, password) => supabase.auth.signInWithPassword({ email, password }), [])
+  const register = useCallback((email, password, extraData = {}) =>
+    supabase.auth.signUp({ email, password, options: { data: extraData } }), [])
+  const logout   = useCallback(() => supabase.auth.signOut(), [])
 
   // ── Lógica de plan y acceso ───────────────────────────────────────────────
 
@@ -211,7 +208,7 @@ export const AuthProvider = ({ children }) => {
   const usageCount          = planInfo.usageCount
   const creditosRestantes   = planInfo.creditosMatchRestantes
 
-  const onboardingPendiente = !loading && perfilCargado && !!user && (!perfil || !perfil.nombre1)
+  const onboardingPendiente = useMemo(() => !loading && perfilCargado && !!user && (!perfil || !perfil.nombre1), [loading, perfilCargado, user, perfil])
 
   // Progreso del Gerente de Búsqueda (0-100) — disponible globalmente
   const progresoLaboral = useMemo(() => {
@@ -224,7 +221,10 @@ export const AuthProvider = ({ children }) => {
   const refreshJpData = useCallback(async () => {
     if (!user) return
     await fetchJpData(user.id)
-  }, [user])
+  }, [user, fetchJpData])
+
+  const refreshPerfil = useCallback((uid) => fetchPerfil(uid || user?.id), [fetchPerfil, user])
+  const refreshUsage  = useCallback(()    => user && fetchPerfil(user.id), [fetchPerfil, user])
 
   // Roles y multi-tenancy
   const role = perfil?.role || 'user'
@@ -232,27 +232,35 @@ export const AuthProvider = ({ children }) => {
   const isAdmin = perfil?.role === 'super_admin'
   const isCompanyAdmin = perfil?.role === 'company_admin'
 
+  const value = useMemo(() => ({
+    user, session, loading,
+    login, register, logout,
+    perfil,
+    refreshPerfil,
+    refreshUsage,
+    onboardingPendiente, perfilCargado,
+    isRecovering, setIsRecovering,
+    // Progreso Gerente de Búsqueda
+    progresoLaboral, featuresDesbloqueadas, jpLoaded, refreshJpData,
+    // Roles y multi-tenancy
+    role, companyId, isAdmin, isCompanyAdmin,
+    // Plan info — usa directamente estos valores en los componentes
+    ...planInfo,
+    // Retrocompatibilidad
+    usageCount, creditosRestantes, LIMITE_PLAN,
+  }), [
+    user, session, loading, login, register, logout, perfil, refreshPerfil, refreshUsage,
+    onboardingPendiente, perfilCargado, isRecovering, setIsRecovering, progresoLaboral,
+    featuresDesbloqueadas, jpLoaded, refreshJpData, role, companyId, isAdmin, isCompanyAdmin,
+    planInfo, usageCount, creditosRestantes
+  ])
+
   return (
-    <AuthContext.Provider value={{
-      user, session, loading,
-      login, register, logout,
-      perfil,
-      refreshPerfil: (uid) => fetchPerfil(uid || user?.id),
-      refreshUsage:  ()    => user && fetchPerfil(user.id),
-      onboardingPendiente, perfilCargado,
-      isRecovering, setIsRecovering,
-      // Progreso Gerente de Búsqueda
-      progresoLaboral, featuresDesbloqueadas, jpLoaded, refreshJpData,
-      // Roles y multi-tenancy
-      role, companyId, isAdmin, isCompanyAdmin,
-      // Plan info — usa directamente estos valores en los componentes
-      ...planInfo,
-      // Retrocompatibilidad
-      usageCount, creditosRestantes, LIMITE_PLAN,
-    }}>
+    <AuthContext.Provider value={value}>
     {children}
     </AuthContext.Provider>
   )
+
 }
 
 export const useAuth = () => {

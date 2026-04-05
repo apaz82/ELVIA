@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../services/authService'
-import { extractarPerfilCV } from '../services/cvService'
+import { extractarPerfilCV, descargarCV } from '../services/cvService'
 import { RECURSOS_DEFAULT as RECURSOS_DEFAULT_BASE, calcPerfilPts, calcularProgreso as calcProgreso } from '../utils/progresoLaboral'
 import {
   Brain, CalendarCheck, Toolbox, FileText,
@@ -229,48 +229,62 @@ function calcularPorPilar(data, perfil) {
   const perfilPts = calcPerfilPts(perfil, data)
 
   const auto = (data&&data.autoconocimiento) ? data.autoconocimiento : {}
+  const perf = (data&&data.perfil) ? data.perfil : {}
   let autoPts = 0
-  if (Array.isArray(auto.areas)&&auto.areas.length>=2) autoPts+=7
-  if (Array.isArray(auto.industrias)&&auto.industrias.length>=1) autoPts+=5
-  if (Array.isArray(auto.top5empresas)&&auto.top5empresas.filter(function(e){return e&&String(e).trim()}).length>=3) autoPts+=4
-  if ((Array.isArray(auto.habilidades_hard)&&auto.habilidades_hard.length>=1)||(Array.isArray(auto.areas)&&auto.areas.length>=1)) autoPts+=4
 
-  const checks = (data&&data.documentos&&data.documentos.checks) ? data.documentos.checks : {}
+  // 1. Aspiraciones (Areas + Industrias) - 5 pts
+  const areasArr = auto.areas || perf.areas || []
+  const indArr   = auto.industrias || perf.industrias_deseadas || []
+  if (areasArr.length >= 2 && indArr.length >= 1) autoPts += 5
+
+  // 2. Hard Skills - 5 pts
+  if (Array.isArray(auto.hard_skills) && auto.hard_skills.length >= 3) autoPts += 5
+
+  // 3. Soft Skills - 5 pts
+  if (Array.isArray(auto.soft_skills) && auto.soft_skills.length >= 3) autoPts += 5
+
+  // 4. Power Skills - 5 pts
+  if (Array.isArray(auto.power_skills) && auto.power_skills.length >= 3) autoPts += 5
+
+  // 5. Compañías - 5 pts
+  if (Array.isArray(auto.top5empresas) && auto.top5empresas.filter(function(e){return e && String(e).trim()}).length >= 2) autoPts += 5
+
+
+  const checks = (data&&data.documentos&&data.checks) ? data.documentos.checks : {}
   const docsDone = DOCS_LIST.filter(function(d){return checks[d.id]}).length
 
   const bloques = (data&&data.semana&&data.semana.bloques) ? data.semana.bloques : {}
   const bN = Object.values(bloques).filter(Boolean).length
   let semanaPts = 0
-  if (bN>=8) semanaPts=15; else if (bN>=5) semanaPts=11; else if (bN>=2) semanaPts=7; else if (bN>=1) semanaPts=3
+  if (bN>=5) semanaPts=10; else if (bN>=2) semanaPts=5; else if (bN>=1) semanaPts=2
 
   const rawRec2 = data&&data.recursos ? (Array.isArray(data.recursos) ? data.recursos : (data.recursos.recursos||null)) : null
   const rec = (rawRec2&&rawRec2.length>0) ? rawRec2 : RECURSOS_DEFAULT
-  const activos = rec.filter(function(r){return r.tengo===true})
-  const optimaActiva = activos.some(function(r){return r.id==='optima'})
-  const otrosActivos = activos.filter(function(r){return r.id!=='optima'}).length
-  let recPts = (optimaActiva && otrosActivos >= 3) ? 15 : 0
+  const nRecActivos = rec.filter(function(r){return r.tengo===true}).length
+  let recPts = (nRecActivos >= 4) ? 10 : (nRecActivos * 2.5)
 
   const oferta = (data&&data.oferta) ? data.oferta : {}
   let ofertaPts = 0
-  if (Array.isArray(oferta.cultura)&&oferta.cultura.length>=2) ofertaPts+=7
-  if (String(oferta.oferta_valor||'').trim().length>=50) ofertaPts+=8
+  if (Array.isArray(oferta.cultura)&&oferta.cultura.length>=3) ofertaPts+=10
+  if (String(oferta.oferta_valor||'').trim().length>=50) ofertaPts+=20
 
   return {
-    perfil:           Math.round((perfilPts/18)*100),
-    autoconocimiento: Math.round((Math.min(autoPts,20)/20)*100),
+    perfil:           Math.round((perfilPts/25)*100),
+    autoconocimiento: Math.round((Math.min(autoPts,25)/25)*100),
     documentos:       Math.round((docsDone/DOCS_LIST.length)*100),
-    semana:           Math.round((semanaPts/15)*100),
-    recursos:         Math.round((recPts/15)*100),
-    oferta:           Math.round((Math.min(ofertaPts,15)/15)*100),
+    semana:           Math.round((semanaPts/10)*100),
+    recursos:         Math.round((recPts/10)*100),
+    oferta:           Math.round((Math.min(ofertaPts,30)/30)*100),
   }
 }
 
 // ─── Pilar 0: Mi Perfil Profesional ──────────────────────────────────────────
 
-function PilarMiPerfil({ perfil, extraData, onChange, onSavePerfil, saving, isPaidPlan, data, userId }) {
+function PilarMiPerfil({ perfil, extraData, onChange, onSavePerfil, saving, isPaidPlan, data, userId, pct }) {
   const d = extraData || {}
   const up = (key, val) => onChange({ ...d, [key]: val })
   const [subTab, setSubTab] = useState('datos')
+  const isComplete = (pct || 0) >= 100
   const [citySearch, setCitySearch] = useState('')
   const [showCitySugg, setShowCitySugg] = useState(false)
   const [cvUploading, setCvUploading] = useState(false)
@@ -281,11 +295,27 @@ function PilarMiPerfil({ perfil, extraData, onChange, onSavePerfil, saving, isPa
   const [cvForceApply, setCvForceApply] = useState(false) // usuario confirma que es su CV a pesar de discrepancia
   const lpLoaded = useRef(false)   // evita auto-save en la carga inicial
   const autoSaveTimer = useRef(null)
+  const [originalCvId, setOriginalCvId] = useState(null)
+  const [descargandoOriginal, setDescargandoOriginal] = useState(null)
+  const [justSaved, setJustSaved] = useState(false) // Feedback visual para botones
+
+  // 1. Buscar ID de CV original para descarga
+  useEffect(() => {
+    if (!userId || !perfil?.cv_path) return
+    const getCvId = async () => {
+      const { data } = await supabase.from('cv_results').select('id').eq('user_id', userId).eq('tipo', 'original').order('created_at', { ascending: false }).limit(1).maybeSingle()
+      if (data) setOriginalCvId(data.id)
+    }
+    getCvId()
+  }, [userId, perfil])
+
+  const handleDescargarOriginal = async (formato) => {
+    if (!originalCvId) return
+    setDescargandoOriginal(formato)
+    try { await descargarCV(originalCvId, formato) }
+    finally { setDescargandoOriginal(null) }
+  }
   // Refs para flush en unmount
-  const lpRef          = useRef(lp)
-  const onSavePerfilRef = useRef(onSavePerfil)
-  useEffect(() => { lpRef.current = lp },                [lp])
-  useEffect(() => { onSavePerfilRef.current = onSavePerfil }, [onSavePerfil])
   const [lp, setLP] = useState({
     nombre1:'',nombre2:'',apellido1:'',apellido2:'',
     pais:'',ciudad:'',edad:'',indicativo1:'+52',telefono1:'',
@@ -295,7 +325,12 @@ function PilarMiPerfil({ perfil, extraData, onChange, onSavePerfil, saving, isPa
     bono_activo:false,bono_tipo:'',bono_esquema:'',
     bono_frecuencia:'',bono_pct:'',bono_num_salarios:'',
     bono_monto:'',variable_monto:'',prestaciones_otros:'',
+    idiomas: [],
   })
+  const lpRef          = useRef(lp)
+  const onSavePerfilRef = useRef(onSavePerfil)
+  useEffect(() => { lpRef.current = lp },                [lp])
+  useEffect(() => { onSavePerfilRef.current = onSavePerfil }, [onSavePerfil])
 
   // Carga inicial desde perfil — prefiere sessionStorage para carga instantánea al cambiar pilar
   useEffect(() => {
@@ -336,6 +371,15 @@ function PilarMiPerfil({ perfil, extraData, onChange, onSavePerfil, saving, isPa
     })
     setTimeout(() => { lpLoaded.current = true }, 100)
   },[perfil, userId])
+
+  const onSavePerfilLocal = async (p) => {
+    await onSavePerfil(p)
+    setJustSaved(true)
+    setTimeout(() => setJustSaved(false), 3000)
+    if (subTab === 'asp') {
+      window.alert('Se guardó tu información. ¡Esta sección está al 100%! Si quieres volver después a modificar, puedes entrar de nuevo.')
+    }
+  }
 
   // Auto-save con debounce de 1.5s — solo después de que el usuario haya editado
   useEffect(() => {
@@ -517,6 +561,62 @@ function PilarMiPerfil({ perfil, extraData, onChange, onSavePerfil, saving, isPa
           <div className="mt-4 bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-center justify-between">
             <p className="text-xs text-amber-800 font-semibold">Tienes un CV en progreso</p>
             <Link to="/cv-desde-cero" className="text-xs text-amber-600 hover:text-amber-700 font-bold">Continuar →</Link>
+          </div>
+        )}
+
+        {/* Estado de CV Generado */}
+        {perfil?.cv_path && (
+          <div className={`mt-4 p-4 rounded-2xl border shadow-sm transition-all animate-in fade-in slide-in-from-top-2 ${isComplete ? 'bg-emerald-50 border-emerald-200' : 'bg-slate-50 border-slate-200 opacity-75'}`}>
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  <div className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 ${isComplete ? 'bg-emerald-500 text-white' : 'bg-slate-400 text-white'}`}>
+                    {isComplete ? <CheckCircle size={14} weight="bold" /> : <Lock size={12} weight="bold" />}
+                  </div>
+                  <p className="text-sm font-black text-slate-800">Tu CV Inicial Generada</p>
+                </div>
+                {!isComplete && (
+                  <p className="text-[10px] font-bold text-amber-600 mb-2 uppercase tracking-tight bg-amber-50 px-2 py-0.5 rounded border border-amber-100 w-fit">
+                    Bloqueado hasta completar el 100%
+                  </p>
+                )}
+                <p className="text-xs text-slate-600 font-medium truncate mb-2">
+                  {perfil.cv_filename || 'cv_original.txt'}
+                </p>
+                <div className="flex items-center gap-1.5">
+                  {isComplete ? (
+                    <Link to="/mis-cvs" className="text-[11px] font-bold text-emerald-700 hover:text-emerald-800 flex items-center gap-1 transition-colors">
+                      <Folders size={14} weight="bold" /> Ver en MIS CVS
+                    </Link>
+                  ) : (
+                    <span className="text-[11px] font-bold text-slate-400 flex items-center gap-1 cursor-not-allowed">
+                      <Folders size={14} weight="bold" /> Ver en MIS CVS
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div className="flex flex-col gap-1.5 shrink-0">
+                <button 
+                  onClick={() => isComplete && handleDescargarOriginal('pdf')}
+                  disabled={!isComplete || descargandoOriginal === 'pdf'}
+                  className={`flex items-center justify-center gap-2 px-3 py-1.5 border text-[11px] font-black rounded-lg transition-all ${isComplete ? 'bg-white border-emerald-200 text-emerald-700 hover:bg-emerald-50 cursor-pointer' : 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed'}`}>
+                  {descargandoOriginal === 'pdf' ? <SpinnerGap size={12} className="animate-spin" /> : '↓ PDF'}
+                </button>
+                <button 
+                  onClick={() => isComplete && handleDescargarOriginal('word')}
+                  disabled={!isComplete || descargandoOriginal === 'word'}
+                  className={`flex items-center justify-center gap-2 px-3 py-1.5 border text-[11px] font-black rounded-lg transition-all ${isComplete ? 'bg-white border-emerald-200 text-emerald-700 hover:bg-emerald-50 cursor-pointer' : 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed'}`}>
+                  {descargandoOriginal === 'word' ? <SpinnerGap size={12} className="animate-spin" /> : '↓ Word'}
+                </button>
+              </div>
+            </div>
+            {!isComplete && (
+              <div className="mt-3 pt-3 border-t border-slate-200">
+                <p className="text-[10px] text-slate-500 font-medium leading-relaxed italic">
+                  Podrás ver esta CV en tu sección de MIS CVs cuando termines todo el proceso.
+                </p>
+              </div>
+            )}
           </div>
         )}
 
@@ -778,9 +878,11 @@ function PilarMiPerfil({ perfil, extraData, onChange, onSavePerfil, saving, isPa
               rows={2} className="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400/40 resize-none"/>
           </div>
 
-          <button onClick={()=>onSavePerfil(lp)} disabled={saving}
-            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm px-6 py-3 rounded-xl transition-colors cursor-pointer disabled:opacity-60">
-            {saving?<SpinnerGap size={16} className="animate-spin"/>:<CheckCircle size={16} weight="fill"/>} Guardar compensación</button>
+          <button onClick={()=>onSavePerfilLocal(lp)} disabled={saving}
+            className={`flex items-center gap-2 font-bold text-sm px-6 py-3 rounded-xl transition-all cursor-pointer disabled:opacity-60 ${justSaved ? 'bg-emerald-600 text-white' : 'bg-indigo-600 hover:bg-indigo-700 text-white'}`}>
+            {saving ? <SpinnerGap size={16} className="animate-spin"/> : (justSaved ? <CheckCircle size={16} weight="fill"/> : <CheckCircle size={16} weight="fill"/>)} 
+            {justSaved ? 'Guardado' : 'Guardar compensación'}
+          </button>
         </div>
       )}
       {subTab==='asp'&&(
@@ -801,7 +903,7 @@ function PilarMiPerfil({ perfil, extraData, onChange, onSavePerfil, saving, isPa
               <div className="mt-3 flex gap-2">
                 <input value={d.industria_otro||''} onChange={e=>up('industria_otro',e.target.value)} placeholder="Especifica la industria..."
                   className="flex-1 border border-slate-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400/40"/>
-                <button onClick={()=>{const val=(d.industria_otro||'').trim();if(val){const arr=Array.isArray(d.industrias_deseadas)?d.industrias_deseadas:[];up('industrias_deseadas',[...arr.filter(x=>x!=='Otro'),val]);up('industria_otro','')}}}
+                <button onClick={()=>{const val=(d.industria_otro||'').trim();if(val){const arr=Array.isArray(d.industrias_deseadas)?d.industrias_deseadas:[]; onChange({ ...d, industrias_deseadas: [...arr.filter(x=>x!=='Otro'), val], industria_otro: '' })}}}
                   disabled={!d.industria_otro||!d.industria_otro.trim()}
                   className="px-4 py-2.5 bg-teal-600 hover:bg-teal-700 text-white rounded-xl font-bold text-sm transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">+</button>
               </div>
@@ -826,7 +928,7 @@ function PilarMiPerfil({ perfil, extraData, onChange, onSavePerfil, saving, isPa
                 <input
                   value={citySearch}
                   onChange={e=>{setCitySearch(e.target.value);setShowCitySugg(e.target.value.length>0)}}
-                  onKeyDown={e=>{if(e.key==='Enter'&&citySearch.trim()){const arr=Array.isArray(d.ciudades_preferidas)?d.ciudades_preferidas:[];if(!arr.includes(citySearch.trim()))up('ciudades_preferidas',[...arr,citySearch.trim()]);setCitySearch('');setShowCitySugg(false)}}}
+                  onKeyDown={e=>{if(e.key==='Enter'&&citySearch.trim()){const arr=Array.isArray(d.ciudades_preferidas)?d.ciudades_preferidas:[];if(!arr.includes(citySearch.trim())){ onChange({ ...d, ciudades_preferidas: [...arr, citySearch.trim()] }) };setCitySearch('');setShowCitySugg(false)}}}
                   onBlur={()=>setTimeout(()=>setShowCitySugg(false),150)}
                   placeholder="Buscar ciudad o país..."
                   className="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400/40"/>
@@ -835,7 +937,7 @@ function PilarMiPerfil({ perfil, extraData, onChange, onSavePerfil, saving, isPa
                     {[...PAISES_LATAM,...CIUDADES_SUGERIDAS].filter((c,i,a)=>a.indexOf(c)===i).filter(c=>c.toLowerCase().includes(citySearch.toLowerCase())).slice(0,8).map(c=>{
                       const arr=Array.isArray(d.ciudades_preferidas)?d.ciudades_preferidas:[]
                       if(arr.includes(c))return null
-                      return(<button key={c} onMouseDown={()=>{up('ciudades_preferidas',[...arr,c]);setCitySearch('');setShowCitySugg(false)}} className="w-full text-left px-3 py-2 text-sm hover:bg-slate-50 text-slate-700">{c}</button>)
+                      return(<button key={c} onMouseDown={()=>{ onChange({ ...d, ciudades_preferidas: [...arr, c] });setCitySearch('');setShowCitySugg(false)}} className="w-full text-left px-3 py-2 text-sm hover:bg-slate-50 text-slate-700">{c}</button>)
                     })}
                   </div>
                 )}
@@ -883,9 +985,11 @@ function PilarMiPerfil({ perfil, extraData, onChange, onSavePerfil, saving, isPa
                 </div>
               ))}</div>)}
           </div>
-          <button onClick={()=>onSavePerfil(lp)} disabled={saving}
-            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm px-6 py-3 rounded-xl transition-colors cursor-pointer disabled:opacity-60">
-            {saving?<SpinnerGap size={16} className="animate-spin"/>:<CheckCircle size={16} weight="fill"/>} Guardar aspiraciones</button>
+          <button onClick={()=>onSavePerfilLocal(lp)} disabled={saving}
+            className={`flex items-center gap-2 font-bold text-sm px-6 py-3 rounded-xl transition-all cursor-pointer disabled:opacity-60 ${justSaved ? 'bg-emerald-600 text-white' : 'bg-indigo-600 hover:bg-indigo-700 text-white'}`}>
+            {saving ? <SpinnerGap size={16} className="animate-spin"/> : (justSaved ? <CheckCircle size={16} weight="fill"/> : <CheckCircle size={16} weight="fill"/>)} 
+            {justSaved ? 'Guardado' : 'Guardar aspiraciones'}
+          </button>
         </div>
       )}
     </div>
@@ -1159,7 +1263,7 @@ function PilarAutoconocimiento({ data, onChange, onSave, justSaved }) {
             </div>
             <div>
               <div className="font-bold text-slate-800 text-sm leading-tight">Hard Skills</div>
-              <div className="text-xs text-blue-600 font-medium">El "Saber hacer" · Competencias técnicas medibles</div>
+              <div className="text-xs text-blue-600 font-medium">El "Saber hacer" · Competencias técnicas medibles · <strong>Debes seleccionar al menos 3</strong></div>
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -1179,7 +1283,7 @@ function PilarAutoconocimiento({ data, onChange, onSave, justSaved }) {
             </div>
             <div>
               <div className="font-bold text-slate-800 text-sm leading-tight">Soft Skills</div>
-              <div className="text-xs text-emerald-600 font-medium">El "Saber ser" · Habilidades sociales y de carácter</div>
+              <div className="text-xs text-emerald-600 font-medium">El "Saber ser" · Habilidades sociales y de carácter · <strong>Debes seleccionar al menos 3</strong></div>
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -1199,7 +1303,7 @@ function PilarAutoconocimiento({ data, onChange, onSave, justSaved }) {
             </div>
             <div>
               <div className="font-bold text-slate-800 text-sm leading-tight">Power Skills</div>
-              <div className="text-xs text-violet-600 font-medium">El "Saber lograr" · Competencias de alto impacto</div>
+              <div className="text-xs text-violet-600 font-medium">El "Saber lograr" · Competencias de alto impacto · <strong>Debes seleccionar al menos 3</strong></div>
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -1213,9 +1317,9 @@ function PilarAutoconocimiento({ data, onChange, onSave, justSaved }) {
       </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {[
-          {key:'puede_mejorar',label:'Puede mejorar',border:'border-blue-200 bg-blue-50',ph:'Ej: inglés escrito...'},
-          {key:'no_le_gusta',  label:'Prefiere evitar',border:'border-amber-200 bg-amber-50',ph:'Ej: atención al cliente...'},
-          {key:'no_es_bueno',  label:'No haría',border:'border-red-200 bg-red-50',ph:'Ej: programación backend...'},
+          {key:'puede_mejorar',label:'Puede mejorar (Mínimo 50 caracteres)',border:'border-blue-200 bg-blue-50',ph:'Ej: inglés escrito...'},
+          {key:'no_le_gusta',  label:'Prefiere evitar (Mínimo 50 caracteres)',border:'border-amber-200 bg-amber-50',ph:'Ej: atención al cliente...'},
+          {key:'no_es_bueno',  label:'No haría (Mínimo 50 caracteres)',border:'border-red-200 bg-red-50',ph:'Ej: programación backend...'},
         ].map(function(it){return(
           <div key={it.key} className={'p-4 rounded-xl border '+it.border}>
             <label className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 block">{it.label}</label>
@@ -1226,7 +1330,7 @@ function PilarAutoconocimiento({ data, onChange, onSave, justSaved }) {
         )})}
       </div>
       <div>
-        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Top 5 Compañías objetivo</h3>
+        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Top 5 Compañías objetivo · <span className="text-amber-600">Debes llenar al menos 2</span></h3>
         <p className="text-xs text-slate-400 mb-4">Estas empresas aparecerán primero en tu radar de Vacantes.</p>
         <div className="space-y-2">
           {[0,1,2,3,4].map(function(i){return(
@@ -1544,11 +1648,12 @@ function PilarOfertaDeValor({ data, onChange, onSave, justSaved }) {
 
 // ─── Pilar 5: Documentos ────────────────────────────────────────────────────
 
-function PilarDocumentos({ data, onChange, onSave, justSaved }) {
+function PilarDocumentos({ data, onChange, onSave, justSaved, pct }) {
+  const isComplete = pct >= 100
   const checks = (data&&data.checks)?data.checks:{}
   const toggle = function(id){onChange({checks:Object.assign({},checks,{[id]:!checks[id]})})}
   const completados = DOCS_LIST.filter(function(d){return checks[d.id]}).length
-  const pct = Math.round((completados/DOCS_LIST.length)*100)
+  const pctDocs = Math.round((completados/DOCS_LIST.length)*100)
   return (
     <div className="space-y-6">
       <div>
@@ -1557,7 +1662,7 @@ function PilarDocumentos({ data, onChange, onSave, justSaved }) {
           <span className="text-xs font-bold text-amber-600">{completados}/{DOCS_LIST.length} listos</span>
         </div>
         <div className="h-2.5 bg-slate-200 rounded-full overflow-hidden">
-          <div className="h-full bg-gradient-to-r from-amber-400 to-amber-500 rounded-full transition-all duration-500" style={{width:pct+'%'}}/>
+          <div className="h-full bg-gradient-to-r from-amber-400 to-amber-500 rounded-full transition-all duration-500" style={{width:pctDocs+'%'}}/>
         </div>
       </div>
       <div className="space-y-3">
@@ -1573,9 +1678,15 @@ function PilarDocumentos({ data, onChange, onSave, justSaved }) {
                 <span className={'text-sm font-semibold '+(done?'text-amber-700 line-through':'text-slate-700')}>{item.label}</span>
               </div>
               {item.link&&(
-                <Link to={item.link} className="shrink-0 flex items-center gap-1 text-xs font-bold text-slate-500 hover:text-amber-600 border border-slate-200 hover:border-amber-300 rounded-lg px-3 py-1.5 transition-colors cursor-pointer">
-                  {done?'Revisar':'Ir ahora'} <ArrowRight size={12}/>
-                </Link>
+                isComplete ? (
+                  <Link to={item.link} className="shrink-0 flex items-center gap-1 text-xs font-bold text-slate-500 hover:text-amber-600 border border-slate-200 hover:border-amber-300 rounded-lg px-3 py-1.5 transition-colors cursor-pointer">
+                    {done?'Revisar':'Ir ahora'} <ArrowRight size={12}/>
+                  </Link>
+                ) : (
+                  <span className="shrink-0 flex items-center gap-1 text-xs font-bold text-slate-300 border border-slate-100 rounded-lg px-3 py-1.5 cursor-not-allowed">
+                    <Lock size={12}/> Bloqueado
+                  </span>
+                )
               )}
             </div>
           )
@@ -1586,6 +1697,13 @@ function PilarDocumentos({ data, onChange, onSave, justSaved }) {
           <Trophy size={40} weight="duotone" className="text-amber-500 mx-auto mb-2"/>
           <h3 className="font-black text-slate-800 text-lg mb-1">¡Carpeta 100% lista!</h3>
           <p className="text-sm text-slate-500">Estás listo para postular con confianza.</p>
+        </div>
+      )}
+      {!isComplete && (
+        <div className="p-4 rounded-xl bg-amber-50 border border-amber-200">
+          <p className="text-xs text-amber-800 font-medium">
+            <span className="font-bold">Nota:</span> Las funcionalidades avanzadas (Optimizador, LinkedIn, etc.) se desbloquearán cuando alcances el <span className="font-bold text-amber-900">100% de progreso</span> en las secciones anteriores.
+          </p>
         </div>
       )}
 
@@ -1696,56 +1814,69 @@ export default function ProyectoLaboral() {
   const saveTimeoutRef       = useRef(null)
   const cvAutoPopuladoRef    = useRef(false)  // evita doble ejecución
 
+  // 1. Carga inicial de datos (sessionStorage -> Supabase)
   useEffect(function(){
     if (!user) return
+    let mounted = true
     const CACHE_KEY = `jsp_${user.id}`
 
-    // 1. Carga instantánea desde sessionStorage (evita spinner al regresar)
-    const cached = sessionStorage.getItem(CACHE_KEY)
-    if (cached) {
+    const cargarDatos = async () => {
+      // Intento desde caché para velocidad máxima
+      const cached = sessionStorage.getItem(CACHE_KEY)
+      if (cached && mounted) {
+        try {
+          setData(JSON.parse(cached))
+          setCargando(false)
+        } catch (e) { console.error('Cache corrupto:', e) }
+      }
+
+      // Siempre validar contra la DB si no hay caché o si queremos frescura
       try {
-        setData(JSON.parse(cached))
-        setCargando(false)
-        return
-      } catch { /* ignorar error de parseo */ }
+        const { data: res, error } = await supabase.from('profiles').select('job_search_profile').eq('id', user.id).maybeSingle()
+        if (mounted) {
+          if (error) throw error
+          if (res?.job_search_profile) {
+            setData(res.job_search_profile)
+            sessionStorage.setItem(CACHE_KEY, JSON.stringify(res.job_search_profile))
+          }
+          setCargando(false)
+        }
+      } catch (err) {
+        console.error('Error cargando job_search_profile:', err)
+        if (mounted) {
+          setErrorCarga('Error al cargar tus datos. Por favor recarga la página.')
+          setCargando(false)
+        }
+      }
     }
 
-    // 2. Sin caché: fetch desde Supabase
-    setCargando(true)
-    setErrorCarga(null)
-    supabase.from('profiles').select('job_search_profile').eq('id',user.id).single()
-      .then(function(res){
-        if (res.data&&res.data.job_search_profile) {
-          setData(res.data.job_search_profile)
-          sessionStorage.setItem(CACHE_KEY, JSON.stringify(res.data.job_search_profile))
-        }
-        setCargando(false)
-      })
-      .catch(function(err){
-        console.error('Error cargando job_search_profile:', err)
-        setErrorCarga('Error al cargar tus datos. Por favor recarga la página.')
-        setCargando(false)
-      })
-  },[user])
+    cargarDatos()
+    return () => { mounted = false }
+  }, [user])
 
-  // Detectar ?exito=cv_creada al montar — solo una vez
+  // 2. Detectar banner de éxito y limpiar URL — solo al montar o cambiar búsqueda
   useEffect(function(){
     const params = new URLSearchParams(location.search)
     if (params.get('exito') === 'cv_creada') {
       setBannerCvCreada(true)
+      // Limpiamos la URL sin recargar la página para que el refresh no lo detecte de nuevo
       navigate('/proyecto-laboral', { replace: true })
     }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [location.search, navigate])
 
-  // Cuando los datos cargaron y hay banner: auto-poblar campos vacíos del perfil
+  // 3. Auto-poblar perfil si venimos de crear CV y los datos están listos
   useEffect(function(){
+    // Solo actuamos si el banner está activo, no estamos cargando, y no lo hemos hecho ya en esta "instancia"
     if (!bannerCvCreada || cargando || !user || !perfil || cvAutoPopuladoRef.current) return
+    
+    // El lock se pone inmediatamente
     cvAutoPopuladoRef.current = true
 
     const cvDatos = data?.cv_datos_originales?.datos
     if (!cvDatos) return
 
     const updates = {}
+    // Solo actualizamos lo que esté vacío para no sobreescribir cambios manuales del usuario
     if (!perfil.nombre1    && cvDatos.nombre)     updates.nombre1    = cvDatos.nombre.trim()
     if (!perfil.apellido1  && cvDatos.apellido)   updates.apellido1  = cvDatos.apellido.trim()
     if (!perfil.nombre2    && cvDatos.nombre2)    updates.nombre2    = cvDatos.nombre2.trim()
@@ -1753,15 +1884,38 @@ export default function ProyectoLaboral() {
     if (!perfil.telefono1  && cvDatos.telefono)   updates.telefono1  = cvDatos.telefono.trim()
     if (!perfil.ciudad     && cvDatos.ciudad)     updates.ciudad     = cvDatos.ciudad.trim()
     if (!perfil.pais       && cvDatos.pais)       updates.pais       = cvDatos.pais.trim()
-    if (!perfil.indicativo1 && cvDatos.indicativo) updates.indicativo1 = cvDatos.indicativo
+    
+    // Indicativo especial
+    if (!perfil.indicativo1 && (cvDatos.indicativo || cvDatos.pais)) {
+      updates.indicativo1 = cvDatos.indicativo || indicativoPorPais(cvDatos.pais)
+    }
+
+    // Idiomas (se guardan en job_search_profile.perfil.idiomas)
+    const existingJsp = perfil.job_search_profile || {}
+    const existingPerfil = existingJsp.perfil || {}
+    if ((!existingPerfil.idiomas || existingPerfil.idiomas.length === 0) && cvDatos.idiomas) {
+      // Nota: Aquí actualizamos el objeto job_search_profile completo
+      const newJsp = {
+        ...existingJsp,
+        perfil: {
+          ...existingPerfil,
+          idiomas: cvDatos.idiomas
+        }
+      }
+      updates.job_search_profile = newJsp
+    }
 
     if (Object.keys(updates).length > 0) {
+      console.log('Auto-poblando perfil desde CV...', updates)
+      // Limpiar caché de perfil para forzar refresco
       sessionStorage.removeItem(`perfil_lp_${user.id}`)
-      supabase.from('profiles').update(updates).eq('id', user.id).then(function(){
-        refreshPerfil()
+      supabase.from('profiles').update(updates).eq('id', user.id).then(function({ error }){
+        if (!error) {
+          refreshPerfil() // Refrescar el estado global del perfil
+        }
       })
     }
-  }, [bannerCvCreada, cargando]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [bannerCvCreada, cargando, user, perfil, data, refreshPerfil])
 
   const saveData = useCallback(function(nd){
     if (!user) return
@@ -2022,12 +2176,12 @@ export default function ProyectoLaboral() {
             </div>
           </div>
           <div className="p-6 md:p-8">
-            {pilarId==='perfil'        &&<PilarMiPerfil perfil={perfil} extraData={data.perfil} onChange={function(v){updatePilar('perfil',v)}} onSavePerfil={savePerfil} saving={saving} isPaidPlan={isPaidPlan} data={data} userId={user?.id}/>}
+            {pilarId==='perfil'        &&<PilarMiPerfil perfil={perfil} extraData={data.perfil} onChange={function(v){updatePilar('perfil',v)}} onSavePerfil={savePerfil} saving={saving} isPaidPlan={isPaidPlan} data={data} userId={user?.id} pct={pct}/>}
             {pilarId==='autoconocimiento'&&<PilarAutoconocimiento data={data.autoconocimiento} onChange={function(v){updatePilar('autoconocimiento',v)}} onSave={function(){handlePilarSave('autoconocimiento')}} justSaved={justSaved==='autoconocimiento'}/>}
             {pilarId==='recursos'      &&<PilarRecursos         data={data.recursos}         onChange={function(v){updatePilar('recursos',v)}} onSave={function(){handlePilarSave('recursos')}} justSaved={justSaved==='recursos'} pais={perfil?.pais_prestaciones || perfil?.pais || ''}/>}
             {pilarId==='semana'        &&<PilarSemana           data={data.semana}           onChange={function(v){updatePilar('semana',v)}} onSave={function(){handlePilarSave('semana')}} justSaved={justSaved==='semana'}/>}
             {pilarId==='oferta'        &&<PilarOfertaDeValor    data={data.oferta}           onChange={function(v){updatePilar('oferta',v)}} onSave={function(){handlePilarSave('oferta')}} justSaved={justSaved==='oferta'}/>}
-            {pilarId==='documentos'    &&<PilarDocumentos       data={data.documentos}       onChange={function(v){updatePilar('documentos',v)}} onSave={function(){handlePilarSave('documentos')}} justSaved={justSaved==='documentos'}/>}
+            {pilarId==='documentos'    &&<PilarDocumentos       data={data.documentos}       onChange={function(v){updatePilar('documentos',v)}} onSave={function(){handlePilarSave('documentos')}} justSaved={justSaved==='documentos'} pct={pct}/>}
           </div>
         </div>
 

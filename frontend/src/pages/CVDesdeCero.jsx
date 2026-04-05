@@ -33,7 +33,6 @@ const ESTADO_EMPTY = {
   habilidades: [],
   idiomas:     [],
 }
-
 const Tooltip = ({ text }) => {
   const [show, setShow] = useState(false)
   return (
@@ -282,6 +281,14 @@ export default function CVDesdeCero() {
   const [cvMismatch,    setCvMismatch]    = useState(false)
   const [cvPending,     setCvPending]     = useState(null)   // datos extraídos en espera de confirmar
   const [cvFileName,    setCvFileName]    = useState('')
+  const [alertaExistente, setAlertaExistente] = useState(false)
+
+  // 1. Verificar si ya tiene CV al cargar
+  useEffect(() => {
+    if (perfil?.cv_path) {
+      setAlertaExistente(true)
+    }
+  }, [perfil])
   const [nuevaHab,      setNuevaHab]      = useState('')
 
   // Tips contextuales calculados en tiempo real
@@ -506,37 +513,68 @@ export default function CVDesdeCero() {
   const confirmarYGuardar = async () => {
     if (!cvGenerada) return
     setGenerando(true)
+    setError('')
     try {
+      const hoy = new Date()
+      const ddmmaa = hoy.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: '2-digit' }).replace(/\//g, '')
+      const nombreLimpio = `${datos.nombre} ${datos.apellido}`.trim() || 'Usuario Optima'
+      const nombreArchivo = `CV_${nombreLimpio} - original ${ddmmaa}.txt`
+
       // 1. Subir texto generado a Storage
       const blob = new Blob([cvGenerada.optimizedCV], { type: 'text/plain' })
+      const filePath = `${user.id}/cv_original.txt`
+      
       const { data: up, error: upErr } = await supabase.storage
-        .from('cvs').upload(`${user.id}/cv_original.txt`, blob, { upsert: true })
+        .from('cvs').upload(filePath, blob, { upsert: true })
+      
       if (upErr) throw new Error('Error al guardar CV en Storage')
 
-      // 2. Obtener job_search_profile actual
-      const { data: pActual } = await supabase.from('profiles').select('job_search_profile').eq('id', user.id).maybeSingle()
-      const jsp = pActual?.job_search_profile || {}
-      const { cv_borrador, ...resto } = jsp
+      // 2. Insertar en cv_results para que aparezca en "MIS CVS"
+      const { error: resErr } = await supabase.from('cv_results').insert({
+        user_id:   user.id,
+        tipo:      'original',
+        contenido: cvGenerada.optimizedCV,
+        metadata:  { 
+          filename: nombreArchivo,
+          generado_en: new Date().toISOString()
+        }
+      })
+      if (resErr) throw new Error('No se pudo guardar la CV en tu historial. Por favor intenta de nuevo.')
 
-      // 3. Guardar datos estructurados + limpiar borrador
+      // 3. Obtener job_search_profile actual para no sobreescribir otros datos
+      const { data: pActual } = await supabase.from('profiles')
+        .select('job_search_profile')
+        .eq('id', user.id)
+        .maybeSingle()
+      
+      const jsp = pActual?.job_search_profile || {}
+      
+      // 4. Guardar datos estructurados + limpiar borrador en la DB
+      const { cv_borrador, ...restoJsp } = jsp
+
       const { error: updErr } = await supabase.from('profiles').update({
         cv_path:     up.path,
-        cv_filename: 'cv_harvard.txt',
+        cv_filename: nombreArchivo,
         job_search_profile: {
-          ...resto,
+          ...restoJsp,
           cv_datos_originales: { datos, generado_en: new Date().toISOString() }
         }
       }).eq('id', user.id)
-      if (updErr) throw new Error('Error al actualizar perfil')
+      
+      if (updErr) throw new Error('Error al actualizar el perfil en la base de datos')
 
-      setCvGenerada(null)
-      // Limpiar caches de sessionStorage para forzar re-fetch en ProyectoLaboral
+      // 4. Limpiar caches locales — ESTO ES CRITICO para que ProyectoLaboral no cargue basura
       sessionStorage.removeItem(`jsp_${user.id}`)
       sessionStorage.removeItem(`cv_draft_${user.id}`)
       sessionStorage.removeItem(`perfil_lp_${user.id}`)
-      setTimeout(() => navigate('/proyecto-laboral?exito=cv_creada'), 500)
+
+      // 5. Navegar al Proyecto Laboral con el flag de éxito
+      setCvGenerada(null)
+      navigate('/proyecto-laboral?exito=cv_creada', { replace: true })
+      
     } catch (err) {
-      setError(err.message)
+      console.error('Error en confirmarYGuardar:', err)
+      setError(err.message || 'Ocurrió un error inesperado al guardar tu CV.')
     } finally {
       setGenerando(false)
     }
@@ -603,6 +641,33 @@ export default function CVDesdeCero() {
 
   const pasoInfo   = PASOS[pasoActual]
   const pctLlenado = calcularLlenado(datos)
+
+  if (alertaExistente && pasoActual === 0) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 py-12">
+        <div className="bg-amber-50 border border-amber-200 rounded-3xl p-8 text-center shadow-sm">
+          <div className="w-16 h-16 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-6">
+            <WarningCircle size={32} weight="bold" />
+          </div>
+          <h2 className="text-2xl font-bold text-slate-800 mb-3">¡Ya tienes un CV hecho!</h2>
+          <p className="text-slate-600 mb-8 max-w-md mx-auto">
+            Detectamos que ya generaste tu CV profesional con nosotros. 
+            Si continúas, sobrescribiremos tu versión actual.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <button onClick={() => navigate('/proyecto-laboral')}
+              className="px-8 py-3 bg-slate-100 text-slate-700 rounded-xl font-bold hover:bg-slate-200 transition-all flex items-center justify-center gap-2">
+              <ArrowLeft size={18} weight="bold" /> Volver al Proyecto
+            </button>
+            <button onClick={() => setAlertaExistente(false)}
+              className="px-8 py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-md shadow-indigo-200">
+              Crear uno nuevo de todas formas
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
