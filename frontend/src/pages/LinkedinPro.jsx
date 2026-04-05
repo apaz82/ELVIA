@@ -72,10 +72,12 @@ function colorPuntaje(score) {
 function ScoreRing({ score }) {
   const color = colorPuntaje(score)
   return (
-    <div className={`flex flex-col items-center justify-center w-28 h-28 rounded-full border-4 ${color.border} ${color.bg} shrink-0 shadow-lg shadow-slate-200/50 relative overflow-hidden group`}>
+    <div className={`flex flex-col items-center justify-center w-36 h-36 rounded-full border-[6px] ${color.border} ${color.bg} shrink-0 shadow-2xl shadow-slate-200/50 relative overflow-hidden group`}>
       <div className={`absolute inset-0 opacity-10 bg-gradient-to-br ${color.bar} to-transparent`} />
-      <span className={`text-3xl font-black ${color.text} relative z-10 tracking-tighter`}>{score}</span>
-      <span className={`text-[10px] font-black ${color.text} uppercase tracking-widest relative z-10 opacity-60`}>/ 100</span>
+      <span className={`text-5xl font-black ${color.text} relative z-10 tracking-tighter`}>{score}</span>
+      <span className={`text-[12px] font-black ${color.text} uppercase tracking-widest relative z-10 opacity-60`}>/ 100</span>
+      {/* Decorative pulse */}
+      <div className={`absolute inset-0 rounded-full border-4 border-white/40 group-hover:scale-110 transition-transform duration-700`} />
     </div>
   )
 }
@@ -85,18 +87,18 @@ function SeccionResultado({ seccion, datos }) {
   const color = colorPuntaje(datos.puntaje)
 
   return (
-    <div className={`rounded-2xl border ${color.border} overflow-hidden`}>
+    <div className={`rounded-3xl border ${color.border} overflow-hidden bg-white shadow-sm hover:shadow-md transition-all duration-300`}>
       {/* Header de sección */}
       <button
         onClick={() => setAbierto(a => !a)}
-        className={`w-full flex items-center gap-4 px-5 py-4 ${color.bg} hover:brightness-95 transition-all text-left`}
+        className={`w-full flex items-center gap-5 px-6 py-5 ${color.bg} hover:brightness-95 transition-all text-left`}
       >
-        <div className={`flex items-center justify-center w-10 h-10 rounded-full bg-white border ${color.border} shrink-0`}>
-          <span className={`text-sm font-bold ${color.text}`}>{datos.puntaje}</span>
+        <div className={`flex items-center justify-center w-12 h-12 rounded-2xl bg-white border ${color.border} shadow-sm shrink-0`}>
+          <span className={`text-base font-black ${color.text}`}>{datos.puntaje}</span>
         </div>
         <div className="flex-1 min-w-0">
-          <p className="font-semibold text-gray-900 text-sm">{seccion.label}</p>
-          <div className="w-full h-1.5 bg-white/60 rounded-full mt-1.5 overflow-hidden">
+          <p className="font-bold text-gray-900 text-lg tracking-tight">{seccion.label}</p>
+          <div className="w-full h-2 bg-white/60 rounded-full mt-2 overflow-hidden border border-white/20">
             <div
               className={`h-full rounded-full ${color.bar} transition-all duration-700`}
               style={{ width: `${datos.puntaje}%` }}

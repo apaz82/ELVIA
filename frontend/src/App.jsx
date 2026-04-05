@@ -35,7 +35,7 @@ import { Toaster } from 'react-hot-toast'
 // Rutas que NO muestran sidebar ni header estándar
 const RUTAS_FULL = ['/', '/landing2', '/auth', '/bienvenida', '/admin', '/privacidad', '/reset-password', '/pricing']
 // Rutas excluidas del guard de onboarding (no redirigen a /bienvenida aunque haya onboarding pendiente)
-const RUTAS_SIN_GUARD = ['/', '/landing2', '/auth', '/bienvenida', '/admin', '/privacidad', '/reset-password', '/pricing', '/proyecto-laboral', '/cv-desde-cero']
+const RUTAS_SIN_GUARD = ['/', '/landing2', '/auth', '/bienvenida', '/admin', '/privacidad', '/reset-password', '/pricing', '/proyecto-laboral', '/cv-desde-cero', '/linkedin-pro']
 // Rutas públicas (solo para usuarios NO autenticados)
 const RUTAS_PUBLICAS = ['/', '/auth', '/privacidad', '/reset-password', '/pricing']
 

@@ -602,6 +602,11 @@ ${JSON.stringify(proyectoData, null, 2)}
 
 Devuelve ÚNICAMENTE el JSON estructurado con las mismas llaves, pero con el texto corregido. Valida que el JSON es 100% válido sintácticamente.`
 
+  if (!client) {
+    console.warn('[corregirProyectoLaboral] Anthropic client not initialized. Returning raw data.');
+    return proyectoData;
+  }
+
   const response = await client.messages.create({
     model: MODELO_RAPIDO,
     max_tokens: 2000,

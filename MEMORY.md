@@ -19,5 +19,6 @@ OPTIMA-CV is a dual-interface Human Resources & Career Optimization ecosystem ta
 - **Performance**: Always use `sessionStorage` caching protocols to avoid latency on tab switches spanning between `ProyectoLaboral.jsx` and `CVDesdeCero.jsx`.
 - **Identity Enforcement**: `extractProfile` forces identity (Name/LastName) comparison from CV-PDF to existing Profile-User to prevent unauthorized scraping of 3rd party CVs.
 - **Language Lock**: CVs parsed are rendered outputing in the same language. BUT data like 'country' is mapped into LATAM standard formats.
+- **Shell Consistency**: This environment is **Windows PowerShell**. Use `;` instead of `&&` for chain-command execution.
 
-*Log automatically updated by Gemini (Antigravity).*
+*Log automatically updated by Antigravity.*

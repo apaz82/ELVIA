@@ -63,14 +63,27 @@ const optimize = async (req, res, next) => {
       await incrementDailyCap(req.dailyCapDate);
     }
 
-    // Guardar resultado en Supabase para la descarga posterior
+    // 1. Guardar el CV Original (para persistencia en Mis CVs)
+    await db.from('cv_results').insert({
+      user_id: req.user.id,
+      tipo: 'original',
+      contenido: cvText,
+      metadata: { filename: req.file.originalname, language }
+    });
+
+    // 2. Guardar resultado optimizado en Supabase para la descarga posterior
     const { data: saved, error } = await db
       .from('cv_results')
       .insert({
         user_id: req.user.id,
         tipo: 'optimize',
         contenido: resultado.optimizedCV,
-        metadata: { changes: resultado.changes, recommendations: resultado.recommendations, language },
+        metadata: { 
+          changes: resultado.changes, 
+          recommendations: resultado.recommendations, 
+          language,
+          subtipo: 'optimizacion_ia' 
+        },
       })
       .select('id')
       .single();
@@ -381,9 +394,9 @@ Return ONLY this JSON:
     // Guardar el CV original en cv_results para que aparezca en Mis CVs
     const { data: savedCV } = await db.from('cv_results').insert({
       user_id: req.user.id,
-      tipo: 'original',
+      tipo: 'optimize', // Forzar 'optimize' por compatibilidad con constraints de DB
       contenido: cvText,
-      metadata: { filename: req.file.originalname, extracted: true }
+      metadata: { filename: req.file.originalname, extracted: true, subtipo: 'original' }
     }).select('id').single();
 
     res.json({ ...perfil, mismatch, id: savedCV?.id });
@@ -436,32 +449,43 @@ const generarInfografiaProyecto = async (req, res, next) => {
       return res.status(400).json({ error: 'No se encontró el perfil de búsqueda laboral.' });
     }
 
-    // 1. Corrección IA (Ortografía Hispanoamericana)
-    const proyectoCorregido = await corregirProyectoLaboral(profile.job_search_profile);
+    // 1. Corrección IA (Ortografía Hispanoamericana) con fallback robusto
+    let proyectoCorregido;
+    try {
+      proyectoCorregido = await corregirProyectoLaboral(profile.job_search_profile);
+    } catch (aiErr) {
+      console.error('[generarInfografiaProyecto] AI Error:', aiErr.message);
+      proyectoCorregido = profile.job_search_profile;
+    }
 
     // Adjuntar nombre para la UI
     proyectoCorregido.nombreCandidato = `${profile.nombre1 || ''} ${profile.apellido1 || ''}`.trim() || 'Ejecutivo';
 
-    // 2. Guardar en cv_results como registro persistente
+    // 2. Guardar en cv_results como registro persistente (Bypassing potential Enum constraints)
     const { data: savedRecord, error: dbError } = await db
       .from('cv_results')
       .insert({
         user_id: userId,
-        tipo: 'infografia_proyecto',
+        tipo: 'optimize', // Usar 'optimize' que es seguro
         contenido: JSON.stringify(proyectoCorregido),
         metadata: { 
           filename: `Plan de Carrera Ejecutivo.pdf`,
-          frontend_pdf: true 
+          frontend_pdf: true,
+          subtipo: 'infografia_proyecto'
         }
       })
       .select('id')
       .single();
 
-    if (dbError) throw dbError;
+    if (dbError) {
+      console.error('[generarInfografiaProyecto] DB Error:', dbError.message);
+      throw dbError;
+    }
 
-    // 3. Devolver datos corregidos listos para inyectarse en el Componente React
+    // 3. Devolver datos corregidos (Flattened para evitar errores de respData.data.id)
     res.json({ id: savedRecord.id, datosCorregidos: proyectoCorregido });
   } catch (err) {
+    console.error('[generarInfografiaProyecto] Fatal Error:', err.message);
     next(err);
   }
 };

@@ -125,10 +125,21 @@ export default function MisCVs() {
     const savedMap = {}
     ;(savedData || []).forEach(s => { savedMap[s.job_key] = s.job_data })
 
-    const todos = cvData || []
-    setCvsOptimizados(todos.filter(c => c.tipo === 'optimize'))
+    const todos = (cvData || []).map(cv => ({
+      ...cv,
+      // Normalizar subtipo para facilitar filtrado
+      subtipo: cv.metadata?.subtipo || (cv.tipo === 'original' ? 'subida_usuario' : 'optimizacion_ia')
+    }))
+
+    // Categorización inteligente:
+    // - Optimizados: tipo 'optimize' (incluye desde_cero y optimizacion_ia)
+    // - Originales: tipo 'original'
+    // - Reportes: subtipo 'infografia' o tipo 'infografia_proyecto' (legacy)
+    
+    setCvsOptimizados(todos.filter(c => c.tipo === 'optimize' && c.subtipo !== 'infografia_proyecto'))
     setCvsOriginal(todos.filter(c => c.tipo === 'original'))
-    setCvsReportes(todos.filter(c => c.tipo === 'infografia_proyecto'))
+    setCvsReportes(todos.filter(c => c.tipo === 'infografia_proyecto' || c.subtipo === 'infografia_proyecto'))
+    
     setCvsMatch(todos.filter(c => c.tipo === 'match').map(cv => {
       const jobTitle   = cv.metadata?.jobData?.title || ''
       const jobCompany = cv.metadata?.jobData?.company || cv.metadata?.jobData?.empresa || ''
@@ -170,12 +181,20 @@ export default function MisCVs() {
   }
 
   const EmptyState = ({ mensaje, cta, ruta }) => (
-    <div className="text-center py-12">
-      <svg className="w-10 h-10 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-      </svg>
-      <p className="text-sm text-gray-400">{mensaje}</p>
-      <button onClick={() => navigate(ruta)} className="mt-3 text-sm text-primary font-medium hover:underline">{cta}</button>
+    <div className="text-center py-16 bg-gray-50/50 rounded-3xl border border-dashed border-gray-200">
+      <div className="w-16 h-16 bg-white rounded-2xl shadow-sm flex items-center justify-center mx-auto mb-4 border border-gray-100">
+        <svg className="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+        </svg>
+      </div>
+      <p className="text-base text-gray-500 font-medium">{mensaje}</p>
+      <p className="text-xs text-gray-400 mt-1 max-w-xs mx-auto">
+        Construido y optimizado por mentores de carrera expertos y tecnología de última generación.
+      </p>
+      <button onClick={() => navigate(ruta)} 
+        className="mt-6 px-6 py-2.5 bg-primary text-white text-sm font-semibold rounded-xl hover:bg-primary/90 transition-all shadow-md shadow-primary/20">
+        {cta}
+      </button>
     </div>
   )
 
@@ -198,10 +217,12 @@ export default function MisCVs() {
   ]
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Mis CVs</h1>
-        <p className="mt-2 text-gray-600">Historial completo de documentos y compatibilidades verificadas.</p>
+    <div className="max-w-5xl mx-auto px-6 py-12 transition-all duration-500">
+      <div className="mb-10">
+        <h1 className="text-4xl font-extrabold text-gray-900 tracking-tight">Mis Documentos</h1>
+        <p className="mt-3 text-lg text-gray-500 max-w-2xl">
+          Tu ecosistema de carrera centralizado. Optimizado por expertos y tecnología ELVIA®.
+        </p>
       </div>
 
       {/* Tabs */}
@@ -222,19 +243,34 @@ export default function MisCVs() {
           {/* Tab 1: CV Optimizado */}
           {tab === 'optimizados' && (
             cvsOptimizados.length === 0
-              ? <EmptyState mensaje="Aún no tienes CVs optimizados." cta="Optimizar mi CV →" ruta="/cv-optimizer" />
-              : <div className="space-y-3">
+              ? <EmptyState mensaje="Aún no tienes documentos optimizados." cta="Optimizar mi CV ahora" ruta="/cv-optimizer" />
+              : <div className="space-y-4">
                   {cvsOptimizados.map(item => (
-                    <div key={item.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 border border-gray-100 rounded-xl hover:border-gray-200 transition-colors">
+                    <div key={item.id} className="group flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 bg-white border border-gray-100 rounded-2xl hover:border-primary/30 hover:shadow-xl hover:shadow-primary/5 transition-all duration-300">
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-blue-50 text-blue-600">CV Optimizado</span>
+                        <div className="flex items-center gap-2 flex-wrap mb-2">
+                          <span className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-lg ${
+                            item.subtipo === 'desde_cero' 
+                              ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' 
+                              : 'bg-primary/5 text-primary border border-primary/10'
+                          }`}>
+                            {item.subtipo === 'desde_cero' ? 'Perfect Resume' : 'IA Optimized'}
+                          </span>
                           {item.metadata?.language && (
-                            <span className="text-xs text-gray-400 uppercase">{item.metadata.language}</span>
+                            <span className="text-[10px] font-bold text-gray-400 uppercase bg-gray-50 px-2 py-1 rounded-lg border border-gray-100">
+                              {item.metadata.language}
+                            </span>
                           )}
                         </div>
-                        <p className="text-sm font-medium text-gray-800 mt-1 truncate">{extraerNombre(item.contenido)}</p>
-                        <p className="text-xs text-gray-400 mt-0.5">{formatFecha(item.created_at)}</p>
+                        <p className="text-lg font-bold text-gray-800 truncate group-hover:text-primary transition-colors">
+                          {extraerNombre(item.contenido)}
+                        </p>
+                        <p className="text-sm text-gray-400 mt-1 flex items-center gap-1.5 font-medium">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          </svg>
+                          {formatFecha(item.created_at)}
+                        </p>
                       </div>
                       <BotonesDescarga id={item.id} descargando={descargando} onDescargar={handleDescargar} />
                     </div>
@@ -245,23 +281,30 @@ export default function MisCVs() {
           {/* Tab 1.2: Reportes (Infografías) */}
           {tab === 'reportes' && (
             cvsReportes.length === 0
-              ? <EmptyState mensaje="No has generado tu Infografía de Proyecto Laboral." cta="Definir mi Proyecto →" ruta="/proyecto-laboral" />
-              : <div className="space-y-3">
+              ? <EmptyState mensaje="No has generado tu Plan de Carrera Ejecutivo." cta="Definir mi Proyecto" ruta="/proyecto-laboral" />
+              : <div className="space-y-4">
                   {cvsReportes.map(item => (
-                    <div key={item.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 border border-gray-100 rounded-xl hover:border-gray-200 transition-colors">
+                    <div key={item.id} className="group flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 bg-white border border-gray-100 rounded-2xl hover:border-purple-300 hover:shadow-xl hover:shadow-purple-50 transition-all duration-300">
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-purple-50 text-purple-600">Plan de Carrera Ejecutivo</span>
+                        <div className="flex items-center gap-2 flex-wrap mb-2">
+                          <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-lg bg-purple-50 text-purple-600 border border-purple-100">Plan de Carrera</span>
                         </div>
-                        <p className="text-sm font-medium text-gray-800 mt-1 truncate">Reporte: {item.metadata?.filename || 'Infografía Visual'}</p>
-                        <p className="text-xs text-gray-400 mt-0.5">{formatFecha(item.created_at)}</p>
+                        <p className="text-lg font-bold text-gray-800 truncate group-hover:text-purple-600 transition-colors">
+                          Reporte: {item.metadata?.filename || 'Infografía Visual Executive'}
+                        </p>
+                        <p className="text-sm text-gray-400 mt-1 flex items-center gap-1.5 font-medium">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                          {formatFecha(item.created_at)}
+                        </p>
                       </div>
                       <div className="flex gap-2">
                         <button
                           onClick={() => navigate(`/reporte-visual/${item.id}`)}
-                          className="px-4 py-1.5 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-lg flex items-center justify-center min-w-[140px] transition-colors shadow-sm"
+                          className="px-6 py-2.5 text-sm font-bold text-white bg-purple-600 hover:bg-purple-700 rounded-xl flex items-center justify-center min-w-[160px] transition-all shadow-lg shadow-purple-200"
                         >
-                          Ver Infografía
+                          Ver Infografía →
                         </button>
                       </div>
                     </div>
@@ -272,16 +315,23 @@ export default function MisCVs() {
           {/* Tab 1.5: CV Original */}
           {tab === 'original' && (
             cvsOriginal.length === 0
-              ? <EmptyState mensaje="Aún no has generado tu CV inicial." cta="Crear mi CV desde cero →" ruta="/cv-desde-cero" />
-              : <div className="space-y-3">
+              ? <EmptyState mensaje="Aún no has subido tu CV base." cta="Subir mi primer documento" ruta="/cv-optimizer" />
+              : <div className="space-y-4">
                   {cvsOriginal.map(item => (
-                    <div key={item.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 border border-gray-100 rounded-xl hover:border-gray-200 transition-colors">
+                    <div key={item.id} className="group flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 bg-white border border-gray-100 rounded-2xl hover:border-emerald-300 hover:shadow-xl hover:shadow-emerald-50 transition-all duration-300">
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600">CV Inicial</span>
+                        <div className="flex items-center gap-2 flex-wrap mb-2">
+                          <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-100">Documento Inicial</span>
                         </div>
-                        <p className="text-sm font-medium text-gray-800 mt-1 truncate">{item.metadata?.filename || extraerNombre(item.contenido)}</p>
-                        <p className="text-xs text-gray-400 mt-0.5">{formatFecha(item.created_at)}</p>
+                        <p className="text-lg font-bold text-gray-800 truncate group-hover:text-emerald-600 transition-colors">
+                          {item.metadata?.filename || extraerNombre(item.contenido)}
+                        </p>
+                        <p className="text-sm text-gray-400 mt-1 flex items-center gap-1.5 font-medium">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                          {formatFecha(item.created_at)}
+                        </p>
                       </div>
                       <BotonesDescarga id={item.id} descargando={descargando} onDescargar={handleDescargar} />
                     </div>
@@ -316,77 +366,88 @@ export default function MisCVs() {
                     )}
                   </div>
 
-                  <div className="space-y-3">
+                  <div className="space-y-4">
                     {checksFiltrados.map(item => {
                       const { titulo, empresa } = parsearJobKey(item.job_key)
                       const motivos = Array.isArray(item.motivos) ? item.motivos : []
                       const job = item.jobData
                       const esBajo = item.score < 70
                       return (
-                        <div key={item.id} className={`p-4 border rounded-xl transition-colors ${seleccionados.has(item.id) ? 'border-primary bg-blue-50/30' : 'border-gray-100 hover:border-gray-200'}`}>
-                          <div className="flex items-start gap-3">
-                            {/* Checkbox para selección */}
+                        <div key={item.id} className={`p-6 bg-white border rounded-3xl transition-all duration-300 ${seleccionados.has(item.id) ? 'border-primary ring-4 ring-primary/5 bg-primary/[0.02]' : 'border-gray-100 hover:border-gray-200 hover:shadow-lg hover:shadow-gray-200/40'}`}>
+                          <div className="flex items-start gap-4">
+                            {/* Checkbox for selection */}
                             {esBajo && (
-                              <input type="checkbox" checked={seleccionados.has(item.id)}
-                                onChange={() => toggleSeleccion(item.id)}
-                                className="mt-1 accent-primary" />
+                              <div className="mt-1.5 ring-offset-2">
+                                <input type="checkbox" checked={seleccionados.has(item.id)}
+                                  onChange={() => toggleSeleccion(item.id)}
+                                  className="w-5 h-5 accent-primary rounded-lg cursor-pointer" />
+                              </div>
                             )}
                             <div className="flex-1 min-w-0">
-                              <div className="flex items-start justify-between gap-3">
+                              <div className="flex items-start justify-between gap-4">
                                 <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-2 flex-wrap">
-                                    <p className="text-sm font-semibold text-gray-800 capitalize">{job?.title || titulo}</p>
-                                    {job?.via && <span className="text-xs text-gray-400 bg-gray-50 border border-gray-200 rounded px-1.5 py-0.5">{job.via}</span>}
+                                  <div className="flex items-center gap-2 flex-wrap mb-1">
+                                    <p className="text-xl font-bold text-slate-800 capitalize leading-tight group-hover:text-primary">{job?.title || titulo}</p>
+                                    {job?.via && <span className="text-[10px] font-black text-gray-400 bg-gray-50 border border-gray-200 rounded-lg px-2 py-0.5 tracking-widest uppercase">{job.via}</span>}
                                   </div>
                                   {(job?.company || empresa) && (
-                                    <p className="text-xs text-gray-600 mt-0.5 font-medium capitalize">{job?.company || empresa}</p>
+                                    <p className="text-base text-slate-500 font-semibold capitalize mb-2">{job?.company || empresa}</p>
                                   )}
-                                  <div className="flex items-center gap-3 mt-0.5 flex-wrap">
+                                  <div className="flex items-center gap-4 flex-wrap mb-3">
                                     {job?.location && (
-                                      <span className="text-xs text-gray-400 flex items-center gap-1">
-                                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <span className="text-sm text-gray-400 flex items-center gap-1.5 font-medium">
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
                                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
                                         </svg>
                                         {job.location}
                                       </span>
                                     )}
-                                    <span className="text-xs text-gray-400">{formatFecha(item.created_at)}</span>
+                                    <span className="text-sm text-gray-400 font-medium flex items-center gap-1.5">
+                                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                      </svg>
+                                      {formatFecha(item.created_at)}
+                                    </span>
                                   </div>
                                   {job?.link && (
                                     <a href={job.link} target="_blank" rel="noopener noreferrer"
-                                      className="mt-1 inline-flex items-center gap-1 text-xs text-primary hover:underline">
-                                      Ver vacante
-                                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      className="inline-flex items-center gap-1.5 text-sm font-bold text-primary hover:underline group">
+                                      Ver vacante original
+                                      <svg className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
                                       </svg>
                                     </a>
                                   )}
                                 </div>
-                                <div className="text-right shrink-0">
-                                  <span className={`text-2xl font-bold ${colorScore(item.score)}`}>{item.score}%</span>
-                                  <p className="text-xs text-gray-400">Compatibilidad</p>
+                                <div className="text-right shrink-0 p-3 bg-white border border-gray-100 rounded-2xl shadow-sm min-w-[100px]">
+                                  <span className={`text-4xl font-black ${colorScore(item.score)} tracking-tighter`}>{item.score}%</span>
+                                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1">Match Rate</p>
                                 </div>
                               </div>
                               {motivos.length > 0 && (
-                                <ul className="mt-3 space-y-1">
-                                  {motivos.slice(0, 3).map((m, i) => (
-                                    <li key={i} className="text-xs text-gray-500 flex gap-1.5">
-                                      <span className="shrink-0 mt-0.5">•</span>{m}
-                                    </li>
-                                  ))}
-                                </ul>
+                                <div className="mt-5 p-4 bg-gray-50/50 rounded-2xl border border-gray-100">
+                                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Highlights del Análisis</p>
+                                  <ul className="space-y-2">
+                                    {motivos.slice(0, 3).map((m, i) => (
+                                      <li key={i} className="text-sm text-slate-600 flex gap-2 font-medium">
+                                        <span className="text-primary mt-0.5 font-bold">»</span>{m}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
                               )}
-                              <div className="mt-3 flex items-center justify-between gap-2">
+                              <div className="mt-6 flex items-center justify-between gap-3">
                                 {item.score >= 70 && (
                                   <button onClick={() => navigate('/cv-vs-job')}
-                                    className="text-xs font-semibold text-primary border border-primary rounded-lg px-3 py-1.5 hover:bg-primary hover:text-white transition-colors">
-                                    Optimizar CV para esta vacante →
+                                    className="px-5 py-2.5 bg-primary text-white text-sm font-bold rounded-xl hover:bg-primary/90 transition-all shadow-lg shadow-primary/20">
+                                    Adaptar CV para esta vacante →
                                   </button>
                                 )}
                                 {esBajo && (
                                   <button onClick={() => eliminarCheck(item.id)}
-                                    className="text-xs text-red-400 hover:text-red-600 transition-colors ml-auto">
+                                    className="text-sm font-bold text-red-500 hover:text-red-700 transition-colors ml-auto flex items-center gap-1.5 opacity-50 hover:opacity-100">
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                                     Eliminar
                                   </button>
                                 )}
@@ -415,8 +476,8 @@ export default function MisCVs() {
           {/* Tab 3: CV vs Vacante */}
           {tab === 'match' && (
             cvsMatch.length === 0
-              ? <EmptyState mensaje="Aún no has generado CVs adaptados a vacantes." cta="CV vs Vacante →" ruta="/cv-vs-job" />
-              : <div className="space-y-4">
+              ? <EmptyState mensaje="Aún no tienes adaptaciones personalizadas." cta="Nuevo CV vs Vacante" ruta="/cv-vs-job" />
+              : <div className="space-y-6">
                   {[...cvsMatch].sort((a, b) => (b.metadata?.matchScore || 0) - (a.metadata?.matchScore || 0)).map(item => {
                     const jd = item.metadata?.jobData || {}
                     const saved = item.savedJob
@@ -428,32 +489,39 @@ export default function MisCVs() {
                     const vacVia      = saved?.via      || ''
                     const vacSnippet  = saved?.snippet  || ''
                     return (
-                      <div key={item.id} className="p-4 border border-gray-100 rounded-xl hover:border-gray-200 transition-colors">
-                        <div className="flex items-start justify-between gap-3">
+                      <div key={item.id} className="p-6 bg-white border border-gray-100 rounded-[2rem] hover:border-purple-200 hover:shadow-2xl hover:shadow-purple-900/5 transition-all duration-300">
+                        <div className="flex items-start justify-between gap-4">
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-purple-50 text-purple-600">CV vs Vacante</span>
+                            <div className="flex items-center gap-2 flex-wrap mb-2">
+                              <span className="text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg bg-purple-50 text-purple-600 border border-purple-100">Adaptación Elite</span>
                               {item.metadata?.language && (
-                                <span className="text-xs text-gray-400 uppercase">{item.metadata.language}</span>
+                                <span className="text-[10px] font-black text-gray-400 uppercase bg-gray-50 border border-gray-100 px-2 py-1 rounded-lg">
+                                  {item.metadata.language}
+                                </span>
                               )}
                             </div>
-                            <p className="text-sm font-medium text-gray-800 mt-1 truncate">{extraerNombre(item.contenido)}</p>
-                            <p className="text-xs text-gray-400 mt-0.5">{formatFecha(item.created_at)}</p>
+                            <p className="text-xl font-bold text-gray-800 truncate mb-1">{extraerNombre(item.contenido)}</p>
+                            <p className="text-sm text-gray-400 font-medium flex items-center gap-1.5 leading-none">
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                              {formatFecha(item.created_at)}
+                            </p>
                           </div>
                           {score != null && (
-                            <div className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full border shrink-0 ${badgeScore(score)}`}>
-                              <span className="text-lg font-bold">{score}%</span>
-                              <span className="font-normal">Compatibilidad</span>
+                            <div className={`flex flex-col items-center justify-center p-4 rounded-2xl border-2 shrink-0 min-w-[120px] ${badgeScore(score)}`}>
+                              <span className="text-3xl font-black tracking-tighter leading-none mb-1">{score}%</span>
+                              <span className="text-[9px] font-black uppercase tracking-widest opacity-70">Match score</span>
                             </div>
                           )}
                         </div>
 
                         {vacTitle && (
-                          <InfoVacante title={vacTitle} company={vacCompany} location={vacLocation}
-                            link={vacLink} via={vacVia} snippet={vacSnippet} />
+                          <div className="mt-6 border-t border-gray-50 pt-4">
+                             <InfoVacante title={vacTitle} company={vacCompany} location={vacLocation}
+                                link={vacLink} via={vacVia} snippet={vacSnippet} />
+                          </div>
                         )}
 
-                        <div className="mt-3 flex justify-end">
+                        <div className="mt-6 flex justify-end">
                           <BotonesDescarga id={item.id} descargando={descargando} onDescargar={handleDescargar}
                             soloSiOptimizado score={score} />
                         </div>

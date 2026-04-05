@@ -151,9 +151,9 @@ Responde EXACTAMENTE con estos delimitadores XML (sin texto fuera de ellos):
     let savedId = null
     const { data: savedCV, error: errorSave } = await supabase.from('cv_results').insert({
       user_id: userId,
-      tipo: 'original',
+      tipo: 'optimize',
       contenido: cvText,
-      metadata: { datos_originales: datos, cambios, recomendaciones, language }
+      metadata: { datos_originales: datos, cambios, recomendaciones, language, subtipo: 'desde_cero' }
     }).select('id').single()
 
     if (errorSave) {
@@ -161,9 +161,9 @@ Responde EXACTAMENTE con estos delimitadores XML (sin texto fuera de ellos):
       console.warn('cv_results insert con usuario falló, intentando con admin:', errorSave.message)
       const { data: adminSaved, error: adminErr } = await supabaseAdmin.from('cv_results').insert({
         user_id: userId,
-        tipo: 'original',
+        tipo: 'optimize',
         contenido: cvText,
-        metadata: { datos_originales: datos, cambios, recomendaciones, language }
+        metadata: { datos_originales: datos, cambios, recomendaciones, language, subtipo: 'desde_cero' }
       }).select('id').single()
       if (adminErr) {
         console.error('Error guardando cv_results (admin fallback):', adminErr.message)
