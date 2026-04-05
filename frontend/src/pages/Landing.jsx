@@ -364,7 +364,7 @@ export default function Landing() {
       {/* ─── Nav landing ────────────────────────────────────────────────────────── */}
       <nav className="sticky top-0 z-50 flex items-center justify-between px-6 h-24 bg-white/80 backdrop-blur-xl border-b border-gray-200/80 transition-all duration-300">
         <Link to="/" className="flex items-center">
-          <img src="/elvia-logo-transparent.png" alt="ELVIA" className="h-8 py-1 w-auto object-contain" />
+          <img src="/elvia-logo-transparent.png" alt="ELVIA" className="h-10 py-1 w-auto object-contain" />
         </Link>
 
         {/* Acciones nav */}
