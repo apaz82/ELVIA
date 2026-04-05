@@ -242,6 +242,23 @@ export default function CVDesdeCero() {
   useEffect(() => {
     const cargar = async () => {
       if (!user) return
+      const CACHE_KEY = `cv_draft_${user.id}`
+
+      // 1. Carga instantánea desde sessionStorage (evita spinner al regresar)
+      const cached = sessionStorage.getItem(CACHE_KEY)
+      if (cached) {
+        try {
+          const b = JSON.parse(cached)
+          if (b?.datos && Object.keys(b.datos).length > 0) {
+            setDatos(b.datos)
+            setPasoActual(b.paso_actual || 0)
+            setInicializando(false)
+            return
+          }
+        } catch { /* ignorar error de parseo */ }
+      }
+
+      // 2. Sin caché: fetch desde Supabase
       try {
         setInicializando(true)
         const { data: p } = await supabase.from('profiles').select('*').eq('id', user.id).maybeSingle()
@@ -251,6 +268,7 @@ export default function CVDesdeCero() {
         if (borrador?.datos && Object.keys(borrador.datos).length > 0) {
           setDatos(borrador.datos)
           setPasoActual(borrador.paso_actual || 0)
+          sessionStorage.setItem(CACHE_KEY, JSON.stringify({ datos: borrador.datos, paso_actual: borrador.paso_actual || 0 }))
         } else {
           setDatos({
             ...ESTADO_EMPTY,
@@ -288,7 +306,10 @@ export default function CVDesdeCero() {
         const { error: e } = await supabase.from('profiles').update({
           job_search_profile: { ...jsp, cv_borrador: { paso_actual: pasoActual, ultimo_guardado: new Date().toISOString(), datos } }
         }).eq('id', user.id)
-        if (!e) setUltimoGuardado(new Date())
+        if (!e) {
+          setUltimoGuardado(new Date())
+          sessionStorage.setItem(`cv_draft_${user.id}`, JSON.stringify({ datos, paso_actual: pasoActual }))
+        }
       } catch (e) { console.error('Error guardando borrador:', e) }
     }, 2000)
   }, [user, isPaidPlan, pasoActual, datos])
@@ -300,7 +321,9 @@ export default function CVDesdeCero() {
     return () => {
       if (!userRef.current) return
       if (saveTimer.current) clearTimeout(saveTimer.current)
-      // Fire-and-forget: guarda el estado actual antes de desmontar
+      // Guardar en sessionStorage de forma síncrona (instantáneo)
+      sessionStorage.setItem(`cv_draft_${userRef.current.id}`, JSON.stringify({ datos: datosRef.current, paso_actual: pasoRef.current }))
+      // Fire-and-forget a Supabase en background
       supabase.from('profiles').select('job_search_profile').eq('id', userRef.current.id).maybeSingle()
         .then(({ data: p }) => {
           if (!p) return

@@ -1677,12 +1677,26 @@ export default function ProyectoLaboral() {
 
   useEffect(function(){
     if (!user) return
+    const CACHE_KEY = `jsp_${user.id}`
+
+    // 1. Carga instantánea desde sessionStorage (evita spinner al regresar)
+    const cached = sessionStorage.getItem(CACHE_KEY)
+    if (cached) {
+      try {
+        setData(JSON.parse(cached))
+        setCargando(false)
+        return
+      } catch { /* ignorar error de parseo */ }
+    }
+
+    // 2. Sin caché: fetch desde Supabase
     setCargando(true)
     setErrorCarga(null)
     supabase.from('profiles').select('job_search_profile').eq('id',user.id).single()
       .then(function(res){
         if (res.data&&res.data.job_search_profile) {
           setData(res.data.job_search_profile)
+          sessionStorage.setItem(CACHE_KEY, JSON.stringify(res.data.job_search_profile))
         }
         setCargando(false)
       })
@@ -1697,6 +1711,8 @@ export default function ProyectoLaboral() {
     if (!user) return
     setSaving(true)
     setErrorCarga(null)
+    // Actualizar caché inmediatamente para que al regresar cargue instantáneo
+    sessionStorage.setItem(`jsp_${user.id}`, JSON.stringify(nd))
     supabase.from('profiles').update({job_search_profile:nd}).eq('id',user.id)
       .then(function(){
         setSaving(false)
