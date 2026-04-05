@@ -202,6 +202,7 @@ const RECURSOS_DEFAULT = [
   { id:'5', nombre:'Transporte a entrevistas',      descripcion:'Transporte público o privado + estacionamiento.',        costo:200, tengo:true  },
   { id:'6', nombre:'Ropa de presentación',          descripcion:'Outfit adecuado para entrevistas presenciales.',         costo:0,   tengo:true  },
   { id:'7', nombre:'Café / Coworking',              descripcion:'Si prefieres salir de casa para más productividad.',    costo:0,   tengo:false },
+  { id:'optima', nombre:'Suscripción Optima',      descripcion:'Tu plan activo de OPTIMA-CV.',                          costo:0,   tengo:false, obligatorio:true },
 ]
 
 const DOCS_LIST = [
