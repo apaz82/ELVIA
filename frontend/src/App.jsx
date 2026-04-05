@@ -90,6 +90,16 @@ function PrivateRoute({ children }) {
   return <OnboardingGuard>{children}</OnboardingGuard>
 }
 
+// Solo accesible si: autenticado + onboarding pendiente
+// Si no autenticado → /auth | Si ya completó onboarding → /dashboard
+function BienvenidaRoute({ children }) {
+  const { user, loading, onboardingPendiente, perfilCargado } = useAuth()
+  if (loading || !perfilCargado) return null
+  if (!user) return <Navigate to="/auth" replace />
+  if (!onboardingPendiente) return <Navigate to="/dashboard" replace />
+  return children
+}
+
 // Layout con sidebar para páginas de app
 function AppLayout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -152,14 +162,14 @@ export default function App() {
       <Route path="/auth"          element={<PublicRoute><Auth /></PublicRoute>} />
       <Route path="/privacidad"      element={<Privacidad />} />
       <Route path="/pricing"              element={<PublicRoute><Pricing /></PublicRoute>} />
-      <Route path="/bienvenida"     element={<BienvenidaOnboarding />} />
+      <Route path="/bienvenida"     element={<BienvenidaRoute><BienvenidaOnboarding /></BienvenidaRoute>} />
 
       {/* Admin / Especiales */}
       <Route path="/admin"         element={<Admin />} />
       <Route path="/expertos"        element={<Expertos />} />
       <Route path="/infografias"     element={<Infografias />} />
-      <Route path="/proyecto-laboral"     element={<ProyectoLaboral />} />
-      <Route path="/bienestar"             element={<Bienestar />} />
+      <Route path="/proyecto-laboral" element={<PrivateRoute><ProyectoLaboral /></PrivateRoute>} />
+      <Route path="/bienestar"        element={<PrivateRoute><Bienestar /></PrivateRoute>} />
 
       {/* Privadas (Protegidas por Auth + Onboarding) */}
       <Route path="/dashboard"     element={<PrivateRoute><Dashboard /></PrivateRoute>} />

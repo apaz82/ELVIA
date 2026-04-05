@@ -86,6 +86,31 @@ function LockedNavItem({ label, Icon, beta }) {
   )
 }
 
+// Item bloqueado por progreso insuficiente (post-onboarding, progreso < 100%)
+function FeatureLockedNavItem({ label, Icon, beta }) {
+  return (
+    <div className="relative group">
+      <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-on-surface-variant/40 cursor-not-allowed select-none">
+        <Icon size={19} weight="regular" className="opacity-40" />
+        <span className="flex-1 opacity-40">{label}</span>
+        {beta && (
+          <span className="text-[9px] font-bold uppercase tracking-widest bg-slate-200 text-slate-400 border border-slate-200 rounded-full px-1.5 py-0.5 opacity-40">
+            Beta
+          </span>
+        )}
+        <Lock size={12} weight="bold" className="text-slate-400/60 shrink-0" />
+      </div>
+      {/* Tooltip — desktop solamente */}
+      <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 z-50 hidden md:group-hover:block pointer-events-none">
+        <div className="bg-slate-800 text-white text-[11px] leading-snug font-medium rounded-lg px-3 py-2 w-52 shadow-lg">
+          Completa el Gerente de Búsqueda al 100% para desbloquear esta función
+          <div className="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-slate-800" />
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // Botón especial para Gerente de Búsqueda — siempre resaltado
 function GerenciaItem({ onClick, locked }) {
   return (
@@ -159,9 +184,11 @@ function BienestarItem({ onClick, locked }) {
 }
 
 export default function Sidebar({ open, onClose }) {
-  const { user, logout, perfil, isAdmin, onboardingPendiente } = useAuth()
+  const { user, logout, perfil, isAdmin, onboardingPendiente, featuresDesbloqueadas, jpLoaded } = useAuth()
   const navigate = useNavigate()
   const locked = !!onboardingPendiente
+  // featureLocked: post-onboarding pero progreso < 100% (usar jpLoaded para evitar flash)
+  const featureLocked = jpLoaded && !locked && !featuresDesbloqueadas
 
   const handleLogout = async () => {
     await logout()
@@ -203,7 +230,7 @@ export default function Sidebar({ open, onClose }) {
           </button>
         </div>
 
-        {/* Banner de progreso — solo cuando está bloqueado */}
+        {/* Banner onboarding */}
         {locked && (
           <div className="px-3 pt-3 pb-0">
             <div className="bg-gradient-to-r from-violet-50 to-teal-50 border border-violet-200 rounded-xl px-3 py-2.5">
@@ -217,11 +244,25 @@ export default function Sidebar({ open, onClose }) {
             </div>
           </div>
         )}
+        {/* Banner progreso insuficiente (post-onboarding) */}
+        {featureLocked && (
+          <div className="px-3 pt-3 pb-0">
+            <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl px-3 py-2.5">
+              <div className="flex items-center gap-2 mb-1.5">
+                <Target size={12} weight="bold" className="text-amber-500" />
+                <span className="text-[10px] font-black text-amber-700 uppercase tracking-widest">Desbloquea las herramientas</span>
+              </div>
+              <p className="text-[10px] text-amber-600/80 leading-snug">
+                Lleva el Gerente de Búsqueda al 100% para activar todas las funciones
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Nav scrollable */}
         <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-5">
 
-          {/* Inicio */}
+          {/* Inicio — Dashboard siempre accesible post-onboarding */}
           <div className="space-y-0.5">
             {locked
               ? <LockedNavItem label="Dashboard" Icon={House} />
@@ -244,7 +285,9 @@ export default function Sidebar({ open, onClose }) {
             <div className="space-y-0.5">
               {locked
                 ? HERRAMIENTAS.map(item => <LockedNavItem key={item.to} {...item} />)
-                : HERRAMIENTAS.map(item => <NavItem key={item.to} {...item} onClick={onClose} />)
+                : featureLocked
+                  ? HERRAMIENTAS.map(item => <FeatureLockedNavItem key={item.to} {...item} />)
+                  : HERRAMIENTAS.map(item => <NavItem key={item.to} {...item} onClick={onClose} />)
               }
             </div>
           </div>
@@ -258,7 +301,9 @@ export default function Sidebar({ open, onClose }) {
               <div className="space-y-0.5">
                 {locked
                   ? MI_CARRERA.map(item => <LockedNavItem key={item.to} {...item} />)
-                  : MI_CARRERA.map(item => <NavItem key={item.to} {...item} onClick={onClose} />)
+                  : featureLocked
+                    ? MI_CARRERA.map(item => <FeatureLockedNavItem key={item.to} {...item} />)
+                    : MI_CARRERA.map(item => <NavItem key={item.to} {...item} onClick={onClose} />)
                 }
               </div>
             </div>
@@ -272,11 +317,13 @@ export default function Sidebar({ open, onClose }) {
             <div className="space-y-0.5">
               {locked
                 ? <LockedNavItem label="Biblioteca" Icon={Books} />
-                : RECURSOS.map(item => <NavItem key={item.to} {...item} onClick={onClose} />)
+                : featureLocked
+                  ? <FeatureLockedNavItem label="Biblioteca" Icon={Books} />
+                  : RECURSOS.map(item => <NavItem key={item.to} {...item} onClick={onClose} />)
               }
             </div>
             <div className="my-2 mx-3 h-px bg-rose-100" />
-            <BienestarItem onClick={onClose} locked={locked} />
+            <BienestarItem onClick={onClose} locked={locked || featureLocked} />
           </div>
 
           {/* Hablemos */}
@@ -287,7 +334,9 @@ export default function Sidebar({ open, onClose }) {
             <div className="space-y-0.5">
               {locked
                 ? <LockedNavItem label="Mentor Experto" Icon={UsersThree} beta />
-                : HABLEMOS.map(item => <NavItem key={item.to} {...item} onClick={onClose} />)
+                : featureLocked
+                  ? <FeatureLockedNavItem label="Mentor Experto" Icon={UsersThree} beta />
+                  : HABLEMOS.map(item => <NavItem key={item.to} {...item} onClick={onClose} />)
               }
             </div>
           </div>

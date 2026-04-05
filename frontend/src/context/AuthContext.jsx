@@ -1,6 +1,7 @@
 // Estado global de autenticación con control de plan freemium
-import { createContext, useContext, useEffect, useState, useMemo } from 'react'
+import { createContext, useContext, useEffect, useState, useMemo, useCallback } from 'react'
 import { supabase } from '../services/authService'
+import { calcularProgreso } from '../utils/progresoLaboral'
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:3001'
 
@@ -36,6 +37,8 @@ export const AuthProvider = ({ children }) => {
   const [perfilCargado, setPerfilCargado] = useState(false)
   const [perfil, setPerfil]               = useState(null)
   const [isRecovering, setIsRecovering]   = useState(false)
+  const [jpData, setJpData]               = useState(null)
+  const [jpLoaded, setJpLoaded]           = useState(false)
 
   const fetchPerfil = async (userId, email) => {
     const { data } = await supabase
@@ -74,21 +77,31 @@ export const AuthProvider = ({ children }) => {
     setPerfilCargado(true)
   }
 
+  const fetchJpData = async (userId) => {
+    const { data } = await supabase
+      .from('profiles')
+      .select('job_search_profile')
+      .eq('id', userId)
+      .maybeSingle()
+    setJpData(data?.job_search_profile || null)
+    setJpLoaded(true)
+  }
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session)
       setUser(session?.user ?? null)
       if (session?.user) {
         fetchPerfil(session.user.id, session.user.email)
+        fetchJpData(session.user.id)
       } else {
         setPerfilCargado(true)
+        setJpLoaded(true)
       }
       setLoading(false)
     })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      console.log('Auth event:', _event)
-      
       if (_event === 'PASSWORD_RECOVERY') {
         setIsRecovering(true)
       }
@@ -98,6 +111,7 @@ export const AuthProvider = ({ children }) => {
       if (session?.user) {
         setPerfilCargado(false)
         fetchPerfil(session.user.id, session.user.email)
+        fetchJpData(session.user.id)
         // Canjear código pendiente si el evento es un login nuevo
         if (_event === 'SIGNED_IN' && session.access_token) {
           redimirCodigoPendiente(
@@ -107,6 +121,7 @@ export const AuthProvider = ({ children }) => {
         }
       } else {
         setPerfil(null); setPerfilCargado(true)
+        setJpData(null); setJpLoaded(true)
       }
     })
 
@@ -198,6 +213,19 @@ export const AuthProvider = ({ children }) => {
 
   const onboardingPendiente = !loading && perfilCargado && !!user && (!perfil || !perfil.nombre1)
 
+  // Progreso del Gerente de Búsqueda (0-100) — disponible globalmente
+  const progresoLaboral = useMemo(() => {
+    if (!jpLoaded || !perfil) return 0
+    return calcularProgreso(jpData, perfil)
+  }, [jpData, perfil, jpLoaded])
+
+  const featuresDesbloqueadas = progresoLaboral >= 100
+
+  const refreshJpData = useCallback(async () => {
+    if (!user) return
+    await fetchJpData(user.id)
+  }, [user])
+
   // Roles y multi-tenancy
   const role = perfil?.role || 'user'
   const companyId = perfil?.company_id || null
@@ -211,8 +239,10 @@ export const AuthProvider = ({ children }) => {
       perfil,
       refreshPerfil: (uid) => fetchPerfil(uid || user?.id),
       refreshUsage:  ()    => user && fetchPerfil(user.id),
-      onboardingPendiente,
+      onboardingPendiente, perfilCargado,
       isRecovering, setIsRecovering,
+      // Progreso Gerente de Búsqueda
+      progresoLaboral, featuresDesbloqueadas, jpLoaded, refreshJpData,
       // Roles y multi-tenancy
       role, companyId, isAdmin, isCompanyAdmin,
       // Plan info — usa directamente estos valores en los componentes
