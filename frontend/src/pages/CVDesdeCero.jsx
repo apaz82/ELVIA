@@ -1,5 +1,5 @@
 // Wizard: Crear CV desde cero
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../services/authService'
@@ -209,6 +209,62 @@ function PanelAnalisis({ analisis, onClose }) {
   )
 }
 
+// ─── Tips contextuales por sección ────────────────────────────────────────────
+function generarTipsPorPaso(d) {
+  const tips = { datos: [], resumen: [], experiencia: [], educacion: [], habilidades: [], idiomas: [] }
+
+  // Datos personales
+  if (!d.nombre || !d.apellido) tips.datos.push('Agrega tu nombre y apellido completo')
+  if (!d.cargo_objetivo) tips.datos.push('Define un título profesional claro (ej: Operations Manager | Supply Chain)')
+  if (!d.email) tips.datos.push('Agrega un correo profesional (nombre.apellido@...)')
+  if (!d.telefono) tips.datos.push('Incluye tu teléfono con código internacional (+52, +57, etc.)')
+  if (!d.ciudad || !d.pais) tips.datos.push('Especifica ciudad y país — mejora el match con vacantes locales')
+
+  // Resumen
+  const res = d.resumen || ''
+  if (res.length < 100) tips.resumen.push('Escribe un resumen de 200–500 caracteres con años de experiencia + sector + logro clave')
+  else if (res.length < 200) tips.resumen.push('Expande tu resumen: incluye sector, cargo objetivo y al menos un logro con número')
+  if (res.length > 30 && !/\d/.test(res)) tips.resumen.push('Agrega un dato cuantificable (%, $, años, personas a cargo, volumen de negocio)')
+
+  // Experiencia
+  const exps = (d.experiencias || []).filter(e => e.empresa || e.cargo || e.descripcion)
+  if (exps.length === 0) {
+    tips.experiencia.push('Agrega al menos una experiencia laboral con cargo y empresa')
+  } else {
+    const sinDesc = exps.filter(e => !e.descripcion || e.descripcion.length < 60)
+    if (sinDesc.length > 0) tips.experiencia.push(`${sinDesc.length} experiencia(s) sin descripción. Usa STAR: Acción + Métrica + Resultado (ej: "Lideré migración que redujo costos 30%")`)
+    const sinMetrica = exps.filter(e => e.descripcion && !/\d/.test(e.descripcion))
+    if (sinMetrica.length > 0) tips.experiencia.push('Agrega métricas: % de crecimiento, equipo a cargo, presupuesto gestionado, # clientes')
+    const sinVerbo = exps.filter(e => e.descripcion && !VERBOS_ACCION.some(v => e.descripcion.toLowerCase().includes(v)))
+    if (sinVerbo.length > 0) tips.experiencia.push('Usa verbos de impacto al inicio: "Implementé", "Lideré", "Incrementé", "Reduje", "Gestioné"')
+    const sinFechas = exps.filter(e => !e.fecha_inicio)
+    if (sinFechas.length > 0) tips.experiencia.push('Completa las fechas de inicio y fin para mostrar trayectoria clara')
+  }
+
+  // Educación
+  const edu = (d.educacion || []).filter(e => e.institucion || e.titulo)
+  if (edu.length === 0) tips.educacion.push('Agrega tu formación académica (institución, título, año)')
+  else {
+    const sinAnio = edu.filter(e => !e.anio)
+    if (sinAnio.length > 0) tips.educacion.push('Agrega el año de graduación en tus estudios para validar antigüedad')
+  }
+
+  // Habilidades
+  const numHabs = (d.habilidades || []).length
+  if (numHabs === 0) tips.habilidades.push('Agrega habilidades clave de tu industria (mínimo 5)')
+  else if (numHabs < 5) tips.habilidades.push(`Tienes ${numHabs} habilidad(es). Agrega más hasta llegar a 8–12 para mejor match con vacantes`)
+
+  // Idiomas
+  if (!d.idiomas || d.idiomas.length === 0) {
+    tips.idiomas.push('Agrega al menos tu idioma nativo y el nivel CEFR')
+    tips.idiomas.push('El inglés (aunque sea B1) abre oportunidades en empresas multinacionales')
+  } else if (!d.idiomas.some(i => i.idioma === 'Inglés')) {
+    tips.idiomas.push('Si tienes algo de inglés, agrégalo — incluso nivel B1 puede ser diferenciador')
+  }
+
+  return tips
+}
+
 // ─── Componente principal ─────────────────────────────────────────────────────
 export default function CVDesdeCero() {
   const { user, isPaidPlan, perfil } = useAuth()
@@ -227,6 +283,9 @@ export default function CVDesdeCero() {
   const [cvPending,     setCvPending]     = useState(null)   // datos extraídos en espera de confirmar
   const [cvFileName,    setCvFileName]    = useState('')
   const [nuevaHab,      setNuevaHab]      = useState('')
+
+  // Tips contextuales calculados en tiempo real
+  const tipsPorPaso = useMemo(() => generarTipsPorPaso(datos), [datos])
 
   const saveTimer = useRef(null)
   const fileRef   = useRef(null)
@@ -471,6 +530,10 @@ export default function CVDesdeCero() {
       if (updErr) throw new Error('Error al actualizar perfil')
 
       setCvGenerada(null)
+      // Limpiar caches de sessionStorage para forzar re-fetch en ProyectoLaboral
+      sessionStorage.removeItem(`jsp_${user.id}`)
+      sessionStorage.removeItem(`cv_draft_${user.id}`)
+      sessionStorage.removeItem(`perfil_lp_${user.id}`)
       setTimeout(() => navigate('/proyecto-laboral?exito=cv_creada'), 500)
     } catch (err) {
       setError(err.message)
@@ -682,6 +745,12 @@ export default function CVDesdeCero() {
 
                 <input type="text" placeholder="Cargo objetivo (ej: Operations Manager)" value={datos.cargo_objetivo} onChange={e => upDatos('cargo_objetivo', e.target.value)}
                   className="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400/50" />
+                {tipsPorPaso.datos.length > 0 && (
+                  <div className="mt-1 p-3.5 bg-amber-50 border border-amber-200 rounded-xl">
+                    <p className="text-xs font-bold text-amber-800 mb-1.5">💡 Tips para mejorar esta sección:</p>
+                    <ul className="space-y-1">{tipsPorPaso.datos.map((t,i)=><li key={i} className="text-xs text-amber-700 flex gap-1.5"><span className="shrink-0">→</span><span>{t}</span></li>)}</ul>
+                  </div>
+                )}
               </div>
             )}
 
@@ -696,6 +765,12 @@ export default function CVDesdeCero() {
                   onChange={e => upDatos('resumen', e.target.value)} rows={6} maxLength={800}
                   className="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400/50 resize-none" />
                 <div className={`text-xs text-right -mt-1 ${datos.resumen.length >= 750 ? 'text-amber-500 font-semibold' : 'text-slate-400'}`}>{datos.resumen.length}/800 caracteres</div>
+                {tipsPorPaso.resumen.length > 0 && (
+                  <div className="mt-1 p-3.5 bg-amber-50 border border-amber-200 rounded-xl">
+                    <p className="text-xs font-bold text-amber-800 mb-1.5">💡 Tips para mejorar esta sección:</p>
+                    <ul className="space-y-1">{tipsPorPaso.resumen.map((t,i)=><li key={i} className="text-xs text-amber-700 flex gap-1.5"><span className="shrink-0">→</span><span>{t}</span></li>)}</ul>
+                  </div>
+                )}
               </div>
             )}
 
@@ -729,6 +804,12 @@ export default function CVDesdeCero() {
                 <button onClick={addExp} className="w-full border-2 border-dashed border-blue-300 text-blue-600 font-bold py-2.5 rounded-xl hover:bg-blue-50 flex items-center justify-center gap-2 text-sm cursor-pointer">
                   <Plus size={16} /> Agregar experiencia
                 </button>
+                {tipsPorPaso.experiencia.length > 0 && (
+                  <div className="mt-2 p-3.5 bg-amber-50 border border-amber-200 rounded-xl">
+                    <p className="text-xs font-bold text-amber-800 mb-1.5">💡 Tips para mejorar esta sección:</p>
+                    <ul className="space-y-1">{tipsPorPaso.experiencia.map((t,i)=><li key={i} className="text-xs text-amber-700 flex gap-1.5"><span className="shrink-0">→</span><span>{t}</span></li>)}</ul>
+                  </div>
+                )}
               </div>
             )}
 
@@ -756,6 +837,12 @@ export default function CVDesdeCero() {
                 <button onClick={addEdu} className="w-full border-2 border-dashed border-blue-300 text-blue-600 font-bold py-2.5 rounded-xl hover:bg-blue-50 flex items-center justify-center gap-2 text-sm cursor-pointer">
                   <Plus size={16} /> Agregar educación
                 </button>
+                {tipsPorPaso.educacion.length > 0 && (
+                  <div className="mt-2 p-3.5 bg-amber-50 border border-amber-200 rounded-xl">
+                    <p className="text-xs font-bold text-amber-800 mb-1.5">💡 Tips para mejorar esta sección:</p>
+                    <ul className="space-y-1">{tipsPorPaso.educacion.map((t,i)=><li key={i} className="text-xs text-amber-700 flex gap-1.5"><span className="shrink-0">→</span><span>{t}</span></li>)}</ul>
+                  </div>
+                )}
               </div>
             )}
 
@@ -797,6 +884,12 @@ export default function CVDesdeCero() {
                     <Plus size={16} />
                   </button>
                 </div>
+                {tipsPorPaso.habilidades.length > 0 && (
+                  <div className="mt-2 p-3.5 bg-amber-50 border border-amber-200 rounded-xl">
+                    <p className="text-xs font-bold text-amber-800 mb-1.5">💡 Tips para mejorar esta sección:</p>
+                    <ul className="space-y-1">{tipsPorPaso.habilidades.map((t,i)=><li key={i} className="text-xs text-amber-700 flex gap-1.5"><span className="shrink-0">→</span><span>{t}</span></li>)}</ul>
+                  </div>
+                )}
               </div>
             )}
 
@@ -820,6 +913,12 @@ export default function CVDesdeCero() {
                     </div>
                   ))}
                 </div>
+                {tipsPorPaso.idiomas.length > 0 && (
+                  <div className="mt-2 p-3.5 bg-amber-50 border border-amber-200 rounded-xl">
+                    <p className="text-xs font-bold text-amber-800 mb-1.5">💡 Tips para mejorar esta sección:</p>
+                    <ul className="space-y-1">{tipsPorPaso.idiomas.map((t,i)=><li key={i} className="text-xs text-amber-700 flex gap-1.5"><span className="shrink-0">→</span><span>{t}</span></li>)}</ul>
+                  </div>
+                )}
               </div>
             )}
 

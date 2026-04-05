@@ -1,7 +1,7 @@
 // ProyectoLaboral.jsx  — Gerente de Proyecto de tu Búsqueda Laboral
 // Design: Plus Jakarta Sans · SaaS Professional · Light mode
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../services/authService'
 import { extractarPerfilCV } from '../services/cvService'
@@ -15,7 +15,7 @@ import {
   CheckCircle, ChartLine, Briefcase,
   User, Lock, Sparkle, MicrophoneStage, Books, Kanban,
   BookmarkSimple, Folders, UsersThree, Globe,
-  UploadSimple, CheckFat, WarningCircle
+  UploadSimple, CheckFat, WarningCircle, X
 } from '@phosphor-icons/react'
 
 /* ─── Design tokens (Plus Jakarta Sans via Google Fonts) ─── */
@@ -267,7 +267,7 @@ function calcularPorPilar(data, perfil) {
 
 // ─── Pilar 0: Mi Perfil Profesional ──────────────────────────────────────────
 
-function PilarMiPerfil({ perfil, extraData, onChange, onSavePerfil, saving, isPaidPlan, data }) {
+function PilarMiPerfil({ perfil, extraData, onChange, onSavePerfil, saving, isPaidPlan, data, userId }) {
   const d = extraData || {}
   const up = (key, val) => onChange({ ...d, [key]: val })
   const [subTab, setSubTab] = useState('datos')
@@ -297,9 +297,24 @@ function PilarMiPerfil({ perfil, extraData, onChange, onSavePerfil, saving, isPa
     bono_monto:'',variable_monto:'',prestaciones_otros:'',
   })
 
-  // Carga inicial desde perfil — marca lpLoaded para no disparar auto-save
+  // Carga inicial desde perfil — prefiere sessionStorage para carga instantánea al cambiar pilar
   useEffect(() => {
     if (!perfil) return
+    const CACHE_KEY = userId ? `perfil_lp_${userId}` : null
+
+    // Intentar restaurar desde caché (evita ver datos viejos al cambiar de pilar y volver)
+    if (CACHE_KEY) {
+      const cached = sessionStorage.getItem(CACHE_KEY)
+      if (cached) {
+        try {
+          lpLoaded.current = false
+          setLP(JSON.parse(cached))
+          setTimeout(() => { lpLoaded.current = true }, 100)
+          return
+        } catch { /* ignorar */ }
+      }
+    }
+
     lpLoaded.current = false
     setLP({
       nombre1:perfil.nombre1||'',nombre2:perfil.nombre2||'',
@@ -319,9 +334,8 @@ function PilarMiPerfil({ perfil, extraData, onChange, onSavePerfil, saving, isPa
       bono_monto:perfil.bono_monto||'',variable_monto:perfil.variable_monto||'',
       prestaciones_otros:perfil.prestaciones_otros||'',
     })
-    // Marcar como cargado en el siguiente tick para no disparar el auto-save
     setTimeout(() => { lpLoaded.current = true }, 100)
-  },[perfil])
+  },[perfil, userId])
 
   // Auto-save con debounce de 1.5s — solo después de que el usuario haya editado
   useEffect(() => {
@@ -331,12 +345,16 @@ function PilarMiPerfil({ perfil, extraData, onChange, onSavePerfil, saving, isPa
     // No cancelar el timer en el cleanup del debounce — solo al montar/desmontar
   }, [lp]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Flush inmediato al desmontar — guarda sin esperar el debounce
+  // Flush inmediato al desmontar — guarda en sessionStorage (síncrono) + Supabase (async)
   useEffect(() => {
     return () => {
       if (autoSaveTimer.current) {
         clearTimeout(autoSaveTimer.current)
-        if (lpLoaded.current) onSavePerfilRef.current(lpRef.current)
+        if (lpLoaded.current) {
+          // Guardar en sessionStorage de forma síncrona para carga instantánea al volver
+          if (userId) sessionStorage.setItem(`perfil_lp_${userId}`, JSON.stringify(lpRef.current))
+          onSavePerfilRef.current(lpRef.current)
+        }
       }
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
@@ -1665,6 +1683,7 @@ function PilarBienestar() {
 export default function ProyectoLaboral() {
   const { user, perfil, refreshPerfil, onboardingPendiente, isPaidPlan, refreshJpData } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
   const [pilarId,setPilarId] = useState('perfil')
   const [data,setData]       = useState({})
   const [saving,setSaving]   = useState(false)
@@ -1672,8 +1691,10 @@ export default function ProyectoLaboral() {
   const [justSaved, setJustSaved] = useState(null)  // pilar que acaba de guardarse
   const [cargando,setCargando] = useState(true)  // estado de carga inicial
   const [errorCarga, setErrorCarga] = useState(null)  // error al cargar datos
+  const [bannerCvCreada, setBannerCvCreada] = useState(false)  // banner tras guardar CV
   const pilarCardRef         = useRef(null)
   const saveTimeoutRef       = useRef(null)
+  const cvAutoPopuladoRef    = useRef(false)  // evita doble ejecución
 
   useEffect(function(){
     if (!user) return
@@ -1707,6 +1728,38 @@ export default function ProyectoLaboral() {
       })
   },[user])
 
+  // Detectar ?exito=cv_creada: auto-poblar campos vacíos del perfil con datos de la CV
+  useEffect(function(){
+    if (cargando || !user || !perfil || cvAutoPopuladoRef.current) return
+    const params = new URLSearchParams(location.search)
+    if (params.get('exito') !== 'cv_creada') return
+
+    cvAutoPopuladoRef.current = true
+    setBannerCvCreada(true)
+    navigate('/proyecto-laboral', { replace: true })
+
+    const cvDatos = data?.cv_datos_originales?.datos
+    if (!cvDatos) return
+
+    // Solo llenar campos que están vacíos en el perfil actual
+    const updates = {}
+    if (!perfil.nombre1   && cvDatos.nombre)    updates.nombre1   = cvDatos.nombre.trim()
+    if (!perfil.apellido1 && cvDatos.apellido)  updates.apellido1 = cvDatos.apellido.trim()
+    if (!perfil.nombre2   && cvDatos.nombre2)   updates.nombre2   = cvDatos.nombre2.trim()
+    if (!perfil.apellido2 && cvDatos.apellido2) updates.apellido2 = cvDatos.apellido2.trim()
+    if (!perfil.telefono1 && cvDatos.telefono)  updates.telefono1 = cvDatos.telefono.trim()
+    if (!perfil.ciudad    && cvDatos.ciudad)    updates.ciudad    = cvDatos.ciudad.trim()
+    if (!perfil.pais      && cvDatos.pais)      updates.pais      = cvDatos.pais.trim()
+    if (!perfil.indicativo1 && cvDatos.indicativo) updates.indicativo1 = cvDatos.indicativo
+
+    if (Object.keys(updates).length > 0) {
+      if (user?.id) sessionStorage.removeItem(`perfil_lp_${user.id}`)
+      supabase.from('profiles').update(updates).eq('id', user.id).then(function(){
+        refreshPerfil()
+      })
+    }
+  },[cargando, location.search, data, perfil, user, navigate, refreshPerfil])
+
   const saveData = useCallback(function(nd){
     if (!user) return
     setSaving(true)
@@ -1731,6 +1784,8 @@ export default function ProyectoLaboral() {
   // Guarda datos de Mi Perfil directamente en columnas de profiles
   const savePerfil = useCallback(async function(lp){
     if (!user) return
+    // Actualizar caché inmediatamente para carga instantánea al volver al pilar
+    sessionStorage.setItem(`perfil_lp_${user.id}`, JSON.stringify(lp))
     setSaving(true)
     const nombreCompleto = [lp.nombre1,lp.nombre2,lp.apellido1,lp.apellido2].map(s=>(s||'').trim()).filter(Boolean).join(' ')
     const salario_esperado = lp.salario_monto ? `${lp.salario_monto} ${lp.moneda||'MXN'}` : ''
@@ -1820,6 +1875,19 @@ export default function ProyectoLaboral() {
     <div className="min-h-screen bg-slate-50 pb-20" style={{fontFamily:"'Plus Jakarta Sans',sans-serif"}}>
 
       {/* ══════════ BANNERS DE ESTADO ══════════ */}
+      {bannerCvCreada && (
+        <div className="bg-emerald-50 border-b border-emerald-200">
+          <div className="max-w-5xl mx-auto px-6 md:px-10 py-3 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 text-sm text-emerald-800">
+              <CheckCircle size={18} weight="fill" className="text-emerald-600 shrink-0" />
+              <span><strong>¡Tu CV fue guardada!</strong> Hemos pre-llenado tu perfil con la información detectada. Revisa y completa los campos en Mi Perfil.</span>
+            </div>
+            <button onClick={()=>setBannerCvCreada(false)} className="text-emerald-600 hover:text-emerald-800 shrink-0 cursor-pointer">
+              <X size={18} weight="bold" />
+            </button>
+          </div>
+        </div>
+      )}
       {errorCarga && (
         <div className="bg-red-50 border-b border-red-200">
           <div className="max-w-5xl mx-auto px-6 md:px-10 py-3">
@@ -1951,7 +2019,7 @@ export default function ProyectoLaboral() {
             </div>
           </div>
           <div className="p-6 md:p-8">
-            {pilarId==='perfil'        &&<PilarMiPerfil perfil={perfil} extraData={data.perfil} onChange={function(v){updatePilar('perfil',v)}} onSavePerfil={savePerfil} saving={saving} isPaidPlan={isPaidPlan} data={data}/>}
+            {pilarId==='perfil'        &&<PilarMiPerfil perfil={perfil} extraData={data.perfil} onChange={function(v){updatePilar('perfil',v)}} onSavePerfil={savePerfil} saving={saving} isPaidPlan={isPaidPlan} data={data} userId={user?.id}/>}
             {pilarId==='autoconocimiento'&&<PilarAutoconocimiento data={data.autoconocimiento} onChange={function(v){updatePilar('autoconocimiento',v)}} onSave={function(){handlePilarSave('autoconocimiento')}} justSaved={justSaved==='autoconocimiento'}/>}
             {pilarId==='recursos'      &&<PilarRecursos         data={data.recursos}         onChange={function(v){updatePilar('recursos',v)}} onSave={function(){handlePilarSave('recursos')}} justSaved={justSaved==='recursos'} pais={perfil?.pais_prestaciones || perfil?.pais || ''}/>}
             {pilarId==='semana'        &&<PilarSemana           data={data.semana}           onChange={function(v){updatePilar('semana',v)}} onSave={function(){handlePilarSave('semana')}} justSaved={justSaved==='semana'}/>}
