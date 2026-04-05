@@ -122,7 +122,7 @@ const htmlBienvenida = (email) => `
         <!-- Header -->
         <tr>
           <td style="background:linear-gradient(135deg,#0A3D2A 0%,#0d5c3e 100%);padding:36px 40px 32px;text-align:center;">
-            <img src="https://www.elvia.lat/optima_logo_v3_clean_1.png" alt="OPTIMA-CV" height="52" style="height:52px;width:auto;display:block;margin:0 auto 12px;" />
+            <img src="https://www.elvia.lat/elvia-logo-transparent.png" alt="ELVIA" height="52" style="height:52px;width:auto;display:block;margin:0 auto 12px;" />
             <p style="margin:0;color:rgba(255,255,255,0.6);font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;">Tu carrera, optimizada</p>
           </td>
         </tr>
@@ -217,7 +217,7 @@ const htmlRecuperacion = (email, resetUrl) => `
         <!-- Header -->
         <tr>
           <td style="background:linear-gradient(135deg,#1e293b 0%,#334155 100%);padding:36px 40px 32px;text-align:center;">
-            <img src="https://www.elvia.lat/optima_logo_v3_clean_1.png" alt="OPTIMA-CV" height="52" style="height:52px;width:auto;display:block;margin:0 auto 12px;filter:brightness(0) invert(1);" />
+            <img src="https://www.elvia.lat/elvia-logo-transparent.png" alt="ELVIA" height="52" style="height:52px;width:auto;display:block;margin:0 auto 12px;" />
             <p style="margin:0;color:rgba(255,255,255,0.5);font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;">Seguridad de cuenta</p>
           </td>
         </tr>
@@ -397,7 +397,7 @@ const htmlInvitacion = (email, nombre, companyName, inviteUrl, expiresAt) => {
         <!-- Header -->
         <tr>
           <td style="background:linear-gradient(135deg,#1e40af 0%,#1e3a8a 100%);padding:36px 40px 32px;text-align:center;">
-            <img src="https://www.elvia.lat/optima_logo_v3_clean_1.png" alt="OPTIMA-CV" height="52" style="height:52px;width:auto;display:block;margin:0 auto 12px;filter:brightness(0) invert(1);" />
+            <img src="https://www.elvia.lat/elvia-logo-transparent.png" alt="ELVIA" height="52" style="height:52px;width:auto;display:block;margin:0 auto 12px;" />
             <p style="margin:0;color:rgba(255,255,255,0.6);font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;">Invitación B2B</p>
           </td>
         </tr>
