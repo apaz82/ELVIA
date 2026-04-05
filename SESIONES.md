@@ -6,6 +6,52 @@ Instrucción: leer solo cuando se necesite recap del estado actual.
 
 ---
 
+## Sesión 2026-04-04 · Claude (Sesión 2 — continuación)
+
+### Qué se hizo
+
+**Flujo de Onboarding + Feature Locking (ProyectoLaboral)**
+
+- `frontend/src/utils/progresoLaboral.js` ← NUEVO — fuente única de verdad
+  - `RECURSOS_DEFAULT` (8 recursos todos OFF + Suscripción Optima obligatoria)
+  - `calcPerfilPts(perfil, jpData)` y `calcularProgreso(data, perfil)` (puro, sin React)
+- `AuthContext.jsx` — agrega `jpData`, `jpLoaded`, `progresoLaboral`, `featuresDesbloqueadas`, `refreshJpData`, `perfilCargado`
+- `App.jsx` — nuevos guards: `BienvenidaRoute` (solo si autenticado + onboarding pendiente), `/proyecto-laboral` y `/bienestar` movidos a `PrivateRoute`
+- `Sidebar.jsx` — dos niveles de bloqueo: `LockedNavItem` (onboarding) + `FeatureLockedNavItem` (progreso < 100% con tooltip). Dashboard + Gerente de Búsqueda siempre accesibles
+- `ProyectoLaboral.jsx` — Tab Recursos completamente refactorizado:
+  - Toggle OFF deshabilita el input de costo
+  - Auto-reset costo a $0 al desactivar
+  - Suscripción Optima como recurso obligatorio (sin botón eliminar)
+  - Conversión de moneda según país del perfil
+  - 100% solo si: Optima activa + ≥3 recursos más activos
+
+**CVDesdeCero — 6 fixes (commit 6cc5791)**
+
+1. **Mismatch button**: botón ya muestra "Cargar otro CV" que abre el explorador (código correcto, era el commit pendiente)
+2. **Auto-save todos los usuarios**: eliminado guard `!isPaidPlan`; borrador se guarda en `job_search_profile.cv_borrador` con `paso_actual`
+3. **Algoritmo analizarCalidad** reescrito con estándares Harvard/LATAM 2026 (calificacioncv.md):
+   - 6 secciones: Encabezado (18), Resumen (20), Experiencia STAR (30), Educación (15), Habilidades (10), Idiomas (7) = 100pts
+   - Detecta verbos de acción STAR y métricas numéricas en las descripciones
+   - PanelAnalisis: texto agrandado a `text-sm` (antes `text-xs`)
+4. **Resumen**: límite subido a 800 caracteres (`maxLength={800}`), contador se pone ámbar ≥750
+5. **Español por defecto C1**: `togIdm` usa `nivel: id === 'Español' ? 'C1' : 'B2'`
+6. **Fix error 500 `/api/cv/generar`**:
+   - La CV se devuelve aunque falle el insert en `cv_results`
+   - Fallback: intenta con `supabaseAdmin` si RLS bloquea al usuario autenticado
+   - Contadores de uso también migrados a `supabaseAdmin` para evitar RLS
+
+### Estado del repo
+- Branch: `main`
+- Commits esta sesión: onboarding/feature-locking (sesión 1) + `6cc5791` (CVDesdeCero)
+- `CVDesdeCero.jsx` ahora commiteado por primera vez (antes `??` untracked → deploy tenía versión vieja)
+
+### Pendientes
+- Probar flujo completo de nuevo usuario en producción
+- Precio Suscripción Optima hardcodeado a `'free'` (0) — conectar al plan real del usuario
+- Pendientes de seguridad: HIGH-2 (crypto), HIGH-3 (rate limit), MED-4 (error sanitize)
+
+---
+
 ## Sesión 2026-04-04 · Claude (Antigravity)
 
 ### Contexto de partida
