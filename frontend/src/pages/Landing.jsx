@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext'
 import {
   FileMagnifyingGlass, MagnifyingGlass, Briefcase, Kanban,
   ArrowRight, ArrowDown, CheckCircle, ChartBar, Coins, SignOut, Warning,
-  ShieldCheck, Lightning, Target, Check,
+  ShieldCheck, Lightning, Target, Check, Star,
   Folders, BookmarkSimple, Books, LinkedinLogo,
   MicrophoneStage, UsersThree, TrendUp, RocketLaunch
 } from '@phosphor-icons/react'
