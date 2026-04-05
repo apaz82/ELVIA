@@ -230,6 +230,13 @@ export default function CVDesdeCero() {
 
   const saveTimer = useRef(null)
   const fileRef   = useRef(null)
+  // Refs para flush en unmount (evitan closure stale)
+  const datosRef    = useRef(datos)
+  const pasoRef     = useRef(pasoActual)
+  const userRef     = useRef(user)
+  useEffect(() => { datosRef.current = datos },     [datos])
+  useEffect(() => { pasoRef.current  = pasoActual }, [pasoActual])
+  useEffect(() => { userRef.current  = user },       [user])
 
   // ── Carga inicial ───────────────────────────────────────────────────────────
   useEffect(() => {
@@ -287,6 +294,23 @@ export default function CVDesdeCero() {
   }, [user, isPaidPlan, pasoActual, datos])
 
   useEffect(() => { guardarBorrador() }, [pasoActual, datos])
+
+  // Flush inmediato al desmontar — evita perder cambios al navegar a otra página
+  useEffect(() => {
+    return () => {
+      if (!userRef.current) return
+      if (saveTimer.current) clearTimeout(saveTimer.current)
+      // Fire-and-forget: guarda el estado actual antes de desmontar
+      supabase.from('profiles').select('job_search_profile').eq('id', userRef.current.id).maybeSingle()
+        .then(({ data: p }) => {
+          if (!p) return
+          const jsp = p.job_search_profile || {}
+          supabase.from('profiles').update({
+            job_search_profile: { ...jsp, cv_borrador: { paso_actual: pasoRef.current, ultimo_guardado: new Date().toISOString(), datos: datosRef.current } }
+          }).eq('id', userRef.current.id).then(() => {})
+        }).catch(() => {})
+    }
+  }, [])
 
   // ── Helpers de estado ───────────────────────────────────────────────────────
   const upDatos = (k, v)           => setDatos(f => ({ ...f, [k]: v }))

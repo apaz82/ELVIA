@@ -281,6 +281,11 @@ function PilarMiPerfil({ perfil, extraData, onChange, onSavePerfil, saving, isPa
   const [cvForceApply, setCvForceApply] = useState(false) // usuario confirma que es su CV a pesar de discrepancia
   const lpLoaded = useRef(false)   // evita auto-save en la carga inicial
   const autoSaveTimer = useRef(null)
+  // Refs para flush en unmount
+  const lpRef          = useRef(lp)
+  const onSavePerfilRef = useRef(onSavePerfil)
+  useEffect(() => { lpRef.current = lp },                [lp])
+  useEffect(() => { onSavePerfilRef.current = onSavePerfil }, [onSavePerfil])
   const [lp, setLP] = useState({
     nombre1:'',nombre2:'',apellido1:'',apellido2:'',
     pais:'',ciudad:'',edad:'',indicativo1:'+52',telefono1:'',
@@ -323,8 +328,18 @@ function PilarMiPerfil({ perfil, extraData, onChange, onSavePerfil, saving, isPa
     if (!lpLoaded.current) return
     if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current)
     autoSaveTimer.current = setTimeout(() => { onSavePerfil(lp) }, 1500)
-    return () => { if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current) }
+    // No cancelar el timer en el cleanup del debounce — solo al montar/desmontar
   }, [lp]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Flush inmediato al desmontar — guarda sin esperar el debounce
+  useEffect(() => {
+    return () => {
+      if (autoSaveTimer.current) {
+        clearTimeout(autoSaveTimer.current)
+        if (lpLoaded.current) onSavePerfilRef.current(lpRef.current)
+      }
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
   const togglePrest=(p)=>setLP(f=>({...f,prestaciones:f.prestaciones.includes(p)?f.prestaciones.filter(x=>x!==p):[...f.prestaciones,p]}))
   const toggleIdioma=(id)=>{const arr=Array.isArray(d.idiomas)?d.idiomas:[];const ex=arr.find(i=>i.idioma===id);up('idiomas',ex?arr.filter(i=>i.idioma!==id):[...arr,{idioma:id,nivel:'B2'}])}
   const updNivelIdioma=(id,nivel)=>up('idiomas',(Array.isArray(d.idiomas)?d.idiomas:[]).map(i=>i.idioma===id?{...i,nivel}:i))

@@ -67,7 +67,7 @@ export default function Auth() {
     }
 
     if (!user) return
-    if (onboardingPendiente) navigate('/onboarding', { replace: true })
+    if (onboardingPendiente) navigate('/bienvenida', { replace: true })
     else navigate('/cv-optimizer', { replace: true })
   }, [user, onboardingPendiente, navigate, isRecovering])
 
@@ -80,7 +80,7 @@ export default function Auth() {
 
   // ── Traducción de errores de Supabase ─────────────────────────────────────
   const traducirError = (msg) => {
-    if (msg.includes('Invalid login credentials')) return 'Email o contraseña incorrectos.'
+    if (msg.includes('Invalid login credentials')) return '__NO_REGISTRADO__'
     if (msg.includes('Email not confirmed'))        return 'Debes verificar tu email antes de iniciar sesión.'
     if (msg.includes('User already registered'))    return 'Ya existe una cuenta con este email.'
     if (msg.includes('Password should be'))         return 'La contraseña no cumple los requisitos mínimos de seguridad.'
@@ -254,7 +254,17 @@ export default function Auth() {
               </div>
 
               {error && (
-                <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600">{error}</div>
+                <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600">
+                  {error === '__NO_REGISTRADO__' ? (
+                    <span>
+                      No encontramos una cuenta con este email.{' '}
+                      <button type="button" onClick={() => cambiarModo('register')}
+                        className="underline font-semibold hover:text-red-800 cursor-pointer">
+                        ¿Quieres crear una cuenta gratis?
+                      </button>
+                    </span>
+                  ) : error}
+                </div>
               )}
 
               <button

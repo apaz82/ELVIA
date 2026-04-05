@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { Sparkle, X, PaperPlaneRight, Robot, User, CornersOut, CornersIn } from '@phosphor-icons/react';
 import { useChat } from '../../hooks/useChat';
@@ -6,10 +7,19 @@ import ReactMarkdown from 'react-markdown';
 
 export default function AiChatBot() {
   const { user } = useAuth();
+  const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
-  const { messages, inputVal, setInputVal, loading, sendMessage } = useChat();
+  const { messages, inputVal, setInputVal, loading, sendMessage, mensajesUsuario, maxMensajes, limitAlcanzado } = useChat();
   const messagesEndRef = useRef(null);
+
+  // Auto-abrir en Dashboard (solo la primera vez que se monta en /dashboard)
+  useEffect(() => {
+    if (location.pathname === '/dashboard') {
+      const timer = setTimeout(() => setIsOpen(true), 800)
+      return () => clearTimeout(timer)
+    }
+  }, [])
 
   // Auto-scroll to bottom of chat
   useEffect(() => {
@@ -194,8 +204,11 @@ export default function AiChatBot() {
               <PaperPlaneRight size={16} weight="fill" />
             </button>
           </form>
-          <div className="text-center mt-2">
+          <div className="flex items-center justify-between mt-2 px-1">
             <span className="text-[10px] text-on-surface-variant/50 font-medium">BETA • OPTIMA-CV AI</span>
+            <span className={`text-[10px] font-semibold ${limitAlcanzado ? 'text-red-400' : mensajesUsuario >= maxMensajes * 0.8 ? 'text-amber-500' : 'text-on-surface-variant/40'}`}>
+              {mensajesUsuario}/{maxMensajes} mensajes
+            </span>
           </div>
         </div>
       </div>
