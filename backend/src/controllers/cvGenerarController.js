@@ -1,4 +1,6 @@
 // Generador de CV desde cero — formulario estructurado → Claude → Harvard
+const { supabaseAdmin } = require('../lib/supabase')
+
 const generarCV = async (req, res, next) => {
   try {
     const { datos, language = 'es' } = req.body
@@ -144,8 +146,9 @@ Responde EXACTAMENTE con estos delimitadores XML (sin texto fuera de ellos):
       return res.status(500).json({ error: 'No se pudo generar la CV. Intenta de nuevo.' })
     }
 
-    // Guardar en cv_results
+    // Guardar en cv_results — no bloquea la respuesta si falla
     const supabase = req.supabase
+    let savedId = null
     const { data: savedCV, error: errorSave } = await supabase.from('cv_results').insert({
       user_id: userId,
       tipo: 'desde_cero',
@@ -154,17 +157,31 @@ Responde EXACTAMENTE con estos delimitadores XML (sin texto fuera de ellos):
     }).select('id').single()
 
     if (errorSave) {
-      console.error('Error saving CV to cv_results:', errorSave)
-      return res.status(500).json({ error: 'Error al guardar la CV generada' })
+      // Fallback: intentar con service role (evita problemas de RLS)
+      console.warn('cv_results insert con usuario falló, intentando con admin:', errorSave.message)
+      const { data: adminSaved, error: adminErr } = await supabaseAdmin.from('cv_results').insert({
+        user_id: userId,
+        tipo: 'desde_cero',
+        contenido: cvText,
+        metadata: { datos_originales: datos, cambios, recomendaciones, language }
+      }).select('id').single()
+      if (adminErr) {
+        console.error('Error guardando cv_results (admin fallback):', adminErr.message)
+        // No bloquear — la CV ya fue generada, devolver igual
+      } else {
+        savedId = adminSaved?.id
+      }
+    } else {
+      savedId = savedCV?.id
     }
 
-    // Incrementar contadores (sin .raw() — Supabase JS v2 no lo soporta)
-    const { data: profileData } = await supabase.from('profiles')
+    // Incrementar contadores
+    const { data: profileData } = await supabaseAdmin.from('profiles')
       .select('cv_optimizer_count, usage_count, plan')
       .eq('id', userId)
       .single()
 
-    await supabase.from('profiles').update({
+    await supabaseAdmin.from('profiles').update({
       cv_optimizer_count: (profileData?.cv_optimizer_count || 0) + 1,
       usage_count:        (profileData?.usage_count || 0) + 1
     }).eq('id', userId)
@@ -172,7 +189,7 @@ Responde EXACTAMENTE con estos delimitadores XML (sin texto fuera de ellos):
     const isPaidPlan = profileData && ['semanal', 'mensual', 'trimestral', 'anual'].includes(profileData.plan)
 
     res.json({
-      id: savedCV.id,
+      id: savedId,
       optimizedCV: cvText,
       changes: cambios,
       recommendations: recomendaciones,

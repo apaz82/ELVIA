@@ -51,44 +51,77 @@ const Tooltip = ({ text }) => {
   )
 }
 
-// ─── Análisis de calidad ─────────────────────────────────────────────────────
+// ─── Análisis de calidad (estándares Harvard / LATAM 2026) ───────────────────
+// Basado en calificacioncv.md — Metodología STAR/Google
+// Distribución: Encabezado 18 | Resumen 20 | Experiencia 30 | Educación 15 | Habilidades 10 | Idiomas 7 = 100
+const VERBOS_ACCION = ['lider', 'implement', 'negoci', 'optimiz', 'increment', 'reduci', 'gestion', 'desarroll', 'coordin', 'supervis', 'direct', 'lanz', 'mejor', 'transform', 'ejecut', 'logr', 'cre', 'diseñ', 'capaci', 'consolid']
+
 function analizarCalidad(d) {
   let pts = 0
   const recs = []
 
-  // Encabezado (20 pts)
-  if (d.nombre && d.apellido) pts += 5; else recs.push('Completa tu nombre y apellido')
-  if (d.email)   pts += 5; else recs.push('Agrega un correo electrónico de contacto')
-  if (d.telefono) pts += 5; else recs.push('Agrega tu número de teléfono')
-  if (d.ciudad && d.pais) pts += 5; else recs.push('Especifica tu ciudad y país')
+  // ── 1. Encabezado (18 pts) ─────────────────────────────────────────────────
+  if (d.nombre && d.apellido) pts += 4; else recs.push('Completa tu nombre y apellido completo')
+  if (d.cargo_objetivo)       pts += 4; else recs.push('Agrega un título profesional (ej: Operations Manager | Supply Chain)')
+  if (d.email)                pts += 3; else recs.push('Agrega un correo electrónico profesional (nombre.apellido@...)')
+  if (d.telefono)             pts += 4; else recs.push('Agrega tu número de teléfono con código de área internacional')
+  if (d.ciudad && d.pais)     pts += 3; else recs.push('Especifica tu ciudad y país (sin dirección exacta)')
 
-  // Resumen (20 pts)
-  if (d.resumen && d.resumen.length > 30) pts += 20
-  else recs.push('Agrega un resumen profesional (3-5 líneas: años exp. + rol + logro)')
+  // ── 2. Resumen de valor (20 pts) ───────────────────────────────────────────
+  const resumen = d.resumen || ''
+  if      (resumen.length >= 200) pts += 20
+  else if (resumen.length >= 100) pts += 13
+  else if (resumen.length >   30) pts += 6
+  else recs.push('Agrega un resumen de valor (3-5 líneas): años de exp. + sector + logro cuantificado')
+  if (resumen.length > 30 && resumen.length < 100) {
+    recs.push('Expande tu resumen — incluye años de experiencia, sector y al menos un logro con número')
+  }
 
-  // Experiencia (30 pts)
+  // ── 3. Experiencia — STAR/Google (30 pts) ─────────────────────────────────
   const expOk = (d.experiencias || []).filter(e => e.empresa && e.cargo)
-  if      (expOk.length >= 3) pts += 30
-  else if (expOk.length === 2) pts += 22
-  else if (expOk.length === 1) pts += 12
-  if (expOk.length === 0) recs.push('Agrega al menos una experiencia laboral (empresa + cargo)')
-  else if (expOk.length === 1) recs.push('Idealmente 2+ experiencias mejoran tu perfil')
+  if      (expOk.length >= 3) pts += 15
+  else if (expOk.length === 2) pts += 10
+  else if (expOk.length === 1) pts += 5
+  if (expOk.length === 0) recs.push('Agrega al menos una experiencia laboral con empresa, cargo y logros')
+  else if (expOk.length === 1) recs.push('Intenta agregar 2+ experiencias — refuerza mucho tu credibilidad')
 
-  // Educación (15 pts)
+  const expConDesc = expOk.filter(e => e.descripcion && e.descripcion.length > 20)
+  if (expOk.length > 0 && expConDesc.length === 0) {
+    recs.push('Describe tus logros en cada rol (fórmula STAR: Verbo de acción + Métrica + Resultado)')
+  } else if (expConDesc.length > 0) {
+    const tieneMetricas = expConDesc.some(e => /[\d%$€£]/.test(e.descripcion))
+    const tieneVerbos   = expConDesc.some(e => {
+      const desc = e.descripcion.toLowerCase()
+      return VERBOS_ACCION.some(v => desc.includes(v))
+    })
+    if (tieneMetricas) pts += 10; else recs.push('Cuantifica al menos un logro con números o porcentajes (ej: "Incrementé ventas en 18%")')
+    if (tieneVerbos)   pts +=  5; else recs.push('Empieza cada logro con un verbo de acción: Lideré, Implementé, Optimicé, Negocié...')
+  }
+
+  // ── 4. Educación (15 pts) ──────────────────────────────────────────────────
   const eduOk = (d.educacion || []).filter(e => e.institucion && e.titulo)
-  if (eduOk.length > 0) pts += 15; else recs.push('Agrega al menos un título académico')
+  if      (eduOk.length >= 2) pts += 15
+  else if (eduOk.length === 1) pts += 12
+  else recs.push('Agrega tu formación académica (institución + título + año)')
 
-  // Habilidades (15 pts)
+  // ── 5. Habilidades (10 pts) ────────────────────────────────────────────────
   const numH = (d.habilidades || []).length
-  if      (numH >= 6) pts += 15
-  else if (numH >= 3) pts += 10
-  else if (numH >= 1) pts += 5
-  if (numH === 0) recs.push('Agrega habilidades técnicas y blandas relevantes')
+  if      (numH >= 8) pts += 10
+  else if (numH >= 5) pts += 7
+  else if (numH >= 3) pts += 4
+  else if (numH >= 1) pts += 2
+  if (numH < 5) recs.push('Agrega al menos 5 habilidades clave (técnicas + blandas) — mejora el score ATS')
+
+  // ── 6. Idiomas (7 pts — ATS) ──────────────────────────────────────────────
+  const numI = (d.idiomas || []).length
+  if      (numI >= 2) pts += 7
+  else if (numI === 1) pts += 4
+  if (numI === 0) recs.push('Agrega idiomas con nivel CEFR (C1, B2, etc.) — el 75% de CVs sin idiomas son rechazados por ATS')
 
   const porcentaje = Math.min(Math.round(pts), 100)
   return {
     porcentaje,
-    estado: porcentaje >= 80 ? 'Excelente' : porcentaje >= 60 ? 'Incompleto' : 'Muy incompleto',
+    estado: porcentaje >= 80 ? 'Excelente' : porcentaje >= 60 ? 'Bueno' : porcentaje >= 40 ? 'Incompleto' : 'Muy incompleto',
     nivel:  porcentaje >= 80 ? 'green' : porcentaje >= 60 ? 'amber' : 'red',
     recs,
   }
@@ -122,12 +155,12 @@ function PanelAnalisis({ analisis, onClose }) {
   return (
     <div className={`rounded-2xl border p-5 space-y-4 ${c.bg} ${c.border}`}>
       <div className="flex items-center justify-between">
-        <h3 className="font-black text-slate-800 text-sm">Análisis del CV</h3>
-        <button onClick={onClose} className="text-slate-400 hover:text-slate-600 cursor-pointer"><X size={16} /></button>
+        <h3 className="font-black text-slate-800 text-base">Análisis del CV</h3>
+        <button onClick={onClose} className="text-slate-400 hover:text-slate-600 cursor-pointer"><X size={18} /></button>
       </div>
       <div className="-mt-2 space-y-1">
-        <p className="text-[11px] font-semibold text-slate-600">Análisis bajo altos estándares internacionales y expertos mentores de carrera.</p>
-        <p className="text-[10px] text-slate-400 leading-relaxed">Esta es información privada y solo tuya. Nuestras recomendaciones son parte del proceso, pero tú debes aprobar los cambios.</p>
+        <p className="text-xs font-semibold text-slate-600">Análisis bajo estándares Harvard / LATAM 2026 y expertos mentores de carrera.</p>
+        <p className="text-[11px] text-slate-400 leading-relaxed">Esta es información privada y solo tuya. Nuestras recomendaciones son parte del proceso, pero tú debes aprobar los cambios.</p>
       </div>
 
       {/* Score */}
@@ -139,10 +172,10 @@ function PanelAnalisis({ analisis, onClose }) {
           </div>
         </div>
         <div>
-          <span className={`text-xs font-bold px-2 py-1 rounded-full ${c.badge}`}>{analisis.estado}</span>
+          <span className={`text-sm font-bold px-2.5 py-1 rounded-full ${c.badge}`}>{analisis.estado}</span>
           <div className="mt-2">
-            <div className="w-full bg-slate-200 rounded-full h-1.5">
-              <div className={`h-1.5 rounded-full ${analisis.nivel === 'green' ? 'bg-emerald-500' : analisis.nivel === 'amber' ? 'bg-amber-500' : 'bg-red-400'}`}
+            <div className="w-full bg-slate-200 rounded-full h-2">
+              <div className={`h-2 rounded-full ${analisis.nivel === 'green' ? 'bg-emerald-500' : analisis.nivel === 'amber' ? 'bg-amber-500' : 'bg-red-400'}`}
                 style={{ width: `${analisis.porcentaje}%` }} />
             </div>
           </div>
@@ -152,11 +185,11 @@ function PanelAnalisis({ analisis, onClose }) {
       {/* Recomendaciones */}
       {analisis.recs.length > 0 && (
         <div>
-          <p className="text-xs font-bold text-slate-600 mb-2">Areas a mejorar:</p>
-          <ul className="space-y-1.5">
+          <p className="text-sm font-bold text-slate-600 mb-2">Áreas a mejorar:</p>
+          <ul className="space-y-2">
             {analisis.recs.map((r, i) => (
-              <li key={i} className="flex gap-2 text-xs text-slate-700 bg-white/70 p-2 rounded-lg border border-white/80">
-                <span className="text-amber-500 font-bold shrink-0">•</span> {r}
+              <li key={i} className="flex gap-2 text-sm text-slate-700 bg-white/70 p-2.5 rounded-lg border border-white/80 leading-snug">
+                <span className="text-amber-500 font-bold shrink-0 mt-0.5">•</span> {r}
               </li>
             ))}
           </ul>
@@ -164,8 +197,8 @@ function PanelAnalisis({ analisis, onClose }) {
       )}
       {analisis.recs.length === 0 && (
         <div className="space-y-2">
-          <p className="text-xs text-emerald-700 bg-white/70 p-2.5 rounded-lg flex items-start gap-2">
-            <CheckCircle size={14} weight="fill" className="text-emerald-500 shrink-0 mt-0.5" />
+          <p className="text-sm text-emerald-700 bg-white/70 p-3 rounded-lg flex items-start gap-2">
+            <CheckCircle size={16} weight="fill" className="text-emerald-500 shrink-0 mt-0.5" />
             <span className="leading-relaxed">
               Revisa cada sección para incluir actualizaciones, indicadores de gestión o información relevante. Después de esto, te generaremos una CV optimizada.
             </span>
@@ -236,9 +269,9 @@ export default function CVDesdeCero() {
     cargar()
   }, [user])
 
-  // ── Auto-save (usuarios pago) ───────────────────────────────────────────────
+  // ── Auto-save (todos los usuarios) ─────────────────────────────────────────
   const guardarBorrador = useCallback(() => {
-    if (!user || !isPaidPlan) return
+    if (!user) return
     if (saveTimer.current) clearTimeout(saveTimer.current)
     saveTimer.current = setTimeout(async () => {
       try {
@@ -265,7 +298,7 @@ export default function CVDesdeCero() {
   const delEdu  = (i)              => setDatos(f => ({ ...f, educacion: f.educacion.filter((_, j) => j !== i) }))
   const togHab  = (h)              => setDatos(f => ({ ...f, habilidades: f.habilidades.includes(h) ? f.habilidades.filter(x => x !== h) : [...f.habilidades, h] }))
   const addHab  = (h)              => { if (h && !datos.habilidades.includes(h)) { setDatos(f => ({ ...f, habilidades: [...f.habilidades, h] })); setNuevaHab('') } }
-  const togIdm  = (id)             => { const arr = (datos.idiomas || []).filter(i => i.idioma !== id); if (!datos.idiomas?.some(i => i.idioma === id)) arr.push({ idioma: id, nivel: 'B2' }); setDatos(f => ({ ...f, idiomas: arr })) }
+  const togIdm  = (id)             => { const arr = (datos.idiomas || []).filter(i => i.idioma !== id); if (!datos.idiomas?.some(i => i.idioma === id)) arr.push({ idioma: id, nivel: id === 'Español' ? 'C1' : 'B2' }); setDatos(f => ({ ...f, idiomas: arr })) }
   const upNivIdm = (id, nivel)     => setDatos(f => ({ ...f, idiomas: f.idiomas.map(i => i.idioma === id ? { ...i, nivel } : i) }))
 
   // ── Aplicar datos extraídos del CV ──────────────────────────────────────────
@@ -490,7 +523,7 @@ export default function CVDesdeCero() {
         </div>
 
         {/* Banners de estado */}
-        {isPaidPlan && (
+        {user && (
           <div className="mb-4 flex items-center gap-2 text-xs text-slate-600 bg-white border border-slate-200 rounded-lg px-3 py-2 shadow-sm">
             <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
             {ultimoGuardado
@@ -613,9 +646,9 @@ export default function CVDesdeCero() {
                   <Tooltip text="Ej: 'Operations Manager with 8 years in manufacturing. Reduced costs by $2M in 2022. Seeking regional leadership role.'" />
                 </label>
                 <textarea placeholder="Describe tu perfil en el idioma que prefieras..." value={datos.resumen}
-                  onChange={e => upDatos('resumen', e.target.value)} rows={6}
+                  onChange={e => upDatos('resumen', e.target.value)} rows={6} maxLength={800}
                   className="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400/50 resize-none" />
-                <div className="text-xs text-slate-400 text-right -mt-1">{datos.resumen.length}/600 caracteres</div>
+                <div className={`text-xs text-right -mt-1 ${datos.resumen.length >= 750 ? 'text-amber-500 font-semibold' : 'text-slate-400'}`}>{datos.resumen.length}/800 caracteres</div>
               </div>
             )}
 
