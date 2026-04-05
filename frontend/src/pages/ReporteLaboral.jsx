@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { supabase } from '../config/supabase'
+import { supabase } from '../services/authService'
 import html2pdf from 'html2pdf.js'
 import { CheckCircle, Target, Briefcase, MapPin, CurrencyCircleDollar, DownloadSimple, ArrowLeft } from '@phosphor-icons/react'
 
