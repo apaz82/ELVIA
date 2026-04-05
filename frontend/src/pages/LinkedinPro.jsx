@@ -6,13 +6,13 @@ import toast from 'react-hot-toast'
 import {
   LinkedinLogo, Sparkle, CheckCircle, WarningCircle,
   CaretDown, CaretUp, ArrowRight, Trophy, Star, LightbulbFilament,
-  FilePdf, MagicWand, NotePencil, UploadSimple, SelectionAll, CircleNotch, Sparkles
+  FilePdf, MagicWand, NotePencil, UploadSimple, SelectionAll, CircleNotch
 } from '@phosphor-icons/react'
 import ProGate from '../components/common/ProGate'
 
 const PI = { 
   FilePdf, MagicWand, NotePencil, UploadSimple, SelectionAll, 
-  CircleNotch, Sparkle: Sparkles, CheckCircle, WarningCircle, ArrowRight 
+  CircleNotch, Sparkle, CheckCircle, WarningCircle, ArrowRight 
 }
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:3001'

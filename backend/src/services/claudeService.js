@@ -538,9 +538,25 @@ REGLAS:
   jsonText = jsonText.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim()
   
   try {
-    return JSON.parse(jsonText)
+    const rawData = JSON.parse(jsonText)
+    
+    // Sanitizar: La IA a veces se pone creativa y devuelve objetos/arrays aunque pidas strings.
+    // Convertimos todo a string plano para que los textareas del frontend no rompan.
+    const sanitized = {
+      titular: typeof rawData.titular === 'string' ? rawData.titular : JSON.stringify(rawData.titular || ''),
+      extracto: typeof rawData.extracto === 'string' ? rawData.extracto : JSON.stringify(rawData.extracto || ''),
+      experiencia: typeof rawData.experiencia === 'string' 
+        ? rawData.experiencia 
+        : Array.isArray(rawData.experiencia) 
+          ? rawData.experiencia.map(exp => typeof exp === 'string' ? exp : JSON.stringify(exp)).join('\n\n')
+          : JSON.stringify(rawData.experiencia || ''),
+      habilidades: Array.isArray(rawData.habilidades) ? rawData.habilidades.join(', ') : String(rawData.habilidades || ''),
+      educacion: typeof rawData.educacion === 'string' ? rawData.educacion : JSON.stringify(rawData.educacion || '')
+    }
+
+    return sanitized
   } catch (error) {
-    console.error('[extraerDatosLinkedin] Error al parsear JSON de la IA:', error.message)
+    console.error('[extraerDatosLinkedin] Error al parsear/sanitizar JSON de la IA:', error.message)
     throw new Error('La IA no pudo estructurar los datos correctamente. Intenta con el pegado manual.')
   }
 }
