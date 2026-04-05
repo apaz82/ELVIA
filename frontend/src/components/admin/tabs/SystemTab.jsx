@@ -6,6 +6,7 @@ import { toast } from 'react-hot-toast'
 const SystemTab = ({ db, API_URL }) => {
   const [status, setStatus]   = useState(null)
   const [loading, setLoading] = useState(true)
+  const [copied, setCopied]   = useState(null)
 
   const fetchStatus = async () => {
     setLoading(true)
@@ -30,7 +31,9 @@ const SystemTab = ({ db, API_URL }) => {
 
   const copy = (text, key) => {
     navigator.clipboard.writeText(text)
+    setCopied(key)
     toast.success('Script SQL copiado al portapapeles', { id: `copy-${key}` })
+    setTimeout(() => setCopied(null), 3000)
   }
 
   const SQL_COLUMNS = `-- Agregar columnas necesarias
