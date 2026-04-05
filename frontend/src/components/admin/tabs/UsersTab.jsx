@@ -114,7 +114,7 @@ const UsersTab = ({ users, onRefresh, fmtDate, db, API_URL }) => {
       || (u.pais || '').toLowerCase().includes(q)
   })
 
-  const paged  = filtered.slice(page * PER_PAGE, (page + 1) * PER_PAGE)
+  const paginated  = filtered.slice(page * PER_PAGE, (page + 1) * PER_PAGE)
   const totalPages = Math.ceil(filtered.length / PER_PAGE)
 
   // ─── DERIVED STATS ─────────────────────────────────────────────────────────
