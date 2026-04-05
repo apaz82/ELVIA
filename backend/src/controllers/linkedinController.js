@@ -4,7 +4,7 @@ const { extraerTextoPDF } = require('../utils/pdfParser')
 // POST /api/linkedin/analizar
 const analizarPerfil = async (req, res, next) => {
   try {
-    const { titular, extracto, experiencia, habilidades, educacion } = req.body
+    const { titular, extracto, experiencia, habilidades, educacion, contextoLaboral } = req.body
 
     const camposRecibidos = [titular, extracto, experiencia, habilidades, educacion]
       .filter(v => v && v.trim().length > 0)
@@ -13,7 +13,7 @@ const analizarPerfil = async (req, res, next) => {
       return res.status(400).json({ error: 'Debes completar al menos una sección del perfil' })
     }
 
-    const resultado = await analizarLinkedin({ titular, extracto, experiencia, habilidades, educacion })
+    const resultado = await analizarLinkedin({ titular, extracto, experiencia, habilidades, educacion, contextoLaboral })
     return res.json(resultado)
   } catch (err) {
     next(err)

@@ -373,7 +373,7 @@ CRITERIOS DE PUNTUACIÓN:
 /**
  * Analiza secciones del perfil LinkedIn y devuelve puntajes y recomendaciones por sección
  */
-const analizarLinkedin = async ({ titular, extracto, experiencia, habilidades, educacion }) => {
+const analizarLinkedin = async ({ titular, extracto, experiencia, habilidades, educacion, contextoLaboral }) => {
   const secciones = []
   if (titular?.trim())    secciones.push(`TITULAR:\n${titular}`)
   if (extracto?.trim())   secciones.push(`EXTRACTO:\n${extracto}`)
@@ -387,25 +387,40 @@ Analiza las siguientes secciones del perfil LinkedIn de un profesional y devuelv
 PERFIL A ANALIZAR:
 ${secciones.join('\n\n')}
 
+${contextoLaboral ? `CONTEXTO DEL PROYECTO LABORAL DEL USUARIO:
+${JSON.stringify({ 
+  objetivo: contextoLaboral.objetivoLaboral, 
+  industrias: contextoLaboral.sectoresInteres,
+  ciudades: contextoLaboral.ciudadesDestino,
+  esquemas: contextoLaboral.esquemasTrabajo,
+  empresasTarget: contextoLaboral.empresasMock
+}, null, 2)}
+` : ''}
+
 CRITERIOS DE EVALUACIÓN 2026:
-- Titular: debe contener cargo, industria/nicho, propuesta de valor, keywords de ATS. Máx 220 chars.
-- Extracto: primera línea con gancho, historia profesional, logros cuantificados, CTA al final. Debe tener 3+ párrafos.
-- Experiencia: verbos de acción, logros con métricas, keywords del sector, fechas exactas.
-- Habilidades: mix de hard skills + soft skills, relevantes para el sector, al menos 15-20 skills.
-- Educación: institución relevante, actividades extracurriculares, logros académicos si aplican.
+- Alineación Estratégica: Si hay CONTEXTO DEL PROYECTO LABORAL, todas las sugerencias deben orientarse a posicionar al profesional para ese objetivo, industria y ciudades específicas.
+- Titular: debe contener cargo (alineado al objetivo si hay), industria/nicho, propuesta de valor, keywords de ATS. Máx 220 chars.
+- Extracto: primera línea con gancho, historia profesional acorde al objetivo, logros cuantificados, CTA. Debe tener 3+ párrafos.
+- Experiencia: verbos de acción, logros con métricas, descripciones enfocadas en habilidades transferibles al rol objetivo.
+- Habilidades: mix de hard skills + soft skills, priorizando las relevantes para el sector objetivo.
+
+REGLAS ESTRICTAS DE ÉTICA Y CALIDAD (Anti-Alucinaciones y Anti-Bias):
+1. NO inventes ni asumas experiencia laboral, títulos o habilidades que no estén explícitamente en el perfil o sean derivadas lógicas de su trabajo actual. Construye basándote SOLAMENTE en lo que hay.
+2. Centra tu análisis estrictamente en el mérito profesional, propuestas de valor y métricas de negocio. Prohibido hacer referencias o sugerencias basadas en edad, género, raza u origen.
+3. El campo "ejemplo" debe proveer una redacción lista para usar que respete el estilo y la verdad del candidato, optimizando **exclusivamente** las palabras clave y estructura.
 
 Responde ÚNICAMENTE con un JSON con esta estructura exacta (sin texto extra):
 {
   "puntaje_global": <número 0-100>,
-  "resumen_global": "<2-3 oraciones evaluando el perfil general y su impacto en reclutadores>",
-  "top_acciones": ["<acción prioritaria 1>", "<acción prioritaria 2>", "<acción prioritaria 3>"],
+  "resumen_global": "<2-3 oraciones evaluando el perfil frente a sus objetivos y su impacto visual en reclutadores>",
+  "top_acciones": ["<acción prioritaria 1 enfocada al objetivo>", "<acción prioritaria 2>", "<acción prioritaria 3>"],
   "secciones": {
     "titular": {
       "puntaje": <0-100 o null si no fue enviada>,
-      "diagnostico": "<1-2 oraciones de diagnóstico general de esta sección>",
+      "diagnostico": "<1-2 oraciones de diagnóstico evaluando alineación al objetivo>",
       "fortalezas": ["<punto fuerte>"],
       "mejoras": ["<qué mejorar específicamente>"],
-      "ejemplo": "<reescritura sugerida de esta sección>"
+      "ejemplo": "<reescritura sugerida de esta sección optimizada>"
     },
     "extracto": { "puntaje": <0-100 o null>, "diagnostico": "...", "fortalezas": [], "mejoras": [], "ejemplo": "..." },
     "experiencia": { "puntaje": <0-100 o null>, "diagnostico": "...", "fortalezas": [], "mejoras": [], "ejemplo": "..." },
@@ -542,16 +557,26 @@ REGLAS:
     
     // Sanitizar: La IA a veces se pone creativa y devuelve objetos/arrays aunque pidas strings.
     // Convertimos todo a string plano para que los textareas del frontend no rompan.
+    const formatEntry = (entry) => {
+      if (typeof entry === 'string') return entry
+      if (typeof entry === 'object' && entry !== null) {
+        return Object.entries(entry)
+          .map(([k, v]) => `${k.charAt(0).toUpperCase() + k.slice(1)}: ${v}`)
+          .join(' | ')
+      }
+      return String(entry)
+    }
+
     const sanitized = {
-      titular: typeof rawData.titular === 'string' ? rawData.titular : JSON.stringify(rawData.titular || ''),
-      extracto: typeof rawData.extracto === 'string' ? rawData.extracto : JSON.stringify(rawData.extracto || ''),
-      experiencia: typeof rawData.experiencia === 'string' 
-        ? rawData.experiencia 
-        : Array.isArray(rawData.experiencia) 
-          ? rawData.experiencia.map(exp => typeof exp === 'string' ? exp : JSON.stringify(exp)).join('\n\n')
-          : JSON.stringify(rawData.experiencia || ''),
+      titular: typeof rawData.titular === 'string' ? rawData.titular : formatEntry(rawData.titular || ''),
+      extracto: typeof rawData.extracto === 'string' ? rawData.extracto : formatEntry(rawData.extracto || ''),
+      experiencia: Array.isArray(rawData.experiencia) 
+        ? rawData.experiencia.map(formatEntry).join('\n\n')
+        : formatEntry(rawData.experiencia || ''),
       habilidades: Array.isArray(rawData.habilidades) ? rawData.habilidades.join(', ') : String(rawData.habilidades || ''),
-      educacion: typeof rawData.educacion === 'string' ? rawData.educacion : JSON.stringify(rawData.educacion || '')
+      educacion: Array.isArray(rawData.educacion)
+        ? rawData.educacion.map(formatEntry).join('\n\n')
+        : formatEntry(rawData.educacion || '')
     }
 
     return sanitized

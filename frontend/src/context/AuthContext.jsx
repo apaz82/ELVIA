@@ -241,7 +241,7 @@ export const AuthProvider = ({ children }) => {
     onboardingPendiente, perfilCargado,
     isRecovering, setIsRecovering,
     // Progreso Gerente de Búsqueda
-    progresoLaboral, featuresDesbloqueadas, jpLoaded, refreshJpData,
+    progresoLaboral, featuresDesbloqueadas, jpLoaded, jpData, refreshJpData,
     // Roles y multi-tenancy
     role, companyId, isAdmin, isCompanyAdmin,
     // Plan info — usa directamente estos valores en los componentes
@@ -251,7 +251,7 @@ export const AuthProvider = ({ children }) => {
   }), [
     user, session, loading, login, register, logout, perfil, refreshPerfil, refreshUsage,
     onboardingPendiente, perfilCargado, isRecovering, setIsRecovering, progresoLaboral,
-    featuresDesbloqueadas, jpLoaded, refreshJpData, role, companyId, isAdmin, isCompanyAdmin,
+    featuresDesbloqueadas, jpLoaded, jpData, refreshJpData, role, companyId, isAdmin, isCompanyAdmin,
     planInfo, usageCount, creditosRestantes
   ])
 

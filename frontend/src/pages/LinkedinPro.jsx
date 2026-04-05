@@ -161,7 +161,7 @@ function SeccionResultado({ seccion, datos }) {
 }
 
 export default function LinkedinOptima() {
-  const { user, isPaidPlan, trialExpired } = useAuth()
+  const { user, isPaidPlan, trialExpired, jpData } = useAuth()
   const [campos, setCampos] = useState({ titular: '', extracto: '', experiencia: '', habilidades: '', educacion: '' })
   const [importMode, setImportMode] = useState('pdf') // 'pdf' | 'paste' | 'manual'
   const [isExtracting, setIsExtracting] = useState(false)
@@ -266,7 +266,7 @@ export default function LinkedinOptima() {
           'Content-Type': 'application/json',
           ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
         },
-        body: JSON.stringify(campos),
+        body: JSON.stringify({ ...campos, contextoLaboral: jpData }),
       })
 
       if (!res.ok) {
