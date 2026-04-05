@@ -258,7 +258,8 @@ function calcularProgreso(data, perfil) {
   const bN = Object.values(bloques).filter(Boolean).length
   if (bN>=8) core+=15; else if (bN>=5) core+=11; else if (bN>=2) core+=7; else if (bN>=1) core+=3
 
-  const rec = (data&&data.recursos&&data.recursos.recursos) ? data.recursos.recursos : RECURSOS_DEFAULT
+  const rawRec = data&&data.recursos ? (Array.isArray(data.recursos) ? data.recursos : (data.recursos.recursos||null)) : null
+  const rec = (rawRec&&rawRec.length>0) ? rawRec : RECURSOS_DEFAULT
   const activos = rec.filter(function(r){return r.tengo===true})
   const optimaActiva = activos.some(function(r){return r.id==='optima'})
   const otrosActivos = activos.filter(function(r){return r.id!=='optima'}).length
@@ -299,7 +300,8 @@ function calcularPorPilar(data, perfil) {
   let semanaPts = 0
   if (bN>=8) semanaPts=15; else if (bN>=5) semanaPts=11; else if (bN>=2) semanaPts=7; else if (bN>=1) semanaPts=3
 
-  const rec = (data&&data.recursos&&data.recursos.recursos) ? data.recursos.recursos : RECURSOS_DEFAULT
+  const rawRec2 = data&&data.recursos ? (Array.isArray(data.recursos) ? data.recursos : (data.recursos.recursos||null)) : null
+  const rec = (rawRec2&&rawRec2.length>0) ? rawRec2 : RECURSOS_DEFAULT
   const activos = rec.filter(function(r){return r.tengo===true})
   const optimaActiva = activos.some(function(r){return r.id==='optima'})
   const otrosActivos = activos.filter(function(r){return r.id!=='optima'}).length
@@ -1276,20 +1278,15 @@ function PilarAutoconocimiento({ data, onChange, onSave, justSaved }) {
 // ─── Pilar 2: Recursos ───────────────────────────────────────────────────────
 
 function PilarRecursos({ data, onChange, onSave, justSaved, pais }) {
-  // Handle both direct array and nested {recursos: [...]} structure
-  let recursos = RECURSOS_DEFAULT
-  if (data) {
-    if (Array.isArray(data)) {
-      recursos = data
-    } else if (data.recursos && Array.isArray(data.recursos)) {
-      recursos = data.recursos
-    }
-  }
+  // Parent passes data={data.recursos} which is {recursos: [array]} → read data.recursos
+  // If stored as array directly or empty, fall back to defaults
+  const rawArr = data ? (Array.isArray(data) ? data : (Array.isArray(data.recursos) ? data.recursos : null)) : null
+  const recursos = (rawArr && rawArr.length > 0) ? rawArr : RECURSOS_DEFAULT
 
   const moneda = detectarMoneda(pais)
-  const upR = function(id,f,v){onChange(recursos.map(function(r){return r.id===id?Object.assign({},r,{[f]:v}):r}))}
-  const addR = function(){onChange(recursos.concat([{id:String(Date.now()),nombre:'',descripcion:'',costo:0,tengo:false}]))}
-  const delR = function(id){onChange(recursos.filter(function(r){return r.id!==id}))}
+  const upR = function(id,f,v){onChange({recursos:recursos.map(function(r){return r.id===id?Object.assign({},r,{[f]:v}):r})})}
+  const addR = function(){onChange({recursos:recursos.concat([{id:String(Date.now()),nombre:'',descripcion:'',costo:0,tengo:false}])})}
+  const delR = function(id){onChange({recursos:recursos.filter(function(r){return r.id!==id})})}
   const totalAll = recursos.reduce(function(s,r){return s+(Number(r.costo)||0)},0)
   const monedaSymbol = MONEDAS_LIST.find(function(m){return m.code===moneda})?.symbol || '$'
 
@@ -1311,7 +1308,7 @@ function PilarRecursos({ data, onChange, onSave, justSaved, pais }) {
               <button onClick={function(){
                 const newTengo = !r.tengo
                 if (!newTengo) {
-                  onChange(recursos.map(function(res){return res.id===r.id?Object.assign({},res,{tengo:false,costo:0}):res}))
+                  onChange({recursos:recursos.map(function(res){return res.id===r.id?Object.assign({},res,{tengo:false,costo:0}):res})})
                 } else {
                   upR(r.id,'tengo',newTengo)
                 }
