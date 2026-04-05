@@ -38,6 +38,14 @@ const RUTAS_SIN_GUARD = ['/', '/landing2', '/auth', '/bienvenida', '/admin', '/p
 // Rutas públicas (solo para usuarios NO autenticados)
 const RUTAS_PUBLICAS = ['/', '/auth', '/privacidad', '/reset-password', '/pricing']
 
+// Rutas internas de la APP (si NO es una de estas, usamos FullLayout para el Catch-All)
+const RUTAS_APP = [
+  '/dashboard', '/cv-optimizer', '/cv-desde-cero', '/cv-vs-job', '/jobs', 
+  '/mis-cvs', '/mis-vacantes', '/pipeline', '/perfil', '/mi-plan', 
+  '/entrevista', '/biblioteca', '/linkedin-pro', '/onboarding', 
+  '/bienestar', '/proyecto-laboral', '/infografias', '/expertos'
+]
+
 function PublicRoute({ children }) {
   const { user, loading, isRecovering } = useAuth()
   const location = useLocation()
@@ -153,7 +161,8 @@ export default function App() {
     )
   }
 
-  const isFullLayout = RUTAS_FULL.includes(location.pathname)
+  const currentPath = location.pathname.toLowerCase()
+  const isFullLayout = RUTAS_FULL.includes(currentPath) || !RUTAS_APP.includes(currentPath)
 
   const routes = (
     <Routes>
@@ -189,6 +198,9 @@ export default function App() {
       
       {/* /onboarding redirige a /bienvenida — ruta legacy */}
       <Route path="/onboarding"    element={<Navigate to="/bienvenida" replace />} />
+
+      {/* CATCH-ALL: Redirigir cualquier ruta no válida al home/dashboard según auth */}
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )
 
