@@ -260,8 +260,8 @@ function Dashboard({ adminUser, onLogout }) {
     if (adminContext === 'B2C') {
         switch (tab) {
             case 'overview':      return <OverviewTab stats={statsB2C} />
-            case 'users':         return <UsersTab users={users} onRefresh={fetchData} />
-            case 'waitlist':      return <WaitlistTab leads={waitlistLeads} views={landingViews} events={events} onRefresh={fetchData} />
+            case 'users':         return <UsersTab users={users} onRefresh={fetchData} fmtDate={fmtDate} db={db} API_URL={API_URL} />
+            case 'waitlist':      return <WaitlistTab leads={waitlistLeads} views={landingViews} events={events} onRefresh={fetchData} fmtDate={fmtDate} />
             case 'marketing':     return <MarketingTab config={config} onRefresh={fetchData} />
             case 'suscripciones': return <SubscriptionsTab users={users} />
             case 'codigos':       return <CodesTab db={db} API_URL={API_URL} />
