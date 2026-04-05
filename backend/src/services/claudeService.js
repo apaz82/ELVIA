@@ -586,6 +586,40 @@ REGLAS:
   }
 }
 
+/**
+ * Corrige y estructura los datos del Proyecto Laboral para la Infografía PDF.
+ * Asegura redacción ejecutiva y ortografía hispanoamericana perfecta.
+ */
+const corregirProyectoLaboral = async (proyectoData) => {
+  const prompt = `Actúa como un corrector de estilo corporativo experto en el mercado de América Latina.
+Revisa el siguiente JSON que contiene la configuración del "Proyecto Laboral" de un profesional.
+Tu tarea es corregir la ortografía, la gramática y mejorar sutilmente la redacción para que suene como un perfil ejecutivo de alto nivel, utilizando español hispanoamericano estándar (neutro, sin modismos locales).
+
+No cambies la intención ni las variables, solo mejora los textos (por ej. 'objetivoLaboral', 'empresasMock', etc). Si hay arrays de strings, corrígelos también.
+
+JSON ORIGINAL:
+${JSON.stringify(proyectoData, null, 2)}
+
+Devuelve ÚNICAMENTE el JSON estructurado con las mismas llaves, pero con el texto corregido. Valida que el JSON es 100% válido sintácticamente.`
+
+  const response = await client.messages.create({
+    model: MODELO_RAPIDO,
+    max_tokens: 2000,
+    messages: [{ role: 'user', content: prompt }],
+  })
+
+  let jsonText = response.content[0].text.trim()
+  jsonText = jsonText.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim()
+  
+  try {
+    return JSON.parse(jsonText)
+  } catch (error) {
+    console.error('[corregirProyectoLaboral] Error:', error.message)
+    // Fallback: devolver el original si la IA falla
+    return proyectoData
+  }
+}
+
 module.exports = { 
   optimizeCV, 
   matchCVtoJob, 
@@ -594,5 +628,6 @@ module.exports = {
   evaluarEntrevista, 
   analizarLinkedin, 
   extraerDatosLinkedin, 
-  extraerDatosInfografia 
+  extraerDatosInfografia,
+  corregirProyectoLaboral
 };

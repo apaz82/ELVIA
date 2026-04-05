@@ -91,6 +91,7 @@ export default function MisCVs() {
   const [cvsOptimizados, setCvsOptimizados] = useState([])
   const [cvsOriginal,    setCvsOriginal]    = useState([])
   const [cvsMatch,       setCvsMatch]       = useState([])
+  const [cvsReportes,    setCvsReportes]    = useState([])
   const [checks, setChecks]                 = useState([])
   const [loading, setLoading]               = useState(true)
   const [descargando, setDescargando]       = useState({})
@@ -127,6 +128,7 @@ export default function MisCVs() {
     const todos = cvData || []
     setCvsOptimizados(todos.filter(c => c.tipo === 'optimize'))
     setCvsOriginal(todos.filter(c => c.tipo === 'original'))
+    setCvsReportes(todos.filter(c => c.tipo === 'infografia_proyecto'))
     setCvsMatch(todos.filter(c => c.tipo === 'match').map(cv => {
       const jobTitle   = cv.metadata?.jobData?.title || ''
       const jobCompany = cv.metadata?.jobData?.company || cv.metadata?.jobData?.empresa || ''
@@ -190,6 +192,7 @@ export default function MisCVs() {
   const tabs = [
     { key: 'optimizados',     label: `CV Optimizado (${cvsOptimizados.length})` },
     { key: 'original',        label: `CV Inicial (${cvsOriginal.length})` },
+    { key: 'reportes',        label: `Reportes (${cvsReportes.length})` },
     { key: 'compatibilidades', label: `Compatibilidad (${checks.length})` },
     { key: 'match',           label: `CV vs Vacante (${cvsMatch.length})` },
   ]
@@ -234,6 +237,33 @@ export default function MisCVs() {
                         <p className="text-xs text-gray-400 mt-0.5">{formatFecha(item.created_at)}</p>
                       </div>
                       <BotonesDescarga id={item.id} descargando={descargando} onDescargar={handleDescargar} />
+                    </div>
+                  ))}
+                </div>
+          )}
+
+          {/* Tab 1.2: Reportes (Infografías) */}
+          {tab === 'reportes' && (
+            cvsReportes.length === 0
+              ? <EmptyState mensaje="No has generado tu Infografía de Proyecto Laboral." cta="Definir mi Proyecto →" ruta="/proyecto-laboral" />
+              : <div className="space-y-3">
+                  {cvsReportes.map(item => (
+                    <div key={item.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 border border-gray-100 rounded-xl hover:border-gray-200 transition-colors">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-purple-50 text-purple-600">Plan de Carrera Ejecutivo</span>
+                        </div>
+                        <p className="text-sm font-medium text-gray-800 mt-1 truncate">Reporte: {item.metadata?.filename || 'Infografía Visual'}</p>
+                        <p className="text-xs text-gray-400 mt-0.5">{formatFecha(item.created_at)}</p>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => navigate(`/reporte-visual/${item.id}`)}
+                          className="px-4 py-1.5 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-lg flex items-center justify-center min-w-[140px] transition-colors shadow-sm"
+                        >
+                          Ver Infografía
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>

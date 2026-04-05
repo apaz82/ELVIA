@@ -6,6 +6,38 @@ Instrucción: leer solo cuando se necesite recap del estado actual.
 
 ---
 
+## Sesión 2026-04-05 (3) · Gemini (Antigravity)
+
+### Contexto de partida
+- Se solicitó desarrollar la funcionalidad de generación de "Infografías del Proyecto Laboral".
+- Se requería que la IA corrija gramática/ortografía sin perder contexto y utilizando español hispanoamericano profesional, extrayendo datos estructurales de Perfil + Autoconocimiento + Compensación.
+- La experiencia visual (frontend) debía ser de alto nivel (impacto), por lo cual se eligió generar el diseño en React + Tailwind y exportarlo con `html2pdf.js`.
+
+### Qué se hizo
+
+**1. Backend — Motor de Infografía (`/api/cv/infografia-proyecto`):**
+- Implementado el nuevo endpoint REST para procesar la información unificada del Proyecto Laboral guardado por el usuario (`job_search_profile`).
+- Integración de `claude-haiku` bajo estrictas directrices de Cero-Alucinación para corregir la sintaxis y reformatear campos como "empresas target", "habilidades" y "expectativas salariales".
+- Guardado en bbdd `cv_results` utilizando el type identifier `infografia_proyecto`.
+
+**2. Frontend — Canvas Visual (`ReporteLaboral.jsx`):**
+- Se creó una vista independiente fuera del Sidebar que estipula dimensiones fijas A4 (8.5in x 11in), simulando la vista pre-impresión.
+- Acabados UI/UX de nivel corporativo: gradients púrpuras, íconos de PhosphorIcons integrados a un sistema de grids organizativos.
+- Se ha incorporado `html2pdf.js` atado al CTA "Descargar PDF", generando el documento vectorizado.
+
+**3. Frontend — Rutas e inyección en Proyecto Laboral:**
+- Se enlazó el CTA de **"Infografía Ejecutiva"** (limitado a completitud >= 50%) dentro del progreso general del usuario, enrutando eficientemente hacia la nueva generación.
+- Se listaron históricamente estas infografías en la pestaña segregada "Reportes" de `/mis-cvs`.
+
+### Estado del repo
+- **Branch:** `main`
+- **Frontend / Backend:** Operativos. Pendiente confirmación final por parte del usuario.
+
+### Pendientes
+- Proceder a la Inyección de Contexto en LinkedIn (Punto 9 de su roadmap general del wizard).
+
+---
+
 ## Sesión 2026-04-05 (2) · Gemini (Antigravity)
 
 ### Contexto de partida

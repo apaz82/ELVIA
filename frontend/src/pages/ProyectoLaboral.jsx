@@ -1810,9 +1810,38 @@ export default function ProyectoLaboral() {
   const [cargando,setCargando] = useState(true)  // estado de carga inicial
   const [errorCarga, setErrorCarga] = useState(null)  // error al cargar datos
   const [bannerCvCreada, setBannerCvCreada] = useState(false)  // banner tras guardar CV
+  const [generandoPdf, setGenerandoPdf] = useState(false) // Trigger gen infografía
   const pilarCardRef         = useRef(null)
   const saveTimeoutRef       = useRef(null)
   const cvAutoPopuladoRef    = useRef(false)  // evita doble ejecución
+
+  const generarInfografia = async () => {
+    if (pct < 50) {
+      alert("Debes completar al menos el 50% de tu Proyecto Laboral para generar la infografía ejecutiva. ¡Sigue avanzando!")
+      return
+    }
+    setGenerandoPdf(true)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+      const res = await fetch(`${apiUrl}/api/cv/infografia-proyecto`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      })
+      const respData = await res.json()
+      if (!res.ok) throw new Error(respData.error || 'Error al generar infografía')
+      
+      // Navigate to the visual report
+      navigate(`/reporte-visual/${respData.data.id}`)
+    } catch(e) {
+      alert("Error: " + e.message)
+    } finally {
+      setGenerandoPdf(false)
+    }
+  }
 
   // 1. Carga inicial de datos (sessionStorage -> Supabase)
   useEffect(function(){
@@ -2121,7 +2150,7 @@ export default function ProyectoLaboral() {
                 </div>
 
                 {/* Mini legend — valores reales de porPilar */}
-                <div className="space-y-2">
+                <div className="space-y-2 mb-6">
                   {[
                     {label:'Mi Perfil',         id:'perfil',           color:'bg-indigo-500'},
                     {label:'Autoconocimiento',  id:'autoconocimiento', color:'bg-violet-500'},
@@ -2139,6 +2168,17 @@ export default function ProyectoLaboral() {
                     </div>
                   )})}
                 </div>
+
+                {/* Generar PDF Infográfico CTA */}
+                <button 
+                  onClick={generarInfografia}
+                  disabled={generandoPdf}
+                  className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-400 hover:to-indigo-500 text-white font-bold text-xs py-3 rounded-xl transition-all shadow-lg disabled:opacity-50"
+                  title={pct < 50 ? "Requiere 50% de completitud" : "Genera tu presentación ejecutiva"}
+                >
+                  {generandoPdf ? <SpinnerGap size={16} className="animate-spin" /> : <Sparkle size={16} weight="fill" />}
+                  {generandoPdf ? 'Generando UI...' : 'Infografía Ejecutiva'}
+                </button>
               </div>
             </div>
           </div>

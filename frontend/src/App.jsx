@@ -26,6 +26,7 @@ import Expertos from './pages/Expertos'
 import Infografias from './pages/Infografias'
 import Pricing from './pages/Pricing'
 import ProyectoLaboral from './pages/ProyectoLaboral'
+import ReporteLaboral from './pages/ReporteLaboral'
 import Bienestar from './pages/Bienestar'
 import AiChatBot from './components/chat/AiChatBot'
 import { useAuth } from './context/AuthContext'
@@ -179,6 +180,7 @@ export default function App() {
       <Route path="/expertos"        element={<Expertos />} />
       <Route path="/infografias"     element={<Infografias />} />
       <Route path="/proyecto-laboral" element={<PrivateRoute><ProyectoLaboral /></PrivateRoute>} />
+      <Route path="/reporte-visual/:id" element={<PrivateRoute><ReporteLaboral /></PrivateRoute>} />
       <Route path="/bienestar"        element={<PrivateRoute><Bienestar /></PrivateRoute>} />
 
       {/* Privadas (Protegidas por Auth + Onboarding) */}

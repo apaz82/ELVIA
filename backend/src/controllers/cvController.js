@@ -1,7 +1,7 @@
 // Orquesta los servicios para cada endpoint de CV
 const { parseCV } = require('../utils/cvParser');
 const { detectLanguage } = require('../utils/languageDetector');
-const { optimizeCV, matchCVtoJob, extraerDatosInfografia } = require('../services/claudeService');
+const { optimizeCV, matchCVtoJob, extraerDatosInfografia, corregirProyectoLaboral } = require('../services/claudeService');
 const { generarPDF } = require('../services/pdfService');
 const { generarWord } = require('../services/wordService');
 const { incrementDailyCap } = require('../middleware/dailyCap');
@@ -419,4 +419,51 @@ const generarInfografia = async (req, res, next) => {
   }
 }
 
-module.exports = { optimize, matchToJob, download, extractProfile, generarInfografia };
+// POST /api/cv/infografia-proyecto
+// Genera una versión corregida ortográficamente del proyecto laboral y la guarda para visualización
+const generarInfografiaProyecto = async (req, res, next) => {
+  try {
+    const db = req.supabase;
+    const userId = req.user.id;
+
+    const { data: profile, error } = await db
+      .from('profiles')
+      .select('job_search_profile, nombre1, apellido1')
+      .eq('id', userId)
+      .single();
+
+    if (error || !profile || !profile.job_search_profile) {
+      return res.status(400).json({ error: 'No se encontró el perfil de búsqueda laboral.' });
+    }
+
+    // 1. Corrección IA (Ortografía Hispanoamericana)
+    const proyectoCorregido = await corregirProyectoLaboral(profile.job_search_profile);
+
+    // Adjuntar nombre para la UI
+    proyectoCorregido.nombreCandidato = `${profile.nombre1 || ''} ${profile.apellido1 || ''}`.trim() || 'Ejecutivo';
+
+    // 2. Guardar en cv_results como registro persistente
+    const { data: savedRecord, error: dbError } = await db
+      .from('cv_results')
+      .insert({
+        user_id: userId,
+        tipo: 'infografia_proyecto',
+        contenido: JSON.stringify(proyectoCorregido),
+        metadata: { 
+          filename: `Plan de Carrera Ejecutivo.pdf`,
+          frontend_pdf: true 
+        }
+      })
+      .select('id')
+      .single();
+
+    if (dbError) throw dbError;
+
+    // 3. Devolver datos corregidos listos para inyectarse en el Componente React
+    res.json({ id: savedRecord.id, datosCorregidos: proyectoCorregido });
+  } catch (err) {
+    next(err);
+  }
+};
+
+module.exports = { optimize, matchToJob, download, extractProfile, generarInfografia, generarInfografiaProyecto };
