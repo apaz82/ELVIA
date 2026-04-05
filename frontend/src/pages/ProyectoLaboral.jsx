@@ -1728,37 +1728,40 @@ export default function ProyectoLaboral() {
       })
   },[user])
 
-  // Detectar ?exito=cv_creada: auto-poblar campos vacíos del perfil con datos de la CV
+  // Detectar ?exito=cv_creada al montar — solo una vez
   useEffect(function(){
-    if (cargando || !user || !perfil || cvAutoPopuladoRef.current) return
     const params = new URLSearchParams(location.search)
-    if (params.get('exito') !== 'cv_creada') return
+    if (params.get('exito') === 'cv_creada') {
+      setBannerCvCreada(true)
+      navigate('/proyecto-laboral', { replace: true })
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Cuando los datos cargaron y hay banner: auto-poblar campos vacíos del perfil
+  useEffect(function(){
+    if (!bannerCvCreada || cargando || !user || !perfil || cvAutoPopuladoRef.current) return
     cvAutoPopuladoRef.current = true
-    setBannerCvCreada(true)
-    navigate('/proyecto-laboral', { replace: true })
 
     const cvDatos = data?.cv_datos_originales?.datos
     if (!cvDatos) return
 
-    // Solo llenar campos que están vacíos en el perfil actual
     const updates = {}
-    if (!perfil.nombre1   && cvDatos.nombre)    updates.nombre1   = cvDatos.nombre.trim()
-    if (!perfil.apellido1 && cvDatos.apellido)  updates.apellido1 = cvDatos.apellido.trim()
-    if (!perfil.nombre2   && cvDatos.nombre2)   updates.nombre2   = cvDatos.nombre2.trim()
-    if (!perfil.apellido2 && cvDatos.apellido2) updates.apellido2 = cvDatos.apellido2.trim()
-    if (!perfil.telefono1 && cvDatos.telefono)  updates.telefono1 = cvDatos.telefono.trim()
-    if (!perfil.ciudad    && cvDatos.ciudad)    updates.ciudad    = cvDatos.ciudad.trim()
-    if (!perfil.pais      && cvDatos.pais)      updates.pais      = cvDatos.pais.trim()
+    if (!perfil.nombre1    && cvDatos.nombre)     updates.nombre1    = cvDatos.nombre.trim()
+    if (!perfil.apellido1  && cvDatos.apellido)   updates.apellido1  = cvDatos.apellido.trim()
+    if (!perfil.nombre2    && cvDatos.nombre2)    updates.nombre2    = cvDatos.nombre2.trim()
+    if (!perfil.apellido2  && cvDatos.apellido2)  updates.apellido2  = cvDatos.apellido2.trim()
+    if (!perfil.telefono1  && cvDatos.telefono)   updates.telefono1  = cvDatos.telefono.trim()
+    if (!perfil.ciudad     && cvDatos.ciudad)     updates.ciudad     = cvDatos.ciudad.trim()
+    if (!perfil.pais       && cvDatos.pais)       updates.pais       = cvDatos.pais.trim()
     if (!perfil.indicativo1 && cvDatos.indicativo) updates.indicativo1 = cvDatos.indicativo
 
     if (Object.keys(updates).length > 0) {
-      if (user?.id) sessionStorage.removeItem(`perfil_lp_${user.id}`)
+      sessionStorage.removeItem(`perfil_lp_${user.id}`)
       supabase.from('profiles').update(updates).eq('id', user.id).then(function(){
         refreshPerfil()
       })
     }
-  },[cargando, location.search, data, perfil, user, navigate, refreshPerfil])
+  }, [bannerCvCreada, cargando]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const saveData = useCallback(function(nd){
     if (!user) return
