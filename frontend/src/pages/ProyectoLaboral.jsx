@@ -1276,11 +1276,20 @@ function PilarAutoconocimiento({ data, onChange, onSave, justSaved }) {
 // ─── Pilar 2: Recursos ───────────────────────────────────────────────────────
 
 function PilarRecursos({ data, onChange, onSave, justSaved, pais }) {
-  const recursos = (data&&data.recursos)?data.recursos:RECURSOS_DEFAULT
+  // Handle both direct array and nested {recursos: [...]} structure
+  let recursos = RECURSOS_DEFAULT
+  if (data) {
+    if (Array.isArray(data)) {
+      recursos = data
+    } else if (data.recursos && Array.isArray(data.recursos)) {
+      recursos = data.recursos
+    }
+  }
+
   const moneda = detectarMoneda(pais)
-  const upR = function(id,f,v){onChange({recursos:recursos.map(function(r){return r.id===id?Object.assign({},r,{[f]:v}):r})})}
-  const addR = function(){onChange({recursos:recursos.concat([{id:String(Date.now()),nombre:'',descripcion:'',costo:0,tengo:false}])})}
-  const delR = function(id){onChange({recursos:recursos.filter(function(r){return r.id!==id})})}
+  const upR = function(id,f,v){onChange(recursos.map(function(r){return r.id===id?Object.assign({},r,{[f]:v}):r}))}
+  const addR = function(){onChange(recursos.concat([{id:String(Date.now()),nombre:'',descripcion:'',costo:0,tengo:false}]))}
+  const delR = function(id){onChange(recursos.filter(function(r){return r.id!==id}))}
   const totalAll = recursos.reduce(function(s,r){return s+(Number(r.costo)||0)},0)
   const monedaSymbol = MONEDAS_LIST.find(function(m){return m.code===moneda})?.symbol || '$'
 
@@ -1302,7 +1311,7 @@ function PilarRecursos({ data, onChange, onSave, justSaved, pais }) {
               <button onClick={function(){
                 const newTengo = !r.tengo
                 if (!newTengo) {
-                  onChange({recursos:recursos.map(function(res){return res.id===r.id?Object.assign({},res,{tengo:false,costo:0}):res})})
+                  onChange(recursos.map(function(res){return res.id===r.id?Object.assign({},res,{tengo:false,costo:0}):res}))
                 } else {
                   upR(r.id,'tengo',newTengo)
                 }
