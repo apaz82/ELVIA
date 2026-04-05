@@ -214,7 +214,7 @@ const RECURSOS_DEFAULT = RECURSOS_DEFAULT_BASE
 
 const DOCS_LIST = [
   { id:'cv',          label:'CV optimizado con ELVIA',            link:'/cv-optimizer',   Icon:FileMagnifyingGlass },
-  { id:'linkedin',    label:'LinkedIn actualizado y auditado',      link:'/linkedin-optima', Icon:LinkedinLogo       },
+  { id:'linkedin',    label:'LinkedIn actualizado y auditado',      link:'/linkedin-pro',   Icon:LinkedinLogo       },
   { id:'cv_vacante',  label:'CV adaptado a una vacante objetivo',  link:'/cv-vs-job',      Icon:MagnifyingGlass    },
   { id:'entrevista',  label:'Práctica de entrevista realizada',    link:'/entrevista',     Icon:Robot              },
   { id:'carta',       label:'Carta de presentación lista',         link:null,              Icon:Notepad            },
@@ -310,10 +310,38 @@ function PilarMiPerfil({ perfil, extraData, onChange, onSavePerfil, saving, isPa
   }, [userId, perfil])
 
   const handleDescargarOriginal = async (formato) => {
-    if (!originalCvId) return
+    let cvId = originalCvId
+    
+    // Fallback: si no tenemos el ID (posiblemente recién generado), intentamos buscarlo
+    if (!cvId) {
+      const { data } = await supabase
+        .from('cv_results')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('tipo', 'original')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      
+      if (data) {
+        cvId = data.id
+        setOriginalCvId(data.id)
+      }
+    }
+
+    if (!cvId) {
+      toast.error('No se encontró el ID del CV original para descargar. Intenta recargar la página.')
+      return
+    }
+
     setDescargandoOriginal(formato)
-    try { await descargarCV(originalCvId, formato) }
-    finally { setDescargandoOriginal(null) }
+    try {
+      await descargarCV(cvId, formato)
+    } catch (err) {
+      toast.error('Error al descargar el CV')
+    } finally {
+      setDescargandoOriginal(null)
+    }
   }
   // Refs para flush en unmount
   const [lp, setLP] = useState({
@@ -1648,7 +1676,7 @@ function PilarOfertaDeValor({ data, onChange, onSave, justSaved }) {
 
 // ─── Pilar 5: Documentos ────────────────────────────────────────────────────
 
-function PilarDocumentos({ data, onChange, onSave, justSaved, pct }) {
+function PilarDocumentos({ data, onChange, onSave, justSaved, pct, isPaidPlan }) {
   const isComplete = pct >= 100
   const checks = (data&&data.checks)?data.checks:{}
   const toggle = function(id){onChange({checks:Object.assign({},checks,{[id]:!checks[id]})})}
@@ -1678,13 +1706,13 @@ function PilarDocumentos({ data, onChange, onSave, justSaved, pct }) {
                 <span className={'text-sm font-semibold '+(done?'text-amber-700 line-through':'text-slate-700')}>{item.label}</span>
               </div>
               {item.link&&(
-                isComplete ? (
+                (isComplete && (item.id !== 'linkedin' || isPaidPlan)) ? (
                   <Link to={item.link} className="shrink-0 flex items-center gap-1 text-xs font-bold text-slate-500 hover:text-amber-600 border border-slate-200 hover:border-amber-300 rounded-lg px-3 py-1.5 transition-colors cursor-pointer">
                     {done?'Revisar':'Ir ahora'} <ArrowRight size={12}/>
                   </Link>
                 ) : (
                   <span className="shrink-0 flex items-center gap-1 text-xs font-bold text-slate-300 border border-slate-100 rounded-lg px-3 py-1.5 cursor-not-allowed">
-                    <Lock size={12}/> Bloqueado
+                    {item.id==='linkedin'&&!isPaidPlan ? <><Lock size={12}/> Pro</> : <><Lock size={12}/> Bloqueado</>}
                   </span>
                 )
               )}
@@ -2128,9 +2156,9 @@ export default function ProyectoLaboral() {
             </div>
 
             {/* Right: progress card */}
-            <div className="md:w-64 shrink-0">
+            <div className="md:w-80 shrink-0">
               <div className="bg-slate-900 rounded-2xl p-6 text-white">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">Avance del proyecto</p>
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Avance del proyecto</p>
 
                 {/* Circle */}
                 <div className="relative w-28 h-28 mx-auto mb-4">
@@ -2144,8 +2172,8 @@ export default function ProyectoLaboral() {
                       style={{transition:'stroke-dashoffset 0.8s cubic-bezier(.4,0,.2,1)'}}/>
                   </svg>
                   <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <span className="text-3xl font-black text-white leading-none">{pct}%</span>
-                    <span className="text-[10px] text-slate-400 mt-0.5">completo</span>
+                    <span className="text-4xl font-black text-white leading-none">{pct}%</span>
+                    <span className="text-xs text-slate-400 mt-0.5">completo</span>
                   </div>
                 </div>
 
@@ -2163,8 +2191,8 @@ export default function ProyectoLaboral() {
                     return(
                     <div key={l.label} className="flex items-center gap-2">
                       <div className={'w-1.5 h-1.5 rounded-full shrink-0 '+l.color}/>
-                      <span className="text-[11px] text-slate-400 flex-1">{l.label}</span>
-                      <span className={'text-[11px] font-bold '+(v>=80?'text-emerald-400':v>=40?'text-amber-400':'text-slate-500')}>{v}%</span>
+                      <span className="text-sm text-slate-400 flex-1">{l.label}</span>
+                      <span className={'text-sm font-bold '+(v>=80?'text-emerald-400':v>=40?'text-amber-400':'text-slate-500')}>{v}%</span>
                     </div>
                   )})}
                 </div>
@@ -2221,7 +2249,7 @@ export default function ProyectoLaboral() {
             {pilarId==='recursos'      &&<PilarRecursos         data={data.recursos}         onChange={function(v){updatePilar('recursos',v)}} onSave={function(){handlePilarSave('recursos')}} justSaved={justSaved==='recursos'} pais={perfil?.pais_prestaciones || perfil?.pais || ''}/>}
             {pilarId==='semana'        &&<PilarSemana           data={data.semana}           onChange={function(v){updatePilar('semana',v)}} onSave={function(){handlePilarSave('semana')}} justSaved={justSaved==='semana'}/>}
             {pilarId==='oferta'        &&<PilarOfertaDeValor    data={data.oferta}           onChange={function(v){updatePilar('oferta',v)}} onSave={function(){handlePilarSave('oferta')}} justSaved={justSaved==='oferta'}/>}
-            {pilarId==='documentos'    &&<PilarDocumentos       data={data.documentos}       onChange={function(v){updatePilar('documentos',v)}} onSave={function(){handlePilarSave('documentos')}} justSaved={justSaved==='documentos'} pct={pct}/>}
+            {pilarId==='documentos'    &&<PilarDocumentos       data={data.documentos}       onChange={function(v){updatePilar('documentos',v)}} onSave={function(){handlePilarSave('documentos')}} justSaved={justSaved==='documentos'} pct={pct} isPaidPlan={isPaidPlan}/>}
           </div>
         </div>
 

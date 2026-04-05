@@ -72,9 +72,10 @@ function colorPuntaje(score) {
 function ScoreRing({ score }) {
   const color = colorPuntaje(score)
   return (
-    <div className={`flex flex-col items-center justify-center w-24 h-24 rounded-full border-4 ${color.border} ${color.bg} shrink-0`}>
-      <span className={`text-2xl font-bold ${color.text}`}>{score}</span>
-      <span className={`text-[10px] font-semibold ${color.text} uppercase tracking-wide`}>/ 100</span>
+    <div className={`flex flex-col items-center justify-center w-28 h-28 rounded-full border-4 ${color.border} ${color.bg} shrink-0 shadow-lg shadow-slate-200/50 relative overflow-hidden group`}>
+      <div className={`absolute inset-0 opacity-10 bg-gradient-to-br ${color.bar} to-transparent`} />
+      <span className={`text-3xl font-black ${color.text} relative z-10 tracking-tighter`}>{score}</span>
+      <span className={`text-[10px] font-black ${color.text} uppercase tracking-widest relative z-10 opacity-60`}>/ 100</span>
     </div>
   )
 }
@@ -174,8 +175,8 @@ export default function LinkedinOptima() {
     return (
       <ProGate
         tipo={trialExpired ? 'trial' : 'pro'}
-        titulo="LinkedIn Óptimo"
-        descripcion="Analiza y optimiza cada sección de tu perfil de LinkedIn con IA para maximizar tu visibilidad ante reclutadores y ATS."
+        titulo="LinkedIn® Óptimo"
+        descripcion="Analiza y optimiza cada sección de tu perfil de LinkedIn® con IA para maximizar tu visibilidad ante reclutadores y ATS."
         icono={<LinkedinLogo size={40} className="text-[#0077B5]" />}
         beneficios={[
           'Análisis de titular, extracto, experiencia y habilidades',
@@ -338,12 +339,26 @@ export default function LinkedinOptima() {
         </div>
 
         {/* Botón para nuevo análisis */}
-        <button
-          onClick={handleReset}
-          className="w-full py-3 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
-        >
-          Analizar otro perfil
-        </button>
+        <div className="space-y-4">
+          <button
+            onClick={handleReset}
+            className="w-full py-4 rounded-2xl bg-white border border-slate-200 text-sm font-bold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all shadow-sm active:scale-[0.98]"
+          >
+            Analizar otro perfil
+          </button>
+          
+          <div className="text-center opacity-40 grayscale hover:grayscale-0 transition-all duration-500">
+             <div className="flex items-center justify-center gap-2 mb-1">
+                <Sparkle size={12} weight="fill" className="text-amber-500" />
+                <p className="text-[9px] font-black uppercase tracking-widest text-slate-800">
+                  Certificado de Calidad ELVIA
+                </p>
+             </div>
+             <p className="text-[9px] text-slate-500 leading-tight italic">
+               Construido y optimizado por mentores de carrera expertos y tecnología de última generación.
+             </p>
+          </div>
+        </div>
       </div>
     )
   }
@@ -352,22 +367,35 @@ export default function LinkedinOptima() {
   return (
     <div className="max-w-2xl mx-auto px-4 py-8">
       {/* Header */}
-      <div className="mb-8 p-1">
-        <div className="flex items-center gap-4 mb-4">
-          <div className="w-14 h-14 rounded-[1.5rem] bg-indigo-600/10 flex items-center justify-center border border-indigo-500/20 shadow-inner">
-            <LinkedinLogo size={32} weight="fill" className="text-[#0077B5]" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-black text-gray-900 italic tracking-tighter uppercase">LinkedIn Optima</h1>
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em]">Sintonización IA de Perfil · 2026</p>
-            </div>
+      <div className="mb-10 text-center">
+        <div className="inline-flex items-center justify-center p-4 bg-white rounded-[2rem] shadow-xl shadow-slate-200/50 border border-slate-100 mb-6">
+          <div className="w-16 h-16 rounded-2xl bg-[#0077B5]/10 flex items-center justify-center border border-[#0077B5]/20">
+            <LinkedinLogo size={40} weight="fill" className="text-[#0077B5]" />
           </div>
         </div>
-        <p className="text-sm text-gray-500 leading-relaxed font-medium">
-          Optimiza tu presencia profesional en LinkedIn. Elige el método de carga que prefieras para un análisis instantáneo.
-        </p>
+        
+        <h1 className="text-4xl font-black text-slate-900 tracking-tight mb-4">
+          LinkedIn<span className="text-[#0077B5]">®</span> Óptimo
+        </h1>
+        
+        <div className="flex flex-col items-center gap-3">
+          <div className="px-4 py-1.5 bg-indigo-50 border border-indigo-100 rounded-full">
+            <p className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.3em]">
+              Sintonización de Perfil con IA Elite · 2026
+            </p>
+          </div>
+          <p className="text-sm text-slate-500 max-w-lg leading-relaxed font-medium">
+            Transforma tu perfil en un imán de oportunidades. Analizamos tu contenido contra estándares de reclutadores expertos para que destaques en el mercado.
+          </p>
+          
+          {/* Disclaimer Mandatory */}
+          <div className="mt-4 px-5 py-2 bg-slate-50 border border-slate-200 rounded-2xl flex items-center gap-2">
+            <Sparkle size={14} weight="fill" className="text-amber-500" />
+            <p className="text-[10px] font-bold text-slate-600 italic">
+              Construido y optimizado por mentores de carrera expertos y tecnología de última generación.
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* Selector de Modo */}

@@ -16,7 +16,7 @@ const INICIO = [
 
 const HERRAMIENTAS = [
   { to: '/cv-optimizer',    label: 'CV Optimizer',          Icon: FileMagnifyingGlass },
-  { to: '/linkedin-pro',     label: 'LinkedIn Pro',          Icon: LinkedinLogo, beta: true },
+  { to: '/linkedin-pro',     label: 'LinkedIn® Pro',          Icon: LinkedinLogo, beta: true },
   { to: '/cv-vs-job',       label: 'CV vs Vacante',         Icon: MagnifyingGlass },
   { to: '/jobs',            label: 'Vacantes',              Icon: Briefcase },
   { to: '/entrevista',      label: 'Prepara tu Entrevista', Icon: MicrophoneStage, beta: true },

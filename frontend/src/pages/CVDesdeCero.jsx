@@ -266,7 +266,7 @@ function generarTipsPorPaso(d) {
 
 // ─── Componente principal ─────────────────────────────────────────────────────
 export default function CVDesdeCero() {
-  const { user, isPaidPlan, perfil } = useAuth()
+  const { user, isPaidPlan, perfil, refreshPerfil, refreshJpData } = useAuth()
   const navigate = useNavigate()
 
   const [pasoActual,    setPasoActual]    = useState(0)
@@ -568,7 +568,11 @@ export default function CVDesdeCero() {
       sessionStorage.removeItem(`cv_draft_${user.id}`)
       sessionStorage.removeItem(`perfil_lp_${user.id}`)
 
-      // 5. Navegar al Proyecto Laboral con el flag de éxito
+      // 5. Refrescar estado global antes de navegar
+      await refreshPerfil()
+      if (refreshJpData) await refreshJpData()
+
+      // 6. Navegar al Proyecto Laboral con el flag de éxito
       setCvGenerada(null)
       navigate('/proyecto-laboral?exito=cv_creada', { replace: true })
       
