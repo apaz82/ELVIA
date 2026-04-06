@@ -3,11 +3,11 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../services/authService'
-import { generarCVDesdeCero, extractarPerfilCV } from '../services/cvService'
+import { generarCVDesdeCero, extractarPerfilCV, descargarCV } from '../services/cvService'
 import {
   Plus, X, ArrowLeft, ArrowRight, Question, Check,
   CheckFat, SpinnerGap, Warning, FileArrowDown, UploadSimple,
-  WarningCircle, CheckCircle
+  WarningCircle, CheckCircle, DownloadSimple, FileDoc
 } from '@phosphor-icons/react'
 
 const PASOS = [
@@ -529,17 +529,11 @@ export default function CVDesdeCero() {
       
       if (upErr) throw new Error('Error al guardar CV en Storage')
 
-      // 2. Insertar en cv_results para que aparezca en "MIS CVS"
-      const { error: resErr } = await supabase.from('cv_results').insert({
-        user_id:   user.id,
-        tipo:      'original',
-        contenido: cvGenerada.optimizedCV,
-        metadata:  { 
-          filename: nombreArchivo,
-          generado_en: new Date().toISOString()
-        }
-      })
-      if (resErr) throw new Error('No se pudo guardar la CV en tu historial. Por favor intenta de nuevo.')
+      // 2. Usar el ID que ya nos dio el backend al generar
+      const savedId = cvGenerada.id;
+      if (!savedId) {
+        console.warn('Backend no retornó ID, continuando sin vinculación crítica.');
+      }
 
       // 3. Obtener job_search_profile actual para no sobreescribir otros datos
       const { data: pActual } = await supabase.from('profiles')
@@ -618,10 +612,29 @@ export default function CVDesdeCero() {
                     </ul>
                   </div>
                 )}
-                <button onClick={confirmarYGuardar} disabled={generando}
-                  className="w-full bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-colors text-sm">
-                  {generando ? <><SpinnerGap size={18} className="animate-spin" /> Guardando...</> : <><CheckFat size={18} /> Confirmar como mi CV</>}
-                </button>
+                <div className="flex flex-col gap-2">
+                  <button
+                    onClick={() => descargarCV(cvGenerada.id, 'pdf')}
+                    disabled={!cvGenerada.id}
+                    className="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-colors text-sm"
+                  >
+                    <DownloadSimple size={18} /> Descargar PDF
+                  </button>
+                  <button
+                    onClick={() => descargarCV(cvGenerada.id, 'word')}
+                    disabled={!cvGenerada.id}
+                    className="w-full bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-colors text-sm"
+                  >
+                    <FileDoc size={18} className="text-blue-600" /> Descargar Word
+                  </button>
+                </div>
+
+                <div className="pt-2">
+                  <button onClick={confirmarYGuardar} disabled={generando}
+                    className="w-full bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-colors text-sm shadow-lg shadow-green-100">
+                    {generando ? <><SpinnerGap size={18} className="animate-spin" /> Guardando...</> : <><CheckFat size={18} /> Confirmar y Finalizar</>}
+                  </button>
+                </div>
                 {error && <div className="bg-red-50 border border-red-200 rounded-lg p-2 text-xs text-red-700">{error}</div>}
               </div>
             </div>

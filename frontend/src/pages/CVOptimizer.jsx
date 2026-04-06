@@ -9,6 +9,8 @@ import FileUpload from '../components/common/FileUpload'
 import LanguageSelector from '../components/common/LanguageSelector'
 import EmailField from '../components/common/EmailField'
 import Button from '../components/common/Button'
+import FeatureLocked from '../components/common/FeatureLocked'
+import { FileMagnifyingGlass } from '@phosphor-icons/react'
 
 const LABEL_IDIOMA = { es: 'Español', en: 'Inglés', pt: 'Portugués' }
 
@@ -23,7 +25,7 @@ const nombreCV = (cv) => {
 }
 
 export default function CVOptimizer() {
-  const { user, refreshUsage, perfil } = useAuth()
+  const { user, refreshUsage, perfil, featuresDesbloqueadas } = useAuth()
   const { cvArchivo, setCvArchivo, setResultadoOptimize, resultadoOptimize } = useCV()
   const navigate = useNavigate()
 
@@ -40,6 +42,16 @@ export default function CVOptimizer() {
   // null = sin decidir, 'perfil' = usar CV del perfil, 'nuevo' = subir nuevo
   const [cvDecision, setCvDecision] = useState(null)
   const [showConfirmModal, setShowConfirmModal] = useState(false)
+
+  if (!featuresDesbloqueadas) {
+    return (
+      <FeatureLocked 
+        titulo="Optimizador de CV" 
+        descripcion="Crea una versión de tu CV de alto impacto con formato Harvard, optimizada para ATS y revisada por nuestra IA."
+        icono={<FileMagnifyingGlass size={44} weight="light" />}
+      />
+    )
+  }
 
   // Cargar CVs optimizados existentes del usuario
   useEffect(() => {

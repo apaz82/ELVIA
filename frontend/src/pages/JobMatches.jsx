@@ -7,6 +7,8 @@ import { supabase } from '../services/authService'
 import { api } from '../services/api'
 import Button from '../components/common/Button'
 import JobActionPanel from '../components/common/JobActionPanel'
+import FeatureLocked from '../components/common/FeatureLocked'
+import { Briefcase } from '@phosphor-icons/react'
 
 const extraerNombre = (contenido) => {
   if (!contenido) return 'CV sin nombre'
@@ -33,11 +35,21 @@ const colorScore = (score) => {
 
 export default function JobMatches() {
   const { resultadoMatch, resultadoOptimize } = useCV()
-  const { user, refreshUsage, perfil } = useAuth()
+  const { user, refreshUsage, perfil, featuresDesbloqueadas } = useAuth()
   const navigate = useNavigate()
 
   // CV base para compatibilidad: primero el de contexto (sesión actual), si no el seleccionado de historial
   const cvTextContexto = resultadoOptimize?.optimizedCV || resultadoMatch?.tailoredCV || ''
+
+  if (!featuresDesbloqueadas) {
+    return (
+      <FeatureLocked 
+        titulo="Vacantes Recomendadas" 
+        descripcion="Accede a las mejores oportunidades laborales filtradas por nuestra IA según tu perfil único."
+        icono={<Briefcase size={44} weight="light" />}
+      />
+    )
+  }
   const [cvsSaved, setCvsSaved]         = useState([])   // lista de CVs de Supabase
   const [cvSeleccionado, setCvSeleccionado] = useState(null) // { id, nombre, contenido }
   const [mostrarSelector, setMostrarSelector] = useState(false)

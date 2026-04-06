@@ -216,7 +216,7 @@ export const AuthProvider = ({ children }) => {
     return calcularProgreso(jpData, perfil)
   }, [jpData, perfil, jpLoaded])
 
-  const featuresDesbloqueadas = progresoLaboral >= 100
+  const featuresDesbloqueadas = (progresoLaboral >= 100) || (planInfo.isPaidPlan)
 
   const refreshJpData = useCallback(async () => {
     if (!user) return

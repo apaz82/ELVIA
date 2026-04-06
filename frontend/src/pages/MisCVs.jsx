@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../services/authService'
 import { descargarCV } from '../services/cvService'
+import FeatureLocked from '../components/common/FeatureLocked'
+import { FilePdf } from '@phosphor-icons/react'
 
 const extraerNombre = (contenido) => {
   if (!contenido) return 'CV sin nombre'
@@ -85,8 +87,18 @@ function InfoVacante({ title, company, location, link, via, snippet }) {
 }
 
 export default function MisCVs() {
-  const { user, loading: authLoading } = useAuth()
+  const { user, loading: authLoading, featuresDesbloqueadas } = useAuth()
   const navigate = useNavigate()
+
+  if (!featuresDesbloqueadas) {
+    return (
+      <FeatureLocked 
+        titulo="Mis CVs Guardados" 
+        descripcion="Administra todas las versiones optimizadas de tu CV y descarga los formatos Harvard generados por nuestra IA."
+        icono={<FilePdf size={44} weight="light" />}
+      />
+    )
+  }
 
   const [cvsOptimizados, setCvsOptimizados] = useState([])
   const [cvsOriginal,    setCvsOriginal]    = useState([])

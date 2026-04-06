@@ -1,5 +1,7 @@
 // Expertos.jsx — Mentor Experto: asesoría 1-a-1 humana y confidencial
 import { useState } from 'react'
+import { useAuth } from '../context/AuthContext'
+import FeatureLocked from '../components/common/FeatureLocked'
 import {
   UsersThree, ShieldCheck, Lock, Info, X,
   CheckCircle, Clock, ListChecks, Warning, Seal
@@ -85,10 +87,21 @@ function ModalPrivacidad({ onClose }) {
 
 // ─── Componente principal ─────────────────────────────────────────────────────
 export default function Expertos() {
+  const { featuresDesbloqueadas } = useAuth()
   const [servicio, setServicio] = useState('')
   const [detalle, setDetalle]  = useState('')
   const [modalPriv, setModalPriv] = useState(false)
   const [enviado, setEnviado]  = useState(false)
+
+  if (!featuresDesbloqueadas) {
+    return (
+      <FeatureLocked 
+        titulo="Mentor Experto 1-a-1" 
+        descripcion="Habla directamente con un profesional senior para resolver dudas críticas sobre tu proceso, oferta o estrategia de carrera."
+        icono={<UsersThree size={44} weight="light" />}
+      />
+    )
+  }
 
   const puedeEnviar = servicio && detalle.trim().length >= 20
 

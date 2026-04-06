@@ -4,6 +4,8 @@ import { useAuth } from '../context/AuthContext'
 import { useCV } from '../context/CVContext'
 import { supabase } from '../services/authService'
 import JobActionPanel from '../components/common/JobActionPanel'
+import FeatureLocked from '../components/common/FeatureLocked'
+import { MagnifyingGlass } from '@phosphor-icons/react'
 
 const formatFecha = (iso) => {
   if (!iso) return ''
@@ -11,9 +13,19 @@ const formatFecha = (iso) => {
 }
 
 export default function MisVacantes() {
-  const { user, refreshUsage, loading: authLoading } = useAuth()
+  const { user, refreshUsage, loading: authLoading, featuresDesbloqueadas } = useAuth()
   const { resultadoOptimize, resultadoMatch } = useCV()
   const navigate = useNavigate()
+
+  if (!featuresDesbloqueadas) {
+    return (
+      <FeatureLocked 
+        titulo="Mis Vacantes Guardadas" 
+        descripcion="Seguimiento detallado de todas las oportunidades que te interesan y análisis de compatibilidad por IA."
+        icono={<MagnifyingGlass size={44} weight="light" />}
+      />
+    )
+  }
 
   const [cvsSaved, setCvsSaved]         = useState([])   // lista de CVs de Supabase
   const [cvSeleccionado, setCvSeleccionado] = useState(null) // { id, nombre, contenido }

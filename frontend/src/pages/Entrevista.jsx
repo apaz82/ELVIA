@@ -59,11 +59,11 @@ function Estrellas({ n }) {
 
 // ── Componente principal ────────────────────────────────────────────────────
 export default function Entrevista() {
-  const { user, isPaidPlan, trialExpired } = useAuth()
+  const { user, isPaidPlan, trialExpired, featuresDesbloqueadas } = useAuth()
   const navigate = useNavigate()
 
-  // Bloqueo para usuarios gratuitos
-  if (!isPaidPlan) {
+  // Bloqueo para usuarios sin progreso 100% o sin plan
+  if (!featuresDesbloqueadas) {
     return (
       <ProGate
         tipo={trialExpired ? 'trial' : 'pro'}

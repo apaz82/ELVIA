@@ -37,37 +37,35 @@ export function calcularProgreso(data, perfil) {
   // 1. Aspiraciones (Areas + Industrias) - 5 pts
   const areas = auto.areas || perf.areas || []
   const ind   = auto.industrias || perf.industrias_deseadas || []
-  if (areas.length >= 2 && ind.length >= 1) autoPts += 5
+  if (areas.length >= 1 && ind.length >= 1) autoPts += 5
   
   // 2. Hard Skills - 5 pts
-  if (Array.isArray(auto.hard_skills) && auto.hard_skills.length >= 3) autoPts += 5
+  if (Array.isArray(auto.hard_skills) && auto.hard_skills.length >= 2) autoPts += 5
   
   // 3. Soft Skills - 5 pts
-  if (Array.isArray(auto.soft_skills) && auto.soft_skills.length >= 3) autoPts += 5
+  if (Array.isArray(auto.soft_skills) && auto.soft_skills.length >= 2) autoPts += 5
   
   // 4. Power Skills - 5 pts
-  if (Array.isArray(auto.power_skills) && auto.power_skills.length >= 3) autoPts += 5
+  if (Array.isArray(auto.power_skills) && auto.power_skills.length >= 2) autoPts += 5
   
   // 5. Compañías - 5 pts
-  if (Array.isArray(auto.top5empresas) && auto.top5empresas.filter(function(e){return e && String(e).trim()}).length >= 2) autoPts += 5
+  if (Array.isArray(auto.top5empresas) && auto.top5empresas.filter(function(e){return e && String(e).trim()}).length >= 1) autoPts += 5
 
   core += Math.min(autoPts, 25)
 
-
-
   const bloques = (data&&data.semana&&data.semana.bloques) ? data.semana.bloques : {}
   const bN = Object.values(bloques).filter(Boolean).length
-  if (bN>=5) core+=10; else if (bN>=2) core+=5; else if (bN>=1) core+=2
+  if (bN>=3) core+=10; else if (bN>=1) core+=5; 
 
   const rawRec = data&&data.recursos ? (Array.isArray(data.recursos) ? data.recursos : (data.recursos.recursos||null)) : null
   const rec = (rawRec&&rawRec.length>0) ? rawRec : RECURSOS_DEFAULT
   const nActivos = rec.filter(function(r){return r.tengo===true}).length
-  core += (nActivos >= 4) ? 10 : (nActivos * 2.5) // 4 items = 10 pts
+  core += (nActivos >= 2) ? 10 : (nActivos * 5) 
 
   const oferta = (data&&data.oferta) ? data.oferta : {}
   let ofertaPts = 0
-  if (Array.isArray(oferta.cultura)&&oferta.cultura.length>=3) ofertaPts+=10
-  if (String(oferta.oferta_valor||'').trim().length>=50) ofertaPts+=20
+  if (Array.isArray(oferta.cultura)&&oferta.cultura.length>=2) ofertaPts+=10
+  if (String(oferta.oferta_valor||'').trim().length>=30) ofertaPts+=20
   core += Math.min(ofertaPts, 30)
 
   return Math.min(core, 100)

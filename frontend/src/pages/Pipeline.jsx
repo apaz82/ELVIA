@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../services/authService'
 import PlanBanner from '../components/common/PlanBanner'
+import FeatureLocked from '../components/common/FeatureLocked'
+import { Kanban } from '@phosphor-icons/react'
 
 const ETAPAS = ['Descubierto', 'Apliqué', 'Pruebas/Assessment', 'En entrevistas', 'Ofertado']
 const ETAPA_PERDIDA = 'No avanzó'
@@ -290,8 +292,18 @@ const exportarExcel = (vacantes) => {
 }
 
 export default function Pipeline() {
-  const { user, loading: authLoading } = useAuth()
+  const { user, loading: authLoading, featuresDesbloqueadas } = useAuth()
   const navigate = useNavigate()
+
+  if (!featuresDesbloqueadas) {
+    return (
+      <FeatureLocked 
+        titulo="Pipeline de Aplicaciones" 
+        descripcion="Sigue el estado de cada una de tus aplicaciones en tiempo real y gestiona tu proceso como un profesional."
+        icono={<Kanban size={44} weight="light" />}
+      />
+    )
+  }
 
   const [vacantes, setVacantes]     = useState([])
   const [loading, setLoading]       = useState(true)
@@ -340,22 +352,15 @@ export default function Pipeline() {
     setVacantes(prev => prev.map(v => v.id === item.id ? { ...v, contacto } : v))
   }
 
-  const { isPaidPlan } = useAuth()
-
   const activas  = vacantes.filter(v => (v.estado || 'Descubierto') !== ETAPA_PERDIDA)
   const perdidas = vacantes.filter(v => (v.estado || 'Descubierto') === ETAPA_PERDIDA)
 
-  // Plan free: solo ver 3 vacantes (prioriza las que tienen análisis de compatibilidad)
-  const activasVisibles = useMemo(() => {
-    if (isPaidPlan) return activas
-    const conAnalisis   = activas.filter(v => v.check)
-    const sinAnalisis   = activas.filter(v => !v.check)
-    const necesitamos   = Math.max(0, 3 - conAnalisis.length)
-    return [...conAnalisis, ...sinAnalisis.slice(0, necesitamos)]
-  }, [activas, isPaidPlan])
+  // Plan free vs Pro: ya manejado por el gate superior (FeatureLocked)
+  // Si estamos aquí, el usuario tiene acceso total.
+  const activasVisibles = activas
 
   const visibles = filtroPerdidas ? perdidas : activasVisibles
-  const ocultasPorPlan = !isPaidPlan && !filtroPerdidas && activas.length > activasVisibles.length
+  const ocultasPorPlan = !isPaidPlan && !featuresDesbloqueadas && !filtroPerdidas && activas.length > activasVisibles.length
 
   const conteo = ETAPAS.reduce((acc, e) => {
     acc[e] = activas.filter(v => (v.estado || 'Descubierto') === e).length

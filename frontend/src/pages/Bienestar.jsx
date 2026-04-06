@@ -1,6 +1,7 @@
 // Bienestar.jsx — Bienestar Emocional durante la Búsqueda Laboral
 import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
+import FeatureLocked from '../components/common/FeatureLocked'
 import { supabase } from '../services/authService'
 import {
   Heart, Wind, ChartBar, BookOpen, Play,
@@ -424,10 +425,20 @@ const TABS = [
 // ─── Componente Principal ────────────────────────────────────────────────────
 
 export default function Bienestar() {
-  const { user } = useAuth()
+  const { user, featuresDesbloqueadas } = useAuth()
   const [tab, setTab]     = useState('checkin')
   const [perfil, setPerfil] = useState({})
   const [saving, setSaving] = useState(false)
+
+  if (!featuresDesbloqueadas) {
+    return (
+      <FeatureLocked 
+        titulo="Ecosistema de Bienestar" 
+        descripcion="Herramientas de salud mental, control de ansiedad y meditación guiada diseñadas específicamente para candidatos en transición."
+        icono={<Heart size={44} weight="light" />}
+      />
+    )
+  }
 
   useEffect(() => {
     if (!user) return

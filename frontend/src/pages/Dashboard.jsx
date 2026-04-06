@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../services/authService'
+import { calcularProgreso } from '../utils/progresoLaboral'
 import {
   FileMagnifyingGlass, MagnifyingGlass, Briefcase,
   ChartLineUp, Coins, ArrowRight, Sparkle,
@@ -36,7 +37,7 @@ function MetricCard({ icon: Icon, iconColor, bgColor, label, value, sub, to }) {
 
 // ─── Componente principal ─────────────────────────────────────────────────────
 export default function Dashboard() {
-  const { user, perfil, creditosRestantes, LIMITE_PLAN, usageCount, isPaidPlan, trialExpired, trialDaysLeft } = useAuth()
+  const { user, perfil, creditosRestantes, LIMITE_PLAN, usageCount, isPaidPlan, trialExpired, trialDaysLeft, jpData } = useAuth()
 
   const [metricas, setMetricas] = useState({
     cvsOptimizados: null,
@@ -65,7 +66,7 @@ export default function Dashboard() {
     if (!user?.id) return
     const cargarMetricas = async () => {
       setLoadingMetricas(true)
-      const [cvRes, jobsRes, codeRes, profileRes] = await Promise.all([
+      const [cvRes, jobsRes, codeRes] = await Promise.all([
         supabase.from('cv_results').select('tipo, metadata').eq('user_id', user.id),
         supabase.from('saved_jobs').select('estado'),
         supabase
@@ -75,7 +76,6 @@ export default function Dashboard() {
           .order('redeemed_at', { ascending: false })
           .limit(1)
           .maybeSingle(),
-        supabase.from('profiles').select('job_search_profile').eq('id', user.id).single(),
       ])
 
       const cvs         = cvRes.data || []
@@ -102,29 +102,8 @@ export default function Dashboard() {
         perdidas:     etapasCount['No avanzó'] || 0,
       })
 
-      // Proyecto laboral %
-      const jp = profileRes.data?.job_search_profile || {}
-      if (Object.keys(jp).length > 0) {
-        // Lightweight % calculation (same logic as ProyectoLaboral)
-        let pts = 0
-        const auto = jp.autoconocimiento || {}
-        if ((auto.cargo_objetivo || '').trim().length > 2) pts += 10
-        if ((auto.areas || []).length >= 2)               pts += 8
-        if ((auto.industrias || []).length >= 1)          pts += 7
-        if ((auto.top5empresas || []).filter(e => e?.trim()).length >= 3) pts += 5
-        if ((auto.modalidad || []).length >= 1)           pts += 5
-        const checksDone = Object.values(jp.documentos?.checks || {}).filter(Boolean).length
-        pts += Math.round((checksDone / 6) * 30)
-        const bloquesActivos = Object.values(jp.semana?.bloques || {}).filter(Boolean).length
-        if (bloquesActivos >= 8) pts += 20
-        else if (bloquesActivos >= 5) pts += 14
-        else if (bloquesActivos >= 2) pts += 8
-        else if (bloquesActivos >= 1) pts += 4
-        pts += 10 // recursos base (siempre tiene los default)
-        setProyectoPct(Math.min(pts, 100))
-      } else {
-        setProyectoPct(0)
-      }
+      // Proyecto laboral % - Unificado
+      setProyectoPct(calcularProgreso(jpData || {}, perfil || {}))
 
       setMetricas({
         cvsOptimizados:   optimizados,
@@ -136,7 +115,7 @@ export default function Dashboard() {
       setLoadingMetricas(false)
     }
     cargarMetricas()
-  }, [user?.id])
+  }, [user?.id, jpData, perfil])
 
   const val = (v, suffix = '') => loadingMetricas ? '—' : `${v ?? 0}${suffix}`
 

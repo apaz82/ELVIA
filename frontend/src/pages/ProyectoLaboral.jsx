@@ -235,19 +235,19 @@ function calcularPorPilar(data, perfil) {
   // 1. Aspiraciones (Areas + Industrias) - 5 pts
   const areasArr = auto.areas || perf.areas || []
   const indArr   = auto.industrias || perf.industrias_deseadas || []
-  if (areasArr.length >= 2 && indArr.length >= 1) autoPts += 5
+  if (areasArr.length >= 1 && indArr.length >= 1) autoPts += 5
 
   // 2. Hard Skills - 5 pts
-  if (Array.isArray(auto.hard_skills) && auto.hard_skills.length >= 3) autoPts += 5
+  if (Array.isArray(auto.hard_skills) && auto.hard_skills.length >= 2) autoPts += 5
 
   // 3. Soft Skills - 5 pts
-  if (Array.isArray(auto.soft_skills) && auto.soft_skills.length >= 3) autoPts += 5
+  if (Array.isArray(auto.soft_skills) && auto.soft_skills.length >= 2) autoPts += 5
 
   // 4. Power Skills - 5 pts
-  if (Array.isArray(auto.power_skills) && auto.power_skills.length >= 3) autoPts += 5
+  if (Array.isArray(auto.power_skills) && auto.power_skills.length >= 2) autoPts += 5
 
   // 5. Compañías - 5 pts
-  if (Array.isArray(auto.top5empresas) && auto.top5empresas.filter(function(e){return e && String(e).trim()}).length >= 2) autoPts += 5
+  if (Array.isArray(auto.top5empresas) && auto.top5empresas.filter(function(e){return e && String(e).trim()}).length >= 1) autoPts += 5
 
 
   const checks = (data&&data.documentos&&data.checks) ? data.documentos.checks : {}
@@ -256,17 +256,17 @@ function calcularPorPilar(data, perfil) {
   const bloques = (data&&data.semana&&data.semana.bloques) ? data.semana.bloques : {}
   const bN = Object.values(bloques).filter(Boolean).length
   let semanaPts = 0
-  if (bN>=5) semanaPts=10; else if (bN>=2) semanaPts=5; else if (bN>=1) semanaPts=2
+  if (bN>=3) semanaPts=10; else if (bN>=1) semanaPts=5; 
 
   const rawRec2 = data&&data.recursos ? (Array.isArray(data.recursos) ? data.recursos : (data.recursos.recursos||null)) : null
   const rec = (rawRec2&&rawRec2.length>0) ? rawRec2 : RECURSOS_DEFAULT
   const nRecActivos = rec.filter(function(r){return r.tengo===true}).length
-  let recPts = (nRecActivos >= 4) ? 10 : (nRecActivos * 2.5)
+  let recPts = (nRecActivos >= 2) ? 10 : (nRecActivos * 5)
 
   const oferta = (data&&data.oferta) ? data.oferta : {}
   let ofertaPts = 0
-  if (Array.isArray(oferta.cultura)&&oferta.cultura.length>=3) ofertaPts+=10
-  if (String(oferta.oferta_valor||'').trim().length>=50) ofertaPts+=20
+  if (Array.isArray(oferta.cultura)&&oferta.cultura.length>=2) ofertaPts+=10
+  if (String(oferta.oferta_valor||'').trim().length>=30) ofertaPts+=20
 
   return {
     perfil:           Math.round((perfilPts/25)*100),
@@ -276,6 +276,11 @@ function calcularPorPilar(data, perfil) {
     recursos:         Math.round((recPts/10)*100),
     oferta:           Math.round((Math.min(ofertaPts,30)/30)*100),
   }
+}
+
+const sanitizarTexto = (txt) => {
+  if (!txt) return ''
+  return txt.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '').trim()
 }
 
 // ─── Pilar 0: Mi Perfil Profesional ──────────────────────────────────────────
@@ -1085,12 +1090,12 @@ function DashboardResumen({ data, pct, onSelect, perfil, activePilar }) {
   const costoTotal = rec.reduce(function(s,r){return s+(Number(r.costo)||0)},0)
   const auto = (data&&data.autoconocimiento) ? data.autoconocimiento : {}
 
-  // Los primeros 5 pilares al 83% desbloquean todo
+  // Los 5 pilares al 100% desbloquean herramientas clave
   const CORE_IDS = ['perfil','autoconocimiento','recursos','semana','oferta']
-  const isUnlocked = pct >= 83
+  const isUnlocked = pct >= 100
 
-  const statusLabel = pct===100?'Completo':pct>=83?'Desbloqueado':pct>=40?'En progreso':pct>0?'Iniciado':'Sin inicio'
-  const statusColor = pct>=83?'text-emerald-600 bg-emerald-50 border-emerald-200':pct>=40?'text-amber-600 bg-amber-50 border-amber-200':'text-violet-600 bg-violet-50 border-violet-200'
+  const statusLabel = pct===100?'Estratega Completo':pct>=80?'Muy avanzado':pct>=50?'En progreso':pct>0?'Iniciado':'Sin inicio'
+  const statusColor = pct===100?'text-emerald-600 bg-emerald-50 border-emerald-200':pct>=50?'text-amber-600 bg-amber-50 border-amber-200':'text-violet-600 bg-violet-50 border-violet-200'
 
   const kpis = [
     { label:'Horas / sem',   value: horas>0?horas+'h':'—',                              icon:CalendarCheck, color:'text-teal-500',  bg:'bg-teal-50'   },
@@ -1124,7 +1129,7 @@ function DashboardResumen({ data, pct, onSelect, perfil, activePilar }) {
             <svg className="w-full h-full -rotate-90" viewBox="0 0 72 72">
               <circle cx="36" cy="36" r="28" strokeWidth="7" stroke="#f1f5f9" fill="none"/>
               <circle cx="36" cy="36" r="28" strokeWidth="7"
-                stroke={pct>=83?'#10b981':pct>=40?'#f59e0b':'#7c3aed'}
+                stroke={pct>=60?'#10b981':pct>=40?'#f59e0b':'#7c3aed'}
                 strokeLinecap="round" fill="none"
                 strokeDasharray={`${2*Math.PI*28}`}
                 strokeDashoffset={`${2*Math.PI*28*(1-pct/100)}`}
@@ -1158,22 +1163,22 @@ function DashboardResumen({ data, pct, onSelect, perfil, activePilar }) {
           </div>
         </div>
 
-        {/* Banner de desbloqueo cuando llega a 83% */}
+        {/* Banner de desbloqueo cuando llega a 100% */}
         {isUnlocked && (
           <div className="mt-4 flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-50 border border-emerald-200">
             <CheckFat size={16} weight="fill" className="text-emerald-600 shrink-0"/>
-            <p className="text-xs font-bold text-emerald-700">¡Todas las funcionalidades desbloqueadas! Completaste los 6 pilares estratégicos.</p>
+            <p className="text-xs font-bold text-emerald-700">¡Herramientas clave desbloqueadas! Alcanzaste el 100% de tu estrategia.</p>
           </div>
         )}
         {!isUnlocked && (
           <div className="mt-4">
             <div className="flex justify-between items-center mb-1.5">
-              <p className="text-[10px] font-semibold text-slate-400">Completa los 6 pilares para desbloquear todo</p>
-              <p className="text-[10px] font-bold text-violet-600">{pct} / 83%</p>
+              <p className="text-[10px] font-semibold text-slate-400">Completa el 100% para desbloquear herramientas</p>
+              <p className="text-[10px] font-bold text-violet-600">{pct} / 100%</p>
             </div>
             <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
               <div className="h-full bg-gradient-to-r from-violet-500 to-violet-400 rounded-full transition-all duration-700"
-                style={{width: Math.min((pct/83)*100, 100)+'%'}}/>
+                style={{width: Math.min((pct/60)*100, 100)+'%'}}/>
             </div>
           </div>
         )}
@@ -1677,7 +1682,7 @@ function PilarOfertaDeValor({ data, onChange, onSave, justSaved }) {
 // ─── Pilar 5: Documentos ────────────────────────────────────────────────────
 
 function PilarDocumentos({ data, onChange, onSave, justSaved, pct, isPaidPlan }) {
-  const isComplete = pct >= 100
+  const isUnlocked = pct >= 60
   const checks = (data&&data.checks)?data.checks:{}
   const toggle = function(id){onChange({checks:Object.assign({},checks,{[id]:!checks[id]})})}
   const completados = DOCS_LIST.filter(function(d){return checks[d.id]}).length
@@ -1706,7 +1711,7 @@ function PilarDocumentos({ data, onChange, onSave, justSaved, pct, isPaidPlan })
                 <span className={'text-sm font-semibold '+(done?'text-amber-700 line-through':'text-slate-700')}>{item.label}</span>
               </div>
               {item.link&&(
-                (isComplete && (item.id !== 'linkedin' || isPaidPlan)) ? (
+                (isUnlocked && (item.id !== 'linkedin' || isPaidPlan)) ? (
                   <Link to={item.link} target={item.target || (item.link.startsWith('http') ? '_blank' : '_self')} className="shrink-0 flex items-center gap-1 text-xs font-bold text-slate-500 hover:text-amber-600 border border-slate-200 hover:border-amber-300 rounded-lg px-3 py-1.5 transition-all cursor-pointer hover:shadow-sm hover:translate-x-0.5">
                     {done?'Revisar':'Ir ahora'} <ArrowRight size={12}/>
                   </Link>
@@ -1727,10 +1732,10 @@ function PilarDocumentos({ data, onChange, onSave, justSaved, pct, isPaidPlan })
           <p className="text-sm text-slate-500">Estás listo para postular con confianza.</p>
         </div>
       )}
-      {!isComplete && (
+      {!isUnlocked && (
         <div className="p-4 rounded-xl bg-amber-50 border border-amber-200">
           <p className="text-xs text-amber-800 font-medium">
-            <span className="font-bold">Nota:</span> Las funcionalidades avanzadas (Optimizador, LinkedIn, etc.) se desbloquearán cuando alcances el <span className="font-bold text-amber-900">100% de progreso</span> en las secciones anteriores.
+            <span className="font-bold">Nota:</span> Las funcionalidades avanzadas (Optimizador, LinkedIn, etc.) se desbloquearán cuando alcances el <span className="font-bold text-amber-900">100% de progreso</span>.
           </p>
         </div>
       )}
@@ -1978,9 +1983,16 @@ export default function ProyectoLaboral() {
     if (!user) return
     setSaving(true)
     setErrorCarga(null)
+
+    // Sanitizar campos de texto largo antes de guardar
+    const sanitizedData = { ...nd }
+    if (sanitizedData.oferta && sanitizedData.oferta.oferta_valor) {
+      sanitizedData.oferta.oferta_valor = sanitizarTexto(sanitizedData.oferta.oferta_valor)
+    }
+
     // Actualizar caché inmediatamente para que al regresar cargue instantáneo
-    sessionStorage.setItem(`jsp_${user.id}`, JSON.stringify(nd))
-    supabase.from('profiles').update({job_search_profile:nd}).eq('id',user.id)
+    sessionStorage.setItem(`jsp_${user.id}`, JSON.stringify(sanitizedData))
+    supabase.from('profiles').update({job_search_profile:sanitizedData}).eq('id',user.id)
       .then(function(){
         setSaving(false)
         setSaved(true)
@@ -2042,9 +2054,11 @@ export default function ProyectoLaboral() {
 
   const handlePilarSave = useCallback(function(pilarId){
     setJustSaved(pilarId)
+    // Forzar guardado inmediato al presionar el botón, evitando depender solo del debounce/onChange
+    saveData(data)
     if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current)
     saveTimeoutRef.current = setTimeout(function(){ setJustSaved(null) }, 2000)
-  },[])
+  },[data, saveData])
 
   const pct      = calcularProgreso(data, perfil)
   const porPilar = calcularPorPilar(data, perfil)

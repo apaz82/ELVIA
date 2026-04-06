@@ -2,13 +2,14 @@
 import { useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../services/authService'
+import { calcularProgreso } from '../utils/progresoLaboral'
 import toast from 'react-hot-toast'
 import {
   LinkedinLogo, Sparkle, CheckCircle, WarningCircle,
   CaretDown, CaretUp, ArrowRight, Trophy, Star, LightbulbFilament,
   FilePdf, MagicWand, NotePencil, UploadSimple, SelectionAll, CircleNotch
 } from '@phosphor-icons/react'
-import ProGate from '../components/common/ProGate'
+import FeatureLocked from '../components/common/FeatureLocked'
 
 const PI = { 
   FilePdf, MagicWand, NotePencil, UploadSimple, SelectionAll, 
@@ -164,7 +165,12 @@ function SeccionResultado({ seccion, datos }) {
 }
 
 export default function LinkedinOptima() {
-  const { user, isPaidPlan, trialExpired, jpData } = useAuth()
+  const { user, isPaidPlan, trialExpired, jpData, perfil } = useAuth()
+  
+  // Calcular progreso para el "Progress-based Unlock"
+  const proyectoPct = calcularProgreso(jpData || {}, perfil || {})
+  const isUnlockedByProgress = proyectoPct >= 100
+
   const [campos, setCampos] = useState({ titular: '', extracto: '', experiencia: '', habilidades: '', educacion: '' })
   const [importMode, setImportMode] = useState('pdf') // 'pdf' | 'paste' | 'manual'
   const [isExtracting, setIsExtracting] = useState(false)
@@ -172,20 +178,13 @@ export default function LinkedinOptima() {
   const [resultado, setResultado] = useState(null)
   const [error, setError] = useState('')
 
-  // Bloqueo para usuarios gratuitos
-  if (!isPaidPlan) {
+  // Bloqueo para usuarios que no han llegado al 100% de progreso (o plan pago)
+  if (!isPaidPlan && !isUnlockedByProgress) {
     return (
-      <ProGate
-        tipo={trialExpired ? 'trial' : 'pro'}
-        titulo="LinkedIn® Óptimo"
-        descripcion="Analiza y optimiza cada sección de tu perfil de LinkedIn® con IA para maximizar tu visibilidad ante reclutadores y ATS."
-        icono={<LinkedinLogo size={40} className="text-[#0077B5]" />}
-        beneficios={[
-          'Análisis de titular, extracto, experiencia y habilidades',
-          'Score por sección con recomendaciones específicas',
-          'Sugerencias con palabras clave del mercado',
-          'Comparación contra estándares de reclutadores',
-        ]}
+      <FeatureLocked 
+        titulo="LinkedIn Pro" 
+        descripcion="Optimiza tu presencia en la red profesional más grande del mundo con análisis de keywords y estructura de alto impacto."
+        icono={<LinkedinLogo size={44} weight="light" className="text-[#0077B5]" />}
       />
     )
   }

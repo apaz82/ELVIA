@@ -1,6 +1,8 @@
 // Biblioteca — centro de conocimiento con artículos y búsqueda
 import { useState } from 'react'
 import { BookOpen, MagnifyingGlass, Clock, Tag, X, ArrowRight, Lightbulb, Star, Images, ArrowSquareOut } from '@phosphor-icons/react'
+import { useAuth } from '../context/AuthContext'
+import FeatureLocked from '../components/common/FeatureLocked'
 
 // ── Infografías ───────────────────────────────────────────────────────────────
 const INFOGRAFIAS = [
@@ -388,10 +390,21 @@ function RenderContenido({ secciones }) {
 
 // ── Componente principal ──────────────────────────────────────────────────────
 export default function Biblioteca() {
+  const { featuresDesbloqueadas } = useAuth()
   const [busqueda, setBusqueda] = useState('')
   const [categoriaActiva, setCategoriaActiva] = useState('Todos')
   const [articuloAbierto, setArticuloAbierto] = useState(null)
   const [infografiaAbierta, setInfografiaAbierta] = useState(null)
+
+  if (!featuresDesbloqueadas) {
+    return (
+      <FeatureLocked 
+        titulo="Biblioteca de Recursos" 
+        descripcion="Accede a guías exclusivas, infografías y artículos creados por expertos para acelerar tu búsqueda laboral."
+        icono={<BookOpen size={44} weight="light" />}
+      />
+    )
+  }
 
   const categorias = ['Todos', ...new Set(ARTICULOS.map(a => a.categoria))]
 
