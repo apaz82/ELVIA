@@ -1,11 +1,6 @@
 // FeatureLocked.jsx — Premium UI for Gated Platform Tools
 import { useNavigate } from 'react-router-dom'
 import { Lock, ArrowRight, Kanban, CheckCircle, Info } from '@phosphor-icons/react'
-import { useAuth } from './AuthContext' // Assuming it is used from same or parent folder, adjusting path
-
-// Correcting path based on project structure: components/common/FeatureLocked.jsx
-// context is in frontend/src/context/AuthContext.jsx
-// components is in frontend/src/components/common/FeatureLocked.jsx
 import { useAuth as useGlobalAuth } from '../../context/AuthContext'
 
 /**

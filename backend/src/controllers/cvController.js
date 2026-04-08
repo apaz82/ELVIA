@@ -222,10 +222,21 @@ const matchToJob = async (req, res, next) => {
 };
 
 // Genera nombre de archivo con nomenclatura: "CV Optimizado - Nombre Apellido - MMDDAA"
+const sanitizarNombre = (texto) => {
+  // Remover acentos y caracteres especiales para compatibilidad con antivirus
+  return texto
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '') // Remover diacríticos (acentos)
+    .replace(/[^a-zA-Z0-9\s\-]/g, '') // Solo alfanuméricos, espacios y guiones
+    .replace(/\s+/g, ' ') // Normalizar espacios
+    .trim();
+};
+
 const generarNombreArchivo = (contenido, metadata, tipo, extension) => {
   let nombre = contenido?.split('\n')[0]?.trim() || 'Candidato';
   // Limpiar el nombre de caracteres que no deberian ir en un filename (ej: |)
   nombre = nombre.split('|')[0].trim();
+  nombre = sanitizarNombre(nombre);
 
   const lang = metadata?.language || 'es';
   const ahora = new Date();
@@ -236,7 +247,8 @@ const generarNombreArchivo = (contenido, metadata, tipo, extension) => {
 
   // Formato: CV Adaptado - [Nombre Vacante] - [Nombre Usuario] - MMDDAA
   if (tipo === 'match') {
-    const vacante = metadata?.jobData?.title || 'Vacante';
+    let vacante = metadata?.jobData?.title || 'Vacante';
+    vacante = sanitizarNombre(vacante);
     return `CV Adaptado - ${vacante} - ${nombre} - ${fecha}.${extension}`;
   }
 
@@ -278,14 +290,20 @@ const download = async (req, res, next) => {
       const buffer = await generarWord(data.contenido, { watermark });
       const nombre = generarNombreArchivo(data.contenido, data.metadata, data.tipo, 'docx');
       res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
-      res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(nombre)}`);
+      res.setHeader('Content-Disposition', `attachment; filename="${nombre}"`);
+      res.setHeader('Content-Length', buffer.length);
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
       return res.send(buffer);
     }
 
     const buffer = await generarPDF(data.contenido, { watermark });
     const nombre = generarNombreArchivo(data.contenido, data.metadata, data.tipo, 'pdf');
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(nombre)}`);
+    res.setHeader('Content-Disposition', `attachment; filename="${nombre}"`);
+    res.setHeader('Content-Length', buffer.length);
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     return res.send(buffer);
   } catch (err) {
     next(err);
