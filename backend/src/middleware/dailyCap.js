@@ -1,78 +1,51 @@
 // Middleware para hard cap diario de análisis con Claude API
 // Límite: 100 análisis/día (ajustable en Supabase)
+// CRIT-3 fix: usa RPC atómica para evitar race condition en check + increment
 const { supabaseAdmin } = require('../lib/supabase');
 
 const dailyCap = async (req, res, next) => {
+  if (!supabaseAdmin) {
+    console.warn('[Daily Cap] Supabase no disponible, permitiendo análisis');
+    return next();
+  }
+
   try {
-    if (!supabaseAdmin) {
-      // Si Supabase no está configurado, permitir pero logear
-      console.warn('[Daily Cap] Supabase no disponible, permitiendo análisis');
+    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+
+    // Incremento atómico: la RPC hace check + insert/update en una sola transacción
+    const { data, error } = await supabaseAdmin.rpc('increment_daily_cap', { p_date: today });
+
+    if (error) {
+      // Si la RPC no existe (ej. primer deploy), degradar con gracia
+      console.error('[Daily Cap] RPC error — permitiendo análisis:', error.message);
+      req.dailyCapDate = today;
       return next();
     }
 
-    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    const result = data?.[0];
 
-    // Obtener o crear registro de hoy
-    const { data: capRecord, error: selectError } = await supabaseAdmin
-      .from('daily_usage_cap')
-      .select('*')
-      .eq('date', today)
-      .single();
-
-    if (!selectError && capRecord) {
-      // Registro existe
-      if (capRecord.analyses_count >= capRecord.max_daily_analyses) {
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        const retryDate = tomorrow.toISOString().split('T')[0];
-        return res.status(429).json({
-          error: `Se alcanzó el límite diario de ${capRecord.max_daily_analyses} análisis. Intenta mañana.`,
-          retryAfter: retryDate
-        });
-      }
-      // Permitir, el controlador incrementará el contador
-    } else if (selectError?.code === 'PGRST116') {
-      // No existe registro para hoy, crear uno
-      await supabaseAdmin
-        .from('daily_usage_cap')
-        .insert([{ date: today, analyses_count: 0, max_daily_analyses: 100 }]);
-    } else if (selectError) {
-      // Error inesperado
-      console.error('[Daily Cap] Error consultando cap:', selectError);
-      // Permitir análisis pero logear (graceful degradation)
+    if (!result?.allowed) {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      return res.status(429).json({
+        error: `Se alcanzó el límite diario de ${result?.max_count ?? 100} análisis. Intenta mañana.`,
+        retryAfter: tomorrow.toISOString().split('T')[0]
+      });
     }
 
-    // Adjuntar info de cap al request para que el controlador la use
     req.dailyCapDate = today;
     next();
   } catch (err) {
     console.error('[Daily Cap] Middleware error:', err);
-    // Graceful degradation: permitir análisis si hay error
+    // Graceful degradation: no bloquear al usuario si hay error inesperado
     next();
   }
 };
 
-// Función auxiliar para incrementar contador (llamar desde el controlador tras analizar)
-const incrementDailyCap = async (date) => {
-  if (!supabaseAdmin) return;
-
-  try {
-    const { data, error } = await supabaseAdmin
-      .from('daily_usage_cap')
-      .select('analyses_count')
-      .eq('date', date)
-      .single();
-
-    if (!error && data) {
-      await supabaseAdmin
-        .from('daily_usage_cap')
-        .update({ analyses_count: data.analyses_count + 1 })
-        .eq('date', date);
-    }
-  } catch (err) {
-    console.error('[Daily Cap] Error incrementando contador:', err);
-    // Silenciar para no romper UX
-  }
+// Mantenido por compatibilidad con controladores que lo llamen directamente.
+// Con la RPC atómica el incremento ya ocurrió en el middleware — esta función es no-op.
+const incrementDailyCap = async (_date) => {
+  // No-op: el incremento se realiza atómicamente en dailyCap()
 };
 
 module.exports = { dailyCap, incrementDailyCap };

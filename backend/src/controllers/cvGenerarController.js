@@ -201,9 +201,7 @@ Responde EXACTAMENTE con estos delimitadores XML (sin texto fuera de ellos):
   } catch (err) {
     console.error('Error en generarCV:', err.message, err.stack)
     res.status(500).json({
-      error: 'Error al generar la CV.',
-      detalle: err.message,   // temporal para debug — remover en producción
-      stack: err.stack?.split('\n').slice(0, 4).join(' | ')
+      error: 'Error al generar la CV. Intenta de nuevo.'
     })
   }
 }

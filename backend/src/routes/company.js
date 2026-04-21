@@ -6,10 +6,20 @@
 
 const express = require('express')
 const { createClient } = require('@supabase/supabase-js')
+const rateLimit = require('express-rate-limit')
 const auth = require('../middleware/auth')
 const requireRole = require('../middleware/requireAdmin')
 
 const router = express.Router()
+
+// Rate limiter para registro público B2B: 5 intentos por IP por hora
+const registrationLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 5,
+  validate:     { keyGeneratorIpFallback: false },
+  keyGenerator: (req) => req.ip || req.connection.remoteAddress,
+  handler:      (req, res) => res.status(429).json({ error: 'Demasiados intentos de registro. Intenta en una hora.' })
+})
 const db = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -60,13 +70,22 @@ router.get('/registration/:slug', async (req, res) => {
 // Body: { nombre, apellido, email, password }
 // ─────────────────────────────────────────────────────────────────────────
 
-router.post('/registration/:slug', async (req, res) => {
+router.post('/registration/:slug', registrationLimiter, async (req, res) => {
   try {
     const { slug } = req.params
     const { email, password, nombre, apellido } = req.body
 
     if (!email || !password) {
       return res.status(400).json({ error: 'Email y contraseña requeridos' })
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ error: 'Formato de email inválido' })
+    }
+
+    if (password.length < 8) {
+      return res.status(400).json({ error: 'La contraseña debe tener al menos 8 caracteres' })
     }
 
     // 1. Validar que la empresa existe y está activa
