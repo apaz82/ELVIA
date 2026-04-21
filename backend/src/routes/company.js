@@ -193,7 +193,7 @@ router.post('/users', auth, requireRole('company_admin'), async (req, res) => {
     }
 
     // Si no hay password, generar uno temporal
-    const tempPassword = password || Math.random().toString(36).slice(-12)
+    const tempPassword = password || require('crypto').randomBytes(16).toString('hex')
 
     // 1. Crear user en auth (sin confirmar)
     const { data: authUser, error: authErr } = await db.auth.admin.createUser({
