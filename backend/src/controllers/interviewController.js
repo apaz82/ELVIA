@@ -11,7 +11,7 @@ const generarPreguntas = async (req, res, next) => {
       cargo,
       entrevistador: entrevistador || 'HR',
       descripcion: descripcion || '',
-      numPreguntas: numPreguntas || 10,
+      numPreguntas: Math.min(Math.max(parseInt(numPreguntas) || 10, 5), 20),
     })
 
     return res.json({ preguntas })

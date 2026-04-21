@@ -117,7 +117,7 @@ router.get('/', auth, async (req, res) => {
     .select('*, code_redemptions(count)')
     .order('created_at', { ascending: false });
 
-  if (error) return res.status(500).json({ error: error.message });
+  if (error) { console.error('[codes] DB error:', error.message); return res.status(500).json({ error: 'Error interno. Intenta de nuevo.' }); }
   return res.json(data);
 });
 
@@ -161,7 +161,8 @@ router.post('/', auth, async (req, res) => {
     if (error.code === '23505') {
       return res.status(400).json({ error: 'Ya existe un código con ese nombre' });
     }
-    return res.status(500).json({ error: error.message });
+    console.error('[codes] DB error creating code:', error.message);
+    return res.status(500).json({ error: 'Error interno. Intenta de nuevo.' });
   }
 
   return res.status(201).json(data);
@@ -186,7 +187,7 @@ router.delete('/:id', auth, async (req, res) => {
     .update({ is_active: false })
     .eq('id', req.params.id);
 
-  if (error) return res.status(500).json({ error: error.message });
+  if (error) { console.error('[codes] DB error:', error.message); return res.status(500).json({ error: 'Error interno. Intenta de nuevo.' }); }
   return res.json({ ok: true });
 });
 
@@ -210,7 +211,7 @@ router.get('/redemptions', auth, async (req, res) => {
     .order('redeemed_at', { ascending: false })
     .limit(50);
 
-  if (error) return res.status(500).json({ error: error.message });
+  if (error) { console.error('[codes] DB error:', error.message); return res.status(500).json({ error: 'Error interno. Intenta de nuevo.' }); }
   return res.json(data);
 });
 
