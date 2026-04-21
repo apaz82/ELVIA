@@ -160,8 +160,42 @@ const sendWelcomeWaitlistEmail = async (to, nombre, situacion) => {
   });
 };
 
+const sendInvitacionEmail = async (to, nombre, companyName, inviteUrl) => {
+  if (!process.env.RESEND_API_KEY) {
+    throw new Error('RESEND_API_KEY no configurada');
+  }
+
+  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString('es-MX', {
+    day: '2-digit', month: 'long', year: 'numeric',
+  });
+  const nombreSafe = escapeHtml(nombre || '');
+  const companySafe = escapeHtml(companyName);
+
+  return resend.emails.send({
+    from: FROM_EMAIL,
+    to,
+    subject: `Invitación: Únete a ${companySafe} en ELVIA`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; line-height: 1.6;">
+        <h2 style="color: #E8541A;">¡Hola${nombreSafe ? ` ${nombreSafe}` : ''}! 👋</h2>
+        <p>Fuiste invitado/a a unirte a <strong>${companySafe}</strong> en ELVIA.</p>
+        <p>Haz clic en el botón para crear tu cuenta y acceder a la plataforma:</p>
+        <div style="text-align:center; margin: 32px 0;">
+          <a href="${escapeHtml(inviteUrl)}" style="background:#E8541A;color:#fff;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:bold;font-size:16px;">
+            Aceptar invitación
+          </a>
+        </div>
+        <p style="font-size:13px;color:#6b7280;">Este enlace expira el ${expiresAt}.</p>
+        <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0;" />
+        <p style="font-size:12px;color:#9ca3af;">© ${new Date().getFullYear()} ELVIA · Todos los derechos reservados</p>
+      </div>
+    `,
+  });
+};
+
 module.exports = {
   sendCVEmail,
   sendOTPEmail,
   sendWelcomeWaitlistEmail,
+  sendInvitacionEmail,
 };

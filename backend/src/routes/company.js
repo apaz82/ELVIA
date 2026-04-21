@@ -9,6 +9,7 @@ const { createClient } = require('@supabase/supabase-js')
 const rateLimit = require('express-rate-limit')
 const auth = require('../middleware/auth')
 const requireRole = require('../middleware/requireAdmin')
+const { sendInvitacionEmail } = require('../services/resendService')
 
 const router = express.Router()
 
@@ -402,28 +403,13 @@ router.post('/invitations', auth, requireRole('company_admin'), async (req, res)
       return res.status(500).json({ error: 'Error al obtener datos de la empresa' })
     }
 
-    // 3. Enviar email de invitación a través del servicio interno de email
+    // 3. Enviar email de invitación directamente via servicio (sin self-call HTTP)
     const inviteUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/admin-login?invite=${invitation.id}&slug=${company.slug}`
-    
+
     try {
-      // Usar fetch interno o llamar directamente si email.js estuviera exportado como servicio
-      // Como es un router, lo más limpio es llamar al endpoint de email (o refactorizar a servicio)
-      // Por simplicidad en este sprint, simulamos el disparo al endpoint /api/email/invitacion
-      await fetch(`${process.env.BACKEND_URL || 'http://localhost:3001'}/api/email/invitacion`, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': req.headers.authorization // Reusar el token del admin
-        },
-        body: JSON.stringify({
-          email,
-          nombre,
-          companyName: company.name,
-          inviteUrl
-        })
-      })
+      await sendInvitacionEmail(email, nombre, company.name, inviteUrl)
     } catch (err) {
-      console.warn('Email trigger failed, but invitation was created:', err.message)
+      console.warn('Email de invitación falló, pero la invitación fue creada:', err.message)
     }
 
     res.json({

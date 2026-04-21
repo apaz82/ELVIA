@@ -37,8 +37,7 @@ app.set('trust proxy', 1);
 const ALLOWED_ORIGINS = [
   'https://elvia.lat',
   'https://www.elvia.lat',
-  'https://optimacv.cv',         // LEGADO: Remover en 24h tras cutover
-  'https://gestioncv.netlify.app',
+'https://gestioncv.netlify.app',
   'http://localhost:5173',
   'http://localhost:5174',
   'http://localhost:5175',

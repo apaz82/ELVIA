@@ -68,22 +68,8 @@ const validateOTP = (adminId, code) => {
   return { valid: true };
 };
 
-/**
- * Obtiene la información almacenada de un OTP (para debugging/testing)
- */
-const getOTPInfo = (adminId) => {
-  const stored = otpStore.get(adminId);
-  if (!stored) return null;
-  return {
-    email: stored.email,
-    expiresAt: new Date(stored.expiresAt),
-    attempts: stored.attempts,
-  };
-};
-
 module.exports = {
   generateOTP,
   createOTP,
   validateOTP,
-  getOTPInfo,
 };
