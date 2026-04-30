@@ -37,6 +37,7 @@ function TextStaggerHover({ text, index, className }) {
     <span
       className={`relative inline-block origin-bottom overflow-hidden cursor-default ${className ?? ''}`}
       onMouseEnter={() => changeSlide(index)}
+      onClick={() => changeSlide(index)}
     >
       {chars.map((char, i) => (
         <span key={`${char}-${i}`} className="relative inline-block overflow-hidden">
@@ -108,7 +109,7 @@ export default function LandingMuyPronto() {
       />
 
       {/* Hero */}
-      <section className="relative z-10 flex-1 flex items-center justify-center px-6 py-20">
+      <section className="relative z-10 flex-1 flex items-center justify-center px-5 py-10 md:py-20">
         <motion.div
           initial={{ opacity: 0, y: 28 }}
           animate={{ opacity: 1, y: 0 }}
@@ -121,7 +122,7 @@ export default function LandingMuyPronto() {
           </Link>
 
           {/* Badge */}
-          <div className="inline-flex items-center gap-3 bg-white/70 border border-gray-200 text-gray-600 text-base font-bold uppercase tracking-widest px-7 py-3 rounded-full mb-10 backdrop-blur-sm">
+          <div className="inline-flex items-center gap-2 bg-white/70 border border-gray-200 text-gray-600 text-sm md:text-base font-bold uppercase tracking-widest px-4 md:px-7 py-2 md:py-3 rounded-full mb-8 md:mb-10 backdrop-blur-sm">
             <span className="w-2 h-2 rounded-full bg-[#14B8A6] animate-pulse" />
             Muy pronto
           </div>
@@ -139,19 +140,20 @@ export default function LandingMuyPronto() {
           </h1>
 
           {/* Sub-copy */}
-          <p className="text-lg md:text-xl text-gray-500 max-w-3xl leading-relaxed mb-4">
+          <p className="text-base md:text-xl text-gray-500 max-w-3xl leading-relaxed mb-3">
             Un sistema metodológicamente comprobado por expertos mentores de carrera profesional
             que te acompaña durante todo el camino de tu búsqueda profesional.
           </p>
-          <p className="text-lg md:text-xl text-gray-500 max-w-3xl leading-relaxed mb-16">
+          <p className="text-base md:text-xl text-gray-500 max-w-3xl leading-relaxed mb-8 md:mb-14">
             La primera plataforma de acompañamiento estratégico de inicio a fin para profesionales en LATAM.
           </p>
 
           {/* ── HoverSlider ── */}
-          <HoverSlider className="w-full grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 items-center mb-16">
+          <HoverSlider className="w-full grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-12 items-center mb-8 md:mb-14">
 
             {/* Lista de palabras */}
-            <div className="flex flex-col gap-3 text-left">
+            <div className="flex flex-col gap-3 text-left md:text-left">
+              <p className="text-xs text-gray-400 uppercase tracking-widest mb-1 md:hidden">Toca para explorar</p>
               {SLIDES.map((slide, i) => (
                 <TextStaggerHover
                   key={slide.text}
@@ -177,8 +179,8 @@ export default function LandingMuyPronto() {
 
           {/* Tagline */}
           <h2
-            className="text-lg md:text-xl font-black text-gray-900 leading-tight whitespace-nowrap"
-            style={{ letterSpacing: '-0.03em', fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+            className="text-base md:text-xl font-black text-gray-900 leading-tight text-center"
+            style={{ letterSpacing: '-0.02em', fontFamily: "'Plus Jakarta Sans', sans-serif" }}
           >
             <span style={{ background: 'linear-gradient(135deg, #0D9488 0%, #14B8A6 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
               CONECTA
