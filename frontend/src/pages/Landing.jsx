@@ -450,8 +450,14 @@ export default function Landing() {
               </span>
             </motion.h1>
 
-            <motion.p variants={fadeInUp} className="text-lg sm:text-xl text-gray-500 leading-relaxed mb-10 max-w-lg">
+            <motion.p variants={fadeInUp} className="text-lg sm:text-xl text-gray-500 leading-relaxed mb-4 max-w-lg">
               Encuentra tu propósito y ten las herramientas necesarias para encontrar tu siguiente proyecto laboral y profesional.
+            </motion.p>
+            <motion.p variants={fadeInUp} className="text-base text-gray-500 leading-relaxed mb-4 max-w-lg">
+              ELVIA es el sistema comprobado que te acompaña de inicio a fin, y no se queda solo en documentos.
+            </motion.p>
+            <motion.p variants={fadeInUp} className="text-base text-gray-500 leading-relaxed mb-10 max-w-lg">
+              El AUTOCONOCIMIENTO es la base de ELVIA, entre más información relevante de ti, mejores resultados. A veces no es cuestión de una CV bonita, es de realmente entender que quieres en tu siguiente paso profesional.
             </motion.p>
 
             <motion.div variants={fadeInUp} className="mt-8 flex flex-col sm:flex-row items-center sm:items-start gap-6">
@@ -559,7 +565,7 @@ export default function Landing() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 divide-y md:divide-y-0 md:divide-x divide-gray-200 text-center">
             {[
               { target: 75, suffix: '%', label: 'Tasa de rechazo inicial por filtros ATS sin optimizar' },
-              { target: 3,  suffix: 'x', label: 'Mayor probabilidad de entrevista con un formato Harvard' },
+              { target: 3,  suffix: 'x', label: 'Mayor probabilidad de entrevista con un formato optimizado de clase mundial' },
               { target: 8,  suffix: 's', label: 'Tiempo promedio que un reclutador lee tu CV' },
             ].map(({ target, suffix, label }) => (
               <div key={label} className="px-6 py-4 md:py-0">
@@ -589,7 +595,7 @@ export default function Landing() {
           >
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/20 bg-gray-900/50">
               <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
-              <span className="text-xs font-bold uppercase tracking-widest text-white">Desarrollada por expertos en atracción de talento</span>
+              <span className="text-xs font-bold uppercase tracking-widest text-white">Desarrollada por expertos en atracción de talento y mentores de carrera</span>
             </div>
             
             <h2 className="font-headline font-black text-4xl md:text-5xl lg:text-6xl text-white tracking-tight leading-[1.1]">
@@ -603,9 +609,9 @@ export default function Landing() {
 
             <ul className="space-y-4 text-gray-300 font-medium">
               {[
-                'Feedback sobre tu CV',
-                'Temas de actualidad',
-                'Motivación',
+                'Preguntas sobre el uso del sistema',
+                'Principales competencias',
+                'Motivación y mucho más',
               ].map(item => (
                 <li key={item} className="flex items-center gap-3">
                   <div className="w-6 h-6 rounded-full bg-teal-500/20 flex items-center justify-center text-teal-400">
@@ -700,7 +706,7 @@ export default function Landing() {
           <div className="text-center mb-12">
             <span className="text-[#E8541A] font-bold text-sm tracking-widest uppercase mb-2 block">Simulador en tiempo real</span>
             <h2 className="font-headline font-black text-4xl md:text-5xl text-gray-900 mb-4 tracking-tight">Prueba la magia gratis.<br className="hidden md:block"/> Sin registrarte.</h2>
-            <p className="text-gray-500 text-lg max-w-2xl mx-auto">Pega una descripción de vacante real y simularemos cómo nuestra inteligencia artificial recomienda ajustes a tu perfil, siempre basado en tu información, nunca inventando nada.</p>
+            <p className="text-gray-500 text-lg max-w-2xl mx-auto">Con solo la descripción de una vacante real, ELVIA evalúa ajustes a tu perfil, siempre basado en tu información de autoconocimiento, nunca inventando nada.</p>
           </div>
           
           <div className="bg-white rounded-[2rem] shadow-2xl shadow-blue-900/5 border border-gray-200 p-6 md:p-10 relative overflow-hidden">
@@ -802,7 +808,7 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ─── Features Bento Grid ────────────────────────────────────────────────── */}
+      {/* ─── Features: Ecosistema ELVIA ────────────────────────────────────────────── */}
       <section id="features-section" className="relative z-10 py-24 px-6 bg-slate-50">
         <div className="container mx-auto max-w-6xl">
 
@@ -822,161 +828,98 @@ export default function Landing() {
             </p>
           </motion.div>
 
-          {/* ─── Fila 1: Herramientas IA hero (3 cols) ─── */}
-          <motion.div
-            initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-60px" }}
-            variants={staggerContainer}
-            className="grid grid-cols-1 md:grid-cols-3 gap-5 md:gap-6 mb-4"
-          >
-            {/* ─── Fila 1: Herramientas IA hero (3 cols iguales) ─── */}
-            {FEATURE_ROWS.heroes.map(f => (
-              <motion.div
-                key={f.titulo}
-                variants={fadeInUp}
-                whileHover={{ y: -6, boxShadow: f.featured ? '0 25px 50px -12px rgba(0,0,0,0.3)' : '0 25px 50px -12px rgba(0,0,0,0.18)' }}
-                transition={{ type: 'spring', stiffness: 300, damping: 22 }}
-                className={`group relative overflow-hidden rounded-2xl border-2 transition-all ${f.featured ? 'border-blue-400 bg-gradient-to-br from-blue-50 to-white shadow-lg shadow-blue-200/30' : 'border-gray-200 bg-white'}`}
-              >
-                {f.featured && (
-                  <div className="absolute top-3 right-3 inline-flex items-center gap-1 px-3 py-1 rounded-full bg-blue-100 border border-blue-200 z-20">
-                    <span className="text-xs font-bold text-blue-700 uppercase tracking-widest">Destacado</span>
-                  </div>
-                )}
-                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300" style={{ background: f.gradientStyle }} />
-                <div className="relative z-10 p-8 h-full flex flex-col min-h-[380px]">
-                  {/* Icon */}
-                  <div className={`w-16 h-16 rounded-xl flex items-center justify-center mb-6 transition-all duration-300 ${f.iconBg} ${f.iconColor} group-hover:bg-white/20 group-hover:text-white`}>
-                    <f.Icon size={32} weight="duotone" />
-                  </div>
-
-                  {/* Content */}
-                  <div className="flex-1">
-                    <h3 className={`font-headline font-bold text-2xl transition-colors duration-300 mb-1 leading-tight ${f.featured ? 'text-blue-900 group-hover:text-white' : 'text-gray-900 group-hover:text-white'}`}>{f.titulo}</h3>
-                    {f.subtitulo && (
-                      <p className={`text-xs font-semibold uppercase tracking-wide transition-colors duration-300 mb-3 ${f.featured ? 'text-blue-600 group-hover:text-white/70' : 'text-gray-500 group-hover:text-white/60'}`}>{f.subtitulo}</p>
-                    )}
-                    <p className={`text-sm leading-relaxed transition-colors duration-300 mb-4 ${f.featured ? 'text-blue-700 group-hover:text-white/80' : 'text-gray-600 group-hover:text-white/80'}`}>{f.desc}</p>
-                  </div>
-
-                  {/* CTA */}
-                  <div className="mt-6 flex items-center gap-2 text-sm font-bold text-gray-400 group-hover:text-white transition-all duration-300 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0">
-                    {f.cta} <ArrowRight size={16} weight="bold" />
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </motion.div>
-
-          {/* ─── Fila 2: Mi Carrera (4 cols iguales) ─── */}
-          <motion.div
-            initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-60px" }}
-            variants={staggerContainer}
-            className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4"
-          >
-            {FEATURE_ROWS.carrera.map(f => (
-              <motion.div
-                key={f.titulo}
-                variants={fadeInUp}
-                whileHover={{ y: -6, boxShadow: '0 20px 40px -10px rgba(0,0,0,0.15)' }}
-                transition={{ type: 'spring', stiffness: 300, damping: 22 }}
-                className="group relative overflow-hidden rounded-2xl border border-gray-200 bg-white"
-              >
-                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300" style={{ background: f.gradientStyle }} />
-                <div className="relative z-10 p-5 flex flex-col min-h-[180px]">
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-4 transition-all duration-300 ${f.iconBg} ${f.iconColor} group-hover:bg-white/20 group-hover:text-white`}>
-                    <f.Icon size={20} weight="duotone" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-start gap-2 mb-1.5">
-                      <h3 className="font-bold text-base text-gray-900 group-hover:text-white transition-colors duration-300">{f.titulo}</h3>
-                      {f.upcoming && <span className="text-[10px] font-bold bg-amber-100 text-amber-800 px-2 py-0.5 rounded">Próximamente</span>}
-                    </div>
-                    <p className="text-xs text-gray-500 group-hover:text-white/80 transition-colors duration-300 leading-relaxed">{f.desc}</p>
-                  </div>
-                  <div className={`mt-4 flex items-center gap-1.5 text-xs font-bold ${f.upcoming ? 'text-gray-300 group-hover:text-gray-400' : 'text-gray-400 group-hover:text-white'} transition-all duration-300 ${f.upcoming ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 translate-y-1 group-hover:translate-y-0'}`}>
-                    {f.cta} {!f.upcoming && <ArrowRight size={12} weight="bold" />}
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </motion.div>
-
-          {/* ─── Fila 3: Recursos (4 cols iguales) ─── */}
-          <motion.div
-            initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-60px" }}
-            variants={staggerContainer}
-            className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4"
-          >
-            {FEATURE_ROWS.recursos.map(f => (
-              <motion.div
-                key={f.titulo}
-                variants={fadeInUp}
-                whileHover={{ y: -6, boxShadow: '0 20px 40px -10px rgba(0,0,0,0.15)' }}
-                transition={{ type: 'spring', stiffness: 300, damping: 22 }}
-                className="group relative overflow-hidden rounded-2xl border border-gray-200 bg-white"
-              >
-                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300" style={{ background: f.gradientStyle }} />
-                <div className="relative z-10 p-5 flex flex-col min-h-[180px]">
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-4 transition-all duration-300 ${f.iconBg} ${f.iconColor} group-hover:bg-white/20 group-hover:text-white`}>
-                    <f.Icon size={20} weight="duotone" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-start gap-2 mb-1.5">
-                      <h3 className="font-bold text-base text-gray-900 group-hover:text-white transition-colors duration-300">{f.titulo}</h3>
-                      {f.upcoming && <span className="text-[10px] font-bold bg-amber-100 text-amber-800 px-2 py-0.5 rounded">Próximamente</span>}
-                    </div>
-                    <p className="text-xs text-gray-500 group-hover:text-white/80 transition-colors duration-300 leading-relaxed">{f.desc}</p>
-                  </div>
-                  <div className={`mt-4 flex items-center gap-1.5 text-xs font-bold ${f.upcoming ? 'text-gray-300 group-hover:text-gray-400' : 'text-gray-400 group-hover:text-white'} transition-all duration-300 ${f.upcoming ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 translate-y-1 group-hover:translate-y-0'}`}>
-                    {f.cta} {!f.upcoming && <ArrowRight size={12} weight="bold" />}
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </motion.div>
-
-          {/* ─── Fila 4: Mentor Experto ─── card premium full-width ─── */}
-          <motion.div
-            initial={{ opacity: 0, y: 24 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-40px" }}
-            whileHover={{ y: -4, boxShadow: '0 30px 60px -15px rgba(0,0,0,0.35)' }}
-            transition={{ type: 'spring', stiffness: 280, damping: 24 }}
-            className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-800 to-[#002650] border border-slate-700/50"
-          >
-            {/* Glow sutil en hover */}
-            <div className="absolute inset-0 bg-gradient-to-br from-teal-500/15 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-            {/* Patrón de fondo decorativo */}
-            <div className="absolute top-0 right-0 w-64 h-64 bg-white/[0.03] rounded-full -translate-y-1/2 translate-x-1/2 pointer-events-none" />
-            <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/[0.02] rounded-full translate-y-1/2 -translate-x-1/2 pointer-events-none" />
-
-            <div className="relative z-10 p-8 flex flex-col sm:flex-row items-start sm:items-center gap-6">
-              {/* Icono */}
-              <div
-                className="rounded-2xl flex items-center justify-center shrink-0 border border-teal-400/30 group-hover:border-teal-300/60 transition-colors duration-300"
-                style={{ width: 72, height: 72, background: 'linear-gradient(135deg, rgba(20,184,166,0.3) 0%, rgba(13,148,136,0.15) 100%)' }}
-              >
-                <UsersThree size={40} weight="fill" className="text-teal-200 group-hover:text-white transition-colors duration-300" />
+          {/* Mobile: lista */}
+          <div className="md:hidden space-y-3">
+            <div className="rounded-2xl border-2 border-blue-400 bg-gradient-to-br from-blue-50 to-white p-6 shadow-lg shadow-blue-200/30">
+              <div className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-blue-100 border border-blue-200 mb-4">
+                <span className="text-xs font-bold text-blue-700 uppercase tracking-widest">Centro del sistema</span>
               </div>
-
-              {/* Texto */}
-              <div className="flex-1">
-                <span className="text-sm font-black uppercase tracking-[0.2em] text-white mb-2 block">Hablemos</span>
-                <h3 className="font-headline font-black text-2xl text-white mb-2">
-                  Mentor Experto — cuando la IA no es suficiente
-                </h3>
-                <p className="text-white/55 text-sm leading-relaxed max-w-xl group-hover:text-white/75 transition-colors duration-300">
-                  Orientación personalizada, feedback honesto y el impulso que solo un humano puede darte.
-                </p>
+              <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center mb-3">
+                <UsersThree size={24} weight="duotone" className="text-blue-600" />
               </div>
+              <h3 className="font-bold text-xl text-blue-900 mb-1">Autoconocimiento</h3>
+              <p className="text-xs font-semibold uppercase tracking-wide text-blue-600 mb-3">Tu primer paso como gerente</p>
+              <p className="text-sm text-blue-700 leading-relaxed">Un onboarding para que conozcas tu momento actual y hacia donde quieres ir. Prepárate para ser gerente de proyecto de tu transición profesional.</p>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                { Icon: FileMagnifyingGlass, titulo: 'Optimizador de CV',    iconBg: 'bg-orange-100', iconColor: 'text-[#E8541A]' },
+                { Icon: LinkedinLogo,        titulo: 'LinkedIn® Optimizado', iconBg: 'bg-blue-100',   iconColor: 'text-blue-600'  },
+                { Icon: MagnifyingGlass,     titulo: 'CV vs Vacante',        iconBg: 'bg-amber-100',  iconColor: 'text-amber-600' },
+                { Icon: BookmarkSimple,      titulo: 'Mis Vacantes',         iconBg: 'bg-teal-100',   iconColor: 'text-teal-600'  },
+                { Icon: Kanban,              titulo: 'Pipeline',             iconBg: 'bg-teal-100',   iconColor: 'text-teal-600'  },
+                { Icon: MicrophoneStage,     titulo: 'Entrevista',           iconBg: 'bg-purple-100', iconColor: 'text-purple-600'},
+                { Icon: Books,              titulo: 'Biblioteca',           iconBg: 'bg-indigo-100', iconColor: 'text-indigo-600'},
+                { Icon: ChartBar,            titulo: 'Bienestar',            iconBg: 'bg-green-100',  iconColor: 'text-green-600' },
+              ].map(item => (
+                <div key={item.titulo} className="rounded-2xl border border-gray-200 bg-white p-4 hover:shadow-md transition-shadow">
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 ${item.iconBg} ${item.iconColor}`}>
+                    <item.Icon size={20} weight="duotone" />
+                  </div>
+                  <h4 className="font-bold text-sm text-gray-900 leading-tight">{item.titulo}</h4>
+                </div>
+              ))}
+            </div>
+          </div>
 
-              {/* CTA */}
-              <div
-                className="flex items-center gap-2.5 text-white/50 font-bold text-sm shrink-0 bg-white/5 px-6 py-3.5 rounded-xl border border-white/5 whitespace-nowrap cursor-default">
-                Próximamente
+          {/* Desktop: círculo orbital */}
+          <div className="hidden md:block relative mx-auto" style={{ maxWidth: '700px', height: '700px' }}>
+            {/* Anillo de órbita */}
+            <div
+              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border border-dashed border-gray-200 pointer-events-none"
+              style={{ width: '580px', height: '580px' }}
+            />
+
+            {/* Centro: Autoconocimiento */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20" style={{ width: '160px' }}>
+              <div className="rounded-2xl border-2 border-blue-400 bg-gradient-to-br from-blue-50 to-white p-5 shadow-xl shadow-blue-200/40 text-center">
+                <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-100 border border-blue-200 mb-3">
+                  <span className="text-[9px] font-bold text-blue-700 uppercase tracking-widest">Centro</span>
+                </div>
+                <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center mx-auto mb-3">
+                  <UsersThree size={24} weight="duotone" className="text-blue-600" />
+                </div>
+                <h3 className="font-bold text-sm text-blue-900 leading-tight">Autoconocimiento</h3>
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-blue-600 mt-1">Tu primer paso</p>
               </div>
             </div>
-          </motion.div>
+
+            {/* Ítems orbitales — 8 en círculo, sentido horario desde arriba */}
+            {[
+              { Icon: FileMagnifyingGlass, titulo: 'Optimizador de CV',    iconBg: 'bg-orange-100', iconColor: 'text-[#E8541A]' },
+              { Icon: LinkedinLogo,        titulo: 'LinkedIn® Optimizado', iconBg: 'bg-blue-100',   iconColor: 'text-blue-600'  },
+              { Icon: MagnifyingGlass,     titulo: 'CV vs Vacante',        iconBg: 'bg-amber-100',  iconColor: 'text-amber-600' },
+              { Icon: BookmarkSimple,      titulo: 'Mis Vacantes',         iconBg: 'bg-teal-100',   iconColor: 'text-teal-600'  },
+              { Icon: Kanban,              titulo: 'Pipeline',             iconBg: 'bg-teal-100',   iconColor: 'text-teal-600'  },
+              { Icon: MicrophoneStage,     titulo: 'Entrevista',           iconBg: 'bg-purple-100', iconColor: 'text-purple-600'},
+              { Icon: Books,              titulo: 'Biblioteca',           iconBg: 'bg-indigo-100', iconColor: 'text-indigo-600'},
+              { Icon: ChartBar,            titulo: 'Bienestar',            iconBg: 'bg-green-100',  iconColor: 'text-green-600' },
+            ].map((item, i) => {
+              const angleDeg = -90 + i * 45
+              const angleRad = angleDeg * Math.PI / 180
+              const r = 41.5
+              const x = 50 + r * Math.cos(angleRad)
+              const y = 50 + r * Math.sin(angleRad)
+              return (
+                <div
+                  key={item.titulo}
+                  className="absolute z-10"
+                  style={{ top: `${y}%`, left: `${x}%`, transform: 'translate(-50%, -50%)', width: '116px' }}
+                >
+                  <motion.div
+                    whileHover={{ y: -4, boxShadow: '0 12px 24px -6px rgba(0,0,0,0.12)' }}
+                    transition={{ type: 'spring', stiffness: 300, damping: 22 }}
+                    className="rounded-2xl border border-gray-200 bg-white p-3 shadow-sm text-center cursor-default"
+                  >
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center mx-auto mb-2 ${item.iconBg} ${item.iconColor}`}>
+                      <item.Icon size={20} weight="duotone" />
+                    </div>
+                    <h4 className="font-bold text-xs text-gray-900 leading-tight">{item.titulo}</h4>
+                  </motion.div>
+                </div>
+              )
+            })}
+          </div>
 
         </div>
       </section>
@@ -1102,7 +1045,7 @@ export default function Landing() {
               <div className="space-y-4">
                 <h3 className="font-headline font-bold text-2xl text-gray-900">Optimización en cada paso</h3>
                 <p className="text-gray-600 leading-relaxed">
-                  Mientras editas tu CV, ELVIA analiza cada sección: desde tu titular y resumen profesional, hasta tus experiencias y logros.
+                  Partiendo de tu AUTOCONOCIMIENTO y mientras editas tu CV, ELVIA analiza cada sección: desde tu titular y resumen profesional, hasta tus experiencias y logros.
                 </p>
               </div>
 
@@ -1113,7 +1056,7 @@ export default function Landing() {
                   </div>
                   <div>
                     <h4 className="font-bold text-gray-900 mb-1">Análisis Inteligente</h4>
-                    <p className="text-sm text-gray-600">Detecta palabras clave, formato y estructura para maximizar el match con ATS</p>
+                    <p className="text-sm text-gray-600">Usa tu propia información que registras para crear tu perfil y no solo eso, tiene en cuenta tu OFERTA DE VALOR para el mercado.</p>
                   </div>
                 </div>
 
@@ -1133,7 +1076,7 @@ export default function Landing() {
                   </div>
                   <div>
                     <h4 className="font-bold text-gray-900 mb-1">Seguimiento en Tiempo Real</h4>
-                    <p className="text-sm text-gray-600">Tu índice de optimización se actualiza instantáneamente a medida que haces cambios</p>
+                    <p className="text-sm text-gray-600">Puedes guardar tus reportes y volverlos a ver, un sistema dinámico que te permite aprender de ti constantemente.</p>
                   </div>
                 </div>
               </div>
@@ -1373,7 +1316,7 @@ export default function Landing() {
               <img src="/elvia-logo-transparent.png" alt="ELVIA" className="h-10 w-auto opacity-90" />
             </Link>
             <p className="text-gray-400 text-xs font-medium uppercase tracking-widest text-center md:text-left">
-              Potenciando carreras de alto nivel con IA
+              <span style={{ color: '#0D9488' }}>CONECTA</span> TU PRESENTE CON EL FUTURO QUE QUIERES.
             </p>
           </div>
 
