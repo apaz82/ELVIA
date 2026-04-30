@@ -395,8 +395,9 @@ export default function Landing() {
           ) : (
             <>
               <button onClick={() => { setShowDemoOverlay(false); setTimeout(() => document.getElementById('waitlist-form-bottom')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 150) }}
-                className="flex items-center gap-2 bg-gray-900 text-white font-bold text-sm px-6 py-2.5 rounded-xl hover:bg-gray-800 transition-all shadow-md">
-                Únete a la Lista de Espera apuntándote aquí
+                className="flex items-center gap-2 bg-gray-900 text-white font-bold text-sm px-4 sm:px-6 py-2.5 rounded-xl hover:bg-gray-800 transition-all shadow-md">
+                <span className="hidden sm:inline">Únete a la Lista de Espera</span>
+                <span className="sm:hidden">Lista de Espera</span>
               </button>
             </>
           )}
@@ -435,7 +436,7 @@ export default function Landing() {
               <span className="text-xs font-bold uppercase tracking-widest text-gray-500">ELVIA Está en vivo</span>
             </motion.div>
 
-            <motion.h1 variants={fadeInUp} className="font-headline font-black text-5xl sm:text-7xl leading-[1.05] tracking-tight mb-8">
+            <motion.h1 variants={fadeInUp} className="font-headline font-black text-4xl sm:text-5xl md:text-6xl lg:text-7xl leading-[1.1] tracking-tight mb-8">
               Sé tu propio gerente<br />
               <span
                 style={{
@@ -511,7 +512,7 @@ export default function Landing() {
               </div>
 
               {/* Grid 3x2 de beneficios */}
-              <div className="grid grid-cols-3 gap-4 mb-8">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-8">
                 {[
                   { icon: MagnifyingGlass, label: 'Autodescubrimiento', desc: 'Conoce quién eres' },
                   { icon: ShieldCheck, label: 'Fortalezas', desc: 'Sabe en qué eres bueno' },
@@ -628,7 +629,7 @@ export default function Landing() {
             initial={{ opacity: 0, scale: 0.9 }}
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
-            className="relative perspective-1000 lg:h-[500px] flex items-center justify-center mt-10 lg:mt-0"
+            className="relative lg:h-[500px] flex items-center justify-center mt-10 lg:mt-0 overflow-hidden lg:overflow-visible"
           >
             <motion.div
               animate={{ 
@@ -637,13 +638,13 @@ export default function Landing() {
                 rotateX: [2, -2, 2]
               }}
               transition={{ repeat: Infinity, duration: 7, ease: "easeInOut" }}
-              className="relative z-20 w-full max-w-sm"
+              className="relative z-20 w-full max-w-xs sm:max-w-sm"
               style={{ transformStyle: 'preserve-3d' }}
             >
               <div className="absolute inset-0 bg-gradient-to-b from-teal-400/20 to-emerald-600/20 blur-xl rounded-[2.5rem]" />
               
               {/* Chat Interface Glassmorphism */}
-              <div className="relative bg-[#0A1A14]/90 backdrop-blur-xl border border-white/10 p-6 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
+              <div className="relative bg-[#0A1A14]/90 backdrop-blur-xl border border-white/10 p-4 sm:p-6 rounded-[2rem] sm:rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
                 <div className="flex items-center gap-4 border-b border-white/10 pb-5 mb-5">
                     <div className="w-12 h-12 rounded-full bg-gradient-to-br from-teal-400 to-emerald-600 p-[1.5px] shadow-lg overflow-hidden">
                       <img src="/Avatar%20Optima.png" alt="ELVIA" className="w-full h-full object-cover rounded-full" />
@@ -679,7 +680,7 @@ export default function Landing() {
               <motion.div
                 animate={{ y: [0, 10, 0] }}
                 transition={{ repeat: Infinity, duration: 4, ease: "easeInOut", delay: 1 }}
-                className="absolute -right-6 lg:-right-12 top-20 bg-emerald-500/20 backdrop-blur-md border border-emerald-500/30 px-4 py-2 rounded-xl flex items-center gap-2 shadow-xl"
+                className="hidden sm:flex absolute -right-6 lg:-right-12 top-20 bg-emerald-500/20 backdrop-blur-md border border-emerald-500/30 px-4 py-2 rounded-xl items-center gap-2 shadow-xl"
                 style={{ transform: "translateZ(30px)" }}
               >
                 <Kanban size={18} weight="fill" className="text-emerald-400" />
@@ -689,7 +690,7 @@ export default function Landing() {
               <motion.div
                 animate={{ y: [0, -10, 0] }}
                 transition={{ repeat: Infinity, duration: 5, ease: "easeInOut", delay: 2 }}
-                className="absolute -left-6 lg:-left-10 bottom-16 bg-[#E8541A]/20 backdrop-blur-md border border-[#E8541A]/30 px-4 py-2 rounded-xl flex items-center gap-2 shadow-xl"
+                className="hidden sm:flex absolute -left-6 lg:-left-10 bottom-16 bg-[#E8541A]/20 backdrop-blur-md border border-[#E8541A]/30 px-4 py-2 rounded-xl items-center gap-2 shadow-xl"
                 style={{ transform: "translateZ(50px)" }}
               >
                 <CheckCircle size={18} weight="fill" className="text-[#E8541A]" />
@@ -1214,7 +1215,7 @@ export default function Landing() {
                   <img 
                     src="/Avatar%20Optima.png" 
                     alt="ELVIA" 
-                    className="relative w-32 h-32 rounded-full border-2 border-white/10 shadow-2xl object-cover" 
+                    className="relative w-24 h-24 sm:w-28 sm:h-28 lg:w-32 lg:h-32 rounded-full border-2 border-white/10 shadow-2xl object-cover"
                   />
                   <div className="absolute -bottom-2 -right-2 bg-teal-500 text-white p-2 rounded-xl shadow-lg">
                     <Lightning size={20} weight="fill" />
@@ -1261,12 +1262,12 @@ export default function Landing() {
                 </motion.div>
               ) : (
                 <form onSubmit={handleWaitlistSubmit} className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <input required type="text" value={waitlistForm.nombre} onChange={e => setWaitlistForm(f => ({...f, nombre: e.target.value}))} className="w-full bg-white/5 border border-white/10 text-white rounded-xl px-4 py-3.5 text-sm focus:ring-2 focus:ring-teal-500 placeholder-white/20 transition-all" placeholder="Nombre" />
                     <input required type="text" value={waitlistForm.apellido} onChange={e => setWaitlistForm(f => ({...f, apellido: e.target.value}))} className="w-full bg-white/5 border border-white/10 text-white rounded-xl px-4 py-3.5 text-sm focus:ring-2 focus:ring-teal-500 placeholder-white/20 transition-all" placeholder="Apellido" />
                   </div>
                   
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <select required value={waitlistForm.pais} onChange={e => {
                       const pais = PAISES.find(p => p.value === e.target.value)
                       setWaitlistForm(f => ({...f, pais: e.target.value, indicativo: pais?.code || ''}))
@@ -1336,10 +1337,10 @@ export default function Landing() {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.8, y: 40 }}
             onClick={scrollToWaitlist}
-            className="fixed bottom-6 right-6 md:bottom-10 md:right-10 z-[100] flex items-center gap-3 bg-gray-900 border border-white/10 text-white font-black px-6 py-4 rounded-2xl shadow-2xl transition-all group active:scale-95"
+            className="fixed bottom-6 right-4 md:bottom-10 md:right-10 z-[100] flex items-center gap-2 md:gap-3 bg-gray-900 border border-white/10 text-white font-black px-4 py-3 md:px-6 md:py-4 rounded-2xl shadow-2xl transition-all group active:scale-95"
           >
             <div className="flex flex-col items-start">
-               <span className="text-[10px] text-teal-400 uppercase tracking-widest leading-none mb-1">Puestos limitados</span>
+               <span className="hidden sm:block text-[10px] text-teal-400 uppercase tracking-widest leading-none mb-1">Puestos limitados</span>
                <span className="text-sm font-black">Acceso Prioritario</span>
             </div>
             <div className="w-10 h-10 rounded-xl bg-teal-500 text-white flex items-center justify-center shadow-lg shadow-teal-500/20 group-hover:rotate-12 transition-transform">
