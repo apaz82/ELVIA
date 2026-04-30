@@ -824,7 +824,7 @@ export default function Landing() {
               Desde autoconocimiento a Oferta.<br className="hidden md:block" /> Todo en un solo lugar.
             </h2>
             <p className="text-gray-500 text-lg max-w-xl mx-auto">
-              Herramientas de alto valor.
+              Herramientas de alto valor, gestión de candidaturas y mentores reales — diseñados para que consigas el trabajo que mereces.
             </p>
           </motion.div>
 
