@@ -819,12 +819,12 @@ export default function Landing() {
             viewport={{ once: true, margin: "-100px" }}
             className="text-center mb-14 space-y-3"
           >
-            <span className="text-[#E8541A] font-bold text-sm tracking-widest uppercase">Tu arsenal completo</span>
+            <span className="text-[#E8541A] font-bold text-base tracking-widest uppercase">Tu arsenal completo</span>
             <h2 className="font-headline font-black text-4xl md:text-5xl tracking-tight text-gray-900">
-              De CV a oferta.<br className="hidden md:block" /> Todo en un solo lugar.
+              Desde autoconocimiento a Oferta.<br className="hidden md:block" /> Todo en un solo lugar.
             </h2>
             <p className="text-gray-500 text-lg max-w-xl mx-auto">
-              Herramientas de IA, gestión de candidaturas y mentores reales — diseñados para que consigas el trabajo que mereces.
+              Herramientas de alto valor.
             </p>
           </motion.div>
 
