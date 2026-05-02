@@ -13,8 +13,15 @@ import UsersTab from '../components/admin/tabs/UsersTab'
 import WaitlistTab from '../components/admin/tabs/WaitlistTab'
 import SubscriptionsTab from '../components/admin/tabs/SubscriptionsTab'
 import CodesTab from '../components/admin/tabs/CodesTab'
+import B2BTab from '../components/admin/tabs/B2BTab'
 import SystemTab from '../components/admin/tabs/SystemTab'
 import MarketingTab from '../components/admin/tabs/MarketingTab'
+
+// Tabs (B2B)
+import CompanyDashboardTab from '../components/admin/tabs/b2b/CompanyDashboardTab'
+import CompanyUsersTab from '../components/admin/tabs/b2b/CompanyUsersTab'
+import CompanyCostsTab from '../components/admin/tabs/b2b/CompanyCostsTab'
+import CompanySettingsTab from '../components/admin/tabs/b2b/CompanySettingsTab'
 
 // Client Supabase propio del admin
 const db = createClient(
@@ -45,21 +52,14 @@ const AdminLogin = ({ onLogin }) => {
     const { data, error: authErr } = await db.auth.signInWithPassword({ email, password })
     if (authErr) { setError('Credenciales de acceso no válidas'); setLoading(false); return }
 
-    const { data: adminUser, error: adminErr } = await db.from('administrators').select('role, is_active').eq('id', data.user.id).single()
-    if (adminErr) {
-      console.error('Supabase RLS/Query Error:', adminErr);
+    const { data: perfil } = await db.from('profiles').select('role').eq('id', data.user.id).single()
+    if (!['super_admin', 'company_admin'].includes(perfil?.role)) {
       await db.auth.signOut()
-      setError(`Error de base de datos: ${adminErr.message}`)
+      setError('Acceso restringido: Solamente personal autorizado.')
       setLoading(false)
       return
     }
-    if (!adminUser || adminUser.role !== 'super_admin' || !adminUser.is_active) {
-      await db.auth.signOut()
-      setError('Acceso denegado: No tienes privilegios de Super Admin.')
-      setLoading(false)
-      return
-    }
-    onLogin({ ...data.user, ...adminUser })
+    onLogin(data.user)
     setLoading(false)
   }
 
@@ -80,7 +80,7 @@ const AdminLogin = ({ onLogin }) => {
             />
           </div>
           <h1 className="text-white text-4xl font-black tracking-tighter uppercase italic">ADMIN <span className="text-indigo-500">CENTER</span></h1>
-          <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.3em] mt-2 italic">B2C Operations</p>
+          <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.3em] mt-2 italic">Secure Operations Center</p>
         </div>
 
         <div className="bg-[#111827]/80 backdrop-blur-xl border border-slate-800 rounded-[2.5rem] p-10 shadow-2xl">
@@ -137,7 +137,7 @@ const AdminLogin = ({ onLogin }) => {
           </form>
         </div>
         
-        <p className="mt-8 text-center text-[10px] text-slate-600 font-bold uppercase tracking-[0.2em] italic">© 2026 ELVIA SYSTEM | B2C ADMIN</p>
+        <p className="mt-8 text-center text-[10px] text-slate-600 font-bold uppercase tracking-[0.2em] italic">© 2026 ELVIA SYSTEM | v2.4.0</p>
       </div>
     </div>
   )
@@ -150,21 +150,12 @@ function Dashboard({ adminUser, onLogout }) {
   const [users, setUsers]     = useState([])
   const [loading, setLoading] = useState(true)
 
-  // Theme support
-  const [theme, setTheme] = useState(() => {
-    return localStorage.getItem('adminTheme') || 'dark'
-  })
-
-  useEffect(() => {
-    localStorage.setItem('adminTheme', theme)
-    if (theme === 'dark') {
-        document.documentElement.classList.add('dark')
-    } else {
-        document.documentElement.classList.remove('dark')
-    }
-  }, [theme])
-
-  const toggleTheme = () => setTheme(prev => prev === 'dark' ? 'light' : 'dark')
+  // B2B States
+  const [adminContext, setAdminContext] = useState('B2C') // 'B2C' | 'B2B'
+  const [selectedCompany, setSelectedCompany] = useState(null)
+  const [adminRole, setAdminRole] = useState(null)
+  const [companies, setCompanies] = useState([])
+  const [companyData, setCompanyData] = useState({ stats: null, users: [], invitations: [], costs: null })
 
   // B2C Waitlist & Stats States
   const [waitlistLeads, setWaitlistLeads] = useState([])
@@ -172,33 +163,81 @@ function Dashboard({ adminUser, onLogout }) {
   const [events, setEvents] = useState([])
   const [config, setConfig] = useState([])
 
+  const fetchB2BData = useCallback(async (companyId) => {
+    if (!companyId) return
+    try {
+      const { data: { session } } = await db.auth.getSession()
+      
+      const { data: cUsers } = await db.from('profiles').select('*').eq('company_id', companyId)
+      
+      const [invRes, dashRes, costsRes] = await Promise.all([
+        fetch(`${API_URL}/api/company/invitations?company_id=${companyId}`, { headers: { 'Authorization': `Bearer ${session?.access_token}` } }),
+        fetch(`${API_URL}/api/company/dashboard?company_id=${companyId}`, { headers: { 'Authorization': `Bearer ${session?.access_token}` } }),
+        fetch(`${API_URL}/api/company/costs?company_id=${companyId}`, { headers: { 'Authorization': `Bearer ${session?.access_token}` } })
+      ])
+      
+      const [invJson, dashJson, costsJson] = await Promise.all([invRes.json(), dashRes.json(), costsRes.json()])
+      
+      setCompanyData({
+        stats: dashJson.stats,
+        users: cUsers || [],
+        invitations: invJson.invitations || [],
+        costs: costsJson.costs
+      })
+    } catch (err) {
+      console.error('[Dashboard] B2B Data Fetch Error:', err)
+    }
+  }, [])
+
   const fetchData = useCallback(async () => {
     setLoading(true)
     
-    // Obtener todos los usuarios de perfiles para las estadísticas
-    const { data, error } = await db.from('profiles').select('*').order('created_at', { ascending: false })
-    if (!error && data) setUsers(data)
+    // Get Admin Profile and Role
+    const { data: profile } = await db.from('profiles').select('*, companies(*)').eq('id', adminUser?.id).single()
+    if (profile) {
+      setAdminRole(profile.role)
+      // If company_admin, lock to B2B and their company
+      if (profile.role === 'company_admin' && profile.companies) {
+        setAdminContext('B2B')
+        setSelectedCompany(profile.companies)
+        setTab('company_overview')
+        await fetchB2BData(profile.companies.id)
+      }
+      
+      // If super_admin, fetch companies list
+      if (profile.role === 'super_admin') {
+        const { data: comps } = await db.from('companies').select('*')
+        setCompanies(comps || [])
+      }
+    }
 
-    try {
-      const { data: { session: wSession } } = await db.auth.getSession()
-      const [wRes, sRes, eRes, cRes] = await Promise.all([
-        fetch(`${API_URL}/api/waitlist?page=0&limit=50`, { headers: { 'Authorization': `Bearer ${wSession?.access_token}` } }),
-        db.from('landing_stats').select('views').eq('id', 1).single(),
-        db.from('landing_events').select('*').order('created_at', { ascending: false }),
-        db.from('landing_config').select('*')
-      ])
+    if (adminContext === 'B2C') {
+      const { data, error } = await db.from('profiles').select('*').order('created_at', { ascending: false })
+      if (!error && data) setUsers(data)
 
-      const wJson = await wRes.json()
-      if (wJson.leads) setWaitlistLeads(wJson.leads)
-      if (sRes.data) setLandingViews(sRes.data.views)
-      if (eRes.data) setEvents(eRes.data)
-      if (cRes.data) setConfig(cRes.data)
-    } catch (err) {
-      console.error('[Dashboard] B2C Data Fetch Error:', err)
+      try {
+        const { data: { session: wSession } } = await db.auth.getSession()
+        const [wRes, sRes, eRes, cRes] = await Promise.all([
+          fetch(`${API_URL}/api/waitlist?page=0&limit=50`, { headers: { 'Authorization': `Bearer ${wSession?.access_token}` } }),
+          db.from('landing_stats').select('views').eq('id', 1).single(),
+          db.from('landing_events').select('*').order('created_at', { ascending: false }),
+          db.from('landing_config').select('*')
+        ])
+
+        const wJson = await wRes.json()
+        if (wJson.leads) setWaitlistLeads(wJson.leads)
+        if (sRes.data) setLandingViews(sRes.data.views)
+        if (eRes.data) setEvents(eRes.data)
+        if (cRes.data) setConfig(cRes.data)
+      } catch (err) {
+        console.error('[Dashboard] B2C Data Fetch Error:', err)
+      }
+    } else if (selectedCompany) {
+      await fetchB2BData(selectedCompany.id)
     }
     
     setLoading(false)
-  }, [])
+  }, [adminUser, adminContext, selectedCompany, fetchB2BData])
 
   useEffect(() => { fetchData() }, [fetchData])
 
@@ -221,33 +260,77 @@ function Dashboard({ adminUser, onLogout }) {
         )
     }
 
-    switch (tab) {
-        case 'overview':      return <OverviewTab stats={statsB2C} theme={theme} users={users} />
-        case 'users':         return <UsersTab users={users} onRefresh={fetchData} fmtDate={fmtDate} db={db} API_URL={API_URL} theme={theme} />
-        case 'waitlist':      return <WaitlistTab leads={waitlistLeads} views={landingViews} events={events} onRefresh={fetchData} fmtDate={fmtDate} theme={theme} />
-        case 'marketing':     return <MarketingTab config={config} onRefresh={fetchData} theme={theme} />
-        case 'suscripciones': return <SubscriptionsTab users={users} theme={theme} />
-        case 'codigos':       return <CodesTab db={db} API_URL={API_URL} theme={theme} />
-        case 'sistema':       return <SystemTab db={db} API_URL={API_URL} theme={theme} />
-        default:              return <OverviewTab stats={statsB2C} theme={theme} users={users} />
+    // B2C Context
+    if (adminContext === 'B2C') {
+        switch (tab) {
+            case 'overview':      return <OverviewTab stats={statsB2C} />
+            case 'users':         return <UsersTab users={users} onRefresh={fetchData} fmtDate={fmtDate} db={db} API_URL={API_URL} />
+            case 'waitlist':      return <WaitlistTab leads={waitlistLeads} views={landingViews} events={events} onRefresh={fetchData} fmtDate={fmtDate} />
+            case 'marketing':     return <MarketingTab config={config} onRefresh={fetchData} />
+            case 'suscripciones': return <SubscriptionsTab users={users} />
+            case 'codigos':       return <CodesTab db={db} API_URL={API_URL} />
+            case 'empresas':      return <B2BTab db={db} API_URL={API_URL} />
+            case 'sistema':       return <SystemTab db={db} API_URL={API_URL} />
+            default:              return <OverviewTab stats={statsB2C} />
+        }
     }
+
+    // B2B Context
+    if (adminContext === 'B2B') {
+        switch (tab) {
+            case 'company_overview': return <CompanyDashboardTab company={selectedCompany} data={companyData} />
+            case 'company_users':    return <CompanyUsersTab company={selectedCompany} users={companyData.users} invitations={companyData.invitations} onRefresh={() => fetchB2BData(selectedCompany.id)} fmtDate={fmtDate} db={db} API_URL={API_URL} />
+            case 'company_costs':    return <CompanyCostsTab company={selectedCompany} costs={companyData.costs} onExport={async () => {
+                const { data: { session } } = await db.auth.getSession()
+                const res = await fetch(`${API_URL}/api/company/costs/export`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${session?.access_token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ sendEmail: true })
+                })
+                if (res.ok) {
+                   const { toast } = await import('react-hot-toast')
+                   toast.success('Reporte de costos enviado satisfactoriamente.')
+                }
+            }} />
+            case 'company_settings': return <CompanySettingsTab company={selectedCompany} onRefresh={async () => {
+                const { data } = await db.from('companies').select('*').eq('id', selectedCompany.id).single()
+                if (data) setSelectedCompany(data)
+            }} db={db} API_URL={API_URL} />
+            default: return <div className="py-20 text-center text-slate-500 uppercase tracking-widest text-[10px] font-black italic">Módulo B2B No Inicializado</div>
+        }
+    }
+
+    return null
   }
 
   return (
     <AdminLayout 
       adminUser={adminUser} 
+      adminRole={adminRole} 
+      adminContext={adminContext}
+      onContextChange={setAdminContext}
+      companies={companies}
+      selectedCompany={selectedCompany}
+      onCompanyChange={(comp) => {
+        setSelectedCompany(comp)
+        if (comp) fetchB2BData(comp.id)
+      }}
       currentTab={tab}
       onRefresh={fetchData}
       loading={loading}
-      theme={theme}
-      toggleTheme={toggleTheme}
-      onTabChange={setTab}
-      onLogout={onLogout}
     >
+      <AdminSidebar 
+        currentTab={tab} 
+        onTabChange={setTab} 
+        adminRole={adminRole} 
+        adminContext={adminContext} 
+        onLogout={onLogout}
+        adminUser={adminUser}
+      />
       <div className="flex-1 overflow-x-hidden">
         <AnimatePresence mode="wait">
           <motion.div
-            key={tab}
+            key={tab + adminContext}
             initial={{ opacity: 0, y: 10, filter: 'blur(4px)' }}
             animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
             exit={{ opacity: 0, y: -10, filter: 'blur(4px)' }}
@@ -272,8 +355,8 @@ export default function Admin() {
     const check = async () => {
       const { data: { session } } = await db.auth.getSession()
       if (session?.user) {
-        const { data } = await db.from('administrators').select('role, is_active').eq('id', session.user.id).single()
-        if (data?.role === 'super_admin' && data?.is_active) {
+        const { data } = await db.from('profiles').select('role').eq('id', session.user.id).single()
+        if (['super_admin', 'company_admin'].includes(data?.role)) {
           setAdminUser(session.user)
         } else {
           await db.auth.signOut()

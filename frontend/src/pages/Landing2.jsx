@@ -478,7 +478,7 @@ export default function Landing() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 divide-y md:divide-y-0 md:divide-x divide-gray-200 text-center">
             {[
               { target: 75, suffix: '%', label: 'Tasa de rechazo inicial por filtros ATS sin optimizar' },
-              { target: 3,  suffix: 'x', label: 'Mayor probabilidad de entrevista con un formato Harvard' },
+              { target: 3,  suffix: 'x', label: 'Mayor probabilidad de entrevista con un formato optimizado de clase mundial' },
               { target: 8,  suffix: 's', label: 'Tiempo promedio que un reclutador lee tu CV' },
             ].map(({ target, suffix, label }) => (
               <div key={label} className="px-6 py-4 md:py-0">
@@ -734,125 +734,105 @@ export default function Landing() {
           >
             <span className="text-[#E8541A] font-bold text-sm tracking-widest uppercase">Tu arsenal completo</span>
             <h2 className="font-headline font-black text-4xl md:text-5xl tracking-tight text-gray-900">
-              De CV a oferta.<br className="hidden md:block" /> Todo en un solo lugar.
+              Desde autoconocimiento a Oferta.<br className="hidden md:block" /> Todo en un solo lugar.
             </h2>
             <p className="text-gray-500 text-lg max-w-xl mx-auto">
-              Herramientas de IA, gestión de candidaturas y mentores reales — diseñados para que consigas el trabajo que mereces.
+              Herramientas de alto valor, gestión de candidaturas y mentores reales — diseñados para que consigas el trabajo que mereces.
             </p>
           </motion.div>
 
-          {/* ─── Fila 1: Herramientas IA hero (3 cols) ─── */}
-          <motion.div
-            initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-60px" }}
-            variants={staggerContainer}
-            className="grid grid-cols-1 md:grid-cols-3 gap-5 md:gap-6 mb-4"
-          >
-            {/* ─── Fila 1: Herramientas IA hero (3 cols iguales) ─── */}
-            {FEATURE_ROWS.heroes.map(f => (
-              <motion.div
-                key={f.titulo}
-                variants={fadeInUp}
-                whileHover={{ y: -6, boxShadow: f.featured ? '0 25px 50px -12px rgba(0,0,0,0.3)' : '0 25px 50px -12px rgba(0,0,0,0.18)' }}
-                transition={{ type: 'spring', stiffness: 300, damping: 22 }}
-                className={`group relative overflow-hidden rounded-2xl border-2 transition-all ${f.featured ? 'border-blue-400 bg-gradient-to-br from-blue-50 to-white shadow-lg shadow-blue-200/30' : 'border-gray-200 bg-white'}`}
-              >
-                {f.featured && (
-                  <div className="absolute top-3 right-3 inline-flex items-center gap-1 px-3 py-1 rounded-full bg-blue-100 border border-blue-200 z-20">
-                    <span className="text-xs font-bold text-blue-700 uppercase tracking-widest">Destacado</span>
+          {/* Mobile: lista */}
+          <div className="md:hidden space-y-3 mb-4">
+            <div className="rounded-2xl border-2 border-blue-400 bg-gradient-to-br from-blue-50 to-white p-6 shadow-lg shadow-blue-200/30">
+              <div className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-blue-100 border border-blue-200 mb-4">
+                <span className="text-xs font-bold text-blue-700 uppercase tracking-widest">Centro del sistema</span>
+              </div>
+              <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center mb-3">
+                <UsersThree size={24} weight="duotone" className="text-blue-600" />
+              </div>
+              <h3 className="font-bold text-xl text-blue-900 mb-1">Autoconocimiento</h3>
+              <p className="text-xs font-semibold uppercase tracking-wide text-blue-600 mb-3">Tu primer paso como gerente</p>
+              <p className="text-sm text-blue-700 leading-relaxed">Un onboarding para que conozcas tu momento actual y hacia donde quieres ir. Prepárate para ser gerente de proyecto de tu transición profesional.</p>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                { Icon: FileMagnifyingGlass, titulo: 'Optimizador de CV',    iconBg: 'bg-orange-100', iconColor: 'text-[#E8541A]' },
+                { Icon: LinkedinLogo,        titulo: 'LinkedIn® Optimizado', iconBg: 'bg-blue-100',   iconColor: 'text-blue-600'  },
+                { Icon: MagnifyingGlass,     titulo: 'CV vs Vacante',        iconBg: 'bg-amber-100',  iconColor: 'text-amber-600' },
+                { Icon: BookmarkSimple,      titulo: 'Mis Vacantes',         iconBg: 'bg-teal-100',   iconColor: 'text-teal-600'  },
+                { Icon: Kanban,              titulo: 'Pipeline',             iconBg: 'bg-teal-100',   iconColor: 'text-teal-600'  },
+                { Icon: MicrophoneStage,     titulo: 'Entrevista',           iconBg: 'bg-purple-100', iconColor: 'text-purple-600'},
+                { Icon: Books,              titulo: 'Biblioteca',           iconBg: 'bg-indigo-100', iconColor: 'text-indigo-600'},
+                { Icon: ChartBar,            titulo: 'Bienestar',            iconBg: 'bg-green-100',  iconColor: 'text-green-600' },
+              ].map(item => (
+                <div key={item.titulo} className="rounded-2xl border border-gray-200 bg-white p-4 hover:shadow-md transition-shadow">
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 ${item.iconBg} ${item.iconColor}`}>
+                    <item.Icon size={20} weight="duotone" />
                   </div>
-                )}
-                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300" style={{ background: f.gradientStyle }} />
-                <div className="relative z-10 p-8 h-full flex flex-col min-h-[380px]">
-                  {/* Icon */}
-                  <div className={`w-16 h-16 rounded-xl flex items-center justify-center mb-6 transition-all duration-300 ${f.iconBg} ${f.iconColor} group-hover:bg-white/20 group-hover:text-white`}>
-                    <f.Icon size={32} weight="duotone" />
-                  </div>
-
-                  {/* Content */}
-                  <div className="flex-1">
-                    <h3 className={`font-headline font-bold text-2xl transition-colors duration-300 mb-1 leading-tight ${f.featured ? 'text-blue-900 group-hover:text-white' : 'text-gray-900 group-hover:text-white'}`}>{f.titulo}</h3>
-                    {f.subtitulo && (
-                      <p className={`text-xs font-semibold uppercase tracking-wide transition-colors duration-300 mb-3 ${f.featured ? 'text-blue-600 group-hover:text-white/70' : 'text-gray-500 group-hover:text-white/60'}`}>{f.subtitulo}</p>
-                    )}
-                    <p className={`text-sm leading-relaxed transition-colors duration-300 mb-4 ${f.featured ? 'text-blue-700 group-hover:text-white/80' : 'text-gray-600 group-hover:text-white/80'}`}>{f.desc}</p>
-                  </div>
-
-                  {/* CTA */}
-                  <div className="mt-6 flex items-center gap-2 text-sm font-bold text-gray-400 group-hover:text-white transition-all duration-300 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0">
-                    {f.cta} <ArrowRight size={16} weight="bold" />
-                  </div>
+                  <h4 className="font-bold text-sm text-gray-900 leading-tight">{item.titulo}</h4>
                 </div>
-              </motion.div>
-            ))}
-          </motion.div>
+              ))}
+            </div>
+          </div>
 
-          {/* ─── Fila 2: Mi Carrera (4 cols iguales) ─── */}
-          <motion.div
-            initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-60px" }}
-            variants={staggerContainer}
-            className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4"
-          >
-            {FEATURE_ROWS.carrera.map(f => (
-              <motion.div
-                key={f.titulo}
-                variants={fadeInUp}
-                whileHover={{ y: -6, boxShadow: '0 20px 40px -10px rgba(0,0,0,0.15)' }}
-                transition={{ type: 'spring', stiffness: 300, damping: 22 }}
-                className="group relative overflow-hidden rounded-2xl border border-gray-200 bg-white"
-              >
-                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300" style={{ background: f.gradientStyle }} />
-                <div className="relative z-10 p-5 flex flex-col min-h-[180px]">
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-4 transition-all duration-300 ${f.iconBg} ${f.iconColor} group-hover:bg-white/20 group-hover:text-white`}>
-                    <f.Icon size={20} weight="duotone" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-start gap-2 mb-1.5">
-                      <h3 className="font-bold text-base text-gray-900 group-hover:text-white transition-colors duration-300">{f.titulo}</h3>
-                      {f.upcoming && <span className="text-[10px] font-bold bg-amber-100 text-amber-800 px-2 py-0.5 rounded">Próximamente</span>}
+          {/* Desktop: círculo orbital */}
+          <div className="hidden md:block relative mx-auto mb-4" style={{ maxWidth: '700px', height: '700px' }}>
+            {/* Anillo de órbita */}
+            <div
+              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border border-dashed border-gray-200 pointer-events-none"
+              style={{ width: '580px', height: '580px' }}
+            />
+
+            {/* Centro: Autoconocimiento */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20" style={{ width: '160px' }}>
+              <div className="rounded-2xl border-2 border-blue-400 bg-gradient-to-br from-blue-50 to-white p-5 shadow-xl shadow-blue-200/40 text-center">
+                <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-100 border border-blue-200 mb-3">
+                  <span className="text-[9px] font-bold text-blue-700 uppercase tracking-widest">Centro</span>
+                </div>
+                <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center mx-auto mb-3">
+                  <UsersThree size={24} weight="duotone" className="text-blue-600" />
+                </div>
+                <h3 className="font-bold text-sm text-blue-900 leading-tight">Autoconocimiento</h3>
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-blue-600 mt-1">Tu primer paso</p>
+              </div>
+            </div>
+
+            {/* Ítems orbitales — 8 en círculo, sentido horario desde arriba */}
+            {[
+              { Icon: FileMagnifyingGlass, titulo: 'Optimizador de CV',    iconBg: 'bg-orange-100', iconColor: 'text-[#E8541A]' },
+              { Icon: LinkedinLogo,        titulo: 'LinkedIn® Optimizado', iconBg: 'bg-blue-100',   iconColor: 'text-blue-600'  },
+              { Icon: MagnifyingGlass,     titulo: 'CV vs Vacante',        iconBg: 'bg-amber-100',  iconColor: 'text-amber-600' },
+              { Icon: BookmarkSimple,      titulo: 'Mis Vacantes',         iconBg: 'bg-teal-100',   iconColor: 'text-teal-600'  },
+              { Icon: Kanban,              titulo: 'Pipeline',             iconBg: 'bg-teal-100',   iconColor: 'text-teal-600'  },
+              { Icon: MicrophoneStage,     titulo: 'Entrevista',           iconBg: 'bg-purple-100', iconColor: 'text-purple-600'},
+              { Icon: Books,              titulo: 'Biblioteca',           iconBg: 'bg-indigo-100', iconColor: 'text-indigo-600'},
+              { Icon: ChartBar,            titulo: 'Bienestar',            iconBg: 'bg-green-100',  iconColor: 'text-green-600' },
+            ].map((item, i) => {
+              const angleDeg = -90 + i * 45
+              const angleRad = angleDeg * Math.PI / 180
+              const r = 41.5
+              const x = 50 + r * Math.cos(angleRad)
+              const y = 50 + r * Math.sin(angleRad)
+              return (
+                <div
+                  key={item.titulo}
+                  className="absolute z-10"
+                  style={{ top: `${y}%`, left: `${x}%`, transform: 'translate(-50%, -50%)', width: '116px' }}
+                >
+                  <motion.div
+                    whileHover={{ y: -4, boxShadow: '0 12px 24px -6px rgba(0,0,0,0.12)' }}
+                    transition={{ type: 'spring', stiffness: 300, damping: 22 }}
+                    className="rounded-2xl border border-gray-200 bg-white p-3 shadow-sm text-center cursor-default"
+                  >
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center mx-auto mb-2 ${item.iconBg} ${item.iconColor}`}>
+                      <item.Icon size={20} weight="duotone" />
                     </div>
-                    <p className="text-xs text-gray-500 group-hover:text-white/80 transition-colors duration-300 leading-relaxed">{f.desc}</p>
-                  </div>
-                  <div className={`mt-4 flex items-center gap-1.5 text-xs font-bold ${f.upcoming ? 'text-gray-300 group-hover:text-gray-400' : 'text-gray-400 group-hover:text-white'} transition-all duration-300 ${f.upcoming ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 translate-y-1 group-hover:translate-y-0'}`}>
-                    {f.cta} {!f.upcoming && <ArrowRight size={12} weight="bold" />}
-                  </div>
+                    <h4 className="font-bold text-xs text-gray-900 leading-tight">{item.titulo}</h4>
+                  </motion.div>
                 </div>
-              </motion.div>
-            ))}
-          </motion.div>
-
-          {/* ─── Fila 3: Recursos (4 cols iguales) ─── */}
-          <motion.div
-            initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-60px" }}
-            variants={staggerContainer}
-            className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4"
-          >
-            {FEATURE_ROWS.recursos.map(f => (
-              <motion.div
-                key={f.titulo}
-                variants={fadeInUp}
-                whileHover={{ y: -6, boxShadow: '0 20px 40px -10px rgba(0,0,0,0.15)' }}
-                transition={{ type: 'spring', stiffness: 300, damping: 22 }}
-                className="group relative overflow-hidden rounded-2xl border border-gray-200 bg-white"
-              >
-                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300" style={{ background: f.gradientStyle }} />
-                <div className="relative z-10 p-5 flex flex-col min-h-[180px]">
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-4 transition-all duration-300 ${f.iconBg} ${f.iconColor} group-hover:bg-white/20 group-hover:text-white`}>
-                    <f.Icon size={20} weight="duotone" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-start gap-2 mb-1.5">
-                      <h3 className="font-bold text-base text-gray-900 group-hover:text-white transition-colors duration-300">{f.titulo}</h3>
-                      {f.upcoming && <span className="text-[10px] font-bold bg-amber-100 text-amber-800 px-2 py-0.5 rounded">Próximamente</span>}
-                    </div>
-                    <p className="text-xs text-gray-500 group-hover:text-white/80 transition-colors duration-300 leading-relaxed">{f.desc}</p>
-                  </div>
-                  <div className={`mt-4 flex items-center gap-1.5 text-xs font-bold ${f.upcoming ? 'text-gray-300 group-hover:text-gray-400' : 'text-gray-400 group-hover:text-white'} transition-all duration-300 ${f.upcoming ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 translate-y-1 group-hover:translate-y-0'}`}>
-                    {f.cta} {!f.upcoming && <ArrowRight size={12} weight="bold" />}
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </motion.div>
+              )
+            })}
+          </div>
 
           {/* ─── Fila 4: Mentor Experto ─── card premium full-width ─── */}
           <motion.div
@@ -1235,7 +1215,7 @@ export default function Landing() {
               <img src="/elvia-logo-transparent.png" alt="ELVIA" className="h-10 w-auto opacity-90" />
             </Link>
             <p className="text-gray-400 text-xs font-medium uppercase tracking-widest text-center md:text-left">
-              Potenciando carreras de alto nivel con IA
+              <span style={{ color: '#0D9488' }}>CONECTA</span> TU PRESENTE CON EL FUTURO QUE QUIERES.
             </p>
           </div>
 

@@ -12,7 +12,16 @@
       "Bash(git commit:*)",
       "WebFetch(domain:www.yeldra.com)",
       "Bash(python3)",
-      "Bash(grep -v \"//.*comment\")"
+      "Bash(grep -v \"//.*comment\")",
+      "Bash(netstat -ano)",
+      "Bash(findstr \":517[3-7]\")",
+      "Bash(kill -9 56520 69448 89476 141096 51164)",
+      "Bash(powershell -Command \"Stop-Process -Id 14816,121948 -Force -ErrorAction SilentlyContinue ; sleep 1\")",
+      "Bash(cp -r ~/osmani-skills-temp/skills/* ~/.claude/skills/)",
+      "Bash(rm -rf ~/osmani-skills-temp)",
+      "Read(//c/Users/G15/.claude/skills/**)",
+      "Bash(git -C \"c:\\\\Users\\\\G15\\\\Documents\\\\Claude-Antigravity projects\\\\APP-HR-CVS\" add frontend/src/pages/Landing.jsx frontend/index.html)",
+      "Bash(git -C 'c:\\\\Users\\\\G15\\\\Documents\\\\Claude-Antigravity projects\\\\APP-HR-CVS' commit -m 'feat\\(landing\\): replace product landing with coming soon page *)"
     ],
     "defaultMode": "acceptEdits"
   },

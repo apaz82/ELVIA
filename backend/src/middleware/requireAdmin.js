@@ -10,29 +10,52 @@ const requireRole = (minRole = 'company_admin') => async (req, res, next) => {
   const db = req.supabase;
 
   try {
-    const { data: profile, error } = await db
-      .from('profiles')
-      .select('role, company_id')
+    let adminRole = null;
+    let companyId = null;
+    let finalProfile = null;
+
+    // 1. Check administrators table (B2C)
+    const { data: adminRecord, error: adminError } = await db
+      .from('administrators')
+      .select('role')
       .eq('id', req.user.id)
       .single();
 
-    if (error || !profile) {
+    if (!adminError && adminRecord && adminRecord.role === 'super_admin') {
+      adminRole = 'super_admin';
+      finalProfile = adminRecord;
+    } else {
+      // 2. Fallback to profiles table (B2B company_admin)
+      const { data: userProfile, error } = await db
+        .from('profiles')
+        .select('role, company_id')
+        .eq('id', req.user.id)
+        .single();
+      
+      if (!error && userProfile) {
+        adminRole = userProfile.role;
+        companyId = userProfile.company_id;
+        finalProfile = userProfile;
+      }
+    }
+
+    if (!adminRole) {
       return res.status(403).json({ error: 'Acceso denegado' });
     }
 
     // Super admin siempre puede
-    if (profile.role === 'super_admin') {
+    if (adminRole === 'super_admin') {
       req.adminRole = 'super_admin';
       req.companyId = null;
-      req.adminProfile = profile;
+      req.adminProfile = finalProfile;
       return next();
     }
 
     // Company admin solo para rutas que no exigen super_admin
-    if (profile.role === 'company_admin' && minRole === 'company_admin') {
+    if (adminRole === 'company_admin' && minRole === 'company_admin') {
       req.adminRole = 'company_admin';
-      req.companyId = profile.company_id;
-      req.adminProfile = profile;
+      req.companyId = companyId;
+      req.adminProfile = finalProfile;
       return next();
     }
 

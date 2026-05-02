@@ -34,11 +34,11 @@ import { useAuth } from './context/AuthContext'
 import { Toaster } from 'react-hot-toast'
 
 // Rutas que NO muestran sidebar ni header estándar
-const RUTAS_FULL = ['/', '/plataforma', '/landing2', '/auth', '/bienvenida', '/admin', '/privacidad', '/reset-password', '/pricing']
+const RUTAS_FULL = ['/', '/waitlist', '/inicio', '/auth', '/bienvenida', '/admin', '/privacidad', '/reset-password', '/pricing']
 // Rutas excluidas del guard de onboarding (no redirigen a /bienvenida aunque haya onboarding pendiente)
-const RUTAS_SIN_GUARD = ['/', '/plataforma', '/landing2', '/auth', '/bienvenida', '/admin', '/privacidad', '/reset-password', '/pricing', '/proyecto-laboral', '/cv-desde-cero', '/linkedin-pro']
+const RUTAS_SIN_GUARD = ['/', '/waitlist', '/inicio', '/auth', '/bienvenida', '/admin', '/privacidad', '/reset-password', '/pricing', '/proyecto-laboral', '/cv-desde-cero', '/linkedin-pro']
 // Rutas públicas (solo para usuarios NO autenticados)
-const RUTAS_PUBLICAS = ['/', '/plataforma', '/auth', '/privacidad', '/reset-password', '/pricing']
+const RUTAS_PUBLICAS = ['/', '/waitlist', '/auth', '/privacidad', '/reset-password', '/pricing']
 
 // Rutas internas de la APP (si NO es una de estas, usamos FullLayout para el Catch-All)
 const RUTAS_APP = [
@@ -170,8 +170,8 @@ export default function App() {
     <Routes>
       <Route path="/reset-password"  element={<ResetPassword />} />  {/* Por si acaso falla el bloqueo anterior */}
       <Route path="/"              element={<LandingMuyPronto />} />
-      <Route path="/plataforma"    element={<PublicRoute><Landing /></PublicRoute>} />
-      <Route path="/landing2"      element={<PublicRoute><Landing2 /></PublicRoute>} />
+      <Route path="/waitlist"       element={<PublicRoute><Landing /></PublicRoute>} />
+      <Route path="/inicio"         element={<PublicRoute><Landing2 /></PublicRoute>} />
       <Route path="/auth"          element={<PublicRoute><Auth /></PublicRoute>} />
       <Route path="/privacidad"      element={<Privacidad />} />
       <Route path="/pricing"              element={<PublicRoute><Pricing /></PublicRoute>} />
