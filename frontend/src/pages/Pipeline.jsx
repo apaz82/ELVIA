@@ -319,19 +319,19 @@ export default function Pipeline() {
   const { user, loading: authLoading, featuresDesbloqueadas } = useAuth()
   const navigate = useNavigate()
 
+  const [vacantes, setVacantes]     = useState([])
+  const [loading, setLoading]       = useState(true)
+  const [filtroPerdidas, setFiltro] = useState(false)
+
   if (!featuresDesbloqueadas) {
     return (
-      <FeatureLocked 
-        titulo="Pipeline de Aplicaciones" 
+      <FeatureLocked
+        titulo="Pipeline de Aplicaciones"
         descripcion="Sigue el estado de cada una de tus aplicaciones en tiempo real y gestiona tu proceso como un profesional."
         icono={<Kanban size={44} weight="light" />}
       />
     )
   }
-
-  const [vacantes, setVacantes]     = useState([])
-  const [loading, setLoading]       = useState(true)
-  const [filtroPerdidas, setFiltro] = useState(false)
 
   useEffect(() => {
     if (authLoading) return

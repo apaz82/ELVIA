@@ -90,16 +90,6 @@ export default function MisCVs() {
   const { user, loading: authLoading, featuresDesbloqueadas } = useAuth()
   const navigate = useNavigate()
 
-  if (!featuresDesbloqueadas) {
-    return (
-      <FeatureLocked 
-        titulo="Mis CVs Guardados" 
-        descripcion="Administra todas las versiones optimizadas de tu CV y descarga los formatos Harvard generados por nuestra IA."
-        icono={<FilePdf size={44} weight="light" />}
-      />
-    )
-  }
-
   const [cvsOptimizados, setCvsOptimizados] = useState([])
   const [cvsOriginal,    setCvsOriginal]    = useState([])
   const [cvsMatch,       setCvsMatch]       = useState([])
@@ -108,9 +98,18 @@ export default function MisCVs() {
   const [loading, setLoading]               = useState(true)
   const [descargando, setDescargando]       = useState({})
   const [tab, setTab]                       = useState('optimizados')
-  // Filtros para tab de compatibilidad
-  const [filtroCompatibilidad, setFiltroCompatibilidad] = useState('todos') // todos | alto | bajo
+  const [filtroCompatibilidad, setFiltroCompatibilidad] = useState('todos')
   const [seleccionados, setSeleccionados]   = useState(new Set())
+
+  if (!featuresDesbloqueadas) {
+    return (
+      <FeatureLocked
+        titulo="Mis CVs Guardados"
+        descripcion="Administra todas las versiones optimizadas de tu CV y descarga los formatos Harvard generados por nuestra IA."
+        icono={<FilePdf size={44} weight="light" />}
+      />
+    )
+  }
 
   useEffect(() => {
     if (authLoading) return

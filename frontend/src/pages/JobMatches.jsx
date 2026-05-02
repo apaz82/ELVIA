@@ -41,19 +41,20 @@ export default function JobMatches() {
   // CV base para compatibilidad: primero el de contexto (sesión actual), si no el seleccionado de historial
   const cvTextContexto = resultadoOptimize?.optimizedCV || resultadoMatch?.tailoredCV || ''
 
+  const [cvsSaved, setCvsSaved]         = useState([])
+  const [cvSeleccionado, setCvSeleccionado] = useState(null)
+  const [mostrarSelector, setMostrarSelector] = useState(false)
+  const selectorRef = useRef(null)
+
   if (!featuresDesbloqueadas) {
     return (
-      <FeatureLocked 
-        titulo="Vacantes Recomendadas" 
+      <FeatureLocked
+        titulo="Vacantes Recomendadas"
         descripcion="Accede a las mejores oportunidades laborales filtradas por nuestra IA según tu perfil único."
         icono={<Briefcase size={44} weight="light" />}
       />
     )
   }
-  const [cvsSaved, setCvsSaved]         = useState([])   // lista de CVs de Supabase
-  const [cvSeleccionado, setCvSeleccionado] = useState(null) // { id, nombre, contenido }
-  const [mostrarSelector, setMostrarSelector] = useState(false)
-  const selectorRef = useRef(null)
 
   // Cerrar dropdown al hacer click fuera
   useEffect(() => {

@@ -17,25 +17,25 @@ export default function MisVacantes() {
   const { resultadoOptimize, resultadoMatch } = useCV()
   const navigate = useNavigate()
 
-  if (!featuresDesbloqueadas) {
-    return (
-      <FeatureLocked 
-        titulo="Mis Vacantes Guardadas" 
-        descripcion="Seguimiento detallado de todas las oportunidades que te interesan y análisis de compatibilidad por IA."
-        icono={<MagnifyingGlass size={44} weight="light" />}
-      />
-    )
-  }
-
-  const [cvsSaved, setCvsSaved]         = useState([])   // lista de CVs de Supabase
-  const [cvSeleccionado, setCvSeleccionado] = useState(null) // { id, nombre, contenido }
+  const [cvsSaved, setCvsSaved]         = useState([])
+  const [cvSeleccionado, setCvSeleccionado] = useState(null)
   const [mostrarSelector, setMostrarSelector] = useState(false)
   const selectorRef = useRef(null)
 
   const [vacantes, setVacantes]   = useState([])
   const [loading, setLoading]     = useState(true)
   const [tab, setTab]             = useState('todas')
-  const [ordenFecha, setOrdenFecha] = useState('desc') // desc = más recientes primero
+  const [ordenFecha, setOrdenFecha] = useState('desc')
+
+  if (!featuresDesbloqueadas) {
+    return (
+      <FeatureLocked
+        titulo="Mis Vacantes Guardadas"
+        descripcion="Seguimiento detallado de todas las oportunidades que te interesan y análisis de compatibilidad por IA."
+        icono={<MagnifyingGlass size={44} weight="light" />}
+      />
+    )
+  }
 
   const extraerNombre = (contenido) => {
     if (!contenido) return 'CV sin nombre'
