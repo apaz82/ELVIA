@@ -316,12 +316,24 @@ const exportarExcel = (vacantes) => {
 }
 
 export default function Pipeline() {
-  const { user, loading: authLoading, featuresDesbloqueadas } = useAuth()
+  const { user, loading: authLoading, featuresDesbloqueadas, isPaidPlan } = useAuth()
   const navigate = useNavigate()
 
   const [vacantes, setVacantes]     = useState([])
   const [loading, setLoading]       = useState(true)
   const [filtroPerdidas, setFiltro] = useState(false)
+
+  const cargarTodo = async () => {
+    setLoading(true)
+    const [{ data: saved }, { data: checks }] = await Promise.all([
+      supabase.from('saved_jobs').select('*').order('created_at', { ascending: false }),
+      supabase.from('job_checks').select('job_key, score, motivos'),
+    ])
+    const checkMap = {}
+    ;(checks || []).forEach(c => { checkMap[c.job_key] = c })
+    setVacantes((saved || []).map(s => ({ ...s, check: checkMap[s.job_key] || null })))
+    setLoading(false)
+  }
 
   useEffect(() => {
     if (authLoading) return
@@ -337,18 +349,6 @@ export default function Pipeline() {
         icono={<Kanban size={44} weight="light" />}
       />
     )
-  }
-
-  const cargarTodo = async () => {
-    setLoading(true)
-    const [{ data: saved }, { data: checks }] = await Promise.all([
-      supabase.from('saved_jobs').select('*').order('created_at', { ascending: false }),
-      supabase.from('job_checks').select('job_key, score, motivos'),
-    ])
-    const checkMap = {}
-    ;(checks || []).forEach(c => { checkMap[c.job_key] = c })
-    setVacantes((saved || []).map(s => ({ ...s, check: checkMap[s.job_key] || null })))
-    setLoading(false)
   }
 
   const mover = async (item, nuevaEtapa) => {
