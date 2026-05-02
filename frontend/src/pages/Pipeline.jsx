@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../services/authService'
 import PlanBanner from '../components/common/PlanBanner'
@@ -132,10 +132,18 @@ function VacanteCard({ item, onMover, onEliminar, onGuardarNota, onGuardarContac
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <h3 className="font-semibold text-gray-900 text-base leading-snug">{job.title || '—'}</h3>
-            {check && (
+            {check ? (
               <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${badgeScore(check.score)}`}>
-                {check.score}% Compatibilidad
+                {check.score}% · {check.score >= 75 ? 'Top Match' : check.score >= 50 ? 'Good Match' : 'Low Match'}
               </span>
+            ) : !perdida && (
+              <Link
+                to="/cv-vs-job"
+                onClick={() => job.description && sessionStorage.setItem('vacante_prefill', JSON.stringify({ texto: job.description }))}
+                className="text-xs font-medium text-primary border border-primary/30 rounded-full px-2 py-0.5 hover:bg-primary/5 transition-colors"
+              >
+                Analizar →
+              </Link>
             )}
             {perdida && (
               <span className="text-xs bg-red-50 text-red-500 border border-red-200 rounded-full px-2 py-0.5 font-medium">No avanzó</span>
@@ -179,6 +187,22 @@ function VacanteCard({ item, onMover, onEliminar, onGuardarNota, onGuardarContac
         onCambiar={(nueva) => onMover(item, nueva)}
         perdida={perdida}
       />
+
+      {/* Urgency coloring — entrevistas */}
+      {estado === 'En entrevistas' && etapasFechas['En entrevistas'] && (() => {
+        const dias = Math.floor((Date.now() - new Date(etapasFechas['En entrevistas']).getTime()) / 86400000)
+        if (dias < 3) return null
+        const urgente = dias >= 7
+        return (
+          <div className={`mt-2 text-xs flex items-center gap-1.5 font-medium ${urgente ? 'text-red-500' : 'text-amber-500'}`}>
+            <svg className="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd"/>
+            </svg>
+            {dias === 1 ? '1 día en entrevistas' : `${dias} días en entrevistas`}
+            {urgente && ' — considera hacer seguimiento'}
+          </div>
+        )
+      })()}
 
       {/* Comentarios */}
       <div className="mt-4 pt-4 border-t border-gray-100">

@@ -12,7 +12,7 @@ import {
 import PlanBanner from '../components/common/PlanBanner'
 
 // ─── Componente métrica ───────────────────────────────────────────────────────
-function MetricCard({ icon: Icon, iconColor, bgColor, label, value, sub, to }) {
+function MetricCard({ icon: Icon, iconColor, bgColor, label, value, sub, to, isEmpty, ctaLabel }) {
   const content = (
     <div className={`${bgColor} rounded-2xl p-5 flex flex-col gap-3 h-full transition-all hover:shadow-md hover:-translate-y-0.5`}>
       <div className={`w-10 h-10 rounded-xl ${iconColor} flex items-center justify-center shrink-0`}>
@@ -26,7 +26,7 @@ function MetricCard({ icon: Icon, iconColor, bgColor, label, value, sub, to }) {
       {to && (
         <div className="mt-auto pt-2">
           <span className="text-xs font-semibold text-primary flex items-center gap-1">
-            Ver más <ArrowRight size={11} weight="bold" />
+            {isEmpty && ctaLabel ? ctaLabel : 'Ver más'} <ArrowRight size={11} weight="bold" />
           </span>
         </div>
       )}
@@ -173,8 +173,10 @@ export default function Dashboard() {
             bgColor="bg-[#E8541A]/5"
             label="CVs optimizados"
             value={val(metricas.cvsOptimizados)}
-            sub="análisis de formato Harvard"
+            sub={!loadingMetricas && (metricas.cvsOptimizados ?? 0) === 0 ? 'Sube tu CV y mejora tu formato' : 'análisis de formato Harvard'}
             to="/cv-optimizer"
+            isEmpty={!loadingMetricas && (metricas.cvsOptimizados ?? 0) === 0}
+            ctaLabel="Optimiza tu primer CV"
           />
           <MetricCard
             icon={MagnifyingGlass}
@@ -182,8 +184,10 @@ export default function Dashboard() {
             bgColor="bg-primary/5"
             label="CVs vs Vacante"
             value={val(metricas.cvsVsVacante)}
-            sub="análisis de compatibilidad"
+            sub={!loadingMetricas && (metricas.cvsVsVacante ?? 0) === 0 ? 'Mide tu compatibilidad con una vacante' : 'análisis de compatibilidad'}
             to="/cv-vs-job"
+            isEmpty={!loadingMetricas && (metricas.cvsVsVacante ?? 0) === 0}
+            ctaLabel="Analizar ahora"
           />
           <MetricCard
             icon={ChartLineUp}
@@ -199,8 +203,10 @@ export default function Dashboard() {
             bgColor="bg-[#E8541A]/5"
             label="Vacantes guardadas"
             value={val(metricas.vacantesGuardadas)}
-            sub="en tu pipeline"
+            sub={!loadingMetricas && (metricas.vacantesGuardadas ?? 0) === 0 ? 'Registra vacantes para rastrear tu proceso' : 'en tu pipeline'}
             to="/pipeline"
+            isEmpty={!loadingMetricas && (metricas.vacantesGuardadas ?? 0) === 0}
+            ctaLabel="Abrir Pipeline"
           />
         </div>
 
@@ -234,6 +240,36 @@ export default function Dashboard() {
           </div>
         </div>
       </section>
+
+      {/* ── Tu próxima acción ── */}
+      {!loadingMetricas && proyectoPct !== null && (() => {
+        let accion = null
+        if ((proyectoPct ?? 0) < 100) {
+          accion = { msg: 'Completa tu Proyecto Laboral para liberar todo el potencial de ELVIA®', cta: 'Ir al proyecto', to: '/proyecto-laboral' }
+        } else if ((metricas.cvsVsVacante ?? 0) === 0) {
+          accion = { msg: 'Analiza tu CV contra una vacante real y conoce tu nivel de compatibilidad', cta: 'Analizar ahora', to: '/cv-vs-job' }
+        } else if ((metricas.vacantesGuardadas ?? 0) === 0) {
+          accion = { msg: 'Guarda tu primera vacante en el Pipeline y empieza a rastrear tu proceso', cta: 'Ir al Pipeline', to: '/pipeline' }
+        } else if ((pipelineStats?.entrevistas ?? 0) > 0) {
+          accion = { msg: 'Tienes entrevistas activas — prepárate con nuestra herramienta de simulación', cta: 'Preparar entrevista', to: '/entrevista' }
+        }
+        if (!accion) return null
+        return (
+          <section className="bg-primary/5 border border-primary/20 rounded-2xl p-5 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+            <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center shrink-0">
+              <Target size={18} weight="duotone" className="text-white" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-bold text-primary uppercase tracking-widest mb-0.5">Tu próxima acción</p>
+              <p className="text-sm text-on-surface">{accion.msg}</p>
+            </div>
+            <Link to={accion.to}
+              className="shrink-0 flex items-center gap-1.5 bg-primary text-white text-xs font-semibold px-4 py-2.5 rounded-xl hover:bg-primary/90 transition-colors whitespace-nowrap">
+              {accion.cta} <ArrowRight size={11} weight="bold" />
+            </Link>
+          </section>
+        )
+      })()}
 
       {/* ── Código redimido ── */}
       {codigoRedimido && (

@@ -74,6 +74,10 @@ export default function CVvsJob() {
   const [vistaInfografia, setVistaInfografia] = useState(false)
   const [datosInfografia, setDatosInfografia] = useState(null)
   const [cargandoInfografia, setCargandoInfografia] = useState(false)
+  const [showSaveForm, setShowSaveForm] = useState(false)
+  const [saveForm, setSaveForm] = useState({ empresa: '', posicion: '', etapa: 'Descubierto' })
+  const [savingPipeline, setSavingPipeline] = useState(false)
+  const [savedToPipeline, setSavedToPipeline] = useState(false)
 
   const toggleInfografia = async () => {
     if (vistaInfografia) { setVistaInfografia(false); return }
@@ -89,6 +93,37 @@ export default function CVvsJob() {
       }
     }
     setVistaInfografia(true)
+  }
+
+  const guardarEnPipeline = async () => {
+    if (!resultadoMatch || !user) return
+    setSavingPipeline(true)
+    try {
+      const jobData = {
+        title:       saveForm.posicion || resultadoMatch.jobData?.title || '',
+        company:     saveForm.empresa  || resultadoMatch.jobData?.company || '',
+        description: jobText || '',
+      }
+      const { data: saved, error: errJob } = await supabase
+        .from('saved_jobs')
+        .insert({ user_id: user.id, job_data: jobData, estado: saveForm.etapa, notas: '' })
+        .select('id')
+        .single()
+      if (errJob) throw errJob
+
+      await supabase.from('job_checks').upsert({
+        job_key:  saved.id,
+        user_id:  user.id,
+        score:    resultadoMatch.matchScore,
+        motivos:  resultadoMatch.analisis?.fortalezas ?? [],
+      })
+      setSavedToPipeline(true)
+      setShowSaveForm(false)
+    } catch {
+      // silently handled — user can retry
+    } finally {
+      setSavingPipeline(false)
+    }
   }
 
   const cargarDesdeUrl = async () => {
@@ -336,6 +371,58 @@ export default function CVvsJob() {
               <div className="space-y-4">
                 <div><h3 className="text-sm font-semibold text-green-700">Fortalezas</h3><ul className="text-xs space-y-1">{resultadoMatch.analisis.fortalezas.map((f, i) => <li key={i}>✓ {f}</li>)}</ul></div>
                 <div><h3 className="text-sm font-semibold text-red-600">Brechas</h3><ul className="text-xs space-y-1">{resultadoMatch.analisis.brechas.map((b, i) => <li key={i}>✗ {b}</li>)}</ul></div>
+              </div>
+            )}
+
+            {/* Guardar en Pipeline */}
+            {user && (
+              <div className="mt-6 pt-5 border-t border-gray-100">
+                {savedToPipeline ? (
+                  <p className="text-sm text-green-600 font-medium flex items-center gap-2">
+                    ✓ Vacante guardada en tu Pipeline
+                  </p>
+                ) : showSaveForm ? (
+                  <div className="space-y-3">
+                    <p className="text-sm font-semibold text-gray-700">Guardar en Pipeline</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <input
+                        type="text"
+                        placeholder="Empresa"
+                        value={saveForm.empresa || resultadoMatch.jobData?.company || ''}
+                        onChange={e => setSaveForm(f => ({ ...f, empresa: e.target.value }))}
+                        className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                      />
+                      <input
+                        type="text"
+                        placeholder="Posición / título"
+                        value={saveForm.posicion || resultadoMatch.jobData?.title || ''}
+                        onChange={e => setSaveForm(f => ({ ...f, posicion: e.target.value }))}
+                        className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                      />
+                    </div>
+                    <select
+                      value={saveForm.etapa}
+                      onChange={e => setSaveForm(f => ({ ...f, etapa: e.target.value }))}
+                      className="border border-gray-300 rounded-lg px-3 py-2 text-sm w-full focus:outline-none focus:ring-2 focus:ring-primary"
+                    >
+                      {['Descubierto', 'Apliqué', 'Pruebas/Assessment', 'En entrevistas', 'Ofertado'].map(e => (
+                        <option key={e} value={e}>{e}</option>
+                      ))}
+                    </select>
+                    <div className="flex gap-2">
+                      <button onClick={() => setShowSaveForm(false)} className="text-sm text-gray-400 hover:text-gray-600 px-3 py-2">Cancelar</button>
+                      <button onClick={guardarEnPipeline} disabled={savingPipeline}
+                        className="text-sm bg-primary text-white font-semibold px-4 py-2 rounded-lg hover:bg-primary/90 disabled:opacity-50 transition-colors">
+                        {savingPipeline ? 'Guardando...' : 'Guardar'}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button onClick={() => setShowSaveForm(true)}
+                    className="flex items-center gap-2 text-sm font-semibold text-primary border border-primary/30 rounded-xl px-4 py-2.5 hover:bg-primary/5 transition-colors">
+                    + Guardar vacante en Pipeline
+                  </button>
+                )}
               </div>
             )}
           </div>
