@@ -323,6 +323,12 @@ export default function Pipeline() {
   const [loading, setLoading]       = useState(true)
   const [filtroPerdidas, setFiltro] = useState(false)
 
+  useEffect(() => {
+    if (authLoading) return
+    if (!user) { navigate('/auth'); return }
+    cargarTodo()
+  }, [user, authLoading])
+
   if (!featuresDesbloqueadas) {
     return (
       <FeatureLocked
@@ -332,12 +338,6 @@ export default function Pipeline() {
       />
     )
   }
-
-  useEffect(() => {
-    if (authLoading) return
-    if (!user) { navigate('/auth'); return }
-    cargarTodo()
-  }, [user, authLoading])
 
   const cargarTodo = async () => {
     setLoading(true)
