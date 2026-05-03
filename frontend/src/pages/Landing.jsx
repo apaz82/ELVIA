@@ -319,13 +319,21 @@ export default function Landing() {
       try {
         const response = await fetch('https://ipapi.co/json/')
         const data = await response.json()
+        
         if (data.country_name) {
-          const matchingPais = PAISES.find(p => p.value === data.country_name)
-          setWaitlistForm(f => ({ 
-            ...f, 
-            pais: matchingPais ? matchingPais.value : '', 
-            indicativo: matchingPais ? matchingPais.code : '' 
-          }))
+          // Intentar matchear por ipName (inglés) o value (español)
+          const matchingPais = PAISES.find(p => 
+            p.ipName.toLowerCase() === data.country_name.toLowerCase() || 
+            p.value.toLowerCase() === data.country_name.toLowerCase()
+          )
+          
+          if (matchingPais) {
+            setWaitlistForm(f => ({ 
+              ...f, 
+              pais: matchingPais.value, 
+              indicativo: matchingPais.code 
+            }))
+          }
         }
       } catch (err) {
         console.warn('No se pudo detectar el país por IP:', err)
