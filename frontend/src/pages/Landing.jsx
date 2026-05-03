@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
+import { toast } from 'react-hot-toast'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import {
   FileMagnifyingGlass, MagnifyingGlass, Briefcase, Kanban,
   ArrowRight, ArrowDown, CheckCircle, ChartBar, Coins, SignOut, Warning,
   ShieldCheck, Lightning, Target, Check, Star,
-  Folders, BookmarkSimple, Books, LinkedinLogo,
+  Folders, BookmarkSimple, Books, LinkedinLogo, ShareNetwork, WhatsappLogo, Copy, EnvelopeSimple,
   MicrophoneStage, UsersThree, TrendUp, RocketLaunch
 } from '@phosphor-icons/react'
 
@@ -305,9 +306,15 @@ export default function Landing() {
       setWaitlistStatus({ loading: false, success: false, error: 'El apellido debe tener mínimo 2 caracteres' })
       return
     }
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
     if (!emailRegex.test(waitlistForm.email)) {
-      setWaitlistStatus({ loading: false, success: false, error: 'Por favor ingresa un email válido' })
+      setWaitlistStatus({ loading: false, success: false, error: 'Por favor ingresa un email válido (ej: usuario@dominio.com)' })
+      return
+    }
+
+    // Check for common typos like .con
+    if (waitlistForm.email.toLowerCase().endsWith('.con')) {
+      setWaitlistStatus({ loading: false, success: false, error: '¿Quizás quisiste escribir .com? Por favor revisa tu correo.' })
       return
     }
 
@@ -1247,12 +1254,84 @@ export default function Landing() {
                     <Check size={32} weight="bold" className="text-white" />
                   </div>
                     <h4 className="font-black text-white text-2xl mb-4">¡Bienvenido! Es tu primer paso en tu proceso de transición laboral</h4>
-                    <p className="text-teal-100/70 leading-relaxed">
+                    <p className="text-teal-100/70 leading-relaxed mb-8">
                       Recibirás un mail y estarás inscrito en nuestra comunidad de beneficios, además de participar por uno de los accesos FULL de 1 mes para utilizar la plataforma antes que nadie. Estaremos en contacto pronto.
                     </p>
+
+                    <div className="pt-6 border-t border-white/10">
+                      <p className="text-white font-bold mb-4 flex items-center justify-center gap-2">
+                        <ShareNetwork size={20} className="text-teal-400" />
+                        ¿Conoces a alguien que necesite ELVIA?
+                      </p>
+                      
+                      <div className="flex flex-wrap justify-center gap-3 mb-6">
+                        <button 
+                          onClick={() => {
+                            const text = encodeURIComponent('Me acabo de unir a la lista de espera de ELVIA, un sistema de autogestión para la transición de carrera con herramientas de clase mundial. Únete aquí: https://elvia.lat/waitlist');
+                            window.open(`https://wa.me/?text=${text}`, '_blank');
+                          }}
+                          className="flex items-center gap-2 bg-[#25D366]/10 hover:bg-[#25D366]/20 text-[#25D366] px-4 py-2 rounded-xl text-sm font-bold transition-all border border-[#25D366]/20"
+                        >
+                          <WhatsappLogo size={20} weight="fill" /> WhatsApp
+                        </button>
+                        
+                        <button 
+                          onClick={() => {
+                            const url = encodeURIComponent('https://elvia.lat/waitlist');
+                            window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${url}`, '_blank');
+                          }}
+                          className="flex items-center gap-2 bg-[#0077B5]/10 hover:bg-[#0077B5]/20 text-[#0077B5] px-4 py-2 rounded-xl text-sm font-bold transition-all border border-[#0077B5]/20"
+                        >
+                          <LinkedinLogo size={20} weight="fill" /> LinkedIn
+                        </button>
+
+                        <button 
+                          onClick={() => {
+                            navigator.clipboard.writeText('https://elvia.lat/waitlist');
+                            toast.success('¡Enlace copiado!');
+                          }}
+                          className="flex items-center gap-2 bg-white/5 hover:bg-white/10 text-white/80 px-4 py-2 rounded-xl text-sm font-bold transition-all border border-white/10"
+                        >
+                          <Copy size={20} /> Copiar link
+                        </button>
+                      </div>
+
+                      <div className="relative max-w-sm mx-auto">
+                        <input 
+                          type="email" 
+                          placeholder="Email de un colega..." 
+                          className="w-full bg-white/5 border border-white/10 text-white rounded-xl pl-4 pr-12 py-3 text-xs focus:ring-1 focus:ring-teal-500 placeholder-white/20"
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              toast.success('¡Invitación enviada!');
+                              e.currentTarget.value = '';
+                            }
+                          }}
+                        />
+                        <button 
+                          onClick={(e) => {
+                            const input = e.currentTarget.previousSibling;
+                            if (input.value) {
+                              toast.success('¡Invitación enviada!');
+                              input.value = '';
+                            }
+                          }}
+                          className="absolute right-2 top-1.5 p-1.5 text-teal-400 hover:text-teal-300 transition-colors"
+                        >
+                          <ArrowRight size={18} weight="bold" />
+                        </button>
+                      </div>
+                    </div>
                 </motion.div>
               ) : (
-                <form onSubmit={handleWaitlistSubmit} className="space-y-4">
+                <>
+                  {waitlistStatus.error && (
+                    <div className="mb-4 p-4 bg-red-500/10 border border-red-500/20 rounded-xl flex items-center gap-3 text-red-400 text-xs">
+                      <Warning size={18} weight="fill" />
+                      {waitlistStatus.error}
+                    </div>
+                  )}
+                  <form onSubmit={handleWaitlistSubmit} className="space-y-4">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <input required type="text" value={waitlistForm.nombre} onChange={e => setWaitlistForm(f => ({...f, nombre: e.target.value}))} className="w-full bg-white/5 border border-white/10 text-white rounded-xl px-4 py-3.5 text-sm focus:ring-2 focus:ring-teal-500 placeholder-white/20 transition-all" placeholder="Nombre" />
                     <input required type="text" value={waitlistForm.apellido} onChange={e => setWaitlistForm(f => ({...f, apellido: e.target.value}))} className="w-full bg-white/5 border border-white/10 text-white rounded-xl px-4 py-3.5 text-sm focus:ring-2 focus:ring-teal-500 placeholder-white/20 transition-all" placeholder="Apellido" />
@@ -1268,7 +1347,29 @@ export default function Landing() {
                     </select>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                       <input required type="text" value={waitlistForm.ciudad} onChange={e => setWaitlistForm(f => ({...f, ciudad: e.target.value}))} className="w-full bg-white/5 border border-white/10 text-white rounded-xl px-4 py-3.5 text-sm focus:ring-2 focus:ring-teal-500 placeholder-white/20 transition-all" placeholder="Ciudad" />
+                       <input 
+                         required 
+                         type="text" 
+                         list="cities-list"
+                         value={waitlistForm.ciudad} 
+                         onChange={e => setWaitlistForm(f => ({...f, ciudad: e.target.value}))} 
+                         className="w-full bg-white/5 border border-white/10 text-white rounded-xl px-4 py-3.5 text-sm focus:ring-2 focus:ring-teal-500 placeholder-white/20 transition-all" 
+                         placeholder="Ciudad" 
+                       />
+                       <datalist id="cities-list">
+                         <option value="Bogotá" />
+                         <option value="Medellín" />
+                         <option value="Cali" />
+                         <option value="Ciudad de México" />
+                         <option value="Monterrey" />
+                         <option value="Guadalajara" />
+                         <option value="Buenos Aires" />
+                         <option value="Santiago" />
+                         <option value="Lima" />
+                         <option value="Quito" />
+                         <option value="Madrid" />
+                         <option value="Barcelona" />
+                       </datalist>
                        <input required type="tel" value={waitlistForm.telefono} onChange={e => setWaitlistForm(f => ({...f, telefono: e.target.value}))} className="w-full bg-white/5 border border-white/10 text-white rounded-xl px-4 py-3.5 text-sm focus:ring-2 focus:ring-teal-500 placeholder-white/20 transition-all" placeholder="Teléfono" />
                     </div>
                   </div>
@@ -1295,6 +1396,7 @@ export default function Landing() {
                     </button>
                   </div>
                 </form>
+                </>
               )}
             </div>
           </div>

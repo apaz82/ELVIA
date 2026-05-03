@@ -89,9 +89,9 @@ router.post('/', waitlistLimiter, async (req, res, next) => {
     }
 
     // Email format validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email) || email.length > 150) {
-      return res.status(400).json({ error: 'Formato de email inválido' });
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!emailRegex.test(email) || email.length > 150 || email.toLowerCase().endsWith('.con')) {
+      return res.status(400).json({ error: 'Formato de email inválido o error tipográfico (ej: .con en vez de .com)' });
     }
 
     // Validar situación contra whitelist
@@ -105,7 +105,7 @@ router.post('/', waitlistLimiter, async (req, res, next) => {
     // Use supabaseAdmin to bypass RLS for inserting leads
     const { data: dbData, error: dbError } = await supabaseAdmin
       .from('waitlist_leads')
-      .insert([{ nombre, apellido, telefono: telefonoCompleto, pais: `${ciudad}, ${pais}`, email, situacion }])
+      .insert([{ nombre, apellido, telefono: telefonoCompleto, pais, ciudad, email, situacion }])
       .select('id')
       .single();
 

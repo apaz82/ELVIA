@@ -86,38 +86,37 @@ const sendOTPEmail = async (to, otp, targetUserEmail) => {
 // Templates personalizados según situación del usuario — refactorizado para DRY
 const WAITLIST_TEMPLATES = {
   'Sin empleo y en búsqueda activa': {
-    emoji: '🚀',
-    intro: 'Sabemos que esta es una etapa crucial en tu carrera. Por eso estamos afinando los últimos detalles de nuestra plataforma potenciada por IA para ayudarte a destacar en el mercado laboral y superar todos los filtros corporativos.',
+    emoji: '🌱',
+    intro: 'Este momento de transición es, ante todo, una oportunidad para redescubrir tu valor profesional. ELVIA no es una aplicación más; es un sistema de autogestión diseñado para que tú tomes el control total de tu carrera, empezando por entender profundamente qué es lo que te hace único en el mercado actual.',
     features: [
-      'CV optimizado en formato Harvard en segundos',
-      'Análisis de compatibilidad con cada vacante (% de match real)',
-      'Herramientas de búsqueda sin horas perdidas en portales',
-      'Pipeline visual para gestionar tu proceso de selección'
+      'Módulos de autoconocimiento para identificar tu oferta de valor real.',
+      'Optimización de CV basada en tu esencia y metas (formato Harvard).',
+      'Análisis de compatibilidad estratégica con vacantes reales.',
+      'Sistema de gestión para que seas tu propio gerente de búsqueda laboral.'
     ],
-    cta: 'Por ser pionero, recibirás <strong>descuentos exclusivos</strong> cuando lancemos. Muy pronto estaremos live.'
+    cta: 'Como pionero/a, tendrás acceso preferente a nuestro sistema. Estamos trabajando para que seas tú quien domine el proceso.'
   },
   'Con empleo y en búsqueda activa': {
-    emoji: '👋',
-    intro: 'Estamos construyendo la plataforma para profesionales como tú que buscan dar el siguiente paso en su carrera sin prisa, pero sin pausa. Nuestra IA te ayudará a destacar cuando llegue la oportunidad correcta.',
+    emoji: '🎯',
+    intro: 'Evolucionar profesionalmente mientras trabajas requiere estrategia y una visión clara de ti mismo. ELVIA es tu sistema de autogestión silencioso, enfocado en ayudarte a identificar cuándo y dónde tu talento brillará más, preparándote para que el siguiente paso sea el correcto.',
     features: [
-      'CV siempre listo y optimizado para nuevas oportunidades',
-      'Análisis rápido de compatibilidad antes de postularte',
-      'Gestión de candidaturas en un solo lugar',
-      'Herramientas para negociar desde una posición de poder'
+      'Herramientas de introspección para definir tu siguiente nivel profesional.',
+      'CV dinámico que evoluciona con tus logros y visión.',
+      'Gestión discreta y estratégica de oportunidades de mercado.',
+      'Control total y autogestión de tu visibilidad ante empresas.'
     ],
-    cta: 'Por ser pionero, accederás a beneficios exclusivos cuando lancemos. Prepárate para tu siguiente proyecto.'
+    cta: 'Por ser parte de este grupo inicial, accederás a beneficios exclusivos. Es momento de gestionar tu carrera con intención.'
   },
   'Quiero gestionar mi siguiente paso': {
-    emoji: '🎯',
-    intro: 'Te felicitamos por ser intencional con tu carrera. Estamos construyendo la plataforma que te ayudará a ser tu propio gerente de proyecto laboral: desde el autoconocimiento hasta la ejecución perfecta.',
+    emoji: '🧭',
+    intro: 'La autogestión es la base de una carrera exitosa y duradera. En ELVIA creemos que antes de las herramientas viene la persona. Estamos creando un sistema que te acompaña a profundizar en tu perfil para que cada decisión laboral que tomes sea intencional, potente y alineada con quien eres.',
     features: [
-      'Módulo de autoconocimiento: descubre tu oferta de valor real',
-      'CV optimizado para el mercado que buscas',
-      'Análisis estratégico de vacantes y empresas',
-      'Pipeline completo: seguimiento, control y tranquilidad',
-      'Acompañamiento de IA a tu ritmo'
+      'Diagnóstico de perfil y diseño de tu propuesta de valor única.',
+      'Sistema de gestión de hitos y metas profesionales a largo plazo.',
+      'Análisis estratégico de empresas y culturas organizacionales.',
+      'IA que actúa como un consultor de autoconocimiento permanente.'
     ],
-    cta: 'Por ser pionero, serás de los primeros en probar nuestra solución completa. Gestiona tu carrera con las herramientas correctas.'
+    cta: 'Como pionero/a, serás de los primeros en experimentar este nuevo paradigma de gestión de carrera. El control es tuyo.'
   }
 };
 
@@ -155,7 +154,7 @@ const sendWelcomeWaitlistEmail = async (to, nombre, situacion) => {
   return resend.emails.send({
     from: FROM_EMAIL,
     to,
-    subject: '¡Bienvenido a la tribu pionera de ELVIA! 🚀',
+    subject: 'Tu acceso al Sistema de Autogestión de ELVIA está cerca 🧭',
     html,
   });
 };
