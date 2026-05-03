@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { api } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 
-// Límite de mensajes de usuario por sesión de chat
-const MAX_MENSAJES_SESION = 20;
+const MAX_MENSAJES_FREE = 20;
+const MAX_MENSAJES_PRO  = 50;
 
 const MENSAJE_DASHBOARD = `¡Hola! Soy **ELVIA**, tu mentora de carrera 24/7. 👋
 
@@ -17,6 +18,9 @@ const MENSAJE_GENERAL = `Hola, soy **ELVIA**, tu asistente y mentora en todo tu 
 
 export function useChat() {
   const location = useLocation();
+  const { isPaidPlan } = useAuth();
+
+  const MAX_MENSAJES_SESION = isPaidPlan ? MAX_MENSAJES_PRO : MAX_MENSAJES_FREE;
 
   const mensajeInicial = location.pathname === '/dashboard' ? MENSAJE_DASHBOARD : MENSAJE_GENERAL;
 
@@ -26,7 +30,6 @@ export function useChat() {
   const [inputVal, setInputVal] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Cuenta solo los mensajes enviados por el usuario en esta sesión
   const mensajesUsuario = messages.filter(m => m.role === 'user').length;
   const limitAlcanzado = mensajesUsuario >= MAX_MENSAJES_SESION;
 

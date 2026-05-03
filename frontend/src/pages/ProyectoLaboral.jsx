@@ -2072,6 +2072,8 @@ export default function ProyectoLaboral() {
 
   const pct      = calcularProgreso(data, perfil)
   const porPilar = calcularPorPilar(data, perfil)
+  const [heroVisible, setHeroVisible] = useState(false)
+  const mostrarHeroCompleto = pct === 0 || heroVisible
   const pilarObj = PILARES.find(function(p){return p.id===pilarId})||PILARES[0]
   const col      = COLORES[pilarObj.color]||COLORES.violet
   const PilarIcon= pilarObj.icon
@@ -2137,11 +2139,27 @@ export default function ProyectoLaboral() {
         </div>
       )}
 
-      {/* ══════════ HERO HEADER ══════════
-          Design: clean SaaS light — no dark bg
-          Pattern: left headline + right stat card (split layout)
-      ══════════ */}
-      <div className="bg-white border-b border-slate-200">
+      {/* ══════════ HERO HEADER ══════════ */}
+      {!mostrarHeroCompleto && (
+        <div className="bg-white border-b border-slate-200 py-3 px-6">
+          <div className="max-w-5xl mx-auto flex items-center gap-4">
+            <div className="w-6 h-6 rounded-lg bg-violet-600/10 flex items-center justify-center shrink-0">
+              <Target size={13} weight="fill" className="text-violet-600"/>
+            </div>
+            <span className="text-sm font-semibold text-slate-700 flex-1">Gerente de Búsqueda</span>
+            <div className="flex items-center gap-2">
+              <div className="w-24 h-1.5 bg-slate-100 rounded-full">
+                <div className="h-1.5 bg-violet-500 rounded-full transition-all" style={{ width: `${pct}%` }} />
+              </div>
+              <span className="text-xs font-bold text-violet-600">{pct}%</span>
+            </div>
+            <button onClick={() => setHeroVisible(true)} className="text-[11px] text-slate-400 hover:text-slate-600 transition-colors ml-2">
+              Ver intro ↓
+            </button>
+          </div>
+        </div>
+      )}
+      {mostrarHeroCompleto && <div className="bg-white border-b border-slate-200">
         <div className="max-w-5xl mx-auto px-6 md:px-10 py-10 md:py-14">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-8">
 
@@ -2258,8 +2276,15 @@ export default function ProyectoLaboral() {
               </div>
             </div>
           </div>
+          {pct > 0 && (
+            <div className="max-w-5xl mx-auto px-6 md:px-10 pb-4 flex justify-end">
+              <button onClick={() => setHeroVisible(false)} className="text-[11px] text-slate-400 hover:text-slate-600 transition-colors">
+                Ocultar intro ↑
+              </button>
+            </div>
+          )}
         </div>
-      </div>
+      </div>}
 
       {/* ══════════ DASHBOARD RESUMEN ══════════ */}
       <div className="max-w-5xl mx-auto px-4 md:px-10 mt-8">

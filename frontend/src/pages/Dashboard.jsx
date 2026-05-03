@@ -12,7 +12,7 @@ import {
 import PlanBanner from '../components/common/PlanBanner'
 
 // ─── Componente métrica ───────────────────────────────────────────────────────
-function MetricCard({ icon: Icon, iconColor, bgColor, label, value, sub, to, isEmpty, ctaLabel }) {
+function MetricCard({ icon: Icon, iconColor, bgColor, label, value, sub, to, isEmpty, ctaLabel, trend }) {
   const content = (
     <div className={`${bgColor} rounded-2xl p-5 flex flex-col gap-3 h-full transition-all hover:shadow-md hover:-translate-y-0.5`}>
       <div className={`w-10 h-10 rounded-xl ${iconColor} flex items-center justify-center shrink-0`}>
@@ -20,7 +20,15 @@ function MetricCard({ icon: Icon, iconColor, bgColor, label, value, sub, to, isE
       </div>
       <div>
         <p className="text-xs font-medium text-on-surface-variant mb-0.5">{label}</p>
-        <p className="text-3xl font-black text-on-surface leading-none">{value}</p>
+        <div className="flex items-baseline gap-2">
+          <p className="text-3xl font-black text-on-surface leading-none">{value}</p>
+          {trend && (
+            <span className={`text-xs font-bold ${trend.dir === 'up' ? 'text-emerald-600' : trend.dir === 'down' ? 'text-red-500' : 'text-gray-400'}`}>
+              {trend.dir === 'up' ? '↑' : trend.dir === 'down' ? '↓' : '→'} {trend.delta}
+            </span>
+          )}
+        </div>
+        {trend?.prev && <p className="text-[10px] text-on-surface-variant/50 mt-0.5">{trend.prev}</p>}
         {sub && <p className="text-xs text-on-surface-variant/70 mt-1">{sub}</p>}
       </div>
       {to && (
@@ -43,6 +51,7 @@ export default function Dashboard() {
     cvsOptimizados: null,
     cvsVsVacante: null,
     matchPromedio: null,
+    matchTendencia: null,
     vacantesGuardadas: null,
   })
   const [loadingMetricas, setLoadingMetricas] = useState(true)
@@ -67,7 +76,7 @@ export default function Dashboard() {
     const cargarMetricas = async () => {
       setLoadingMetricas(true)
       const [cvRes, jobsRes, codeRes] = await Promise.all([
-        supabase.from('cv_results').select('tipo, metadata').eq('user_id', user.id),
+        supabase.from('cv_results').select('tipo, metadata, created_at').eq('user_id', user.id),
         supabase.from('saved_jobs').select('estado'),
         supabase
           .from('code_redemptions')
@@ -87,6 +96,29 @@ export default function Dashboard() {
       const promedio = matchScores.length
         ? Math.round(matchScores.reduce((a, b) => a + b, 0) / matchScores.length)
         : null
+
+      // Tendencia semanal: esta semana vs semana pasada
+      const ahora = Date.now()
+      const semana = 7 * 24 * 60 * 60 * 1000
+      const scoresEstaSemana = matches
+        .filter(c => (ahora - new Date(c.created_at).getTime()) < semana)
+        .map(c => c.metadata?.matchScore).filter(s => typeof s === 'number' && s > 0)
+      const scoresSemPasada = matches
+        .filter(c => { const d = ahora - new Date(c.created_at).getTime(); return d >= semana && d < 2 * semana })
+        .map(c => c.metadata?.matchScore).filter(s => typeof s === 'number' && s > 0)
+      const avgEsta = scoresEstaSemana.length ? Math.round(scoresEstaSemana.reduce((a, b) => a + b, 0) / scoresEstaSemana.length) : null
+      const avgPasada = scoresSemPasada.length ? Math.round(scoresSemPasada.reduce((a, b) => a + b, 0) / scoresSemPasada.length) : null
+      let matchTendencia = null
+      if (avgEsta !== null && avgPasada !== null) {
+        const diff = avgEsta - avgPasada
+        matchTendencia = {
+          dir:   diff > 2 ? 'up' : diff < -2 ? 'down' : 'flat',
+          delta: `${diff > 0 ? '+' : ''}${diff}%`,
+          prev:  `vs ${avgPasada}% sem. anterior`,
+        }
+      } else if (avgEsta !== null && scoresEstaSemana.length > 0) {
+        matchTendencia = { dir: 'flat', delta: null, prev: `${scoresEstaSemana.length} análisis esta semana` }
+      }
 
       // Pipeline stats
       const savedJobs = jobsRes.data || []
@@ -109,6 +141,7 @@ export default function Dashboard() {
         cvsOptimizados:   optimizados,
         cvsVsVacante:     matches.length,
         matchPromedio:    promedio,
+        matchTendencia:   matchTendencia,
         vacantesGuardadas: savedJobs.filter(j => (j.estado || 'Descubierto') !== 'No avanzó').length,
       })
       if (codeRes.data) setCodigoRedimido(codeRes.data)
@@ -196,6 +229,7 @@ export default function Dashboard() {
             label="Match promedio"
             value={metricas.matchPromedio !== null ? val(metricas.matchPromedio, '%') : loadingMetricas ? '—' : 'N/A'}
             sub={metricas.matchPromedio !== null ? 'en tus análisis recientes' : 'sin análisis aún'}
+            trend={metricas.matchTendencia}
           />
           <MetricCard
             icon={Briefcase}
