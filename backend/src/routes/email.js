@@ -33,6 +33,8 @@ const emailRateLimit = (req, res, next) => {
 // ── Dominios permitidos para resetUrl ────────────────────────────────────────
 const ALLOWED_RESET_ORIGINS = [
   process.env.FRONTEND_URL || 'https://gestioncv.netlify.app',
+  'https://www.elvia.lat',
+  'https://elvia.lat',
   'http://localhost:5173',
   'http://localhost:4173',
 ];
