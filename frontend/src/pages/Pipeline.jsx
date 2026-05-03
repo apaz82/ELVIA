@@ -46,73 +46,16 @@ function VacanteCard({ item, onMover, onEliminar, onGuardarNota, onGuardarContac
 
   return (
     <div
-      onClick={() => !mostrarMenu && onAbrirDetalle(item.id)}
       onMouseEnter={() => setMostrarMenu(true)}
       onMouseLeave={() => setMostrarMenu(false)}
-      className={`bg-white rounded-2xl border p-5 transition-all relative ${perdida ? 'border-red-200 opacity-70 cursor-default' : 'border-gray-200 hover:border-gray-300 hover:shadow-sm cursor-pointer'}`}
+      className={`bg-white rounded-2xl border p-5 transition-all relative ${perdida ? 'border-red-200 opacity-70' : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'}`}
     >
-      {/* Hover menu — 4.2 */}
-      {mostrarMenu && !perdida && (
-        <div className="absolute top-5 right-5 flex flex-col gap-1 bg-white rounded-xl shadow-lg border border-gray-200 z-10 p-1">
-          <button
-            onClick={(e) => {
-              e.stopPropagation()
-              job.description && sessionStorage.setItem('vacante_prefill', JSON.stringify({ texto: job.description }))
-              navigate('/cv-vs-job')
-            }}
-            title="Ver análisis de compatibilidad"
-            className="flex items-center gap-2 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 rounded-lg transition-colors whitespace-nowrap"
-          >
-            <span>Analizar</span>
-          </button>
-          <button
-            onClick={(e) => {
-              e.stopPropagation()
-              // TODO: navigate to letter generation page
-            }}
-            title="Generar carta de presentación"
-            className="flex items-center gap-2 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 rounded-lg transition-colors whitespace-nowrap"
-          >
-            <FileText size={14} />
-            <span>Carta</span>
-          </button>
-          <button
-            onClick={(e) => {
-              e.stopPropagation()
-              sessionStorage.setItem(
-                'entrevista_prefill',
-                JSON.stringify({
-                  empresa: job.company,
-                  cargo: job.title,
-                  descripcion: job.description,
-                  jobId: item.id
-                })
-              )
-              navigate('/entrevista')
-            }}
-            title="Preparar para entrevista"
-            className="flex items-center gap-2 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 rounded-lg transition-colors whitespace-nowrap"
-          >
-            <Headphones size={14} />
-            <span>Entrevista</span>
-          </button>
-          <button
-            onClick={(e) => {
-              e.stopPropagation()
-              onMover(item, ETAPA_PERDIDA)
-            }}
-            title="Marcar como no avanzó"
-            className="flex items-center gap-2 px-3 py-2 text-xs text-red-600 hover:bg-red-50 rounded-lg transition-colors whitespace-nowrap"
-          >
-            <Trash size={14} />
-            <span>Archivar</span>
-          </button>
-        </div>
-      )}
-
       {/* Header */}
       <div className="flex items-start justify-between gap-3">
-        <div className="flex-1 min-w-0">
+        <div
+          className={`flex-1 min-w-0 ${!perdida ? 'cursor-pointer' : ''}`}
+          onClick={() => !perdida && onAbrirDetalle(item.id)}
+        >
           <div className="flex items-center gap-2 flex-wrap">
             <h3 className="font-semibold text-gray-900 text-base leading-snug">{job.title || '—'}</h3>
             {check ? (
@@ -139,27 +82,54 @@ function VacanteCard({ item, onMover, onEliminar, onGuardarNota, onGuardarContac
             {item.created_at && <span className="text-xs text-gray-400">Descubierta: {formatFechaCorta(item.created_at)}</span>}
           </div>
         </div>
-        <div className="shrink-0 flex items-center gap-2">
-          {job.link && (
-            <a href={job.link} target="_blank" rel="noopener noreferrer"
-              className="text-xs font-medium text-primary border border-primary rounded-lg px-3 py-1.5 hover:bg-primary hover:text-white transition-colors flex items-center gap-1">
-              Ver
-              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
-              </svg>
-            </a>
+        <div className="shrink-0 flex items-center gap-1.5">
+          {mostrarMenu && !perdida ? (
+            /* Hover quick actions — inline in header */
+            <>
+              <button
+                onClick={(e) => { e.stopPropagation(); job.description && sessionStorage.setItem('vacante_prefill', JSON.stringify({ texto: job.description })); navigate('/cv-vs-job') }}
+                className="text-xs text-gray-600 border border-gray-200 rounded-lg px-2.5 py-1.5 hover:bg-gray-50 transition-colors whitespace-nowrap"
+              >
+                Analizar
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); sessionStorage.setItem('entrevista_prefill', JSON.stringify({ empresa: job.company, cargo: job.title, descripcion: job.description, jobId: item.id })); navigate('/entrevista') }}
+                className="text-xs text-gray-600 border border-gray-200 rounded-lg px-2.5 py-1.5 hover:bg-gray-50 transition-colors whitespace-nowrap flex items-center gap-1"
+              >
+                <Headphones size={12} /> Entrevista
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); onMover(item, ETAPA_PERDIDA) }}
+                className="text-xs text-red-500 border border-red-200 rounded-lg px-2.5 py-1.5 hover:bg-red-50 transition-colors whitespace-nowrap flex items-center gap-1"
+              >
+                <Trash size={12} /> Archivar
+              </button>
+            </>
+          ) : (
+            /* Normal action buttons */
+            <>
+              {job.link && (
+                <a href={job.link} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
+                  className="text-xs font-medium text-primary border border-primary rounded-lg px-3 py-1.5 hover:bg-primary hover:text-white transition-colors flex items-center gap-1">
+                  Ver
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                  </svg>
+                </a>
+              )}
+              {perdida && (
+                <button onClick={(e) => { e.stopPropagation(); onMover(item, 'Apliqué') }}
+                  className="text-xs border border-gray-300 text-gray-500 hover:border-primary hover:text-primary rounded-lg px-3 py-1.5 transition-colors">
+                  Reactivar
+                </button>
+              )}
+              <button onClick={(e) => { e.stopPropagation(); onEliminar(item) }} className="text-gray-300 hover:text-red-400 transition-colors p-1">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                </svg>
+              </button>
+            </>
           )}
-          {perdida && (
-            <button onClick={() => onMover(item, 'Apliqué')}
-              className="text-xs border border-gray-300 text-gray-500 hover:border-primary hover:text-primary rounded-lg px-3 py-1.5 transition-colors">
-              Reactivar
-            </button>
-          )}
-          <button onClick={() => onEliminar(item)} className="text-gray-300 hover:text-red-400 transition-colors p-1">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-            </svg>
-          </button>
         </div>
       </div>
 
