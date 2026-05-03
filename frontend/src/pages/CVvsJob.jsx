@@ -377,6 +377,34 @@ export default function CVvsJob() {
             {!vistaInfografia && tabActiva === 'cv' && <pre className="whitespace-pre-wrap font-mono text-xs bg-gray-50 p-4 rounded-xl">{resultadoMatch.tailoredCV}</pre>}
             {!vistaInfografia && tabActiva === 'analisis' && (
               <div className="space-y-4">
+                {resultadoMatch.dimensiones && (() => {
+                  const dims = [
+                    { key: 'hard_skills', label: 'Hard Skills', color: 'bg-violet-500' },
+                    { key: 'soft_skills', label: 'Soft Skills', color: 'bg-blue-500' },
+                    { key: 'experiencia', label: 'Experiencia', color: 'bg-emerald-500' },
+                    { key: 'formato_ats', label: 'Formato ATS', color: 'bg-amber-500' },
+                  ]
+                  return (
+                    <div className="bg-gray-50 rounded-xl p-4 space-y-3">
+                      <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider">Desglose por dimensión</h3>
+                      {dims.map(d => {
+                        const val = resultadoMatch.dimensiones[d.key]
+                        if (val === null || val === undefined) return null
+                        return (
+                          <div key={d.key}>
+                            <div className="flex justify-between items-center mb-1">
+                              <span className="text-xs text-gray-600">{d.label}</span>
+                              <span className={`text-xs font-bold ${val >= 75 ? 'text-emerald-600' : val >= 50 ? 'text-amber-600' : 'text-red-500'}`}>{val}%</span>
+                            </div>
+                            <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                              <div className={`h-full ${d.color} rounded-full transition-all`} style={{ width: `${val}%` }} />
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )
+                })()}
                 <div><h3 className="text-sm font-semibold text-green-700 mb-1.5">Fortalezas</h3><ul className="text-xs space-y-1 text-gray-700">{resultadoMatch.analisis.fortalezas.map((f, i) => <li key={i} className="flex items-start gap-1.5"><span className="text-green-500 shrink-0 mt-0.5">✓</span>{f}</li>)}</ul></div>
                 <div>
                   <h3 className="text-sm font-semibold text-red-600 mb-2">Brechas</h3>

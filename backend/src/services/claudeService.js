@@ -81,12 +81,13 @@ const parsearRespuestaOptimize = (text) => {
 };
 
 const parsearRespuestaMatch = (text) => {
-  const cvMatch       = text.match(/<CV>([\s\S]*?)<\/CV>/);
-  const scoreMatch    = text.match(/<SCORE>([\s\S]*?)<\/SCORE>/);
-  const analisisMatch = text.match(/<ANALISIS>([\s\S]*?)<\/ANALISIS>/);
-  const cambiosMatch  = text.match(/<CAMBIOS>([\s\S]*?)<\/CAMBIOS>/);
-  const jobMatch      = text.match(/<VACANTE>([\s\S]*?)<\/VACANTE>/);
-  const kwMatch       = text.match(/<KEYWORDS>([\s\S]*?)<\/KEYWORDS>/);
+  const cvMatch        = text.match(/<CV>([\s\S]*?)<\/CV>/);
+  const scoreMatch     = text.match(/<SCORE>([\s\S]*?)<\/SCORE>/);
+  const analisisMatch  = text.match(/<ANALISIS>([\s\S]*?)<\/ANALISIS>/);
+  const cambiosMatch   = text.match(/<CAMBIOS>([\s\S]*?)<\/CAMBIOS>/);
+  const jobMatch       = text.match(/<VACANTE>([\s\S]*?)<\/VACANTE>/);
+  const kwMatch        = text.match(/<KEYWORDS>([\s\S]*?)<\/KEYWORDS>/);
+  const dimMatch       = text.match(/<DIMENSIONES>([\s\S]*?)<\/DIMENSIONES>/);
 
   // Parsear análisis en secciones
   let analisis = null;
@@ -134,6 +135,21 @@ const parsearRespuestaMatch = (text) => {
     };
   }
 
+  let dimensiones = null;
+  if (dimMatch) {
+    const raw = dimMatch[1];
+    const parseDim = (key) => {
+      const m = raw.match(new RegExp(`${key}:\\s*(\\d+)`, 'i'));
+      return m ? Math.min(100, Math.max(0, parseInt(m[1], 10))) : null;
+    };
+    dimensiones = {
+      hard_skills: parseDim('hard_skills'),
+      soft_skills: parseDim('soft_skills'),
+      experiencia: parseDim('experiencia'),
+      formato_ats: parseDim('formato_ats'),
+    };
+  }
+
   return {
     tailoredCV: cvMatch ? cvMatch[1].trim() : text.trim(),
     matchScore: scoreMatch ? parseInt(scoreMatch[1].trim(), 10) || 0 : 0,
@@ -143,6 +159,7 @@ const parsearRespuestaMatch = (text) => {
       : [],
     jobData,
     keywords,
+    dimensiones,
   };
 };
 
@@ -239,7 +256,13 @@ CRITICAS_PRESENTES: [lista de máx 8 keywords/habilidades CRÍTICAS de la vacant
 CRITICAS_AUSENTES: [lista de máx 8 keywords/habilidades CRÍTICAS de la vacante que NO aparecen en el CV, separadas por coma]
 COMPLEMENTARIAS_PRESENTES: [lista de máx 6 habilidades/herramientas complementarias que SÍ están en el CV, separadas por coma]
 COMPLEMENTARIAS_AUSENTES: [lista de máx 6 habilidades/herramientas complementarias que faltan en el CV, separadas por coma]
-</KEYWORDS>`;
+</KEYWORDS>
+<DIMENSIONES>
+hard_skills: [0-100, qué tan bien coinciden las habilidades técnicas del CV con las requeridas]
+soft_skills: [0-100, qué tan bien se evidencian habilidades blandas como liderazgo, comunicación, trabajo en equipo]
+experiencia: [0-100, qué tan adecuado es el nivel y años de experiencia para el cargo]
+formato_ats: [0-100, qué tan optimizado está el CV para superar filtros ATS: claridad, estructura, palabras clave]
+</DIMENSIONES>`;
 
   const t0 = Date.now();
   const response = await client.messages.create({

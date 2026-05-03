@@ -110,6 +110,7 @@ export default function Entrevista() {
 
   // Feedback final
   const [evaluacion, setEvaluacion] = useState(null)
+  const [guardadoEnPipeline, setGuardadoEnPipeline] = useState(false)
 
   const [respuestaCorta, setRespuestaCorta] = useState(false)
   const [confirmSalir, setConfirmSalir]     = useState(false)
@@ -324,6 +325,23 @@ export default function Entrevista() {
       })
       setEvaluacion(resultado)
       setPaso('feedback')
+
+      // Guardar evaluación en el pipeline job si viene de una vacante guardada
+      if (vacanteSel?.id) {
+        try {
+          const { data: job } = await supabase
+            .from('saved_jobs')
+            .select('metadata')
+            .eq('id', vacanteSel.id)
+            .single()
+          const metaActual = job?.metadata || {}
+          await supabase
+            .from('saved_jobs')
+            .update({ metadata: { ...metaActual, entrevista: { puntuacion: resultado.puntuacion, resumen: resultado.resumen, fecha: new Date().toISOString() } } })
+            .eq('id', vacanteSel.id)
+          setGuardadoEnPipeline(true)
+        } catch { /* silencioso — no bloquear el flujo principal */ }
+      }
     } catch {
       setError('Error al evaluar la entrevista.')
     } finally {
@@ -335,6 +353,7 @@ export default function Entrevista() {
     window.speechSynthesis.cancel()
     setPreguntas([]); setRespuestas([]); setPreguntaIdx(0)
     setInputRespuesta(''); setEvaluacion(null); setFeedbackInmediato(null)
+    setGuardadoEnPipeline(false)
     setPaso('setup')
   }
 
@@ -658,9 +677,14 @@ export default function Entrevista() {
                 <p className="text-lg font-bold text-gray-900">Resultado de tu entrevista</p>
               </div>
               <p className="text-sm text-gray-600 leading-relaxed">{evaluacion.resumen}</p>
-              <div className="flex items-center gap-2 mt-3 justify-center sm:justify-start">
+              <div className="flex items-center gap-2 mt-3 justify-center sm:justify-start flex-wrap">
                 <p className="text-xs text-gray-500">Cargo: <strong className="text-gray-700">{cargo}</strong></p>
                 {empresa && <><span className="text-gray-300">·</span><p className="text-xs text-gray-500">{empresa}</p></>}
+                {guardadoEnPipeline && (
+                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-2.5 py-0.5">
+                    ✓ Guardado en Pipeline
+                  </span>
+                )}
               </div>
             </div>
           </div>
