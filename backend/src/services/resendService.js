@@ -131,6 +131,10 @@ const getWaitlistEmailTemplate = (nombre, situacion, referralLink) => {
 
   return `
     <div style="${baseStyles}">
+      <div style="text-align: center; margin-bottom: 32px;">
+        <img src="https://elvia.lat/elvia-logo-transparent.png" alt="ELVIA Logo" style="width: 140px; height: auto;" />
+      </div>
+
       <h2 style="color: #E8541A;">¡Hola ${nombre_escaped}! ${template.emoji}</h2>
       <p>Gracias por unirte a la lista de espera de <strong>ELVIA</strong>.</p>
       <p>${template.intro}</p>
@@ -158,7 +162,7 @@ const getWaitlistEmailTemplate = (nombre, situacion, referralLink) => {
              style="display: inline-block; background: #25D366; color: white; padding: 12px 24px; border-radius: 12px; text-decoration: none; font-weight: bold; font-size: 14px; margin: 4px;">
              WhatsApp
           </a>
-          <a href="mailto:?subject=Te invito a conocer ELVIA - Sistema de Autogestión Laboral&body=${encodeURIComponent(`¡Hola!\n\nMe acabo de registrar en la lista de espera de ELVIA, una plataforma increíble que funciona como un sistema de autogestión para la transición de carrera. Tienen herramientas muy potentes para optimizar tu perfil y encontrar mejores oportunidades.\n\nComo soy de los primeros, me dieron un enlace de invitado. Si te registras con mi link, ambos podremos acceder a beneficios exclusivos y descuentos en los planes premium cuando lancen.\n\nÚnete usando mi enlace único aquí:\n${referralLink}\n\n¡Espero que te sirva tanto como a mí!`)}" 
+          <a href="mailto:?subject=Te invito a conocer ELVIA - Sistema de Autogestión Laboral&body=${encodeURIComponent(`¡Hola!\n\nMe acabo de registrar en la lista de espera de ELVIA, una plataforma increíble que funciona como un sistema de autogestión para la transición de carrera.\n\nTienen herramientas muy potentes para optimizar tu perfil y encontrar mejores oportunidades.\n\nComo soy de los primeros, me dieron un enlace de invitado. Si te registras con mi link, ambos podremos acceder a beneficios exclusivos y descuentos cuando lancen.\n\nÚnete usando mi enlace único aquí:\n${referralLink}\n\n¡Espero que te sirva tanto como a mí!\n\n---\nELVIA | CONECTA TU PRESENTE CON EL FUTURO QUE QUIERES`)}" 
              style="display: inline-block; background: #64748B; color: white; padding: 12px 24px; border-radius: 12px; text-decoration: none; font-weight: bold; font-size: 14px; margin: 4px;">
              Reenviar por Email
           </a>
@@ -170,8 +174,13 @@ const getWaitlistEmailTemplate = (nombre, situacion, referralLink) => {
       <p>${template.cta}</p>
       <p>¡Nos encanta escucharte! Si tienes sugerencias, responde este correo.</p>
       <p>Un saludo,<br/><strong>El equipo de ELVIA</strong></p>
+      <p style="color: #E8541A; font-weight: bold; font-size: 14px; margin-top: 24px;">ELVIA | CONECTA TU PRESENTE CON EL FUTURO QUE QUIERES</p>
+      
       <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;" />
-      <p style="font-size: 12px; color: #999;">© 2026 ELVIA · Sistema de Autogestión Laboral</p>
+      <p style="font-size: 12px; color: #999; margin-bottom: 8px;">© 2026 ELVIA · Sistema de Autogestión Laboral</p>
+      <p style="font-size: 11px; color: #cbd5e1; line-height: 1.4;">
+        Recibiste este correo ya que te inscribiste y aceptaste nuestra política de privacidad de datos en el portal oficial de ELVIA.
+      </p>
     </div>
   `;
 };
