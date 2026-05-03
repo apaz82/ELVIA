@@ -129,8 +129,8 @@ export const AuthProvider = ({ children }) => {
   }, [fetchPerfil, fetchJpData])
 
   const login    = useCallback((email, password) => supabase.auth.signInWithPassword({ email, password }), [])
-  const register = useCallback((email, password, extraData = {}) =>
-    supabase.auth.signUp({ email, password, options: { data: extraData } }), [])
+  const register = useCallback((email, password, extraData = {}, captchaToken) =>
+    supabase.auth.signUp({ email, password, options: { data: extraData, captchaToken } }), [])
   const logout   = useCallback(() => supabase.auth.signOut(), [])
 
   // ── Lógica de plan y acceso ───────────────────────────────────────────────

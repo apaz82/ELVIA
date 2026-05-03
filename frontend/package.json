@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@marsidev/react-turnstile": "^1.5.1",
     "@phosphor-icons/react": "^2.1.10",
     "@sentry/react": "^10.46.0",
     "@supabase/supabase-js": "^2.45.4",

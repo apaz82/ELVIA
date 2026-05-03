@@ -1,8 +1,9 @@
 // Página de autenticación — login, registro y recuperar contraseña
 import { useState, useEffect } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../services/authService'
+import { Turnstile } from '@marsidev/react-turnstile'
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:3001'
 
@@ -43,6 +44,7 @@ export default function Auth() {
   const [error, setError]               = useState('')
   const [aceptaPolitica, setAceptaPolitica] = useState(false)
   const [codigoAcceso, setCodigoAcceso] = useState('')
+  const [turnstileToken, setTurnstileToken] = useState(null)
 
   const pwdChecks = checkPassword(password)
   const pwdScore  = Object.values(pwdChecks).filter(Boolean).length
@@ -110,7 +112,7 @@ export default function Auth() {
           apellido1:  apellido.trim(),
           indicativo1: indicativo,
           telefono1:  telefono.trim() || null,
-        })
+        }, turnstileToken)
         if (error) {
           setError(traducirError(error.message))
         } else {
@@ -228,7 +230,9 @@ export default function Auth() {
 
           {/* Logo + título */}
           <div className="text-center mb-7">
-            {/* Logo removido temporalmente por solicitud del usuario */}
+            <Link to="/">
+              <img src="/elvia-logo-transparent.png" alt="ELVIA" className="h-10 mx-auto mb-6" />
+            </Link>
             <h1 className="text-2xl font-bold text-gray-900">
               {modo === 'login'    ? 'Iniciar sesión'
                : modo === 'register' ? 'Crear cuenta gratis'
@@ -236,7 +240,7 @@ export default function Auth() {
             </h1>
             <p className="text-sm text-gray-500 mt-1">
               {modo === 'login'    ? 'Bienvenido de nuevo'
-               : modo === 'register' ? 'Créditos gratuitos de Análisis al registrarte'
+               : modo === 'register' ? 'Únete a nuestra comunidad'
                : 'Te enviaremos un enlace por email'}
             </p>
           </div>
@@ -407,16 +411,16 @@ export default function Auth() {
                 )}
               </div>
 
-              {/* Código de acceso — solo en registro */}
+              {/* Código promocional — solo en registro */}
               {modo === 'register' && (
                 <div>
                   <label className="block text-sm font-medium text-gray-600 mb-1">
-                    Código de acceso <span className="text-gray-400 font-normal">(opcional)</span>
+                    Código promocional <span className="text-gray-400 font-normal">(opcional)</span>
                   </label>
                   <input
                     type="text" value={codigoAcceso}
                     onChange={e => setCodigoAcceso(e.target.value.toUpperCase())}
-                    placeholder="Ej: BETA2025" maxLength={30}
+                    placeholder="EJ: OPTIMA2025" maxLength={30}
                     className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-colors uppercase tracking-widest"
                   />
                   <p className="text-xs text-gray-400 mt-1">¿Te compartieron un código? Ingrésalo aquí para activar tu plan.</p>
@@ -440,13 +444,25 @@ export default function Auth() {
                 </label>
               )}
 
+              {/* Validación de robot (Cloudflare Turnstile) — solo en registro */}
+              {modo === 'register' && (
+                <div className="flex justify-center py-2">
+                  <Turnstile
+                    siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY || '1x00000000000000000000AA'}
+                    onSuccess={(token) => setTurnstileToken(token)}
+                    onExpire={() => setTurnstileToken(null)}
+                    onError={() => setError('Error en la validación de seguridad. Intenta de nuevo.')}
+                  />
+                </div>
+              )}
+
               {error && (
                 <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600">{error}</div>
               )}
 
               <button
                 type="submit"
-                disabled={loading || (modo === 'register' && (!aceptaPolitica || !pwdStrong))}
+                disabled={loading || (modo === 'register' && (!aceptaPolitica || !pwdStrong || !turnstileToken))}
                 className="btn-primary w-full disabled:opacity-60"
               >
                 {loading
