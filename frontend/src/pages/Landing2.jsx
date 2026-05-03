@@ -732,7 +732,7 @@ export default function Landing() {
             viewport={{ once: true, margin: "-100px" }}
             className="text-center mb-14 space-y-3"
           >
-            <span className="text-[#E8541A] font-bold text-sm tracking-widest uppercase">Tu arsenal completo</span>
+            <span className="text-[#E8541A] font-bold text-sm tracking-widest uppercase">Tu sistema completo</span>
             <h2 className="font-headline font-black text-4xl md:text-5xl tracking-tight text-gray-900">
               Desde autoconocimiento a Oferta.<br className="hidden md:block" /> Todo en un solo lugar.
             </h2>

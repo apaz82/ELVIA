@@ -261,7 +261,7 @@ export default function Landing() {
   }
 
   // --- Waitlist State ---
-  const [waitlistForm, setWaitlistForm] = useState({ nombre: '', apellido: '', indicativo: '', telefono: '', pais: '', email: '', situacion: '', aceptaPrivacidad: false })
+  const [waitlistForm, setWaitlistForm] = useState({ nombre: '', apellido: '', indicativo: '', telefono: '', pais: '', ciudad: '', email: '', situacion: '', aceptaPrivacidad: false })
   const [waitlistStatus, setWaitlistStatus] = useState({ loading: false, success: false, error: null })
 
   useEffect(() => {
@@ -290,16 +290,7 @@ export default function Landing() {
       })
     })
 
-    // Detección de país por idioma del navegador (sin llamadas a API externas)
-    const lang = (navigator.language || 'es-CO').toLowerCase()
-    let defaultCountry = 'Colombia' // fallback
-    if (lang.includes('es-mx') || lang.includes('mx')) defaultCountry = 'México'
-    else if (lang.includes('es-ar') || lang.includes('ar')) defaultCountry = 'Argentina'
-    else if (lang.includes('es-cl') || lang.includes('cl')) defaultCountry = 'Chile'
-    else if (lang.includes('en')) defaultCountry = 'USA'
-
-    const pais = PAISES.find(p => p.value === defaultCountry) || PAISES[0]
-    setWaitlistForm(f => ({ ...f, pais: pais.value, indicativo: pais.code }))
+    setWaitlistForm(f => ({ ...f, pais: '', indicativo: '' }))
   }, [])
   
   const handleWaitlistSubmit = async (e) => {
@@ -339,7 +330,7 @@ export default function Landing() {
       }).catch(() => {})
 
       setWaitlistStatus({ loading: false, success: true, error: null })
-      setWaitlistForm({ nombre: '', apellido: '', indicativo: '', telefono: '', pais: '', email: '', situacion: '', aceptaPrivacidad: false })
+      setWaitlistForm({ nombre: '', apellido: '', indicativo: '', telefono: '', pais: '', ciudad: '', email: '', situacion: '', aceptaPrivacidad: false })
     } catch (err) {
       setWaitlistStatus({ loading: false, success: false, error: err.message })
     }
@@ -820,7 +811,7 @@ export default function Landing() {
             viewport={{ once: true, margin: "-100px" }}
             className="text-center mb-14 space-y-3"
           >
-            <span className="text-[#E8541A] font-bold text-base tracking-widest uppercase">Tu arsenal completo</span>
+            <span className="text-[#E8541A] font-bold text-base tracking-widest uppercase">Tu sistema completo</span>
             <h2 className="font-headline font-black text-4xl md:text-5xl tracking-tight text-gray-900">
               Desde autoconocimiento a Oferta.<br className="hidden md:block" /> Todo en un solo lugar.
             </h2>
@@ -1272,12 +1263,13 @@ export default function Landing() {
                       const pais = PAISES.find(p => p.value === e.target.value)
                       setWaitlistForm(f => ({...f, pais: e.target.value, indicativo: pais?.code || ''}))
                     }} className="w-full bg-white/5 border border-white/10 text-white rounded-xl px-4 py-3.5 text-sm focus:ring-2 focus:ring-teal-500 appearance-none">
-                      <option value="" disabled className="bg-gray-900">País</option>
+                      <option value="" disabled className="bg-gray-900 text-white/50">Selecciona tu país</option>
                       {PAISES.map(p => <option key={p.value} value={p.value} className="bg-gray-900">{p.value}</option>)}
                     </select>
 
-                    <div className="flex gap-2">
-                       <input type="tel" value={waitlistForm.telefono} onChange={e => setWaitlistForm(f => ({...f, telefono: e.target.value}))} className="flex-1 bg-white/5 border border-white/10 text-white rounded-xl px-4 py-3.5 text-sm focus:ring-2 focus:ring-teal-500 placeholder-white/20" placeholder="Teléfono (opcional)" />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                       <input required type="text" value={waitlistForm.ciudad} onChange={e => setWaitlistForm(f => ({...f, ciudad: e.target.value}))} className="w-full bg-white/5 border border-white/10 text-white rounded-xl px-4 py-3.5 text-sm focus:ring-2 focus:ring-teal-500 placeholder-white/20 transition-all" placeholder="Ciudad" />
+                       <input required type="tel" value={waitlistForm.telefono} onChange={e => setWaitlistForm(f => ({...f, telefono: e.target.value}))} className="w-full bg-white/5 border border-white/10 text-white rounded-xl px-4 py-3.5 text-sm focus:ring-2 focus:ring-teal-500 placeholder-white/20 transition-all" placeholder="Teléfono" />
                     </div>
                   </div>
 

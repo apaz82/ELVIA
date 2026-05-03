@@ -73,9 +73,10 @@ router.get('/', auth, async (req, res, next) => {
 
 router.post('/', waitlistLimiter, async (req, res, next) => {
   try {
-    const { nombre, apellido, indicativo, telefono, pais, email, situacion, aceptaPrivacidad } = req.body;
+    console.log('[Waitlist] New request body:', req.body);
+    const { nombre, apellido, indicativo, telefono, pais, ciudad, email, situacion, aceptaPrivacidad } = req.body;
 
-    if (!nombre || !apellido || !pais || !email || !situacion || !aceptaPrivacidad) {
+    if (!nombre || !apellido || !pais || !ciudad || !email || !situacion || !aceptaPrivacidad) {
       return res.status(400).json({ error: 'Faltan campos obligatorios' });
     }
 
@@ -104,11 +105,12 @@ router.post('/', waitlistLimiter, async (req, res, next) => {
     // Use supabaseAdmin to bypass RLS for inserting leads
     const { data: dbData, error: dbError } = await supabaseAdmin
       .from('waitlist_leads')
-      .insert([{ nombre, apellido, telefono: telefonoCompleto, pais, email, situacion }])
+      .insert([{ nombre, apellido, telefono: telefonoCompleto, pais: `${ciudad}, ${pais}`, email, situacion }])
       .select('id')
       .single();
 
     if (dbError) {
+      console.error('[Waitlist] Database error:', dbError);
       if (dbError.code === '23505') { // Unique violation for email
         return res.status(400).json({ error: 'Este correo electrónico ya está registrado en la lista de espera' });
       }
