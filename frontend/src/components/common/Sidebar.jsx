@@ -7,7 +7,7 @@ import {
   Folders, BookmarkSimple, Kanban,
   SignOut, X, Crown, House,
   MicrophoneStage, Books, LinkedinLogo, UsersThree, Target, Heart,
-  Lock, SpinnerGap
+  Lock, SpinnerGap, ChartBar
 } from '@phosphor-icons/react'
 
 const INICIO = [
@@ -23,9 +23,10 @@ const HERRAMIENTAS = [
 ]
 
 const MI_CARRERA = [
-  { to: '/mis-cvs',      label: 'Mis CVs',      Icon: Folders },
-  { to: '/mis-vacantes', label: 'Mis Vacantes', Icon: BookmarkSimple },
-  { to: '/pipeline',     label: 'Pipeline',     Icon: Kanban },
+  { to: '/mis-cvs',       label: 'Mis CVs',       Icon: Folders },
+  { to: '/mis-vacantes',  label: 'Mis Vacantes',  Icon: BookmarkSimple },
+  { to: '/pipeline',      label: 'Pipeline',      Icon: Kanban },
+  { to: '/mis-metricas',  label: 'Mis Métricas',  Icon: ChartBar },
 ]
 
 const RECURSOS = [

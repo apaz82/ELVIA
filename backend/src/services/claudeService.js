@@ -698,14 +698,54 @@ Devuelve ÚNICAMENTE el JSON estructurado con las mismas llaves, pero con el tex
   }
 }
 
-module.exports = { 
-  optimizeCV, 
-  matchCVtoJob, 
-  generateChatResponse, 
-  generarPreguntasEntrevista, 
-  evaluarEntrevista, 
-  analizarLinkedin, 
-  extraerDatosLinkedin, 
+/**
+ * Genera una carta de presentación para una vacante específica
+ */
+const generarCarta = async ({ empresa, cargo, descripcion, cvText, language = 'es' }) => {
+  const idioma = ETIQUETA_IDIOMA[language] || 'español';
+
+  const cvSeccion = cvText
+    ? `\nPERFIL DEL CANDIDATO (extraído de su CV):\n${cvText.slice(0, 3000)}`
+    : '';
+
+  const prompt = `Eres un experto en redacción de cartas de presentación para el mercado hispanoamericano.
+Escribe una carta de presentación profesional, auténtica y persuasiva, en ${idioma}.
+
+VACANTE:
+Empresa: ${empresa || 'la empresa'}
+Cargo: ${cargo || 'el puesto'}
+Descripción: ${descripcion || 'no proporcionada'}
+${cvSeccion}
+
+INSTRUCCIONES:
+- 3 párrafos: apertura impactante, cuerpo con 2-3 logros/competencias concretas alineadas a la vacante, cierre con llamada a la acción
+- Tono profesional pero humano, sin clichés corporativos
+- Si hay CV, usa datos reales del candidato; si no, usa [NOMBRE], [LOGRO] como placeholders
+- Sin encabezado formal de carta (solo el cuerpo del texto)
+- Máximo 250 palabras
+
+Responde ÚNICAMENTE con el texto de la carta, sin explicaciones adicionales.`;
+
+  const response = await client.messages.create({
+    model: MODELO,
+    max_tokens: 800,
+    temperature: 0.7,
+    system: [{ type: 'text', text: SISTEMA_BASE, cache_control: { type: 'ephemeral' } }],
+    messages: [{ role: 'user', content: prompt }],
+  });
+
+  return response.content[0].text.trim();
+};
+
+module.exports = {
+  optimizeCV,
+  matchCVtoJob,
+  generateChatResponse,
+  generarPreguntasEntrevista,
+  evaluarEntrevista,
+  analizarLinkedin,
+  extraerDatosLinkedin,
   extraerDatosInfografia,
-  corregirProyectoLaboral
+  corregirProyectoLaboral,
+  generarCarta,
 };

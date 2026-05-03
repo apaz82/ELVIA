@@ -10,7 +10,7 @@ const requireActiveTrial    = require('../middleware/requireActiveTrial');
 const { dailyCap }          = require('../middleware/dailyCap');
 const upload                = require('../middleware/upload');
 const { limiterOptimize, limiterMatch } = require('../middleware/rateLimiter');
-const { optimize, matchToJob, download, extractProfile, generarInfografia, generarInfografiaProyecto } = require('../controllers/cvController')
+const { optimize, matchToJob, download, extractProfile, generarInfografia, generarInfografiaProyecto, generarCartaPresentacion } = require('../controllers/cvController')
 const { generarCV } = require('../controllers/cvGenerarController')
 
 // Optimización de CV — hard cap + 1 análisis gratis + rate limit (5/15min)
@@ -33,5 +33,8 @@ router.get('/infografia/:id', auth, planContext, generarInfografia);
 
 // Genera la Infografía Visual del Proyecto Laboral (Corrección Ortográfica + DB Persist)
 router.post('/infografia-proyecto', auth, generarInfografiaProyecto);
+
+// Carta de presentación para una vacante (consume dailyCap, auth requerido)
+router.post('/carta', auth, dailyCap, limiterMatch, generarCartaPresentacion);
 
 module.exports = router;

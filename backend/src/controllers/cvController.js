@@ -1,7 +1,7 @@
 // Orquesta los servicios para cada endpoint de CV
 const { parseCV } = require('../utils/cvParser');
 const { detectLanguage } = require('../utils/languageDetector');
-const { optimizeCV, matchCVtoJob, extraerDatosInfografia, corregirProyectoLaboral } = require('../services/claudeService');
+const { optimizeCV, matchCVtoJob, extraerDatosInfografia, corregirProyectoLaboral, generarCarta } = require('../services/claudeService');
 const { generarPDF } = require('../services/pdfService');
 const { generarWord } = require('../services/wordService');
 const { incrementDailyCap } = require('../middleware/dailyCap');
@@ -513,4 +513,30 @@ const generarInfografiaProyecto = async (req, res, next) => {
   }
 };
 
-module.exports = { optimize, matchToJob, download, extractProfile, generarInfografia, generarInfografiaProyecto };
+// POST /api/cv/carta
+const generarCartaPresentacion = async (req, res, next) => {
+  try {
+    const { empresa, cargo, descripcion, cvId, language } = req.body;
+    if (!cargo && !descripcion) {
+      return res.status(400).json({ error: 'Se requiere al menos el cargo o descripción de la vacante' });
+    }
+
+    let cvText = null;
+    if (cvId) {
+      const { data } = await req.supabase
+        .from('cv_results')
+        .select('contenido')
+        .eq('id', cvId)
+        .eq('user_id', req.user.id)
+        .single();
+      cvText = data?.contenido || null;
+    }
+
+    const carta = await generarCarta({ empresa, cargo, descripcion, cvText, language: language || 'es' });
+    res.json({ carta });
+  } catch (err) {
+    next(err);
+  }
+};
+
+module.exports = { optimize, matchToJob, download, extractProfile, generarInfografia, generarInfografiaProyecto, generarCartaPresentacion };

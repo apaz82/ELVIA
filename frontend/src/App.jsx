@@ -29,6 +29,7 @@ import Pricing from './pages/Pricing'
 import ProyectoLaboral from './pages/ProyectoLaboral'
 import ReporteLaboral from './pages/ReporteLaboral'
 import Bienestar from './pages/Bienestar'
+import MisMetricas from './pages/MisMetricas'
 import AiChatBot from './components/chat/AiChatBot'
 import { useAuth } from './context/AuthContext'
 import { Toaster } from 'react-hot-toast'
@@ -199,6 +200,7 @@ export default function App() {
       <Route path="/entrevista"      element={<PrivateRoute><Entrevista /></PrivateRoute>} />
       <Route path="/biblioteca"      element={<PrivateRoute><Biblioteca /></PrivateRoute>} />
       <Route path="/linkedin-pro"    element={<PrivateRoute><LinkedinPro /></PrivateRoute>} />
+      <Route path="/mis-metricas"    element={<PrivateRoute><MisMetricas /></PrivateRoute>} />
       
       {/* /onboarding redirige a /bienvenida — ruta legacy */}
       <Route path="/onboarding"    element={<Navigate to="/bienvenida" replace />} />
