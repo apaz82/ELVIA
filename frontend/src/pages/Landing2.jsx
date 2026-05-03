@@ -37,8 +37,8 @@ const FEATURE_ROWS = {
     {
       Icon: UsersThree,
       titulo: 'Autoconocimiento',
-      subtitulo: 'Tu primer paso como gerente',
-      desc: 'Un onboarding para que conozcas tu momento actual y hacia donde quieres ir. Preparate para ser gerente de proyecto de tu transicion profesional.',
+      subtitulo: 'Tu primer paso',
+      desc: 'Un onboarding para que conozcas tu momento actual y hacia donde quieres ir. Prepárate para tu transición profesional.',
       cta: 'Comenzar',
       gradientStyle: GRAD.blue,
       iconBg: 'bg-blue-100', iconColor: 'text-blue-600',
@@ -376,23 +376,38 @@ export default function Landing() {
               </span>
             </motion.h1>
 
-            <motion.p variants={fadeInUp} className="text-lg sm:text-xl text-gray-500 leading-relaxed mb-10 max-w-lg">
+            <motion.p variants={fadeInUp} className="text-lg sm:text-xl text-gray-500 leading-relaxed mb-4 max-w-lg">
               Encuentra tu propósito y ten las herramientas necesarias para encontrar tu siguiente proyecto laboral y profesional.
             </motion.p>
+            <motion.p variants={fadeInUp} className="text-base text-gray-500 leading-relaxed mb-4 max-w-lg">
+              ELVIA es el sistema comprobado que te acompaña de inicio a fin, y no se queda solo en documentos.
+            </motion.p>
+            <motion.p variants={fadeInUp} className="text-base text-gray-500 leading-relaxed mb-10 max-w-lg">
+              El AUTOCONOCIMIENTO es la base de ELVIA, entre más información relevante de ti, mejores resultados. A veces no es cuestión de una CV bonita, es de realmente entender que quieres en tu siguiente paso profesional.
+            </motion.p>
 
-            <motion.div variants={fadeInUp} className="mt-8 flex flex-col sm:flex-row items-center sm:items-start gap-4">
+            <motion.div variants={fadeInUp} className="mt-8 flex flex-col sm:flex-row items-center sm:items-start gap-6">
               <button
-                onClick={() => navigate('/auth?register=true')}
-                className="bg-[#E8541A] text-white font-bold py-4 px-8 rounded-2xl text-lg sm:text-lg transition-all shadow-[0_8px_30px_rgba(232,84,26,0.3)] hover:shadow-[0_8px_30px_rgba(232,84,26,0.5)] flex items-center gap-2 justify-center w-full sm:w-auto h-14"
+                onClick={() => document.getElementById('features-section')?.scrollIntoView({ behavior: 'smooth' })}
+                className="bg-[#E8541A] text-white font-black py-4 px-8 rounded-2xl text-lg transition-all shadow-[0_8px_30px_rgba(232,84,26,0.3)] hover:shadow-[0_8px_30px_rgba(232,84,26,0.5)] flex items-center gap-2 group w-full sm:w-auto justify-center h-14"
               >
-                Empezar gratis <ArrowRight className="w-5 h-5" weight="bold" />
+                Únete y sé pionero ELVIA
+                <ArrowDown className="w-5 h-5 group-hover:translate-y-1 transition-transform" weight="bold" />
               </button>
-              <button
-                onClick={() => navigate('/auth')}
-                className="bg-transparent text-gray-700 border-2 border-gray-200 hover:border-gray-300 hover:text-gray-900 font-bold py-4 px-8 rounded-2xl text-lg transition-all flex items-center justify-center w-full sm:w-auto h-14"
-              >
-                Iniciar sesión
-              </button>
+              
+              <div className="flex items-center gap-3 text-sm text-gray-500 mt-2 sm:mt-0">
+                <div className="flex -space-x-2">
+                  <div className="w-10 h-10 rounded-full border-2 border-white bg-teal-100 flex items-center justify-center relative z-30 shadow-sm text-teal-700 font-bold text-xs tracking-tighter">AM</div>
+                  <div className="w-10 h-10 rounded-full border-2 border-white bg-blue-100 flex items-center justify-center relative z-20 shadow-sm text-blue-700 font-bold text-xs tracking-tighter">JR</div>
+                  <div className="w-10 h-10 rounded-full border-2 border-white bg-amber-100 flex items-center justify-center relative z-10 shadow-sm text-amber-700 font-bold text-xs tracking-tighter">CV</div>
+                </div>
+                <div className="flex flex-col text-left">
+                  <div className="flex items-center gap-0.5 mt-0.5">
+                    {[1,2,3,4,5].map(i => <Star key={i} size={14} weight="fill" className="text-amber-500" />)}
+                  </div>
+                  <p className="text-xs mt-0.5"><strong className="text-gray-900">+500</strong> en lista</p>
+                </div>
+              </div>
             </motion.div>
 
             {/* Trust Badges moved inside the right column below mockup */}
@@ -522,9 +537,9 @@ export default function Landing() {
 
             <ul className="space-y-4 text-gray-300 font-medium">
               {[
-                'Feedback sobre tu CV',
-                'Temas de actualidad',
-                'Motivación',
+                'Preguntas sobre el uso del sistema',
+                'Principales competencias',
+                'Motivación y mucho más',
               ].map(item => (
                 <li key={item} className="flex items-center gap-3">
                   <div className="w-6 h-6 rounded-full bg-teal-500/20 flex items-center justify-center text-teal-400">
@@ -619,7 +634,7 @@ export default function Landing() {
           <div className="text-center mb-12">
             <span className="text-[#E8541A] font-bold text-sm tracking-widest uppercase mb-2 block">Simulador en tiempo real</span>
             <h2 className="font-headline font-black text-4xl md:text-5xl text-gray-900 mb-4 tracking-tight">Prueba la magia gratis.<br className="hidden md:block"/> Sin registrarte.</h2>
-            <p className="text-gray-500 text-lg max-w-2xl mx-auto">Pega una descripción de vacante real y simularemos cómo nuestra inteligencia artificial recomienda ajustes a tu perfil, siempre basado en tu información, nunca inventando nada.</p>
+            <p className="text-gray-500 text-lg max-w-2xl mx-auto">Con solo la descripción de una vacante real, ELVIA evalúa ajustes a tu perfil, siempre basado en tu información de autoconocimiento, nunca inventando nada.</p>
           </div>
           
           <div className="bg-white rounded-[2rem] shadow-2xl shadow-blue-900/5 border border-gray-200 p-6 md:p-10 relative overflow-hidden">
@@ -751,8 +766,8 @@ export default function Landing() {
                 <UsersThree size={24} weight="duotone" className="text-blue-600" />
               </div>
               <h3 className="font-bold text-xl text-blue-900 mb-1">Autoconocimiento</h3>
-              <p className="text-xs font-semibold uppercase tracking-wide text-blue-600 mb-3">Tu primer paso como gerente</p>
-              <p className="text-sm text-blue-700 leading-relaxed">Un onboarding para que conozcas tu momento actual y hacia donde quieres ir. Prepárate para ser gerente de proyecto de tu transición profesional.</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-blue-600 mb-3">Tu primer paso</p>
+              <p className="text-sm text-blue-700 leading-relaxed">Un onboarding para que conozcas tu momento actual y hacia donde quieres ir. Prepárate para tu transición profesional.</p>
             </div>
             <div className="grid grid-cols-2 gap-3">
               {[
@@ -1001,7 +1016,7 @@ export default function Landing() {
               <div className="space-y-4">
                 <h3 className="font-headline font-bold text-2xl text-gray-900">Optimización en cada paso</h3>
                 <p className="text-gray-600 leading-relaxed">
-                  Mientras editas tu CV, ELVIA analiza cada sección: desde tu titular y resumen profesional, hasta tus experiencias y logros.
+                  Partiendo de tu AUTOCONOCIMIENTO y mientras editas tu CV, ELVIA analiza cada sección: desde tu titular y resumen profesional, hasta tus experiencias y logros.
                 </p>
               </div>
 
@@ -1012,7 +1027,7 @@ export default function Landing() {
                   </div>
                   <div>
                     <h4 className="font-bold text-gray-900 mb-1">Análisis Inteligente</h4>
-                    <p className="text-sm text-gray-600">Detecta palabras clave, formato y estructura para maximizar el match con ATS</p>
+                    <p className="text-sm text-gray-600">Usa tu propia información que registras para crear tu perfil y no solo eso, tiene en cuenta tu OFERTA DE VALOR para el mercado.</p>
                   </div>
                 </div>
 
@@ -1032,7 +1047,7 @@ export default function Landing() {
                   </div>
                   <div>
                     <h4 className="font-bold text-gray-900 mb-1">Seguimiento en Tiempo Real</h4>
-                    <p className="text-sm text-gray-600">Tu índice de optimización se actualiza instantáneamente a medida que haces cambios</p>
+                    <p className="text-sm text-gray-600">Puedes guardar tus reportes y volverlos a ver, un sistema dinámico que te permite aprender de ti constantemente.</p>
                   </div>
                 </div>
               </div>
@@ -1172,8 +1187,8 @@ export default function Landing() {
           <h2 className="font-headline font-black text-4xl md:text-6xl tracking-tight text-white mb-6">
             Tu futuro gerente de<br className="hidden md:block" /> proyecto te espera
           </h2>
-          <p className="text-gray-400 text-lg md:text-xl max-w-2xl mb-8 font-medium">
-            Únete a cientos de profesionales que ya están optimizando su carrera y consiguiendo las entrevistas que merecen.
+          <p className="text-gray-400 text-lg md:text-xl max-w-3xl mb-8 font-medium">
+            Únete a cientos de profesionales que ya están haciendo el ejercicio de autoconocerse, optimizando su carrera y obteniendo las herramientas necesarias para su transición de carrera.
           </p>
 
           <div className="flex flex-col items-center gap-4 mb-12">
@@ -1200,9 +1215,9 @@ export default function Landing() {
             </button>
           </div>
 
-          <div className="mt-8 flex items-center justify-center gap-6 text-sm font-semibold tracking-wide text-gray-500 z-10">
-            <span className="flex items-center gap-2"><CheckCircle size={18} weight="fill" className="text-teal-500" /> Sin tarjeta de crédito</span>
-            <span className="flex items-center gap-2"><CheckCircle size={18} weight="fill" className="text-teal-500" /> 2 evaluaciones gratis</span>
+          <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-6 text-sm font-semibold tracking-wide text-gray-500 z-10">
+            <span className="flex items-center gap-2 text-center sm:text-left"><CheckCircle size={18} weight="fill" className="text-teal-500" /> Sin tarjeta de crédito para la prueba de 7 días</span>
+            <span className="flex items-center gap-2 text-center sm:text-left"><CheckCircle size={18} weight="fill" className="text-teal-500" /> Funcionalidades gratis</span>
           </div>
         </motion.div>
       </section>
