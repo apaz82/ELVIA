@@ -4,7 +4,8 @@ import { useAuth } from '../context/AuthContext'
 import { supabase } from '../services/authService'
 import PlanBanner from '../components/common/PlanBanner'
 import FeatureLocked from '../components/common/FeatureLocked'
-import { Kanban } from '@phosphor-icons/react'
+import DetalleVacanteDrawer from '../components/common/DetalleVacanteDrawer'
+import { Kanban, FileText, Headphones, Trash } from '@phosphor-icons/react'
 
 const ETAPAS = ['Descubierto', 'Apliqué', 'Pruebas/Assessment', 'En entrevistas', 'Ofertado']
 const ETAPA_PERDIDA = 'No avanzó'
@@ -96,7 +97,7 @@ function BarraEtapas({ estadoActual, etapasFechas = {}, onCambiar, perdida }) {
   )
 }
 
-function VacanteCard({ item, onMover, onEliminar, onGuardarNota, onGuardarContacto }) {
+function VacanteCard({ item, onMover, onEliminar, onGuardarNota, onGuardarContacto, onAbrirDetalle }) {
   const job     = item.job_data || {}
   const check   = item.check
   const estado  = item.estado || 'Descubierto'
@@ -110,6 +111,7 @@ function VacanteCard({ item, onMover, onEliminar, onGuardarNota, onGuardarContac
   const [mostrarContacto, setMostrarContacto] = useState(false)
   const [contacto, setContacto]     = useState(contactoInicial)
   const [guardandoContacto, setGuardandoContacto] = useState(false)
+  const [mostrarMenu, setMostrarMenu] = useState(false)
 
   const guardarNota = async () => {
     setGuardando(true)
@@ -126,7 +128,71 @@ function VacanteCard({ item, onMover, onEliminar, onGuardarNota, onGuardarContac
   }
 
   return (
-    <div className={`bg-white rounded-2xl border p-5 transition-all ${perdida ? 'border-red-200 opacity-70' : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'}`}>
+    <div
+      onClick={() => !mostrarMenu && onAbrirDetalle(item.id)}
+      onMouseEnter={() => setMostrarMenu(true)}
+      onMouseLeave={() => setMostrarMenu(false)}
+      className={`bg-white rounded-2xl border p-5 transition-all relative ${perdida ? 'border-red-200 opacity-70 cursor-default' : 'border-gray-200 hover:border-gray-300 hover:shadow-sm cursor-pointer'}`}
+    >
+      {/* Hover menu — 4.2 */}
+      {mostrarMenu && !perdida && (
+        <div className="absolute top-5 right-5 flex flex-col gap-1 bg-white rounded-xl shadow-lg border border-gray-200 z-10 p-1">
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              job.description && sessionStorage.setItem('vacante_prefill', JSON.stringify({ texto: job.description }))
+              navigate('/cv-vs-job')
+            }}
+            title="Ver análisis de compatibilidad"
+            className="flex items-center gap-2 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 rounded-lg transition-colors whitespace-nowrap"
+          >
+            <span>Analizar</span>
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              // TODO: navigate to letter generation page
+            }}
+            title="Generar carta de presentación"
+            className="flex items-center gap-2 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 rounded-lg transition-colors whitespace-nowrap"
+          >
+            <FileText size={14} />
+            <span>Carta</span>
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              sessionStorage.setItem(
+                'entrevista_prefill',
+                JSON.stringify({
+                  empresa: job.company,
+                  cargo: job.title,
+                  descripcion: job.description,
+                  jobId: item.id
+                })
+              )
+              navigate('/entrevista')
+            }}
+            title="Preparar para entrevista"
+            className="flex items-center gap-2 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 rounded-lg transition-colors whitespace-nowrap"
+          >
+            <Headphones size={14} />
+            <span>Entrevista</span>
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              onMover(item, ETAPA_PERDIDA)
+            }}
+            title="Marcar como no avanzó"
+            className="flex items-center gap-2 px-3 py-2 text-xs text-red-600 hover:bg-red-50 rounded-lg transition-colors whitespace-nowrap"
+          >
+            <Trash size={14} />
+            <span>Archivar</span>
+          </button>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
@@ -322,6 +388,7 @@ export default function Pipeline() {
   const [vacantes, setVacantes]     = useState([])
   const [loading, setLoading]       = useState(true)
   const [filtroPerdidas, setFiltro] = useState(false)
+  const [detalleAbierto, setDetalleAbierto] = useState(null)
 
   const cargarTodo = async () => {
     setLoading(true)
@@ -475,10 +542,23 @@ export default function Pipeline() {
               onEliminar={eliminar}
               onGuardarNota={guardarNota}
               onGuardarContacto={guardarContacto}
+              onAbrirDetalle={setDetalleAbierto}
             />
           ))}
         </div>
       )}
+
+      {/* Drawer — 4.3 */}
+      <DetalleVacanteDrawer
+        item={vacantes.find(v => v.id === detalleAbierto)}
+        isOpen={!!detalleAbierto}
+        onClose={() => setDetalleAbierto(null)}
+        onMover={mover}
+        onGuardarNota={guardarNota}
+        onGuardarContacto={guardarContacto}
+        onEliminar={eliminar}
+        onNavigate={navigate}
+      />
     </div>
   )
 }
