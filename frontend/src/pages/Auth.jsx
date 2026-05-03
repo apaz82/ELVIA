@@ -1,5 +1,5 @@
 // Página de autenticación — login, registro y recuperar contraseña
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../services/authService'
@@ -27,6 +27,7 @@ const checkPassword = (pwd) => ({
 export default function Auth() {
   const { user, login, register, onboardingPendiente, isRecovering } = useAuth()
   const navigate = useNavigate()
+  const turnstileRef = useRef(null)
 
   const [searchParams] = useSearchParams()
   const [modo, setModo]         = useState(
@@ -78,6 +79,8 @@ export default function Auth() {
     setError('')
     setPassword('')
     setNombre(''); setApellido(''); setTelefono('')
+    setTurnstileToken(null)
+    if (turnstileRef.current) turnstileRef.current.reset()
   }
 
   // ── Traducción de errores de Supabase ─────────────────────────────────────
@@ -114,6 +117,8 @@ export default function Auth() {
           telefono1:  telefono.trim() || null,
         }, turnstileToken)
         if (error) {
+          if (turnstileRef.current) turnstileRef.current.reset()
+          setTurnstileToken(null)
           setError(traducirError(error.message))
         } else {
           if (codigoAcceso.trim()) {
@@ -456,10 +461,15 @@ export default function Auth() {
               {modo === 'register' && (
                 <div className="flex justify-center py-2">
                   <Turnstile
+                    ref={turnstileRef}
                     siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY || '1x00000000000000000000AA'}
                     onSuccess={(token) => setTurnstileToken(token)}
                     onExpire={() => setTurnstileToken(null)}
-                    onError={() => setError('Error en la validación de seguridad. Intenta de nuevo.')}
+                    onError={() => {
+                      setError('Error en la validación de seguridad. Intenta de nuevo.')
+                      if (turnstileRef.current) turnstileRef.current.reset()
+                      setTurnstileToken(null)
+                    }}
                   />
                 </div>
               )}
