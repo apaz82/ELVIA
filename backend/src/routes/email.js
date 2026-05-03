@@ -338,6 +338,15 @@ router.post('/recuperacion', emailRateLimit, async (req, res) => {
 
     if (linkErr || !linkData?.properties?.action_link) {
       console.error('[email/recuperacion] Error generating link:', linkErr?.message);
+      
+      // Si el usuario no existe en Supabase Auth
+      if (linkErr?.message?.includes('User not found') || linkErr?.status === 422) {
+        return res.status(404).json({ 
+          error: 'No encontramos ninguna cuenta vinculada a este correo.',
+          code: 'USER_NOT_FOUND'
+        });
+      }
+
       return res.status(500).json({ error: 'No se pudo generar el enlace de seguridad' });
     }
 

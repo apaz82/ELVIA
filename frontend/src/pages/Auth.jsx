@@ -153,7 +153,11 @@ export default function Auth() {
 
       if (!response.ok) {
         const data = await response.json()
-        setError(data.error || 'No se pudo enviar el correo de recuperación.')
+        if (data.code === 'USER_NOT_FOUND') {
+          setError('__NO_REGISTRADO__')
+        } else {
+          setError(data.error || 'No se pudo enviar el correo de recuperación.')
+        }
       } else {
         setResetEnviado(true)
       }
@@ -253,6 +257,8 @@ export default function Auth() {
                 <input
                   type="email" value={email} onChange={e => setEmail(e.target.value)} required
                   placeholder="tu@email.com"
+                  onInvalid={e => e.target.setCustomValidity('Por favor, ingresa un correo electrónico válido.')}
+                  onInput={e => e.target.setCustomValidity('')}
                   className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-colors"
                 />
               </div>
@@ -349,6 +355,8 @@ export default function Auth() {
                 <input
                   type="email" value={email} onChange={e => setEmail(e.target.value)} required
                   placeholder="tu@email.com"
+                  onInvalid={e => e.target.setCustomValidity('Por favor, ingresa un correo electrónico válido.')}
+                  onInput={e => e.target.setCustomValidity('')}
                   className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-colors bg-transparent text-gray-900"
                 />
               </div>
