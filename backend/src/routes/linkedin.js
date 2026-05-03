@@ -5,7 +5,7 @@ const auth    = require('../middleware/auth')
 const { planContext }    = require('../middleware/planContext')
 const requirePaidPlan    = require('../middleware/requirePaidPlan')
 const { limiterOptimize } = require('../middleware/rateLimiter')
-const { analizarPerfil, extraerPerfilPDF, extraerPerfilTexto } = require('../controllers/linkedinController')
+const { analizarPerfil, extraerPerfilPDF, extraerPerfilTexto, getHistorial } = require('../controllers/linkedinController')
 
 // Configuración de Multer para recibir PDF en memoria
 const storage = multer.memoryStorage()
@@ -20,6 +20,9 @@ const upload  = multer({
 
 // Solo usuarios de pago pueden usar LinkedIn Optimo
 router.post('/analizar',      auth, planContext, requirePaidPlan, limiterOptimize, analizarPerfil)
+
+// Historial de análisis del usuario (solo requiere auth, no plan de pago)
+router.get('/historial',      auth, planContext, getHistorial)
 
 // Endpoints de Extracción Mágica (PDF y Pegado)
 router.post('/extraer-pdf',   auth, planContext, requirePaidPlan, limiterOptimize, upload.single('pdf'), extraerPerfilPDF)

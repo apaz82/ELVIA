@@ -14,7 +14,40 @@ const analizarPerfil = async (req, res, next) => {
     }
 
     const resultado = await analizarLinkedin({ titular, extracto, experiencia, habilidades, educacion, contextoLaboral })
+
+    // Persistir análisis para historial (best-effort — no bloquea la respuesta si falla)
+    if (req.supabase && req.user?.id) {
+      const camposUsados = Object.entries({ titular, extracto, experiencia, habilidades, educacion })
+        .filter(([, v]) => v && v.trim().length > 0)
+        .map(([k]) => k)
+      req.supabase.from('linkedin_analyses').insert({
+        user_id: req.user.id,
+        puntaje_global: resultado.puntaje_global,
+        resumen_global: resultado.resumen_global,
+        top_acciones: resultado.top_acciones ?? [],
+        secciones: resultado.secciones ?? {},
+        campos_analizados: camposUsados,
+      }).then(({ error }) => { if (error) console.error('[linkedin/analizar] save error:', error.message) })
+    }
+
     return res.json(resultado)
+  } catch (err) {
+    next(err)
+  }
+}
+
+// GET /api/linkedin/historial
+const getHistorial = async (req, res, next) => {
+  try {
+    const db = req.supabase
+    const { data, error } = await db
+      .from('linkedin_analyses')
+      .select('id, puntaje_global, resumen_global, top_acciones, secciones, campos_analizados, created_at')
+      .order('created_at', { ascending: false })
+      .limit(10)
+
+    if (error) throw error
+    return res.json(data || [])
   } catch (err) {
     next(err)
   }
@@ -56,4 +89,4 @@ const extraerPerfilTexto = async (req, res, next) => {
   }
 }
 
-module.exports = { analizarPerfil, extraerPerfilPDF, extraerPerfilTexto }
+module.exports = { analizarPerfil, extraerPerfilPDF, extraerPerfilTexto, getHistorial }

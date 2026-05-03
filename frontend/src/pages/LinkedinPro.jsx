@@ -1,5 +1,5 @@
 // LinkedIn Optima — Validador y optimizador de perfil LinkedIn con IA
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../services/authService'
 import { calcularProgreso } from '../utils/progresoLaboral'
@@ -7,7 +7,7 @@ import toast from 'react-hot-toast'
 import {
   LinkedinLogo, Sparkle, CheckCircle, WarningCircle,
   CaretDown, CaretUp, ArrowRight, Trophy, Star, LightbulbFilament,
-  FilePdf, MagicWand, NotePencil, UploadSimple, SelectionAll, CircleNotch
+  FilePdf, MagicWand, NotePencil, UploadSimple, SelectionAll, CircleNotch, Clock
 } from '@phosphor-icons/react'
 import FeatureLocked from '../components/common/FeatureLocked'
 
@@ -182,6 +182,25 @@ export default function LinkedinOptima() {
   const [cargando, setCargando] = useState(false)
   const [resultado, setResultado] = useState(null)
   const [error, setError] = useState('')
+  const [historial, setHistorial] = useState([])
+  const [historialAbierto, setHistorialAbierto] = useState(false)
+
+  useEffect(() => {
+    if (!user) return
+    const loadHistorial = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        const res = await fetch(`${API}/api/linkedin/historial`, {
+          headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {},
+        })
+        if (res.ok) {
+          const data = await res.json()
+          setHistorial(Array.isArray(data) ? data : [])
+        }
+      } catch { /* historial es no-crítico */ }
+    }
+    loadHistorial()
+  }, [user])
 
   // Bloqueo para usuarios que no han llegado al 100% de progreso (o plan pago)
   if (!isPaidPlan && !isUnlockedByProgress) {
@@ -283,6 +302,17 @@ export default function LinkedinOptima() {
 
       const data = await res.json()
       setResultado(data)
+      // Agregar al historial local inmediatamente (sin esperar re-fetch)
+      const camposUsados = Object.entries(campos).filter(([, v]) => v.trim().length > 0).map(([k]) => k)
+      setHistorial(prev => [{
+        id: Date.now().toString(),
+        puntaje_global: data.puntaje_global,
+        resumen_global: data.resumen_global,
+        top_acciones: data.top_acciones ?? [],
+        secciones: data.secciones ?? {},
+        campos_analizados: camposUsados,
+        created_at: new Date().toISOString(),
+      }, ...prev.slice(0, 9)])
       window.scrollTo({ top: 0, behavior: 'smooth' })
     } catch (err) {
       setError(err.message)
@@ -342,7 +372,8 @@ export default function LinkedinOptima() {
           <h3 className="font-bold text-gray-900 px-1">Análisis por sección</h3>
           {SECCIONES.map(sec => {
             const datos = resultado.secciones?.[sec.id]
-            if (!datos || !campos[sec.id]?.trim()) return null
+            const desdHistorial = !!resultado.campos_analizados
+            if (!datos || (!desdHistorial && !campos[sec.id]?.trim())) return null
             return <SeccionResultado key={sec.id} seccion={sec} datos={datos} />
           })}
         </div>
@@ -375,6 +406,55 @@ export default function LinkedinOptima() {
   // ─── Vista del formulario ────────────────────────────────────────────────
   return (
     <div className="max-w-2xl mx-auto px-4 py-8">
+
+      {/* Historial de análisis */}
+      {historial.length > 0 && (
+        <div className="mb-8 bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+          <button
+            onClick={() => setHistorialAbierto(h => !h)}
+            className="w-full flex items-center justify-between px-5 py-4 hover:bg-slate-50 transition-colors text-left"
+          >
+            <div className="flex items-center gap-3">
+              <Clock size={18} weight="duotone" className="text-[#0077B5]" />
+              <div>
+                <p className="text-sm font-bold text-slate-800">Historial de análisis</p>
+                <p className="text-xs text-slate-400">{historial.length} análisis guardado{historial.length !== 1 ? 's' : ''}</p>
+              </div>
+            </div>
+            {historialAbierto ? <CaretUp size={16} className="text-slate-400" /> : <CaretDown size={16} className="text-slate-400" />}
+          </button>
+          {historialAbierto && (
+            <div className="border-t border-slate-100 divide-y divide-slate-50">
+              {historial.map((entry) => {
+                const color = colorPuntaje(entry.puntaje_global)
+                const fecha = new Date(entry.created_at).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: '2-digit' })
+                const campos = Array.isArray(entry.campos_analizados) ? entry.campos_analizados.join(', ') : ''
+                return (
+                  <div key={entry.id} className="flex items-center gap-4 px-5 py-3 hover:bg-slate-50/50 transition-colors">
+                    <div className={`flex items-center justify-center w-11 h-11 rounded-full border-2 ${color.border} ${color.bg} shrink-0`}>
+                      <span className={`text-sm font-black ${color.text}`}>{entry.puntaje_global}</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${color.labelBg} ${color.labelText}`}>{color.label}</span>
+                        <span className="text-xs text-slate-400">{fecha}</span>
+                      </div>
+                      {campos && <p className="text-[11px] text-slate-400 mt-0.5 truncate capitalize">{campos}</p>}
+                    </div>
+                    <button
+                      onClick={() => { setResultado(entry); setHistorialAbierto(false) }}
+                      className="shrink-0 text-xs font-bold text-[#0077B5] border border-[#0077B5]/20 hover:bg-[#0077B5]/5 rounded-lg px-3 py-1.5 transition-colors flex items-center gap-1"
+                    >
+                      Ver <ArrowRight size={11} />
+                    </button>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Header */}
       <div className="mb-10 text-center">
         <div className="inline-flex items-center justify-center p-4 bg-white rounded-[2rem] shadow-xl shadow-slate-200/50 border border-slate-100 mb-6">

@@ -187,7 +187,9 @@ const matchToJob = async (req, res, next) => {
         metadata: {
           changes: resultado.changes,
           matchScore: resultado.matchScore,
+          analisis: resultado.analisis,
           jobData: resultado.jobData,
+          keywords: resultado.keywords,
           language,
         },
       })
@@ -211,6 +213,7 @@ const matchToJob = async (req, res, next) => {
       analisis: resultado.analisis,
       changes: resultado.changes,
       jobData: resultado.jobData,
+      keywords: resultado.keywords,
       language,
       usageCount: nuevoUsageCount,
       cv_match_count: nuevoMatchCount,

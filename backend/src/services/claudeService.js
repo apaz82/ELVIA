@@ -81,11 +81,12 @@ const parsearRespuestaOptimize = (text) => {
 };
 
 const parsearRespuestaMatch = (text) => {
-  const cvMatch = text.match(/<CV>([\s\S]*?)<\/CV>/);
-  const scoreMatch = text.match(/<SCORE>([\s\S]*?)<\/SCORE>/);
+  const cvMatch       = text.match(/<CV>([\s\S]*?)<\/CV>/);
+  const scoreMatch    = text.match(/<SCORE>([\s\S]*?)<\/SCORE>/);
   const analisisMatch = text.match(/<ANALISIS>([\s\S]*?)<\/ANALISIS>/);
-  const cambiosMatch = text.match(/<CAMBIOS>([\s\S]*?)<\/CAMBIOS>/);
-  const jobMatch = text.match(/<VACANTE>([\s\S]*?)<\/VACANTE>/);
+  const cambiosMatch  = text.match(/<CAMBIOS>([\s\S]*?)<\/CAMBIOS>/);
+  const jobMatch      = text.match(/<VACANTE>([\s\S]*?)<\/VACANTE>/);
+  const kwMatch       = text.match(/<KEYWORDS>([\s\S]*?)<\/KEYWORDS>/);
 
   // Parsear análisis en secciones
   let analisis = null;
@@ -118,6 +119,21 @@ const parsearRespuestaMatch = (text) => {
     };
   }
 
+  // Parsear keywords NLP
+  let keywords = null;
+  if (kwMatch) {
+    const raw = kwMatch[1].trim();
+    const parseKwList = (pattern) => {
+      const m = raw.match(pattern);
+      if (!m) return [];
+      return m[1].split(',').map(s => s.trim().replace(/^["'\[\]]+|["'\[\]]+$/g, '')).filter(Boolean);
+    };
+    keywords = {
+      criticas:        { presentes: parseKwList(/CRITICAS_PRESENTES:\s*\[([^\]]*)\]/i),  ausentes: parseKwList(/CRITICAS_AUSENTES:\s*\[([^\]]*)\]/i)  },
+      complementarias: { presentes: parseKwList(/COMPLEMENTARIAS_PRESENTES:\s*\[([^\]]*)\]/i), ausentes: parseKwList(/COMPLEMENTARIAS_AUSENTES:\s*\[([^\]]*)\]/i) },
+    };
+  }
+
   return {
     tailoredCV: cvMatch ? cvMatch[1].trim() : text.trim(),
     matchScore: scoreMatch ? parseInt(scoreMatch[1].trim(), 10) || 0 : 0,
@@ -126,6 +142,7 @@ const parsearRespuestaMatch = (text) => {
       ? cambiosMatch[1].trim().split('\n').map(l => l.replace(/^[-•]\s*/, '').trim()).filter(Boolean)
       : [],
     jobData,
+    keywords,
   };
 };
 
@@ -216,7 +233,13 @@ CONCLUSION:
 titulo: [cargo detectado]
 ubicacion: [ciudad o región]
 pais: [país]
-</VACANTE>`;
+</VACANTE>
+<KEYWORDS>
+CRITICAS_PRESENTES: [lista de máx 8 keywords/habilidades CRÍTICAS de la vacante que SÍ aparecen en el CV, separadas por coma]
+CRITICAS_AUSENTES: [lista de máx 8 keywords/habilidades CRÍTICAS de la vacante que NO aparecen en el CV, separadas por coma]
+COMPLEMENTARIAS_PRESENTES: [lista de máx 6 habilidades/herramientas complementarias que SÍ están en el CV, separadas por coma]
+COMPLEMENTARIAS_AUSENTES: [lista de máx 6 habilidades/herramientas complementarias que faltan en el CV, separadas por coma]
+</KEYWORDS>`;
 
   const t0 = Date.now();
   const response = await client.messages.create({

@@ -361,16 +361,85 @@ export default function CVvsJob() {
             )}
             {!vistaInfografia && (
               <div className="flex gap-1 mb-4 bg-gray-100 rounded-lg p-1">
-                {[{ key: 'cv', label: 'CV Adaptado' }, { key: 'analisis', label: 'Análisis' }].map(tab => (
-                  <button key={tab.key} onClick={() => setTabActiva(tab.key)} className={`flex-1 text-sm font-medium py-2 rounded-md ${tabActiva === tab.key ? 'bg-white shadow-sm' : 'text-gray-600'}`}>{tab.label}</button>
+                {[
+                  { key: 'cv',       label: 'CV Adaptado' },
+                  { key: 'analisis', label: 'Análisis' },
+                  { key: 'keywords', label: 'Keywords' },
+                ].map(tab => (
+                  <button key={tab.key} onClick={() => setTabActiva(tab.key)}
+                    className={`flex-1 text-sm font-medium py-2 rounded-md transition-all ${tabActiva === tab.key ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}>
+                    {tab.label}
+                  </button>
                 ))}
               </div>
             )}
             {!vistaInfografia && tabActiva === 'cv' && <pre className="whitespace-pre-wrap font-mono text-xs bg-gray-50 p-4 rounded-xl">{resultadoMatch.tailoredCV}</pre>}
             {!vistaInfografia && tabActiva === 'analisis' && (
               <div className="space-y-4">
-                <div><h3 className="text-sm font-semibold text-green-700">Fortalezas</h3><ul className="text-xs space-y-1">{resultadoMatch.analisis.fortalezas.map((f, i) => <li key={i}>✓ {f}</li>)}</ul></div>
-                <div><h3 className="text-sm font-semibold text-red-600">Brechas</h3><ul className="text-xs space-y-1">{resultadoMatch.analisis.brechas.map((b, i) => <li key={i}>✗ {b}</li>)}</ul></div>
+                <div><h3 className="text-sm font-semibold text-green-700 mb-1.5">Fortalezas</h3><ul className="text-xs space-y-1 text-gray-700">{resultadoMatch.analisis.fortalezas.map((f, i) => <li key={i} className="flex items-start gap-1.5"><span className="text-green-500 shrink-0 mt-0.5">✓</span>{f}</li>)}</ul></div>
+                <div><h3 className="text-sm font-semibold text-red-600 mb-1.5">Brechas</h3><ul className="text-xs space-y-1 text-gray-700">{resultadoMatch.analisis.brechas.map((b, i) => <li key={i} className="flex items-start gap-1.5"><span className="text-red-400 shrink-0 mt-0.5">→</span>{b}</li>)}</ul></div>
+                {resultadoMatch.analisis.conclusion && (
+                  <div className="bg-blue-50 border border-blue-100 rounded-xl p-4">
+                    <h3 className="text-xs font-bold text-blue-700 uppercase tracking-wider mb-1.5">Conclusión</h3>
+                    <p className="text-sm text-blue-900 leading-relaxed">{resultadoMatch.analisis.conclusion}</p>
+                  </div>
+                )}
+              </div>
+            )}
+            {!vistaInfografia && tabActiva === 'keywords' && (
+              <div className="space-y-5">
+                {resultadoMatch.keywords ? (
+                  <>
+                    <div>
+                      <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Keywords Críticas</h3>
+                      {resultadoMatch.keywords.criticas.presentes.length > 0 && (
+                        <div className="mb-3">
+                          <p className="text-[11px] font-semibold text-emerald-600 mb-2 flex items-center gap-1">✓ Presentes en tu CV ({resultadoMatch.keywords.criticas.presentes.length})</p>
+                          <div className="flex flex-wrap gap-2">
+                            {resultadoMatch.keywords.criticas.presentes.map((kw, i) => (
+                              <span key={i} className="px-2.5 py-1 bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-medium rounded-full">{kw}</span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {resultadoMatch.keywords.criticas.ausentes.length > 0 && (
+                        <div>
+                          <p className="text-[11px] font-semibold text-red-500 mb-2 flex items-center gap-1">✗ Faltan en tu CV ({resultadoMatch.keywords.criticas.ausentes.length})</p>
+                          <div className="flex flex-wrap gap-2">
+                            {resultadoMatch.keywords.criticas.ausentes.map((kw, i) => (
+                              <span key={i} className="px-2.5 py-1 bg-red-50 border border-red-200 text-red-600 text-xs font-medium rounded-full">{kw}</span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    <div className="border-t border-gray-100 pt-4">
+                      <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Skills Complementarios</h3>
+                      {resultadoMatch.keywords.complementarias.presentes.length > 0 && (
+                        <div className="mb-3">
+                          <p className="text-[11px] font-semibold text-blue-600 mb-2 flex items-center gap-1">✓ Presentes ({resultadoMatch.keywords.complementarias.presentes.length})</p>
+                          <div className="flex flex-wrap gap-2">
+                            {resultadoMatch.keywords.complementarias.presentes.map((kw, i) => (
+                              <span key={i} className="px-2.5 py-1 bg-blue-50 border border-blue-200 text-blue-700 text-xs font-medium rounded-full">{kw}</span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {resultadoMatch.keywords.complementarias.ausentes.length > 0 && (
+                        <div>
+                          <p className="text-[11px] font-semibold text-amber-600 mb-2 flex items-center gap-1">→ Para agregar ({resultadoMatch.keywords.complementarias.ausentes.length})</p>
+                          <div className="flex flex-wrap gap-2">
+                            {resultadoMatch.keywords.complementarias.ausentes.map((kw, i) => (
+                              <span key={i} className="px-2.5 py-1 bg-amber-50 border border-amber-200 text-amber-700 text-xs font-medium rounded-full">{kw}</span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <p className="text-sm text-gray-400 text-center py-6">Keywords no disponibles para este análisis.</p>
+                )}
               </div>
             )}
 
