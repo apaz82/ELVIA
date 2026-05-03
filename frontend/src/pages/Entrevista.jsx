@@ -125,6 +125,25 @@ export default function Entrevista() {
       .then(({ data }) => setVacantesGuardadas(data || []))
   }, [user])
 
+  // 6.1 — Auto-load job description from Pipeline
+  useEffect(() => {
+    const prefill = sessionStorage.getItem('entrevista_prefill')
+    if (prefill) {
+      try {
+        const data = JSON.parse(prefill)
+        setEmpresa(data.empresa || '')
+        setCargo(data.cargo || '')
+        setDescripcion(data.descripcion || '')
+        if (data.jobId) {
+          setVacanteSel({ id: data.jobId })
+        }
+        sessionStorage.removeItem('entrevista_prefill')
+      } catch {
+        // silently ignore if JSON parsing fails
+      }
+    }
+  }, [])
+
   // Seleccionar vacante guardada
   const seleccionarVacante = (v) => {
     setVacanteSel(v)
@@ -646,33 +665,82 @@ export default function Entrevista() {
             </div>
           </div>
 
-          {/* Fortalezas y áreas de mejora */}
-          <div className="grid sm:grid-cols-2 gap-4">
-            <div className="card">
-              <h3 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
-                <CheckCircle size={16} weight="fill" className="text-green-500" /> Fortalezas
-              </h3>
-              <ul className="space-y-2">
-                {evaluacion.fortalezas?.map((f, i) => (
-                  <li key={i} className="flex gap-2 text-sm text-gray-600">
-                    <span className="text-green-500 shrink-0 mt-0.5">✓</span>{f}
-                  </li>
-                ))}
-              </ul>
+          {/* Evaluación por secciones (nueva estructura) */}
+          {evaluacion.secciones && evaluacion.secciones.length > 0 ? (
+            <div className="space-y-4">
+              {evaluacion.secciones.map((sec, idx) => (
+                <div key={idx} className="card">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-semibold text-gray-900">{sec.titulo}</h3>
+                    <span className={`text-sm font-bold px-3 py-1 rounded-full ${
+                      sec.puntuacion >= 8 ? 'bg-green-100 text-green-700' :
+                      sec.puntuacion >= 6 ? 'bg-amber-100 text-amber-700' :
+                      'bg-red-100 text-red-600'
+                    }`}>
+                      {sec.puntuacion}/10
+                    </span>
+                  </div>
+                  <p className="text-sm text-gray-700 mb-4 leading-relaxed">{sec.feedback}</p>
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-xs font-semibold text-emerald-600 mb-2 flex items-center gap-1">
+                        <CheckCircle size={14} weight="fill" /> Fortalezas
+                      </p>
+                      <ul className="space-y-1.5">
+                        {sec.fortalezas?.map((f, i) => (
+                          <li key={i} className="text-xs text-gray-600 flex gap-2">
+                            <span className="text-emerald-500 shrink-0 mt-0.5">✓</span>
+                            <span>{f}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-amber-600 mb-2 flex items-center gap-1">
+                        <Target size={14} weight="fill" /> Áreas de mejora
+                      </p>
+                      <ul className="space-y-1.5">
+                        {sec.areas_mejora?.map((m, i) => (
+                          <li key={i} className="text-xs text-gray-600 flex gap-2">
+                            <span className="text-amber-500 shrink-0 mt-0.5">→</span>
+                            <span>{m}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
-            <div className="card">
-              <h3 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
-                <Target size={16} weight="fill" className="text-amber-500" /> Áreas de mejora
-              </h3>
-              <ul className="space-y-2">
-                {evaluacion.areas_mejora?.map((a, i) => (
-                  <li key={i} className="flex gap-2 text-sm text-gray-600">
-                    <span className="text-amber-500 shrink-0 mt-0.5">→</span>{a}
-                  </li>
-                ))}
-              </ul>
+          ) : (
+            /* Fallback a estructura antigua si no hay secciones */
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div className="card">
+                <h3 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
+                  <CheckCircle size={16} weight="fill" className="text-green-500" /> Fortalezas
+                </h3>
+                <ul className="space-y-2">
+                  {evaluacion.fortalezas?.map((f, i) => (
+                    <li key={i} className="flex gap-2 text-sm text-gray-600">
+                      <span className="text-green-500 shrink-0 mt-0.5">✓</span>{f}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div className="card">
+                <h3 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
+                  <Target size={16} weight="fill" className="text-amber-500" /> Áreas de mejora
+                </h3>
+                <ul className="space-y-2">
+                  {evaluacion.areas_mejora?.map((a, i) => (
+                    <li key={i} className="flex gap-2 text-sm text-gray-600">
+                      <span className="text-amber-500 shrink-0 mt-0.5">→</span>{a}
+                    </li>
+                  ))}
+                </ul>
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Recomendaciones */}
           <div className="card">

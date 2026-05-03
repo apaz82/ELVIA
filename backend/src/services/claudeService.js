@@ -331,7 +331,7 @@ Responde ÚNICAMENTE con un JSON array con este formato exacto (sin texto extra)
 const evaluarEntrevista = async ({ empresa, cargo, entrevistador, preguntas, respuestas, feedbackPorPregunta }) => {
   const pares = preguntas.map((p, i) => `P${i + 1} [${p.tipo}]: ${p.pregunta}\nR: ${respuestas[i] || '(sin respuesta)'}`).join('\n\n')
 
-  const prompt = `Eres un experto evaluador de entrevistas en LATAM. Evalúa las respuestas de esta entrevista:
+  const prompt = `Eres un experto evaluador de entrevistas en LATAM. Evalúa las respuestas de esta entrevista y estructura el feedback en 4 secciones:
 
 Cargo: ${cargo} en ${empresa}
 Tipo de entrevistador: ${entrevistador}
@@ -339,24 +339,51 @@ Tipo de entrevistador: ${entrevistador}
 PREGUNTAS Y RESPUESTAS:
 ${pares}
 
-Genera una evaluación profesional y constructiva. Responde con un JSON con esta estructura exacta:
+Evalúa las respuestas en estas 4 áreas:
+- SECCIÓN 1: PRESENTACIÓN PERSONAL (¿El candidato se presentó bien? ¿Comunicó con claridad?)
+- SECCIÓN 2: CASOS Y LOGROS (¿Usó ejemplos concretos y métricas? ¿Demostró impacto?)
+- SECCIÓN 3: HABILIDADES TÉCNICAS (¿Demostró competencias para el cargo? ¿Profundidad técnica?)
+- SECCIÓN 4: CIERRE Y PREGUNTAS (¿Cerró bien la entrevista? ¿Hizo preguntas inteligentes?)
+
+Responde ÚNICAMENTE con este JSON (sin texto adicional):
 {
-  "puntuacion": <número 0-100>,
+  "puntuacion": <0-100>,
   "resumen": "<párrafo de 2-3 oraciones con evaluación general>",
-  "fortalezas": ["<fortaleza 1>", "<fortaleza 2>", "<fortaleza 3>"],
-  "areas_mejora": ["<área 1>", "<área 2>", "<área 3>"],
+  "secciones": [
+    {
+      "titulo": "Presentación Personal",
+      "puntuacion": <0-10>,
+      "feedback": "<feedback específico de 2-3 oraciones>",
+      "fortalezas": ["<fortaleza 1>", "<fortaleza 2>"],
+      "areas_mejora": ["<mejora 1>", "<mejora 2>"]
+    },
+    {
+      "titulo": "Casos y Logros",
+      "puntuacion": <0-10>,
+      "feedback": "<feedback específico de 2-3 oraciones>",
+      "fortalezas": ["<fortaleza 1>", "<fortaleza 2>"],
+      "areas_mejora": ["<mejora 1>", "<mejora 2>"]
+    },
+    {
+      "titulo": "Habilidades Técnicas",
+      "puntuacion": <0-10>,
+      "feedback": "<feedback específico de 2-3 oraciones>",
+      "fortalezas": ["<fortaleza 1>", "<fortaleza 2>"],
+      "areas_mejora": ["<mejora 1>", "<mejora 2>"]
+    },
+    {
+      "titulo": "Cierre y Preguntas",
+      "puntuacion": <0-10>,
+      "feedback": "<feedback específico de 2-3 oraciones>",
+      "fortalezas": ["<fortaleza 1>", "<fortaleza 2>"],
+      "areas_mejora": ["<mejora 1>", "<mejora 2>"]
+    }
+  ],
   "recomendaciones": ["<recomendación práctica 1>", "<recomendación 2>", "<recomendación 3>"],
   ${feedbackPorPregunta ? `"detalle": [
     { "id": <número>, "pregunta": "<pregunta>", "calificacion": <1-5>, "comentario": "<feedback específico>" }
   ]` : '"detalle": []'}
-}
-
-CRITERIOS DE PUNTUACIÓN:
-- Relevancia y profundidad de las respuestas
-- Uso de ejemplos concretos y métricas
-- Estructura y claridad de la comunicación
-- Alineación con el cargo y la empresa
-- Deducir puntos por respuestas vacías o muy cortas`
+}`
 
   const response = await client.messages.create({
     model: MODELO,
