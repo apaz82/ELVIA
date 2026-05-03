@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../services/authService'
 import { useAuth } from '../context/AuthContext'
-import { CheckCircle, LockKey, Eye, EyeSlash, Warning } from '@phosphor-icons/react'
+import { CheckCircle, LockKey, Eye, EyeSlash, Warning, ShieldCheck } from '@phosphor-icons/react'
+import { Turnstile } from '@marsidev/react-turnstile'
 
 export default function ResetPassword() {
   const { setIsRecovering } = useAuth()
@@ -17,6 +18,18 @@ export default function ResetPassword() {
   const [exito, setExito]         = useState(false)
   const [tokenValido, setTokenValido] = useState(false)
   const [tokenExpirado, setTokenExpirado] = useState(false)
+  const [turnstileToken, setTurnstileToken] = useState(null)
+
+  const checkPassword = (pwd) => ({
+    length:  pwd.length >= 8,
+    upper:   /[A-Z]/.test(pwd),
+    number:  /[0-9]/.test(pwd),
+    special: /[!@#$%^&*()\-_=+\[\]{};:'"\\|,.<>/?]/.test(pwd),
+  })
+
+  const pwdChecks = checkPassword(password)
+  const pwdScore  = Object.values(pwdChecks).filter(Boolean).length
+  const pwdStrong = pwdScore === 4
 
   // Detectar error en el hash del URL antes de que Supabase procese la sesión
   useEffect(() => {
@@ -42,8 +55,8 @@ export default function ResetPassword() {
     e.preventDefault()
     setError('')
 
-    if (password.length < 8) {
-      setError('La contraseña debe tener al menos 8 caracteres.')
+    if (!pwdStrong) {
+      setError('La contraseña no cumple los requisitos mínimos de seguridad.')
       return
     }
     if (password !== confirmar) {
@@ -177,6 +190,35 @@ export default function ResetPassword() {
                   {verPass ? <EyeSlash size={17} /> : <Eye size={17} />}
                 </button>
               </div>
+
+              {/* Indicador de fortaleza */}
+              {password.length > 0 && (
+                <div className="mt-2 space-y-1.5">
+                  <div className="flex gap-1">
+                    {[0,1,2,3].map(i => (
+                      <div key={i} className={'h-1 flex-1 rounded-full transition-colors '+(
+                        pwdScore > i
+                          ? pwdScore === 4 ? 'bg-emerald-500'
+                          : pwdScore === 3 ? 'bg-amber-400'
+                          : 'bg-red-400'
+                          : 'bg-gray-200'
+                      )}/>
+                    ))}
+                  </div>
+                  <div className="grid grid-cols-2 gap-x-3 gap-y-0.5">
+                    {[
+                      { key:'length',  label:'8+ caracteres'  },
+                      { key:'upper',   label:'1 mayúscula'    },
+                      { key:'number',  label:'1 número'       },
+                      { key:'special', label:'1 símbolo (!@#…)'},
+                    ].map(c => (
+                      <p key={c.key} className={'text-[10px] flex items-center gap-1 '+(pwdChecks[c.key]?'text-emerald-600':'text-gray-400')}>
+                        <span>{pwdChecks[c.key] ? '✓' : '○'}</span> {c.label}
+                      </p>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Confirmar contraseña */}
@@ -199,6 +241,16 @@ export default function ResetPassword() {
               )}
             </div>
 
+            {/* Cloudflare Turnstile */}
+            <div className="flex justify-center py-2">
+              <Turnstile
+                siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY || '1x00000000000000000000AA'}
+                onSuccess={(token) => setTurnstileToken(token)}
+                onExpire={() => setTurnstileToken(null)}
+                onError={() => setError('Error de validación de seguridad.')}
+              />
+            </div>
+
             {error && (
               <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600">
                 <Warning size={15} className="mt-0.5 shrink-0" weight="fill" />
@@ -208,7 +260,7 @@ export default function ResetPassword() {
 
             <button
               type="submit"
-              disabled={loading || !password || password !== confirmar}
+              disabled={loading || !pwdStrong || password !== confirmar || !turnstileToken}
               className="w-full py-3 bg-teal-600 text-white font-bold text-sm rounded-xl hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {loading

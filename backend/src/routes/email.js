@@ -36,6 +36,11 @@ const ALLOWED_RESET_ORIGINS = [
   'https://www.elvia.lat',
   'https://elvia.lat',
   'http://localhost:5173',
+  'http://localhost:5174',
+  'http://localhost:5175',
+  'http://localhost:5176',
+  'http://localhost:5177',
+  'http://localhost:5178',
   'http://localhost:4173',
 ];
 
@@ -218,9 +223,9 @@ const htmlRecuperacion = (email, resetUrl) => `
 
         <!-- Header -->
         <tr>
-          <td style="background:linear-gradient(135deg,#1e293b 0%,#334155 100%);padding:36px 40px 32px;text-align:center;">
-            <img src="https://www.elvia.lat/elvia-logo-transparent.png" alt="ELVIA" height="52" style="height:52px;width:auto;display:block;margin:0 auto 12px;" />
-            <p style="margin:0;color:rgba(255,255,255,0.5);font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;">Seguridad de cuenta</p>
+          <td style="background:#ffffff;padding:40px 40px 32px;text-align:center;border-bottom:1px solid #f1f5f9;">
+            <img src="https://www.elvia.lat/optima_logo_v3_clean_1.png" alt="ELVIA" height="48" style="height:48px;width:auto;display:block;margin:0 auto 8px;" />
+            <p style="margin:0;color:#94a3b8;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;">Seguridad de cuenta</p>
           </td>
         </tr>
 
@@ -339,8 +344,9 @@ router.post('/recuperacion', emailRateLimit, async (req, res) => {
     if (linkErr || !linkData?.properties?.action_link) {
       console.error('[email/recuperacion] Error generating link:', linkErr?.message);
       
-      // Si el usuario no existe en Supabase Auth
-      if (linkErr?.message?.includes('User not found') || linkErr?.status === 422) {
+      // Si el usuario no existe en Supabase Auth o no hay vínculo
+      const msg = linkErr?.message?.toLowerCase() || '';
+      if (msg.includes('user not found') || msg.includes('not found') || linkErr?.status === 422) {
         return res.status(404).json({ 
           error: 'No encontramos ninguna cuenta vinculada a este correo.',
           code: 'USER_NOT_FOUND'
