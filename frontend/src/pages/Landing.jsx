@@ -262,7 +262,19 @@ export default function Landing() {
   }
 
   // --- Waitlist State ---
-  const [waitlistForm, setWaitlistForm] = useState({ nombre: '', apellido: '', indicativo: '', telefono: '', pais: '', ciudad: '', email: '', situacion: '', aceptaPrivacidad: false })
+  const [waitlistForm, setWaitlistForm] = useState({ 
+    nombre: '', 
+    apellido: '', 
+    indicativo: '', 
+    telefono: '', 
+    pais: '', 
+    email: '', 
+    situacion: '', 
+    aceptaPrivacidad: false,
+    origen: '',
+    referredBy: ''
+  })
+  const [referralData, setReferralData] = useState({ code: '', link: '' })
   const [waitlistStatus, setWaitlistStatus] = useState({ loading: false, success: false, error: null })
 
   useEffect(() => {
@@ -291,7 +303,35 @@ export default function Landing() {
       })
     })
 
-    setWaitlistForm(f => ({ ...f, pais: '', indicativo: '' }))
+    // 1. Detectar referido de la URL
+    const params = new URLSearchParams(window.location.search)
+    const refCode = params.get('ref')
+    if (refCode) {
+      setWaitlistForm(f => ({ 
+        ...f, 
+        referredBy: refCode.toUpperCase(),
+        origen: 'Referido' 
+      }))
+    }
+
+    // 2. Detectar país por IP
+    const detectCountry = async () => {
+      try {
+        const response = await fetch('https://ipapi.co/json/')
+        const data = await response.json()
+        if (data.country_name) {
+          const matchingPais = PAISES.find(p => p.value === data.country_name)
+          setWaitlistForm(f => ({ 
+            ...f, 
+            pais: matchingPais ? matchingPais.value : '', 
+            indicativo: matchingPais ? matchingPais.code : '' 
+          }))
+        }
+      } catch (err) {
+        console.warn('No se pudo detectar el país por IP:', err)
+      }
+    }
+    detectCountry()
   }, [])
   
   const handleWaitlistSubmit = async (e) => {
@@ -319,8 +359,31 @@ export default function Landing() {
     }
 
     setWaitlistStatus({ loading: true, success: false, error: null })
+    
     try {
       const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001'
+
+      // 1. Validar código de referido si se ingresó uno
+      if (waitlistForm.referredBy && waitlistForm.referredBy.trim() !== '') {
+        try {
+          const checkRes = await fetch(`${API_URL}/api/waitlist/check-code/${waitlistForm.referredBy}`)
+          const checkData = await checkRes.json()
+          
+          if (!checkRes.ok || !checkData.valid) {
+            setWaitlistForm(f => ({ ...f, referredBy: '' })) // Limpiar campo
+            setWaitlistStatus({ 
+              loading: false, 
+              success: false, 
+              error: 'El código de referido ingresado no es válido. Por favor revísalo o déjalo en blanco.' 
+            })
+            return
+          }
+        } catch (err) {
+          console.error('Error validando código:', err)
+          // Si el servidor de validación falla, permitimos pasar por ahora para no bloquear el registro
+        }
+      }
+
       const res = await fetch(`${API_URL}/api/waitlist`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -337,7 +400,23 @@ export default function Landing() {
       }).catch(() => {})
 
       setWaitlistStatus({ loading: false, success: true, error: null })
-      setWaitlistForm({ nombre: '', apellido: '', indicativo: '', telefono: '', pais: '', ciudad: '', email: '', situacion: '', aceptaPrivacidad: false })
+      setReferralData({ 
+        code: data.referralCode, 
+        link: data.referralLink || `https://elvia.lat/waitlist?ref=${data.referralCode}`,
+        userName: waitlistForm.nombre // Guardamos el nombre para el mensaje de éxito
+      })
+      setWaitlistForm({ 
+        nombre: '', 
+        apellido: '', 
+        indicativo: '', 
+        telefono: '', 
+        pais: '', 
+        email: '', 
+        situacion: '', 
+        aceptaPrivacidad: false,
+        origen: '',
+        referredBy: ''
+      })
     } catch (err) {
       setWaitlistStatus({ loading: false, success: false, error: err.message })
     }
@@ -1253,72 +1332,50 @@ export default function Landing() {
                   <div className="w-16 h-16 bg-teal-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg shadow-teal-500/20">
                     <Check size={32} weight="bold" className="text-white" />
                   </div>
-                    <h4 className="font-black text-white text-2xl mb-4">¡Bienvenido! Es tu primer paso en tu proceso de transición laboral</h4>
+                    <h4 className="font-black text-white text-2xl mb-4">¡Bienvenido {referralData.userName}! Es tu primer paso en tu proceso de transición laboral</h4>
                     <p className="text-teal-100/70 leading-relaxed mb-8">
-                      Recibirás un mail y estarás inscrito en nuestra comunidad de beneficios, además de participar por uno de los accesos FULL de 1 mes para utilizar la plataforma antes que nadie. Estaremos en contacto pronto.
+                      Recibirás un mail y estarás inscrito en nuestra comunidad de beneficios. 
+                      <strong> ¡Ya puedes empezar a ganar premios invitando a otros!</strong>
                     </p>
 
                     <div className="pt-6 border-t border-white/10">
+                      <div className="bg-white/5 border border-teal-500/30 rounded-2xl p-6 mb-8">
+                        <h5 className="text-teal-400 font-black text-sm uppercase tracking-wider mb-2">🎁 RECOMPENSA EXCLUSIVA</h5>
+                        <p className="text-white text-sm leading-relaxed">
+                          Si <strong>5 personas</strong> se unen con tu link, te daremos un <strong>código de descuento exclusivo para tu plan</strong>.
+                        </p>
+                      </div>
+
                       <p className="text-white font-bold mb-4 flex items-center justify-center gap-2">
                         <ShareNetwork size={20} className="text-teal-400" />
-                        ¿Conoces a alguien que necesite ELVIA?
+                        Tu enlace único de invitado:
                       </p>
+
+                      <div className="bg-white/10 border border-white/20 p-3 rounded-xl mb-6 font-mono text-xs text-teal-300 break-all">
+                        {referralData.link || 'https://elvia.lat/waitlist'}
+                      </div>
                       
-                      <div className="flex flex-wrap justify-center gap-3 mb-6">
+                      <div className="flex flex-wrap justify-center gap-3">
                         <button 
                           onClick={() => {
-                            const text = encodeURIComponent('Me acabo de unir a la lista de espera de ELVIA, un sistema de autogestión para la transición de carrera con herramientas de clase mundial. Únete aquí: https://elvia.lat/waitlist');
-                            window.open(`https://wa.me/?text=${text}`, '_blank');
+                            const link = referralData.link || `https://elvia.lat/waitlist?ref=${referralData.code}`;
+                            const text = encodeURIComponent(`¡Mira esto! Me acabo de unir a la lista de espera de ELVIA, un sistema de autogestión para la transición de carrera increíble. Únete con mi link: ${link}`);
+                            window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
                           }}
-                          className="flex items-center gap-2 bg-[#25D366]/10 hover:bg-[#25D366]/20 text-[#25D366] px-4 py-2 rounded-xl text-sm font-bold transition-all border border-[#25D366]/20"
+                          className="flex items-center gap-2 bg-[#25D366] text-white px-5 py-2.5 rounded-xl text-sm font-bold transition-all shadow-lg shadow-[#25D366]/20"
                         >
                           <WhatsappLogo size={20} weight="fill" /> WhatsApp
                         </button>
                         
                         <button 
                           onClick={() => {
-                            const url = encodeURIComponent('https://elvia.lat/waitlist');
-                            window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${url}`, '_blank');
-                          }}
-                          className="flex items-center gap-2 bg-[#0077B5]/10 hover:bg-[#0077B5]/20 text-[#0077B5] px-4 py-2 rounded-xl text-sm font-bold transition-all border border-[#0077B5]/20"
-                        >
-                          <LinkedinLogo size={20} weight="fill" /> LinkedIn
-                        </button>
-
-                        <button 
-                          onClick={() => {
-                            navigator.clipboard.writeText('https://elvia.lat/waitlist');
+                            const link = referralData.link || `https://elvia.lat/waitlist?ref=${referralData.code}`;
+                            navigator.clipboard.writeText(link);
                             toast.success('¡Enlace copiado!');
                           }}
-                          className="flex items-center gap-2 bg-white/5 hover:bg-white/10 text-white/80 px-4 py-2 rounded-xl text-sm font-bold transition-all border border-white/10"
+                          className="flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white px-5 py-2.5 rounded-xl text-sm font-bold transition-all"
                         >
                           <Copy size={20} /> Copiar link
-                        </button>
-                      </div>
-
-                      <div className="relative max-w-sm mx-auto">
-                        <input 
-                          type="email" 
-                          placeholder="Email de un colega..." 
-                          className="w-full bg-white/5 border border-white/10 text-white rounded-xl pl-4 pr-12 py-3 text-xs focus:ring-1 focus:ring-teal-500 placeholder-white/20"
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              toast.success('¡Invitación enviada!');
-                              e.currentTarget.value = '';
-                            }
-                          }}
-                        />
-                        <button 
-                          onClick={(e) => {
-                            const input = e.currentTarget.previousSibling;
-                            if (input.value) {
-                              toast.success('¡Invitación enviada!');
-                              input.value = '';
-                            }
-                          }}
-                          className="absolute right-2 top-1.5 p-1.5 text-teal-400 hover:text-teal-300 transition-colors"
-                        >
-                          <ArrowRight size={18} weight="bold" />
                         </button>
                       </div>
                     </div>
@@ -1337,42 +1394,16 @@ export default function Landing() {
                     <input required type="text" value={waitlistForm.apellido} onChange={e => setWaitlistForm(f => ({...f, apellido: e.target.value}))} className="w-full bg-white/5 border border-white/10 text-white rounded-xl px-4 py-3.5 text-sm focus:ring-2 focus:ring-teal-500 placeholder-white/20 transition-all" placeholder="Apellido" />
                   </div>
                   
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <select required value={waitlistForm.pais} onChange={e => {
-                      const pais = PAISES.find(p => p.value === e.target.value)
-                      setWaitlistForm(f => ({...f, pais: e.target.value, indicativo: pais?.code || ''}))
-                    }} className="w-full bg-white/5 border border-white/10 text-white rounded-xl px-4 py-3.5 text-sm focus:ring-2 focus:ring-teal-500 appearance-none">
-                      <option value="" disabled className="bg-gray-900 text-white/50">Selecciona tu país</option>
-                      {PAISES.map(p => <option key={p.value} value={p.value} className="bg-gray-900">{p.value}</option>)}
-                    </select>
-
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                       <input 
-                         required 
-                         type="text" 
-                         list="cities-list"
-                         value={waitlistForm.ciudad} 
-                         onChange={e => setWaitlistForm(f => ({...f, ciudad: e.target.value}))} 
-                         className="w-full bg-white/5 border border-white/10 text-white rounded-xl px-4 py-3.5 text-sm focus:ring-2 focus:ring-teal-500 placeholder-white/20 transition-all" 
-                         placeholder="Ciudad" 
-                       />
-                       <datalist id="cities-list">
-                         <option value="Bogotá" />
-                         <option value="Medellín" />
-                         <option value="Cali" />
-                         <option value="Ciudad de México" />
-                         <option value="Monterrey" />
-                         <option value="Guadalajara" />
-                         <option value="Buenos Aires" />
-                         <option value="Santiago" />
-                         <option value="Lima" />
-                         <option value="Quito" />
-                         <option value="Madrid" />
-                         <option value="Barcelona" />
-                       </datalist>
+                       <select required value={waitlistForm.pais} onChange={e => {
+                         const pais = PAISES.find(p => p.value === e.target.value)
+                         setWaitlistForm(f => ({...f, pais: e.target.value, indicativo: pais?.code || ''}))
+                       }} className="w-full bg-white/5 border border-white/10 text-white rounded-xl px-4 py-3.5 text-sm focus:ring-2 focus:ring-teal-500 appearance-none">
+                         <option value="" disabled className="bg-gray-900 text-white/50">Selecciona tu país</option>
+                         {PAISES.map(p => <option key={p.value} value={p.value} className="bg-gray-900">{p.value}</option>)}
+                       </select>
                        <input required type="tel" value={waitlistForm.telefono} onChange={e => setWaitlistForm(f => ({...f, telefono: e.target.value}))} className="w-full bg-white/5 border border-white/10 text-white rounded-xl px-4 py-3.5 text-sm focus:ring-2 focus:ring-teal-500 placeholder-white/20 transition-all" placeholder="Teléfono" />
                     </div>
-                  </div>
 
                   <input required type="email" value={waitlistForm.email} onChange={e => setWaitlistForm(f => ({...f, email: e.target.value}))} className="w-full bg-white/5 border border-white/10 text-white rounded-xl px-4 py-3.5 text-sm focus:ring-2 focus:ring-teal-500 placeholder-white/20" placeholder="Email profesional" />
                   
@@ -1382,6 +1413,34 @@ export default function Landing() {
                     <option value="Con empleo y en búsqueda activa" className="bg-gray-900">Con empleo y en búsqueda activa</option>
                     <option value="Quiero gestionar mi siguiente paso" className="bg-gray-900">Quiero gestionar mi siguiente paso</option>
                   </select>
+
+                  <select required value={waitlistForm.origen} onChange={e => setWaitlistForm(f => ({...f, origen: e.target.value}))} className="w-full bg-white/5 border border-white/10 text-white rounded-xl px-4 py-3.5 text-sm focus:ring-2 focus:ring-teal-500 appearance-none">
+                    <option value="" disabled className="bg-gray-900 text-white/50">¿Cómo te enteraste?</option>
+                    <option value="LinkedIn" className="bg-gray-900">LinkedIn</option>
+                    <option value="Referido" className="bg-gray-900">Por un amigo (Referido)</option>
+                    <option value="Redes Sociales" className="bg-gray-900">Redes Sociales</option>
+                    <option value="Búsqueda Web" className="bg-gray-900">Búsqueda Web</option>
+                    <option value="Otro" className="bg-gray-900">Otro</option>
+                  </select>
+
+                  <AnimatePresence>
+                    {waitlistForm.origen === 'Referido' && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="overflow-hidden"
+                      >
+                        <input 
+                          type="text" 
+                          value={waitlistForm.referredBy} 
+                          onChange={e => setWaitlistForm(f => ({...f, referredBy: e.target.value.toUpperCase()}))} 
+                          className="w-full bg-white/5 border border-white/10 text-white rounded-xl px-4 py-3.5 text-sm focus:ring-2 focus:ring-teal-500 placeholder-white/20 transition-all uppercase" 
+                          placeholder="Pega el código de referido aquí (Ej: ALE-X921)" 
+                        />
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
 
                   <div className="pt-2">
                     <label className="flex items-start gap-3 cursor-pointer group mb-6">

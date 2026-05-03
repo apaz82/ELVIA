@@ -4,7 +4,7 @@
 const { Resend } = require('resend');
 
 const resend = new Resend(process.env.RESEND_API_KEY);
-const FROM_EMAIL = 'noreply@elvia.lat'; // Dominio verificado en Resend
+const FROM_EMAIL = 'Equipo ELVIA <noreply@elvia.lat>'; // Dominio verificado en Resend
 
 // Escapa caracteres HTML para evitar XSS en emails generados con template strings
 const escapeHtml = (str) =>
@@ -120,41 +120,74 @@ const WAITLIST_TEMPLATES = {
   }
 };
 
-const getWaitlistEmailTemplate = (nombre, situacion) => {
+const getWaitlistEmailTemplate = (nombre, situacion, referralLink) => {
   const baseStyles = 'font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; line-height: 1.6;';
   const nombre_escaped = escapeHtml(nombre);
   const template = WAITLIST_TEMPLATES[situacion] || WAITLIST_TEMPLATES['Sin empleo y en búsqueda activa'];
   const featuresHTML = template.features.map(f => `<li>${f}</li>`).join('');
+  
+  // Extraer código del link (asumimos formato ?ref=CODIGO)
+  const referralCode = referralLink.split('ref=')[1] || '---';
 
   return `
     <div style="${baseStyles}">
       <h2 style="color: #E8541A;">¡Hola ${nombre_escaped}! ${template.emoji}</h2>
       <p>Gracias por unirte a la lista de espera de <strong>ELVIA</strong>.</p>
       <p>${template.intro}</p>
-      <p><strong>Lo que tendrás cuando lancemos:</strong></p>
+      
+      <p><strong>Lo que obtendrás como pionero:</strong></p>
       <ul style="color: #374151;">
         ${featuresHTML}
       </ul>
+
+      <div style="background: #F8FAFC; border: 2px solid #E2E8F0; padding: 32px; border-radius: 24px; margin: 32px 0; text-align: center;">
+        <h3 style="color: #0F172A; margin-top: 0; font-size: 20px;">🎁 ¡Tu Recompensa Exclusiva!</h3>
+        <p style="font-size: 15px; color: #475569; margin-bottom: 24px;">
+          Si <strong>5 personas</strong> se unen con tu link, te daremos un <strong>código de descuento exclusivo para tu plan</strong> cuando lancemos.
+        </p>
+        
+        <p style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.1em; color: #94A3B8; font-weight: bold; margin-bottom: 8px;">Tu Código de Invitado:</p>
+        <div style="background: #FFFFFF; padding: 16px; border-radius: 12px; border: 2px solid #E8541A; margin-bottom: 24px; font-family: monospace; font-size: 24px; font-weight: bold; color: #E8541A; letter-spacing: 2px;">
+          ${referralCode}
+        </div>
+
+        <p style="font-size: 14px; color: #64748B; margin-bottom: 16px;">Comparte tu link personalizado:</p>
+        
+        <div style="margin-bottom: 24px;">
+          <a href="https://api.whatsapp.com/send?text=${encodeURIComponent(`¡Mira esto! Me acabo de unir a la lista de espera de ELVIA, un sistema de autogestión para la transición de carrera con herramientas de clase mundial. Únete con mi link: ${referralLink}`)}" 
+             style="display: inline-block; background: #25D366; color: white; padding: 12px 24px; border-radius: 12px; text-decoration: none; font-weight: bold; font-size: 14px; margin: 4px;">
+             WhatsApp
+          </a>
+          <a href="mailto:?subject=Te invito a conocer ELVIA - Sistema de Autogestión Laboral&body=${encodeURIComponent(`¡Hola!\n\nMe acabo de registrar en la lista de espera de ELVIA, una plataforma increíble que funciona como un sistema de autogestión para la transición de carrera. Tienen herramientas muy potentes para optimizar tu perfil y encontrar mejores oportunidades.\n\nComo soy de los primeros, me dieron un enlace de invitado. Si te registras con mi link, ambos podremos acceder a beneficios exclusivos y descuentos en los planes premium cuando lancen.\n\nÚnete usando mi enlace único aquí:\n${referralLink}\n\n¡Espero que te sirva tanto como a mí!`)}" 
+             style="display: inline-block; background: #64748B; color: white; padding: 12px 24px; border-radius: 12px; text-decoration: none; font-weight: bold; font-size: 14px; margin: 4px;">
+             Reenviar por Email
+          </a>
+        </div>
+        
+        <p style="font-size: 12px; color: #94A3B8;">O copia este link: <br/> <span style="color: #E8541A;">${referralLink}</span></p>
+      </div>
+
       <p>${template.cta}</p>
       <p>¡Nos encanta escucharte! Si tienes sugerencias, responde este correo.</p>
       <p>Un saludo,<br/><strong>El equipo de ELVIA</strong></p>
       <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;" />
-      <p style="font-size: 12px; color: #999;">© 2026 ELVIA</p>
+      <p style="font-size: 12px; color: #999;">© 2026 ELVIA · Sistema de Autogestión Laboral</p>
     </div>
   `;
 };
 
-const sendWelcomeWaitlistEmail = async (to, nombre, situacion) => {
+const sendWelcomeWaitlistEmail = async (to, nombre, situacion, referralLink) => {
   if (!process.env.RESEND_API_KEY) {
     throw new Error('RESEND_API_KEY no configurada');
   }
 
-  const html = getWaitlistEmailTemplate(nombre, situacion);
+  const html = getWaitlistEmailTemplate(nombre, situacion, referralLink);
 
   return resend.emails.send({
     from: FROM_EMAIL,
     to,
-    subject: 'Tu acceso al Sistema de Autogestión de ELVIA está cerca 🧭',
+    reply_to: 'hola@elvia.lat',
+    subject: 'Tu acceso a ELVIA está confirmado 🚀',
     html,
   });
 };

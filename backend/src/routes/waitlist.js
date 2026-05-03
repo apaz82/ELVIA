@@ -74,11 +74,15 @@ router.get('/', auth, async (req, res, next) => {
 router.post('/', waitlistLimiter, async (req, res, next) => {
   try {
     console.log('[Waitlist] New request body:', req.body);
-    const { nombre, apellido, indicativo, telefono, pais, ciudad, email, situacion, aceptaPrivacidad } = req.body;
+    const { nombre, apellido, indicativo, telefono, pais, email, situacion, aceptaPrivacidad, origen, referredBy } = req.body;
 
-    if (!nombre || !apellido || !pais || !ciudad || !email || !situacion || !aceptaPrivacidad) {
+    if (!nombre || !apellido || !pais || !email || !situacion || !aceptaPrivacidad || !origen) {
       return res.status(400).json({ error: 'Faltan campos obligatorios' });
     }
+
+    // Generar código de referido único
+    const randomStr = Math.random().toString(36).substring(2, 6).toUpperCase();
+    const referralCode = `${nombre.substring(0, 3).toUpperCase()}-${randomStr}`;
 
     // Validación de longitud y trim
     if (typeof nombre !== 'string' || nombre.trim().length < 2 || nombre.length > 100) {
@@ -105,7 +109,17 @@ router.post('/', waitlistLimiter, async (req, res, next) => {
     // Use supabaseAdmin to bypass RLS for inserting leads
     const { data: dbData, error: dbError } = await supabaseAdmin
       .from('waitlist_leads')
-      .insert([{ nombre, apellido, telefono: telefonoCompleto, pais, ciudad, email, situacion }])
+      .insert([{ 
+        nombre, 
+        apellido, 
+        telefono: telefonoCompleto, 
+        pais, 
+        email, 
+        situacion, 
+        origen,
+        referral_code: referralCode,
+        referred_by: referredBy || null
+      }])
       .select('id')
       .single();
 
@@ -117,22 +131,50 @@ router.post('/', waitlistLimiter, async (req, res, next) => {
       throw dbError;
     }
 
-    // Try to send email (personalized by situacion)
+    // Preparar link de referido
+    const referralLink = `https://elvia.lat/waitlist?ref=${referralCode}`;
+
+    // Enviar email de bienvenida (async, no bloquea respuesta)
     try {
-      await sendWelcomeWaitlistEmail(email, nombre, situacion);
+      await sendWelcomeWaitlistEmail(email, nombre, situacion, referralLink);
     } catch (emailError) {
       console.error('[Resend Error] Failed to send waitlist email:', emailError);
       // We don't fail the request if the email fails, we return success with a warning
       return res.status(201).json({
         message: 'Registrado con éxito a la lista de espera',
-        warning: 'El email de bienvenida podría haberse retrasado'
+        warning: 'El email de bienvenida podría haberse retrasado',
+        referralCode: referralCode,
+        referralLink: referralLink
       });
     }
 
-    res.status(201).json({ message: 'Registrado con éxito a la lista de espera' });
-
-  } catch (error) {
+    res.status(201).json({        
+        message: 'Registrado con éxito a la lista de espera',
+        referralCode: referralCode,
+        referralLink: referralLink
+      });
+    } catch (error) {
     next(error);
+  }
+});
+
+// Endpoint para validar un código de referido
+router.get('/check-code/:code', async (req, res) => {
+  try {
+    const { code } = req.params;
+    const { data, error } = await supabaseAdmin
+      .from('waitlist_leads')
+      .select('id')
+      .eq('referral_code', code)
+      .single();
+
+    if (error || !data) {
+      return res.status(404).json({ valid: false });
+    }
+
+    res.json({ valid: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Error al validar código' });
   }
 });
 

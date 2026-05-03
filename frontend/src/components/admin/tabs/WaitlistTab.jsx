@@ -46,9 +46,9 @@ const WaitlistTab = ({ leads, views, events, onRefresh, fmtDate }) => {
 
   const exportCSV = () => {
     try {
-      const header = 'Nombre,Apellido,Email,País,Teléfono,Situación,Fecha\n'
+      const header = 'Nombre,Apellido,Email,País,Teléfono,Situación,Origen,Código Referido,Referido Por,Fecha\n'
       const rows = leads.map(l =>
-        [l.nombre, l.apellido, l.email, l.pais, l.telefono, l.situacion, fmtDate(l.created_at)].join(',')
+        [l.nombre, l.apellido, l.email, l.pais, l.telefono, l.situacion, l.origen || '', l.referral_code || '', l.referred_by || '', fmtDate(l.created_at)].join(',')
       ).join('\n')
       const blob = new Blob([header + rows], { type: 'text/csv' })
       const url = URL.createObjectURL(blob)
@@ -143,7 +143,51 @@ const WaitlistTab = ({ leads, views, events, onRefresh, fmtDate }) => {
               </div>
             ))}
           </div>
+          {/* Top Referrers */}
+        <div className="bg-[#111827] rounded-[2.5rem] p-10 border border-slate-800 shadow-2xl">
+          <div className="flex items-center gap-4 mb-10">
+             <div className="p-3 rounded-2xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                <PI.ShareNetwork size={24} weight="duotone" />
+             </div>
+             <div>
+                <h3 className="font-black text-white text-lg italic uppercase">Top Embajadores</h3>
+                <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Usuarios con más referidos</p>
+             </div>
+          </div>
+
+          <div className="space-y-4">
+            {Object.entries(
+              leads.reduce((acc, l) => {
+                if (l.referred_by) {
+                  acc[l.referred_by] = (acc[l.referred_by] || 0) + 1
+                }
+                return acc
+              }, {})
+            ).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([code, count], idx) => {
+              const referrer = leads.find(l => l.referral_code === code)
+              const name = referrer ? `${referrer.nombre} ${referrer.apellido}` : code
+              return (
+                <div key={code} className="flex items-center justify-between p-3 rounded-xl bg-slate-800/50 border border-slate-700/50">
+                  <div className="flex items-center gap-3">
+                    <span className="text-amber-400 font-black italic">#{idx + 1}</span>
+                    <div>
+                      <p className="text-xs font-bold text-white uppercase">{name}</p>
+                      <p className="text-[9px] text-slate-500 uppercase font-black tracking-widest">Código: {code}</p>
+                    </div>
+                  </div>
+                  <div className="px-3 py-1 bg-amber-500/20 text-amber-400 rounded-lg text-xs font-black">
+                    {count}
+                  </div>
+                </div>
+              )
+            })}
+            
+            {leads.filter(l => l.referred_by).length === 0 && (
+              <p className="text-xs text-slate-500 italic text-center py-4">Aún no hay referidos registrados.</p>
+            )}
+          </div>
         </div>
+      </div>
       </div>
 
       {/* Tabla de Leads */}
@@ -163,9 +207,9 @@ const WaitlistTab = ({ leads, views, events, onRefresh, fmtDate }) => {
             <thead className="bg-slate-900/50 border-b border-slate-800">
               <tr className="text-[9px] uppercase font-black tracking-[0.3em] text-slate-500">
                 <th className="px-8 py-5">Candidato</th>
-                <th className="px-8 py-5">Situación</th>
+                <th className="px-8 py-5">Situación & Origen</th>
                 <th className="px-8 py-5">Geografía / Contacto</th>
-                <th className="px-8 py-5 text-right">Fecha Registro</th>
+                <th className="px-8 py-5 text-right">Referidos</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/50">
@@ -183,8 +227,11 @@ const WaitlistTab = ({ leads, views, events, onRefresh, fmtDate }) => {
                     </div>
                   </td>
                   <td className="px-8 py-6">
-                    <span className="text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-xl bg-slate-800 border border-slate-700 text-slate-400">
+                    <span className="text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-xl bg-slate-800 border border-slate-700 text-slate-400 block w-max mb-2">
                       {SITUACION_LABEL[lead.situacion] || lead.situacion || '—'}
+                    </span>
+                    <span className="text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-xl bg-indigo-900/30 border border-indigo-500/30 text-indigo-400 block w-max">
+                      {lead.origen || 'No especificado'}
                     </span>
                   </td>
                   <td className="px-8 py-6">
@@ -192,6 +239,11 @@ const WaitlistTab = ({ leads, views, events, onRefresh, fmtDate }) => {
                     <p className="text-[9px] text-slate-600 font-black tracking-widest mt-1">{lead.telefono || '—'}</p>
                   </td>
                   <td className="px-8 py-6 text-right">
+                    {lead.referred_by ? (
+                      <p className="text-[9px] text-amber-500 font-black uppercase tracking-widest mb-1">
+                        Ref: {lead.referred_by}
+                      </p>
+                    ) : null}
                     <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest italic">
                        {fmtDate(lead.created_at)}
                     </span>
