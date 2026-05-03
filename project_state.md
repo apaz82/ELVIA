@@ -1,30 +1,34 @@
 # Current Project State
 
 ## Environment Status
-- **Date**: 2026-04-05
+- **Date**: 2026-05-03
 - **Branch**: `main`
-- **Frontend**: Local Dev running (`localhost:5177`)
-- **Backend API**: `localhost:5000` / `localhost:3001` (dependent on strict env variables pointing to Railway or local DB).
+- **Frontend**: Local Dev running (`localhost:5177`) / Production Verified
+- **Backend API**: `localhost:5000` / `localhost:3001` (pointing to Supabase/Railway).
 
 ## Current Active Phases
 
 ### Front-End (React + Tailwind)
-- The CV Builder (`CVDesdeCero`) is fully stable with identity checks.
-- Career Planner (`ProyectoLaboral`) is fully stable. Contains 6 pillars and active sessionStorage validations.
-- `html2pdf.js` was integrated allowing 100% frontend rendering control over Executive Resumes avoiding backend `puppeteer` memory headaches.
+- **Keyword NLP (CV vs Job)**: Implemented 3rd tab with critical/complementary keyword pills (Present/Absent).
+- **LinkedIn Pro**: Added analysis history (last 10) with ability to restore results; score badges (Excelente/Urgente) added.
+- **ELVIA Chat**: Implemented contextual tips based on the current route (6 specific tip sets).
+- **Interview Evaluation**: UI now displays structured feedback in 4 sections (Presentación, Casos, Habilidades, Cierre).
+- **Admin Dashboard**: Fully functional with Recharts and CRM features.
 
 ### Back-End (Express + Supabase SDK)
-- Claude Haiku is now the primary parser for data modeling (Infographics & CV extraction).
-- Claude Sonnet is reserved only for computationally creative processes.
-- All documents produced are stored under `cv_results` with distinct identifiers (`optimize`, `original`, `infografia_proyecto`).
+- **LinkedIn History**: Added `linkedin_analyses` table and persistence logic.
+- **NLP keyword extraction**: Updated `matchCVtoJob` prompt to extract structured keyword metadata.
+- **Structured Evaluations**: Updated `evaluarEntrevista` to return 4-section structured JSON.
+- **Admin Infrastructure**: Dedicated `administrators` table and RLS policies active.
 
 ## Imminent Next Steps (Roadmap)
-1. **LinkedIn Magic Import & Context Logic**:
-   - Needs to be tested to ensure the AI utilizes the `contextoLaboral` (Career Data from `Gerente de Búsqueda`) injected from `AuthContext.jpData`.
-   - The UX flow in `/linkedin-pro` is ready. Backend logic `analizarPerfil` should inject these bounds securely limiting bias.
-2. Review remaining **Technical Debt**:
-   - `crypto.randomBytes` instead of `Math.random` (backend).
+1. **Interview Prefill logic**:
+   - Verify `sessionStorage` prefill from Pipeline to Entrevista.
+2. **Technical Debt & Security**:
    - Missing Rate Limiter on API registration routes.
    - Removing internal debug stack traces in PROD backend JSON responses.
+3. **Bot Protection**: Implement Honeypot and submission constraints on the survey and registration forms.
 
 *Managed by Gemini (Antigravity).*
+
+

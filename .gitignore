@@ -20,3 +20,9 @@ npm-debug.log*
 
 # Archivos temporales de upload
 uploads/
+
+# Claude Code local configuration
+.claude/
+.claude-flow/
+.mcp.json
+.claude/settings.local.json
