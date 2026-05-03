@@ -20,6 +20,9 @@ OPTIMA-CV (ELVIA) is a dual-interface Human Resources & Career Optimization ecos
 8. **Waitlist & Referral Engine**: Automated referral code generation, viral incentive logic (5 referrals for discount), and real-time "Top Embajadores" ranking in Admin.
 9. **Email Security & Deliverability**: DMARC implementation and friendly "Equipo ELVIA" sender profiles to prevent spam.
 10. **Smart Geolocation**: Automatic IP-based country detection for onboarding and waitlist forms.
+11. **Legal Compliance & Cookies**: Dedicated Cookie Policy page and high-end consent banner with localStorage persistence.
+12. **Bulletproof Auth Recovery**: Implemented Turnstile bot protection, domain whitelisting (anti-phishing), and smart user detection (USER_NOT_FOUND) in recovery flow.
+13. **Security Complexity UX**: Enforced password complexity (Uppercase, Number, Special) with real-time visual indicators in reset page.
 
 ### Crucial Directives
 - **Performance**: Always use `sessionStorage` caching (e.g., `vacante_prefill`, `entrevista_prefill`).
@@ -27,6 +30,6 @@ OPTIMA-CV (ELVIA) is a dual-interface Human Resources & Career Optimization ecos
 - **Identity Enforcement**: `extractProfile` prevents unauthorized scraping of 3rd party CVs by matching name/email.
 - **Shell Consistency**: **Windows PowerShell**. Use `;` for chain-commands.
 
-*Log automatically updated by Antigravity on 2026-05-03 13:25.*
+*Log automatically updated by Antigravity on 2026-05-03 16:35.*
 
 
