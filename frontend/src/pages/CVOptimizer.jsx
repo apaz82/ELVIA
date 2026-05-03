@@ -14,6 +14,49 @@ import { FileMagnifyingGlass } from '@phosphor-icons/react'
 
 const LABEL_IDIOMA = { es: 'Español', en: 'Inglés', pt: 'Portugués' }
 
+const ATS_SECCIONES = [
+  {
+    key: 'estructura', label: 'Estructura',
+    checks: [
+      { id: 'resumen',     label: 'Resumen / objetivo ejecutivo',  test: t => /resumen|perfil\s+profesional|objetivo|summary|profile/i.test(t) },
+      { id: 'experiencia', label: 'Sección de experiencia laboral', test: t => /experiencia|experience|work\s+history/i.test(t) },
+      { id: 'educacion',   label: 'Sección de educación',           test: t => /educaci[oó]n|education|formaci[oó]n/i.test(t) },
+      { id: 'habilidades', label: 'Sección de habilidades',         test: t => /habilidades|skills|competencias|aptitudes/i.test(t) },
+    ],
+  },
+  {
+    key: 'contacto', label: 'Datos de contacto',
+    checks: [
+      { id: 'email',    label: 'Email de contacto',  test: t => /[\w.\-]+@[\w.\-]+\.\w{2,}/i.test(t) },
+      { id: 'telefono', label: 'Teléfono',            test: t => /(\+?\d[\d\s\-(). ]{7,}\d)/i.test(t) },
+      { id: 'linkedin', label: 'LinkedIn URL',        test: t => /linkedin\.com\//i.test(t) },
+    ],
+  },
+  {
+    key: 'contenido', label: 'Contenido',
+    checks: [
+      { id: 'numeros',  label: 'Resultados medibles (%, $, cantidades)', test: t => /\d+\s*%|\$\s*[\d,.]+|\d+\s*(personas|empleados|usuarios|clientes|millones|proyectos)/i.test(t) },
+      { id: 'longitud', label: 'Longitud adecuada (estimado ≤ 2 pág.)',  test: t => t.length < 7500 },
+      { id: 'cliches',  label: 'Sin clichés ("proactivo", "team player")', test: t => !/(proactivo|team player|apasionado\s+por|trabajo\s+en\s+equipo\s+y)/i.test(t) },
+    ],
+  },
+  {
+    key: 'formato', label: 'Formato ATS',
+    checks: [
+      { id: 'fechas',  label: 'Fechas de experiencia detectadas',        test: t => /(20\d{2}|19\d{2})/i.test(t) },
+      { id: 'tablas',  label: 'Sin tablas ASCII (problemáticas en ATS)', test: t => !/\|\s*[-–]+\s*\|/.test(t) },
+    ],
+  },
+]
+
+const semaforoSeccion = (checks, texto) => {
+  const pasados = checks.filter(c => c.test(texto)).length
+  const pct = pasados / checks.length
+  if (pct >= 0.8) return { dot: 'bg-emerald-500', text: 'text-emerald-700', bg: 'bg-emerald-50', label: 'Completa' }
+  if (pct >= 0.5) return { dot: 'bg-amber-400',   text: 'text-amber-700',   bg: 'bg-amber-50',   label: 'Incompleta' }
+  return            { dot: 'bg-red-500',     text: 'text-red-700',     bg: 'bg-red-50',     label: 'Necesita trabajo' }
+}
+
 const formatFecha = (iso) => {
   if (!iso) return ''
   return new Date(iso).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })
@@ -338,11 +381,12 @@ export default function CVOptimizer() {
           )}
 
           {/* Tabs — solo visibles en vista texto */}
-          {!vistaInfografia && <div className="flex gap-6 mb-6 border-b border-gray-100">
+          {!vistaInfografia && <div className="flex gap-6 mb-6 border-b border-gray-100 overflow-x-auto">
             {[
               { key: 'cv',              label: 'CV Optimizado' },
               { key: 'cambios',         label: `Cambios (${resultadoOptimize.changes?.length || 0})` },
               { key: 'recomendaciones', label: `Recomendaciones (${resultadoOptimize.recommendations?.length || 0})` },
+              { key: 'checklist',       label: 'Checklist ATS' },
             ].map((tab) => (
               <button key={tab.key} onClick={() => setTabActiva(tab.key)}
                 className={`pb-3 text-sm font-medium border-b-2 transition-all -mb-px ${
@@ -376,6 +420,54 @@ export default function CVOptimizer() {
               ))}
             </ul>
           )}
+          {!vistaInfografia && tabActiva === 'checklist' && (() => {
+            const texto = resultadoOptimize.optimizedCV || ''
+            return (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-2">
+                  {ATS_SECCIONES.map(sec => {
+                    const color = semaforoSeccion(sec.checks, texto)
+                    return (
+                      <div key={sec.key} className={`${color.bg} rounded-xl p-3 flex items-center gap-2`}>
+                        <div className={`w-2.5 h-2.5 rounded-full ${color.dot} shrink-0`} />
+                        <div>
+                          <p className={`text-xs font-bold ${color.text}`}>{sec.label}</p>
+                          <p className="text-[10px] text-gray-400">{color.label}</p>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+                {ATS_SECCIONES.map(sec => (
+                  <div key={sec.key} className="border border-gray-100 rounded-xl overflow-hidden">
+                    <div className="px-4 py-2.5 bg-gray-50 border-b border-gray-100">
+                      <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider">{sec.label}</h3>
+                    </div>
+                    <ul className="divide-y divide-gray-50">
+                      {sec.checks.map(check => {
+                        const ok = check.test(texto)
+                        return (
+                          <li key={check.id} className="flex items-center gap-3 px-4 py-3">
+                            <span className={`text-sm shrink-0 font-bold ${ok ? 'text-emerald-500' : 'text-red-400'}`}>
+                              {ok ? '✓' : '✗'}
+                            </span>
+                            <span className={`text-xs flex-1 ${ok ? 'text-gray-700' : 'text-gray-500'}`}>
+                              {check.label}
+                            </span>
+                            {!ok && (
+                              <span className="text-[10px] text-amber-600 bg-amber-50 border border-amber-100 rounded-full px-2 py-0.5 shrink-0">
+                                Revisar
+                              </span>
+                            )}
+                          </li>
+                        )
+                      })}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            )
+          })()}
 
           <div className="mt-6 pt-6 border-t border-gray-100">
             <p className="text-sm font-medium text-gray-700 mb-3">Enviar por email:</p>

@@ -10,7 +10,7 @@ import LanguageSelector from '../components/common/LanguageSelector'
 import EmailField from '../components/common/EmailField'
 import Button from '../components/common/Button'
 import FeatureLocked from '../components/common/FeatureLocked'
-import { MagnifyingGlass } from '@phosphor-icons/react'
+import { MagnifyingGlass, CaretDown } from '@phosphor-icons/react'
 
 export default function CVvsJob() {
   const { user, refreshUsage, featuresDesbloqueadas } = useAuth()
@@ -74,6 +74,7 @@ export default function CVvsJob() {
   const [vistaInfografia, setVistaInfografia] = useState(false)
   const [datosInfografia, setDatosInfografia] = useState(null)
   const [cargandoInfografia, setCargandoInfografia] = useState(false)
+  const [brechaAbierta, setBrechaAbierta] = useState(null)
   const [showSaveForm, setShowSaveForm] = useState(false)
   const [saveForm, setSaveForm] = useState({ empresa: '', posicion: '', etapa: 'Descubierto' })
   const [savingPipeline, setSavingPipeline] = useState(false)
@@ -377,7 +378,33 @@ export default function CVvsJob() {
             {!vistaInfografia && tabActiva === 'analisis' && (
               <div className="space-y-4">
                 <div><h3 className="text-sm font-semibold text-green-700 mb-1.5">Fortalezas</h3><ul className="text-xs space-y-1 text-gray-700">{resultadoMatch.analisis.fortalezas.map((f, i) => <li key={i} className="flex items-start gap-1.5"><span className="text-green-500 shrink-0 mt-0.5">✓</span>{f}</li>)}</ul></div>
-                <div><h3 className="text-sm font-semibold text-red-600 mb-1.5">Brechas</h3><ul className="text-xs space-y-1 text-gray-700">{resultadoMatch.analisis.brechas.map((b, i) => <li key={i} className="flex items-start gap-1.5"><span className="text-red-400 shrink-0 mt-0.5">→</span>{b}</li>)}</ul></div>
+                <div>
+                  <h3 className="text-sm font-semibold text-red-600 mb-2">Brechas</h3>
+                  <ul className="space-y-2">
+                    {resultadoMatch.analisis.brechas.map((b, i) => (
+                      <li key={i} className="border border-gray-100 rounded-xl overflow-hidden">
+                        <button
+                          onClick={() => setBrechaAbierta(brechaAbierta === i ? null : i)}
+                          className="w-full flex items-start justify-between gap-2 px-3 py-2.5 text-left hover:bg-gray-50 transition-colors"
+                        >
+                          <div className="flex items-start gap-2">
+                            <span className="text-red-400 shrink-0 mt-0.5 text-sm">→</span>
+                            <span className="text-xs text-gray-700">{b}</span>
+                          </div>
+                          <CaretDown size={13} className={`shrink-0 mt-0.5 text-gray-400 transition-transform ${brechaAbierta === i ? 'rotate-180' : ''}`} />
+                        </button>
+                        {brechaAbierta === i && (
+                          <div className="px-4 pb-3 pt-2 bg-amber-50/60 border-t border-amber-100">
+                            <p className="text-[11px] font-semibold text-amber-700 mb-1">Cómo mejorarlo:</p>
+                            <p className="text-xs text-gray-600 leading-relaxed">
+                              Considera incluir esta competencia de forma explícita en tu CV — idealmente con un resultado medible (número, porcentaje o impacto concreto) que respalde tu perfil frente a esta vacante.
+                            </p>
+                          </div>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
                 {resultadoMatch.analisis.conclusion && (
                   <div className="bg-blue-50 border border-blue-100 rounded-xl p-4">
                     <h3 className="text-xs font-bold text-blue-700 uppercase tracking-wider mb-1.5">Conclusión</h3>
