@@ -1,19 +1,25 @@
-// Header superior — glassmorphism, hamburger + usuario + créditos
+// Header superior — glassmorphism, hamburger + usuario + badge de plan
 import { useState, useRef, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
-import { List, Coins, UserCircle, CaretDown, SignOut, UsersThree } from '@phosphor-icons/react'
+import { List, UserCircle, CaretDown, SignOut, Sparkle, Crown } from '@phosphor-icons/react'
+
+// Configuración de badges por plan (solo los 3 planes activos)
+const PLAN_CONFIG = {
+  free:        { label: 'Plan Gratuito',   icon: Sparkle, bg: 'bg-slate-700/80',     text: 'text-slate-100',  border: 'border-slate-600/50' },
+  mensual:     { label: 'Plan Mensual',    icon: Crown,   bg: 'bg-emerald-600/90',   text: 'text-white',      border: 'border-emerald-400/40' },
+  trimestral:  { label: 'Plan Trimestral', icon: Crown,   bg: 'bg-blue-600/90',      text: 'text-white',      border: 'border-blue-400/40' },
+}
 
 export default function Header({ onMenuToggle }) {
-  const { user, creditosRestantes, LIMITE_PLAN, perfil, logout } = useAuth()
+  const { user, perfil, logout, planInfo } = useAuth()
   const navigate = useNavigate()
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const dropdownRef = useRef(null)
 
-  const creditColor =
-    creditosRestantes === 0 ? 'text-error bg-error-container'
-    : creditosRestantes === 1 ? 'text-amber-700 bg-amber-50'
-    : 'text-secondary bg-secondary-fixed'
+  const planKey = perfil?.plan || 'free'
+  const planCfg = PLAN_CONFIG[planKey] || PLAN_CONFIG['free']
+  const PlanIcon = planCfg.icon
 
   const nombre = perfil?.nombre1
     ? `${perfil.nombre1}${perfil.apellido1 ? ' ' + perfil.apellido1 : ''}`
@@ -52,19 +58,13 @@ export default function Header({ onMenuToggle }) {
       {/* Info usuario — desktop */}
       {user ? (
         <div className="hidden md:flex items-center gap-3">
-          {/* Créditos */}
-          <div className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full ${creditColor}`}>
-            <Coins size={14} weight="duotone" />
-            {creditosRestantes} / {LIMITE_PLAN} créditos
-          </div>
-
-          {/* ── Mentor shortcut ── */}
+          {/* Badge de Plan */}
           <Link
-            to="/expertos"
-            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold bg-amber-400/20 text-amber-300 border border-amber-400/40 hover:bg-amber-400/30 transition-colors"
+            to="/mi-plan"
+            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold border transition-all hover:opacity-90 hover:scale-105 ${planCfg.bg} ${planCfg.text} ${planCfg.border}`}
           >
-            <UsersThree size={14} weight="duotone" />
-            Mentor
+            <PlanIcon size={13} weight="duotone" />
+            {planCfg.label}
           </Link>
 
           {/* Avatar + nombre — con dropdown */}

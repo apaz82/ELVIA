@@ -2072,13 +2072,20 @@ export default function ProyectoLaboral() {
 
   const pct      = calcularProgreso(data, perfil)
   const porPilar = calcularPorPilar(data, perfil)
-  const [heroVisible, setHeroVisible] = useState(false)
-  const mostrarHeroCompleto = pct === 0 || heroVisible
+  const [heroVisible, setHeroVisible] = useState(true)
+  const mostrarHeroCompleto = heroVisible
   const pilarObj = PILARES.find(function(p){return p.id===pilarId})||PILARES[0]
   const col      = COLORES[pilarObj.color]||COLORES.violet
   const PilarIcon= pilarObj.icon
 
   const pctColor = pct>=70?'text-emerald-600':pct>=40?'text-amber-600':'text-violet-700'
+
+  // Auto-colapso del hero al hacer scroll hacia abajo
+  useEffect(() => {
+    const onScroll = () => { if (window.scrollY > 120) setHeroVisible(false) }
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
 
   // Si hay error de carga, mostrar banner
   if (errorCarga && !cargando) {
@@ -2153,8 +2160,11 @@ export default function ProyectoLaboral() {
               </div>
               <span className="text-xs font-bold text-violet-600">{pct}%</span>
             </div>
-            <button onClick={() => setHeroVisible(true)} className="text-[11px] text-slate-400 hover:text-slate-600 transition-colors ml-2">
-              Ver intro ↓
+            <button
+              onClick={() => setHeroVisible(true)}
+              className="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-white text-[11px] font-black px-3 py-1.5 rounded-lg transition-all hover:scale-105 shadow-sm ml-2"
+            >
+              Ver avance ↓
             </button>
           </div>
         </div>
@@ -2277,9 +2287,12 @@ export default function ProyectoLaboral() {
             </div>
           </div>
           {pct > 0 && (
-            <div className="max-w-5xl mx-auto px-6 md:px-10 pb-4 flex justify-end">
-              <button onClick={() => setHeroVisible(false)} className="text-[11px] text-slate-400 hover:text-slate-600 transition-colors">
-                Ocultar intro ↑
+            <div className="max-w-5xl mx-auto px-6 md:px-10 pb-5 flex justify-end">
+              <button
+                onClick={() => setHeroVisible(false)}
+                className="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-white text-[11px] font-black px-4 py-2 rounded-lg transition-all hover:scale-105 shadow-md"
+              >
+                Ocultar avance ↑
               </button>
             </div>
           )}
