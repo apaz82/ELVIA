@@ -85,7 +85,7 @@ router.post('/send', auth, async (req, res) => {
       : `CV Optimizado ${nombre} ${fecha}.${extension}`;
 
     await resend.emails.send({
-      from: 'onboarding@resend.dev',
+      from: 'ELVIA <soporte@elvia.lat>',
       to: [to],
       subject: lang === 'en' ? 'Your Optimized CV is ready' : 'Tu CV optimizado está listo',
       html: `
@@ -303,7 +303,7 @@ router.post('/bienvenida', emailRateLimit, async (req, res) => {
 
   try {
     await resend.emails.send({
-      from: 'ELVIA <onboarding@resend.dev>',
+      from: 'ELVIA <soporte@elvia.lat>',
       to: [email],
       subject: '¡Bienvenido/a a ELVIA! 🎉 Tu cuenta está lista',
       html: htmlBienvenida(email),
@@ -344,7 +344,7 @@ router.post('/recuperacion', emailRateLimit, async (req, res) => {
     const actionLink = linkData.properties.action_link;
 
     const { data: resendData, error: resendErr } = await resend.emails.send({
-      from: 'ELVIA <onboarding@resend.dev>',
+      from: 'ELVIA <soporte@elvia.lat>',
       to: [email],
       subject: 'Restablece tu contraseña de ELVIA',
       html: htmlRecuperacion(email, actionLink),
@@ -484,7 +484,7 @@ router.post('/invitacion', auth, async (req, res) => {
     })
 
     await resend.emails.send({
-      from: 'ELVIA <onboarding@resend.dev>',
+      from: 'ELVIA <soporte@elvia.lat>',
       to: [email],
       subject: `Invitación: Únete a ${companyName} en ELVIA`,
       html: htmlInvitacion(email, nombre, companyName, inviteUrl, expiresAt),
