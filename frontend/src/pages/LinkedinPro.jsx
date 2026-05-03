@@ -62,12 +62,12 @@ const SECCIONES = [
   },
 ]
 
-// Colores por puntaje
+// Colores y labels por puntaje
 function colorPuntaje(score) {
-  if (score >= 80) return { text: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-200', bar: 'bg-emerald-500' }
-  if (score >= 60) return { text: 'text-blue-600',    bg: 'bg-blue-50',    border: 'border-blue-200',    bar: 'bg-blue-500'    }
-  if (score >= 40) return { text: 'text-amber-600',   bg: 'bg-amber-50',   border: 'border-amber-200',   bar: 'bg-amber-500'   }
-  return               { text: 'text-red-600',     bg: 'bg-red-50',     border: 'border-red-200',     bar: 'bg-red-500'     }
+  if (score >= 80) return { text: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-200', bar: 'bg-emerald-500', label: 'Excelente', labelBg: 'bg-emerald-100', labelText: 'text-emerald-700' }
+  if (score >= 60) return { text: 'text-blue-600',    bg: 'bg-blue-50',    border: 'border-blue-200',    bar: 'bg-blue-500',    label: 'Bueno',     labelBg: 'bg-blue-100',    labelText: 'text-blue-700'    }
+  if (score >= 40) return { text: 'text-amber-600',   bg: 'bg-amber-50',   border: 'border-amber-200',   bar: 'bg-amber-500',   label: 'Regular',   labelBg: 'bg-amber-100',   labelText: 'text-amber-700'   }
+  return               { text: 'text-red-600',     bg: 'bg-red-50',     border: 'border-red-200',     bar: 'bg-red-500',     label: 'Urgente',   labelBg: 'bg-red-100',     labelText: 'text-red-700'     }
 }
 
 function ScoreRing({ score }) {
@@ -98,7 +98,12 @@ function SeccionResultado({ seccion, datos }) {
           <span className={`text-base font-black ${color.text}`}>{datos.puntaje}</span>
         </div>
         <div className="flex-1 min-w-0">
-          <p className="font-bold text-gray-900 text-lg tracking-tight">{seccion.label}</p>
+          <div className="flex items-center gap-2 flex-wrap">
+            <p className="font-bold text-gray-900 text-lg tracking-tight">{seccion.label}</p>
+            <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full ${color.labelBg} ${color.labelText}`}>
+              {color.label}
+            </span>
+          </div>
           <div className="w-full h-2 bg-white/60 rounded-full mt-2 overflow-hidden border border-white/20">
             <div
               className={`h-full rounded-full ${color.bar} transition-all duration-700`}
@@ -301,9 +306,12 @@ export default function LinkedinOptima() {
         <div className={`rounded-2xl border ${colorGlobal.border} ${colorGlobal.bg} p-6 flex items-center gap-5`}>
           <ScoreRing score={resultado.puntaje_global} />
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
+            <div className="flex items-center gap-2 mb-1 flex-wrap">
               <Trophy size={18} weight="duotone" className={colorGlobal.text} />
               <h2 className="font-bold text-gray-900 text-lg">Puntaje de tu Perfil</h2>
+              <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full ${colorGlobal.labelBg} ${colorGlobal.labelText}`}>
+                {colorGlobal.label}
+              </span>
             </div>
             <p className="text-sm text-gray-600 leading-relaxed">{resultado.resumen_global}</p>
           </div>

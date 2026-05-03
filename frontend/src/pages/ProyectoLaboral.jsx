@@ -213,12 +213,12 @@ function convertirDesdeMXN(montoMXN, moneda) {
 const RECURSOS_DEFAULT = RECURSOS_DEFAULT_BASE
 
 const DOCS_LIST = [
-  { id:'cv',          label:'CV optimizado con ELVIA',            link:'/cv-optimizer',   Icon:FileMagnifyingGlass },
-  { id:'linkedin',    label:'LinkedIn actualizado y auditado',      link:'/linkedin-pro',   Icon:LinkedinLogo, target:'_blank' },
-  { id:'cv_vacante',  label:'CV adaptado a una vacante objetivo',  link:'/cv-vs-job',      Icon:MagnifyingGlass    },
-  { id:'entrevista',  label:'Práctica de entrevista realizada',    link:'/entrevista',     Icon:Robot              },
-  { id:'carta',       label:'Carta de presentación lista',         link:null,              Icon:Notepad            },
-  { id:'referencias', label:'Referencias profesionales confirmadas',link:null,              Icon:CheckCircle        },
+  { id:'cv',          label:'CV optimizado con ELVIA',            link:'/cv-optimizer',   Icon:FileMagnifyingGlass, nota:'Tu CV base, optimizado para pasar filtros ATS y destacar tu perfil.'            },
+  { id:'linkedin',    label:'LinkedIn actualizado y auditado',     link:'/linkedin-pro',   Icon:LinkedinLogo, target:'_blank', nota:'Perfil LinkedIn® analizado y optimizado con keywords de tu industria.' },
+  { id:'cv_vacante',  label:'CV adaptado a una vacante objetivo',  link:'/cv-vs-job',      Icon:MagnifyingGlass,    nota:'CV personalizado para una vacante de alto interés, con match > 70%.'        },
+  { id:'entrevista',  label:'Práctica de entrevista realizada',    link:'/entrevista',     Icon:Robot,              nota:'Al menos una simulación de entrevista completa con feedback de ELVIA.'       },
+  { id:'carta',       label:'Carta de presentación lista',         link:null,              Icon:Notepad,            nota:'Carta personalizada para tu vacante objetivo. Redáctala con ayuda de ELVIA.' },
+  { id:'referencias', label:'Referencias profesionales confirmadas',link:null,             Icon:CheckCircle,        nota:'Al menos 2 referencias avisadas y listas para ser contactadas.'             },
 ]
 
 // ─── Cálculo de progreso ─────────────────────────────────────────────────────
@@ -1701,17 +1701,27 @@ function PilarDocumentos({ data, onChange, onSave, justSaved, pct, isPaidPlan })
       <div className="space-y-3">
         {DOCS_LIST.map(function(item){
           const done=!!checks[item.id]; const Icon=item.Icon
+          const unlocked = isUnlocked && (item.id !== 'linkedin' || isPaidPlan)
           return (
-            <div key={item.id} className={'flex items-center gap-4 p-4 rounded-2xl border-2 transition-all '+(done?'bg-amber-50 border-amber-200':'bg-white border-slate-200')}>
-              <button onClick={function(){toggle(item.id)}} className="shrink-0 cursor-pointer">
+            <div key={item.id} className={'flex items-start gap-4 p-4 rounded-2xl border-2 transition-all '+(done?'bg-amber-50 border-amber-200':'bg-white border-slate-200')}>
+              <button onClick={function(){toggle(item.id)}} className="shrink-0 cursor-pointer mt-0.5">
                 {done?<CheckSquare size={22} weight="fill" className="text-amber-500"/>:<Square size={22} className="text-slate-300 hover:text-slate-500 transition-colors"/>}
               </button>
-              <div className="flex items-center gap-3 flex-1 min-w-0">
-                <Icon size={18} className={done?'text-amber-500':'text-slate-400'} weight="duotone"/>
-                <span className={'text-sm font-semibold '+(done?'text-amber-700 line-through':'text-slate-700')}>{item.label}</span>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2.5 flex-wrap mb-0.5">
+                  <Icon size={17} className={done?'text-amber-500':'text-slate-400'} weight="duotone"/>
+                  <span className={'text-sm font-semibold '+(done?'text-amber-700':'text-slate-700')}>{item.label}</span>
+                  {done
+                    ? <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 shrink-0">Listo ✓</span>
+                    : unlocked
+                      ? <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 shrink-0">Pendiente</span>
+                      : null
+                  }
+                </div>
+                {item.nota && <p className={'text-[11px] leading-snug mt-0.5 '+(done?'text-amber-600/70':'text-slate-400')}>{item.nota}</p>}
               </div>
               {item.link&&(
-                (isUnlocked && (item.id !== 'linkedin' || isPaidPlan)) ? (
+                unlocked ? (
                   <Link to={item.link} target={item.target || (item.link.startsWith('http') ? '_blank' : '_self')} className="shrink-0 flex items-center gap-1 text-xs font-bold text-slate-500 hover:text-amber-600 border border-slate-200 hover:border-amber-300 rounded-lg px-3 py-1.5 transition-all cursor-pointer hover:shadow-sm hover:translate-x-0.5">
                     {done?'Revisar':'Ir ahora'} <ArrowRight size={12}/>
                   </Link>

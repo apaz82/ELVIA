@@ -1,9 +1,48 @@
 import { useState, useRef, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { Sparkle, X, PaperPlaneRight, Robot, User, CornersOut, CornersIn } from '@phosphor-icons/react';
+import { Sparkle, X, PaperPlaneRight, Robot, User, CornersOut, CornersIn, Briefcase, MagnifyingGlass, Microphone, Star, LinkedinLogo, Notepad, Target } from '@phosphor-icons/react';
 import { useChat } from '../../hooks/useChat';
 import ReactMarkdown from 'react-markdown';
+
+const TIPS_POR_RUTA = {
+  '/cv-optimizer': [
+    { titulo: 'Resumen con impacto', subtitulo: '¿Cómo describir mis logros con métricas?', mensaje: 'Cómo redactar el resumen de mi CV con logros y métricas concretas que impresionen', Icon: Star, bg: 'bg-amber-50', text: 'text-amber-500' },
+    { titulo: 'Palabras clave ATS', subtitulo: 'Para pasar los filtros automáticos', mensaje: 'Qué son las palabras clave ATS y cómo incluirlas correctamente en mi CV', Icon: MagnifyingGlass, bg: 'bg-blue-50', text: 'text-blue-500' },
+    { titulo: 'Formato ideal', subtitulo: '¿Qué diseño recomiendas para mi industria?', mensaje: 'Qué formato y estructura de CV es más efectivo para destacar en procesos de selección', Icon: Notepad, bg: 'bg-green-50', text: 'text-green-500' },
+  ],
+  '/cv-vs-job': [
+    { titulo: 'Interpretar mi score', subtitulo: '¿Qué significa mi % de compatibilidad?', mensaje: 'Explícame qué significa mi porcentaje de compatibilidad con una vacante y cómo interpretarlo', Icon: Target, bg: 'bg-purple-50', text: 'text-purple-500' },
+    { titulo: 'Mejorar el match', subtitulo: 'Estrategia para adaptar mi CV', mensaje: 'Dame estrategias concretas para mejorar mi compatibilidad con una vacante específica', Icon: MagnifyingGlass, bg: 'bg-blue-50', text: 'text-blue-500' },
+    { titulo: 'Palabras clave críticas', subtitulo: 'Las que no debo omitir en mi CV', mensaje: 'Cuáles son las palabras clave más importantes que debo incluir en mi CV para mejorar mi match con vacantes', Icon: Star, bg: 'bg-amber-50', text: 'text-amber-500' },
+  ],
+  '/entrevista': [
+    { titulo: 'Método STAR', subtitulo: 'Responde con ejemplos concretos', mensaje: 'Explícame el método STAR para responder preguntas de entrevista con ejemplos poderosos', Icon: Star, bg: 'bg-amber-50', text: 'text-amber-500' },
+    { titulo: 'Preguntas difíciles', subtitulo: 'Debilidades, salario, despido...', mensaje: 'Cómo responder preguntas difíciles en entrevista como cuál es tu mayor debilidad o por qué dejaste tu trabajo', Icon: Microphone, bg: 'bg-blue-50', text: 'text-blue-500' },
+    { titulo: 'Preguntas al entrevistador', subtitulo: '¿Qué debo preguntar al final?', mensaje: 'Qué preguntas inteligentes puedo hacerle al entrevistador al final de la entrevista para destacar', Icon: Robot, bg: 'bg-green-50', text: 'text-green-500' },
+  ],
+  '/linkedin-pro': [
+    { titulo: 'Titular que atrae', subtitulo: '¿Cómo destacar en LinkedIn®?', mensaje: 'Dame tips para escribir un titular de LinkedIn que atraiga reclutadores y oportunidades', Icon: LinkedinLogo, bg: 'bg-blue-50', text: 'text-blue-600' },
+    { titulo: 'Conectar con reclutadores', subtitulo: 'Networking efectivo sin ser invasivo', mensaje: 'Cómo conectar con reclutadores en LinkedIn de forma efectiva y profesional', Icon: Briefcase, bg: 'bg-purple-50', text: 'text-purple-500' },
+    { titulo: 'Extracto que vende', subtitulo: 'Redacta tu "Acerca de" con impacto', mensaje: 'Cómo redactar el extracto de LinkedIn que cuente mi historia y atraiga las oportunidades que busco', Icon: Notepad, bg: 'bg-green-50', text: 'text-green-500' },
+  ],
+  '/pipeline': [
+    { titulo: 'Avanzar en el proceso', subtitulo: 'Estrategias por etapa del pipeline', mensaje: 'Dame estrategias para avanzar en cada etapa de un proceso de selección', Icon: Briefcase, bg: 'bg-blue-50', text: 'text-blue-500' },
+    { titulo: 'Negociar mi oferta', subtitulo: '¿Cómo defender mi valor salarial?', mensaje: 'Cómo negociar una oferta de trabajo y defender el salario que merezco con confianza', Icon: Star, bg: 'bg-amber-50', text: 'text-amber-500' },
+    { titulo: 'Manejar el rechazo', subtitulo: '¿Qué hacer cuando no avanzas?', mensaje: 'Cómo manejar el rechazo en procesos de selección y mantener la motivación', Icon: Sparkle, bg: 'bg-green-50', text: 'text-green-500' },
+  ],
+  '/proyecto-laboral': [
+    { titulo: 'Plan semanal efectivo', subtitulo: '¿Cómo organizar mi búsqueda?', mensaje: 'Ayúdame a crear un plan semanal efectivo para mi búsqueda de empleo', Icon: Target, bg: 'bg-teal-50', text: 'text-teal-500' },
+    { titulo: '¿Por dónde empezar?', subtitulo: 'Pilares prioritarios para mi situación', mensaje: 'Por cuál pilar del proyecto laboral debería empezar y cómo organizarme para avanzar más rápido', Icon: Briefcase, bg: 'bg-blue-50', text: 'text-blue-500' },
+    { titulo: 'Medir mi progreso', subtitulo: '¿Cómo sé si voy bien?', mensaje: 'Cómo medir el progreso de mi búsqueda de empleo y saber si mis acciones están dando resultados', Icon: Star, bg: 'bg-amber-50', text: 'text-amber-500' },
+  ],
+}
+
+const TIPS_DEFAULT = [
+  { titulo: 'Preguntas sobre la app', subtitulo: '¿Cómo optimizar mi CV o buscar vacantes?', mensaje: 'Preguntas sobre la app', Icon: Robot, bg: 'bg-blue-50', text: 'text-blue-500' },
+  { titulo: 'Procesos de selección', subtitulo: 'Tips para entrevistas y LinkedIn', mensaje: 'Sobre procesos de selección', Icon: Sparkle, bg: 'bg-green-50', text: 'text-green-500' },
+  { titulo: 'Frase motivadora', subtitulo: 'Una dosis de inspiración extra', mensaje: 'Quieres una frase motivadora', Icon: Sparkle, bg: 'bg-amber-50', text: 'text-amber-500' },
+]
 
 export default function AiChatBot() {
   const { user } = useAuth();
@@ -120,50 +159,30 @@ export default function AiChatBot() {
             </div>
           ))}
 
-          {/* Acciones Rápidas (solo al inicio) */}
+          {/* Acciones Rápidas — contextuales según la ruta */}
           {messages.length === 1 && !loading && (
             <div className="flex flex-col gap-2.5 mt-2 ml-10 animate-fade-in">
               <p className="text-[11px] text-on-surface-variant font-semibold uppercase tracking-wider mb-0.5 opacity-70">
                 Sugerencias para empezar:
               </p>
-              <button 
-                onClick={() => sendMessage(null, "Preguntas sobre la app")}
-                className="group flex items-center gap-3 bg-white border border-outline-variant/30 p-3 rounded-2xl text-[13px] text-left hover:border-primary hover:bg-primary/5 transition-all shadow-sm active:scale-95"
-              >
-                <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center shrink-0 group-hover:bg-blue-100 transition-colors">
-                  <Robot size={18} weight="duotone" />
-                </div>
-                <div className="flex-1">
-                  <p className="font-bold text-gray-800 leading-tight">Preguntas sobre la app</p>
-                  <p className="text-[11px] text-gray-400">¿Cómo optimizar mi CV o buscar vacantes?</p>
-                </div>
-              </button>
-
-              <button 
-                onClick={() => sendMessage(null, "Sobre procesos de selección")}
-                className="group flex items-center gap-3 bg-white border border-outline-variant/30 p-3 rounded-2xl text-[13px] text-left hover:border-primary hover:bg-primary/5 transition-all shadow-sm active:scale-95"
-              >
-                <div className="w-8 h-8 rounded-full bg-green-50 text-green-500 flex items-center justify-center shrink-0 group-hover:bg-green-100 transition-colors">
-                  <Sparkle size={18} weight="duotone" />
-                </div>
-                <div className="flex-1">
-                  <p className="font-bold text-gray-800 leading-tight">Procesos de selección</p>
-                  <p className="text-[11px] text-gray-400">Tips para entrevistas y LinkedIn</p>
-                </div>
-              </button>
-
-              <button 
-                onClick={() => sendMessage(null, "Quieres una frase motivadora")}
-                className="group flex items-center gap-3 bg-white border border-outline-variant/30 p-3 rounded-2xl text-[13px] text-left hover:border-primary hover:bg-primary/5 transition-all shadow-sm active:scale-95"
-              >
-                <div className="w-8 h-8 rounded-full bg-amber-50 text-amber-500 flex items-center justify-center shrink-0 group-hover:bg-amber-100 transition-colors">
-                  <Sparkle size={18} weight="fill" />
-                </div>
-                <div className="flex-1">
-                  <p className="font-bold text-gray-800 leading-tight">Frase motivadora</p>
-                  <p className="text-[11px] text-gray-400">Una dosis de inspiración extra</p>
-                </div>
-              </button>
+              {(TIPS_POR_RUTA[location.pathname] || TIPS_DEFAULT).map((tip, i) => {
+                const Icon = tip.Icon
+                return (
+                  <button
+                    key={i}
+                    onClick={() => sendMessage(null, tip.mensaje)}
+                    className="group flex items-center gap-3 bg-white border border-outline-variant/30 p-3 rounded-2xl text-[13px] text-left hover:border-primary hover:bg-primary/5 transition-all shadow-sm active:scale-95"
+                  >
+                    <div className={`w-8 h-8 rounded-full ${tip.bg} ${tip.text} flex items-center justify-center shrink-0 group-hover:brightness-95 transition-colors`}>
+                      <Icon size={18} weight="duotone" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-bold text-gray-800 leading-tight">{tip.titulo}</p>
+                      <p className="text-[11px] text-gray-400">{tip.subtitulo}</p>
+                    </div>
+                  </button>
+                )
+              })}
             </div>
           )}
 
