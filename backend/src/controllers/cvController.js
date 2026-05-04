@@ -504,9 +504,9 @@ const generarInfografiaProyecto = async (req, res, next) => {
       .from('cv_results')
       .insert({
         user_id: userId,
-        tipo: 'optimize', // Usar 'optimize' que es seguro
+        tipo: 'infografia_proyecto', // Tipo diferente para no mezclar con CVs reales
         contenido: JSON.stringify(proyectoCorregido),
-        metadata: { 
+        metadata: {
           filename: `Plan de Carrera Ejecutivo.pdf`,
           frontend_pdf: true,
           subtipo: 'infografia_proyecto'
