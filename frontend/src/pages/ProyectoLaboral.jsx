@@ -264,7 +264,7 @@ function calcularPorPilar(data, perfil) {
   if (String(oferta.oferta_valor||'').trim().length>=30) ofertaPts+=20
 
   return {
-    perfil:           Math.round((perfilPts/25)*100),
+    perfil:           Math.round((perfilPts/30)*100),
     autoconocimiento: Math.round((Math.min(autoPts,20)/20)*100),
     documentos:       Math.round((docsDone/DOCS_LIST.length)*100),
     semana:           Math.round((semanaPts/10)*100),
