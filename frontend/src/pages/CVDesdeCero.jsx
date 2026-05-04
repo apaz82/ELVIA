@@ -408,7 +408,7 @@ export default function CVDesdeCero() {
   // ── Helpers de estado ───────────────────────────────────────────────────────
   const upDatos = (k, v)           => setDatos(f => ({ ...f, [k]: v }))
   const upExp   = (i, k, v)        => { const a = [...datos.experiencias]; a[i] = { ...a[i], [k]: v }; setDatos(f => ({ ...f, experiencias: a })) }
-  const addExp  = ()               => setDatos(f => ({ ...f, experiencias: [...f.experiencias, { empresa: '', cargo: '', fecha_inicio: '', fecha_fin: '', descripcion: '' }] }))
+  const addExp  = ()               => setDatos(f => ({ ...f, experiencias: [{ empresa: '', cargo: '', fecha_inicio: '', fecha_fin: '', descripcion: '' }, ...f.experiencias] }))
   const delExp  = (i)              => setDatos(f => ({ ...f, experiencias: f.experiencias.filter((_, j) => j !== i) }))
   const upEdu   = (i, k, v)        => { const a = [...datos.educacion];    a[i] = { ...a[i], [k]: v }; setDatos(f => ({ ...f, educacion: a })) }
   const addEdu  = ()               => setDatos(f => ({ ...f, educacion: [...f.educacion, { institucion: '', titulo: '', anio: '' }] }))
@@ -421,7 +421,7 @@ export default function CVDesdeCero() {
   // ── Aplicar datos extraídos del CV ──────────────────────────────────────────
   const aplicarDatos = (d) => {
     const expArr = Array.isArray(d.experiencias) && d.experiencias.length > 0
-      ? d.experiencias.map(e => ({ empresa: e.empresa || '', cargo: e.cargo || '', fecha_inicio: e.fecha_inicio || '', fecha_fin: e.fecha_fin || '', descripcion: e.descripcion || '' }))
+      ? d.experiencias.map(e => ({ empresa: e.empresa || '', cargo: e.cargo || '', fecha_inicio: e.fecha_inicio || '', fecha_fin: e.fecha_fin || '', descripcion: e.descripcion || '' })).reverse()
       : [{ empresa: '', cargo: '', fecha_inicio: '', fecha_fin: '', descripcion: '' }]
 
     const eduArr = Array.isArray(d.educacion) && d.educacion.length > 0
@@ -994,7 +994,10 @@ export default function CVDesdeCero() {
                 {datos.experiencias.map((exp, i) => (
                   <div key={i} className="border border-slate-200 rounded-xl p-4 space-y-3">
                     <div className="flex justify-between items-center">
-                      <h4 className="font-semibold text-slate-700 text-sm">Experiencia {i + 1}</h4>
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-semibold text-slate-700 text-sm">Experiencia {i + 1}</h4>
+                        {i === 0 && <span className="text-xs font-bold bg-green-100 text-green-800 px-2 py-0.5 rounded-full">más reciente</span>}
+                      </div>
                       {datos.experiencias.length > 1 && (
                         <button onClick={() => delExp(i)} className="text-red-500 hover:text-red-700 cursor-pointer"><X size={16} /></button>
                       )}
