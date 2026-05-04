@@ -402,6 +402,11 @@ Return ONLY this JSON:
     if (!Array.isArray(perfil.experiencias)) perfil.experiencias = [];
     if (!Array.isArray(perfil.habilidades))  perfil.habilidades  = [];
 
+    // Invertir experiencias para que vayan de más reciente a más antigua (reverse-chronological)
+    if (perfil.experiencias.length > 0) {
+      perfil.experiencias = perfil.experiencias.reverse();
+    }
+
     // Validacion de identidad: compara nombre/apellido extraido con el perfil registrado.
     // Devuelve mismatch:true (no 400) para que el frontend gestione el banner de confirmacion.
     const db = req.supabase;
