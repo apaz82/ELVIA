@@ -74,6 +74,7 @@ export default function JobMatches() {
     if (cvTextContexto || !user) return
     supabase.from('cv_results')
       .select('id, contenido, tipo, created_at')
+      .eq('user_id', user.id)
       .order('created_at', { ascending: false })
       .limit(10)
       .then(({ data }) => {

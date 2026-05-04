@@ -50,6 +50,7 @@ export default function MisVacantes() {
     if (cvTextContexto || !user) return
     supabase.from('cv_results')
       .select('id, contenido, tipo, created_at')
+      .eq('user_id', user.id)
       .order('created_at', { ascending: false })
       .limit(10)
       .then(({ data }) => {
@@ -79,8 +80,8 @@ export default function MisVacantes() {
   const cargarTodo = async () => {
     setLoading(true)
     const [{ data: saved }, { data: checks }] = await Promise.all([
-      supabase.from('saved_jobs').select('*').order('created_at', { ascending: false }),
-      supabase.from('job_checks').select('job_key, score, motivos'),
+      supabase.from('saved_jobs').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
+      supabase.from('job_checks').select('job_key, score, motivos').eq('user_id', user.id),
     ])
     const checkMap = {}
     ;(checks || []).forEach(c => { checkMap[c.job_key] = c })

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { X, Copy, Check, Spinner } from '@phosphor-icons/react'
+import { useAuth } from '../../context/AuthContext'
 import BarraEtapas from '../pipeline/BarraEtapas'
 import { api } from '../../services/api'
 import { supabase } from '../../services/authService'
@@ -15,6 +16,7 @@ export default function DetalleVacanteDrawer({
   onEliminar,
   onNavigate
 }) {
+  const { user } = useAuth()
   if (!item) return null
 
   const [editandoNota, setEditandoNota] = useState(false)
@@ -35,13 +37,14 @@ export default function DetalleVacanteDrawer({
   const [copiadoCarta, setCopiadoCarta] = useState(false)
 
   const optimizarCV = async () => {
-    if (!job.description) return
+    if (!job.description || !user) return
     setGenerandoCV(true)
     setCvOptimizado(null)
     try {
       const { data: latestCV } = await supabase
         .from('cv_results')
         .select('id')
+        .eq('user_id', user.id)
         .eq('tipo', 'optimize')
         .order('created_at', { ascending: false })
         .limit(1)
@@ -60,12 +63,14 @@ export default function DetalleVacanteDrawer({
   }
 
   const generarCartaHandler = async () => {
+    if (!user) return
     setGenerandoCarta(true)
     setCarta(null)
     try {
       const { data: latestCV } = await supabase
         .from('cv_results')
         .select('id')
+        .eq('user_id', user.id)
         .eq('tipo', 'optimize')
         .order('created_at', { ascending: false })
         .limit(1)

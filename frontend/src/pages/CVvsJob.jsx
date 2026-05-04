@@ -38,6 +38,7 @@ export default function CVvsJob() {
     supabase
       .from('cv_results')
       .select('id, contenido, metadata, created_at')
+      .eq('user_id', user.id)
       .eq('tipo', 'optimize')
       .order('created_at', { ascending: false })
       .then(({ data }) => {
