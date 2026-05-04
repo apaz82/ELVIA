@@ -17,13 +17,13 @@ const DOCS_IDS = ['cv', 'linkedin', 'cv_vacante', 'entrevista', 'carta', 'refere
 
 export function calcPerfilPts(perfil, jpData) {
   let pts = 0
-  if (String(perfil?.nombre1||'').trim().length>1) pts+=8
-  if (String(perfil?.pais||'').trim().length>1) pts+=4
-  if (String(perfil?.telefono1||'').trim().length>4) pts+=4
-  if (String(perfil?.salario_esperado||'').trim().length>1) pts+=4
+  if (String(perfil?.nombre1||'').trim().length>1) pts+=10
+  if (String(perfil?.pais||'').trim().length>1) pts+=5
+  if (String(perfil?.telefono1||'').trim().length>4) pts+=5
+  if (String(perfil?.salario_esperado||'').trim().length>1) pts+=5
   if (String(jpData?.perfil?.nivel_educativo||'').length>1) pts+=3
   if (String(jpData?.perfil?.anios_experiencia||'').length>0) pts+=2
-  return Math.min(pts, 25)
+  return Math.min(pts, 30)
 }
 
 export function calcularProgreso(data, perfil) {
@@ -46,11 +46,6 @@ export function calcularProgreso(data, perfil) {
   if (Array.isArray(auto.top5empresas) && auto.top5empresas.filter(function(e){return e && String(e).trim()}).length >= 1) autoPts += 5
 
   core += Math.min(autoPts, 20)
-
-  // Documentos - hasta 5 pts (1 pt por documento completado)
-  const checks = (data&&data.documentos&&data.documentos.checks) ? data.documentos.checks : {}
-  const docsDone = DOCS_IDS.filter(function(d){return checks[d]}).length
-  core += docsDone
 
   const bloques = (data&&data.semana&&data.semana.bloques) ? data.semana.bloques : {}
   const bN = Object.values(bloques).filter(Boolean).length
