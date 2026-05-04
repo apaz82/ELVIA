@@ -24,7 +24,7 @@ const planContext = async (req, res, next) => {
   // Perfil no existe — crear con trial de 7 días
   if (!data) {
     const trialExpires = new Date(Date.now() + 7 * 24 * 3600 * 1000).toISOString();
-    await db.from('profiles').insert({
+    const { error: insertErr } = await db.from('profiles').insert({
       id: userId,
       usage_count: 0,
       cv_optimizer_count: 0,
@@ -35,6 +35,11 @@ const planContext = async (req, res, next) => {
       free_trial_expires_at: trialExpires,
       email_principal: req.user.email || null,
     });
+
+    if (insertErr) {
+      return res.status(500).json({ error: 'Error al crear perfil de usuario' });
+    }
+
     req.planInfo = {
       plan: 'free',
       config: PLAN_CONFIG.free,
@@ -61,11 +66,13 @@ const planContext = async (req, res, next) => {
   if (['mensual', 'trimestral'].includes(plan) && data.plan_expires_at && new Date(data.plan_expires_at) < new Date()) {
     plan = 'free';
     // Actualizar en DB para mantener sincronía
-    await db
+    const { error: degradeErr } = await db
       .from('profiles')
       .update({ plan: 'free' })
-      .eq('id', userId)
-      .catch(err => console.error('[planContext] Error degrading plan:', err));
+      .eq('id', userId);
+    if (degradeErr) {
+      console.error('[planContext] Error degrading plan:', degradeErr);
+    }
   }
 
   // Trial expirado: solo aplica a usuarios free sin plan de pago activo
