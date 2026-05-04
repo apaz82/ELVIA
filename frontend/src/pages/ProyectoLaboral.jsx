@@ -234,7 +234,7 @@ function calcularPorPilar(data, perfil) {
 
   // 1. Aspiraciones (Areas + Industrias) - 5 pts
   const areasArr = auto.areas || perf.areas || []
-  const indArr   = auto.industrias || perf.industrias_deseadas || []
+  const indArr   = auto.industrias_deseadas || perf.industrias_deseadas || []
   if (areasArr.length >= 1 && indArr.length >= 1) autoPts += 5
 
   // 2. Hard Skills - 5 pts
