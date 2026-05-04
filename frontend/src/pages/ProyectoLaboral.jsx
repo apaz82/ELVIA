@@ -232,21 +232,16 @@ function calcularPorPilar(data, perfil) {
   const perf = (data&&data.perfil) ? data.perfil : {}
   let autoPts = 0
 
-  // 1. Aspiraciones (Areas + Industrias) - 5 pts
-  const areasArr = auto.areas || perf.areas || []
-  const indArr   = auto.industrias_deseadas || perf.industrias_deseadas || []
-  if (areasArr.length >= 1 && indArr.length >= 1) autoPts += 5
-
-  // 2. Hard Skills - 5 pts
+  // 1. Hard Skills - 5 pts
   if (Array.isArray(auto.hard_skills) && auto.hard_skills.length >= 2) autoPts += 5
 
-  // 3. Soft Skills - 5 pts
+  // 2. Soft Skills - 5 pts
   if (Array.isArray(auto.soft_skills) && auto.soft_skills.length >= 2) autoPts += 5
 
-  // 4. Power Skills - 5 pts
+  // 3. Power Skills - 5 pts
   if (Array.isArray(auto.power_skills) && auto.power_skills.length >= 2) autoPts += 5
 
-  // 5. Compañías - 5 pts
+  // 4. Compañías - 5 pts
   if (Array.isArray(auto.top5empresas) && auto.top5empresas.filter(function(e){return e && String(e).trim()}).length >= 1) autoPts += 5
 
 
@@ -256,7 +251,7 @@ function calcularPorPilar(data, perfil) {
   const bloques = (data&&data.semana&&data.semana.bloques) ? data.semana.bloques : {}
   const bN = Object.values(bloques).filter(Boolean).length
   let semanaPts = 0
-  if (bN>=3) semanaPts=10; else if (bN>=1) semanaPts=5; 
+  if (bN>=3) semanaPts=10; else if (bN>=1) semanaPts=5;
 
   const rawRec2 = data&&data.recursos ? (Array.isArray(data.recursos) ? data.recursos : (data.recursos.recursos||null)) : null
   const rec = (rawRec2&&rawRec2.length>0) ? rawRec2 : RECURSOS_DEFAULT
@@ -270,7 +265,7 @@ function calcularPorPilar(data, perfil) {
 
   return {
     perfil:           Math.round((perfilPts/25)*100),
-    autoconocimiento: Math.round((Math.min(autoPts,25)/25)*100),
+    autoconocimiento: Math.round((Math.min(autoPts,20)/20)*100),
     documentos:       Math.round((docsDone/DOCS_LIST.length)*100),
     semana:           Math.round((semanaPts/10)*100),
     recursos:         Math.round((recPts/10)*100),
@@ -1377,18 +1372,7 @@ function PilarAutoconocimiento({ data, onChange, onSave, justSaved }) {
         )})}
       </div>
       <div>
-        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Industrias de interés · <span className="text-rose-600">Debes seleccionar al menos 1</span></h3>
-        <div className="flex flex-wrap gap-2 mb-6">
-          {INDUSTRIAS.map(function(ind){
-            const sel = Array.isArray(d.industrias_deseadas)&&d.industrias_deseadas.includes(ind)
-            return <button key={ind} onClick={function(){toggle('industrias_deseadas',ind)}}
-              className={'px-3 py-1.5 rounded-lg text-sm font-semibold border transition-colors cursor-pointer '+(sel?'bg-rose-600 text-white border-rose-600':'border-rose-200 text-slate-600 hover:border-rose-400 hover:text-rose-700')}>{ind}</button>
-          })}
-        </div>
-      </div>
-
-      <div>
-        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Top 5 Compañías objetivo · <span className="text-amber-600">Debes llenar al menos 2</span></h3>
+        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Top 5 Compañías objetivo · <span className="text-amber-600">Debes llenar al menos 1</span></h3>
         <p className="text-xs text-slate-400 mb-4">Estas empresas aparecerán primero en tu radar de Vacantes.</p>
         <div className="space-y-2">
           {[0,1,2,3,4].map(function(i){return(
