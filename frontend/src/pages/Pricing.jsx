@@ -18,10 +18,10 @@ const PAISES = [
 ]
 
 const PRECIOS = {
-  MXN: { semanal: 99,    mensual: 299,   trim_total: 699,    trim_mensual: 233,   antes_trim: 897,    competencia: 499    },
-  COP: { semanal: 20000, mensual: 60000, trim_total: 140000, trim_mensual: 46600, antes_trim: 180000, competencia: 100000 },
-  ARS: { semanal: 5000,  mensual: 15000, trim_total: 35000,  trim_mensual: 11600, antes_trim: 45000,  competencia: 25000  },
-  USD: { semanal: 5,     mensual: 15,    trim_total: 35,     trim_mensual: 11.67, antes_trim: 45,     competencia: 25     },
+  MXN: { mensual: 299,   trim_total: 699,    trim_mensual: 233,   antes_trim: 897,    competencia: 499    },
+  COP: { mensual: 60000, trim_total: 140000, trim_mensual: 46600, antes_trim: 180000, competencia: 100000 },
+  ARS: { mensual: 15000, trim_total: 35000,  trim_mensual: 11600, antes_trim: 45000,  competencia: 25000  },
+  USD: { mensual: 15,    trim_total: 35,     trim_mensual: 11.67, antes_trim: 45,     competencia: 25     },
 }
 
 function formatPrecio(valor, moneda) {
@@ -54,29 +54,6 @@ const PLANES = [
       { texto: 'Optimización de perfil LinkedIn',             incluido: false },
       { texto: 'Preparación para entrevistas',                incluido: false },
       { texto: 'Dashboard de usuario optimizado',             incluido: false },
-    ],
-  },
-  {
-    id: 'semanal',
-    nombre: 'Pro Semanal',
-    icono: <CalendarBlank size={22} weight="duotone" className="text-emerald-500" />,
-    etiqueta: 'IDEAL PARA ENTREVISTAS',
-    descripcion: 'Acceso completo por 7 días',
-    color: 'emerald',
-    creditos: 10,
-    features: [
-      { texto: '10 análisis de CV',                           incluido: true  },
-      { texto: 'CV optimizado formato Harvard',               incluido: true  },
-      { texto: 'Descarga en PDF y Word',                      incluido: true  },
-      { texto: 'CVs en múltiples idiomas',                    incluido: true  },
-      { texto: 'Biblioteca de conocimiento',                  incluido: true  },
-      { texto: 'Acceso a Mentores',                           incluido: true  },
-      { texto: 'CV adaptado a vacante específica',            incluido: true  },
-      { texto: '% de compatibilidad con vacante',             incluido: true  },
-      { texto: 'Vacantes similares en tu área',               incluido: true  },
-      { texto: 'Optimización de perfil LinkedIn',             incluido: true  },
-      { texto: 'Preparación para entrevistas',                incluido: true  },
-      { texto: 'Dashboard de usuario optimizado',             incluido: true  },
     ],
   },
   {
@@ -137,14 +114,13 @@ const GARANTIAS = [
 
 const PLAN_LABELS_PRICING = {
   free:       'Plan Gratuito',
-  semanal:    'Pro Semanal',
   mensual:    'Pro Mensual',
   trimestral: 'Pro Trimestral',
 }
 
 function PlanActualBanner({ perfil }) {
   const plan        = perfil?.plan || 'free'
-  const isPaid      = ['semanal', 'mensual', 'trimestral'].includes(plan)
+  const isPaid      = ['mensual', 'trimestral'].includes(plan)
   const expiresAt   = perfil?.plan_expires_at ? new Date(perfil.plan_expires_at) : null
   const diasRestantes = expiresAt
     ? Math.max(0, Math.ceil((expiresAt - new Date()) / (1000 * 60 * 60 * 24)))
@@ -217,10 +193,9 @@ function ModalPlan({ plan, user, perfil, moneda, precios, onClose }) {
   const email  = perfil?.email_principal || user?.email || ''
 
   let precioStr
-  if (plan.id === 'semanal')     precioStr = `${formatPrecio(precios.semanal, moneda)} / semana`
-  else if (plan.id === 'trimestral') precioStr = `${formatPrecio(precios.trim_total, moneda)} / trimestre`
-  else if (plan.id !== 'free')   precioStr = `${formatPrecio(precios.mensual, moneda)} / mes`
-  else                           precioStr = 'Gratis'
+  if (plan.id === 'trimestral') precioStr = `${formatPrecio(precios.trim_total, moneda)} / trimestre`
+  else if (plan.id !== 'free')  precioStr = `${formatPrecio(precios.mensual, moneda)} / mes`
+  else                          precioStr = 'Gratis'
 
   const WA_NUMBER      = ''
   const CONTACTO_EMAIL = ''
@@ -313,7 +288,7 @@ function PlanCard({ plan, user, perfil, moneda, precios, onSeleccionar }) {
 
   const planActual   = perfil?.plan || 'free'
   const esActual     = planActual === plan.id || (plan.id === 'free' && planActual === 'free')
-  const esPro        = ['mensual', 'trimestral', 'pro', 'semanal'].includes(planActual)
+  const esPro        = ['mensual', 'trimestral', 'pro'].includes(planActual)
   const credAgotados = (perfil?.usage_count || 0) >= 3 && planActual === 'free'
 
   const borderCls = esPrimary ? 'border-[#002650]'
@@ -386,16 +361,6 @@ function PlanCard({ plan, user, perfil, moneda, precios, onSeleccionar }) {
   // Bloque de precio según plan
   const renderPrecio = () => {
     if (esGratis) return <p className="text-4xl font-black text-gray-900 mb-1">Gratis</p>
-
-    if (plan.id === 'semanal') return (
-      <div className="mb-1">
-        <div className="flex items-end gap-1">
-          <span className="text-4xl font-black text-gray-900">{formatPrecio(precios.semanal, moneda)}</span>
-          <span className="text-sm text-gray-400 mb-1">/semana</span>
-        </div>
-        <p className="text-xs text-gray-400">Acceso completo por 7 días</p>
-      </div>
-    )
 
     if (plan.id === 'trimestral') return (
       <div className="mb-1">

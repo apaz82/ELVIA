@@ -2,10 +2,9 @@
 // Reemplaza usageLimit.js para lógica granular por funcionalidad
 
 const PLAN_CONFIG = {
-  free:       { cv_optimizer: 1,        cv_match: 3,        watermark: true,  proGate: true  },
-  semanal:    { cv_optimizer: Infinity, cv_match: Infinity, watermark: false, proGate: false },
-  mensual:    { cv_optimizer: Infinity, cv_match: Infinity, watermark: false, proGate: false },
-  trimestral: { cv_optimizer: Infinity, cv_match: Infinity, watermark: false, proGate: false },
+  free:       { cv_optimizer: 1,        cv_generar: 1,        cv_match: 3,        watermark: true,  proGate: true,  chat_limit: Infinity },
+  mensual:    { cv_optimizer: Infinity, cv_generar: Infinity, cv_match: Infinity, watermark: false, proGate: false, chat_limit: Infinity },
+  trimestral: { cv_optimizer: Infinity, cv_generar: Infinity, cv_match: Infinity, watermark: false, proGate: false, chat_limit: Infinity },
 };
 
 const planContext = async (req, res, next) => {
@@ -14,7 +13,7 @@ const planContext = async (req, res, next) => {
 
   const { data, error } = await db
     .from('profiles')
-    .select('usage_count, cv_optimizer_count, cv_match_count, plan, suspended, plan_expires_at, free_trial_expires_at')
+    .select('usage_count, cv_optimizer_count, cv_generar_count, cv_match_count, plan, suspended, plan_expires_at, free_trial_expires_at')
     .eq('id', userId)
     .maybeSingle();
 
@@ -22,13 +21,14 @@ const planContext = async (req, res, next) => {
     return res.status(500).json({ error: 'Error al verificar plan de usuario' });
   }
 
-  // Perfil no existe — crear con trial de 14 días
+  // Perfil no existe — crear con trial de 7 días
   if (!data) {
-    const trialExpires = new Date(Date.now() + 14 * 24 * 3600 * 1000).toISOString();
+    const trialExpires = new Date(Date.now() + 7 * 24 * 3600 * 1000).toISOString();
     await db.from('profiles').insert({
       id: userId,
       usage_count: 0,
       cv_optimizer_count: 0,
+      cv_generar_count: 0,
       cv_match_count: 0,
       plan: 'free',
       suspended: false,
@@ -40,6 +40,7 @@ const planContext = async (req, res, next) => {
       config: PLAN_CONFIG.free,
       trialExpired: false,
       cv_optimizer_count: 0,
+      cv_generar_count: 0,
       cv_match_count: 0,
       usage_count: 0,
       free_trial_expires_at: trialExpires,
@@ -57,7 +58,7 @@ const planContext = async (req, res, next) => {
 
   // Plan expirado → degradar en memoria Y actualizar en DB para sincronía
   let plan = data.plan || 'free';
-  if (['semanal', 'mensual', 'trimestral', 'anual'].includes(plan) && data.plan_expires_at && new Date(data.plan_expires_at) < new Date()) {
+  if (['mensual', 'trimestral'].includes(plan) && data.plan_expires_at && new Date(data.plan_expires_at) < new Date()) {
     plan = 'free';
     // Actualizar en DB para mantener sincronía
     await db
@@ -80,6 +81,7 @@ const planContext = async (req, res, next) => {
     config,
     trialExpired,
     cv_optimizer_count: data.cv_optimizer_count || 0,
+    cv_generar_count:   data.cv_generar_count || 0,
     cv_match_count:     data.cv_match_count     || 0,
     usage_count:        data.usage_count        || 0,
     free_trial_expires_at: data.free_trial_expires_at,

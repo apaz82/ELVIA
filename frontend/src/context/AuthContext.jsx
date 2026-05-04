@@ -153,7 +153,7 @@ export const AuthProvider = ({ children }) => {
     }
 
     const plan = perfil.plan || 'free'
-    const PLANES_PAGO = ['semanal', 'mensual', 'trimestral', 'anual']
+    const PLANES_PAGO = ['mensual', 'trimestral']
 
     // Cualquier plan de pago expirado → degradar a free en el cliente
     const planExpirado =
@@ -165,7 +165,7 @@ export const AuthProvider = ({ children }) => {
     const isPaidPlan = PLANES_PAGO.includes(planEfectivo)
 
 
-    // Trial: 14 días desde el registro
+    // Trial: 7 días desde el registro
     const trialExpiresAt = perfil.free_trial_expires_at
       ? new Date(perfil.free_trial_expires_at)
       : null
@@ -176,7 +176,7 @@ export const AuthProvider = ({ children }) => {
 
     const trialDaysLeft = trialExpiresAt
       ? Math.max(0, Math.ceil((trialExpiresAt - new Date()) / (1000 * 60 * 60 * 24)))
-      : 14
+      : 7
 
     const cvOptimizerCount = perfil.cv_optimizer_count || 0
     const cvMatchCount     = perfil.cv_match_count     || 0

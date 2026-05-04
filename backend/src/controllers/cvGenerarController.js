@@ -182,16 +182,16 @@ Responde EXACTAMENTE con estos delimitadores XML (sin texto fuera de ellos):
 
     // Incrementar contadores
     const { data: profileData } = await supabaseAdmin.from('profiles')
-      .select('cv_optimizer_count, usage_count, plan')
+      .select('cv_generar_count, usage_count, plan')
       .eq('id', userId)
       .single()
 
     await supabaseAdmin.from('profiles').update({
-      cv_optimizer_count: (profileData?.cv_optimizer_count || 0) + 1,
-      usage_count:        (profileData?.usage_count || 0) + 1
+      cv_generar_count: (profileData?.cv_generar_count || 0) + 1,
+      usage_count:      (profileData?.usage_count || 0) + 1
     }).eq('id', userId)
 
-    const isPaidPlan = profileData && ['semanal', 'mensual', 'trimestral', 'anual'].includes(profileData.plan)
+    const isPaidPlan = profileData && ['mensual', 'trimestral'].includes(profileData.plan)
 
     res.json({
       id: savedId,
@@ -200,7 +200,7 @@ Responde EXACTAMENTE con estos delimitadores XML (sin texto fuera de ellos):
       recommendations: recomendaciones,
       language,
       usageCount: (profileData?.usage_count || 0) + 1,
-      cv_optimizer_count: (profileData?.cv_optimizer_count || 0) + 1,
+      cv_generar_count: (profileData?.cv_generar_count || 0) + 1,
       watermark: !isPaidPlan
     })
   } catch (err) {
