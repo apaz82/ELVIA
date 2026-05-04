@@ -51,6 +51,8 @@ export default function MisVacantes() {
     supabase.from('cv_results')
       .select('id, contenido, tipo, created_at')
       .eq('user_id', user.id)
+      .in('tipo', ['optimize', 'match', 'generar'])
+      .not('contenido', 'like', '{%')
       .order('created_at', { ascending: false })
       .limit(10)
       .then(({ data }) => {

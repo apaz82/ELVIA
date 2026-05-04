@@ -43,9 +43,10 @@ export default function DetalleVacanteDrawer({
     try {
       const { data: latestCV } = await supabase
         .from('cv_results')
-        .select('id')
+        .select('id, contenido')
         .eq('user_id', user.id)
         .eq('tipo', 'optimize')
+        .not('contenido', 'like', '{%')
         .order('created_at', { ascending: false })
         .limit(1)
         .single()
@@ -69,9 +70,10 @@ export default function DetalleVacanteDrawer({
     try {
       const { data: latestCV } = await supabase
         .from('cv_results')
-        .select('id')
+        .select('id, contenido')
         .eq('user_id', user.id)
         .eq('tipo', 'optimize')
+        .not('contenido', 'like', '{%')
         .order('created_at', { ascending: false })
         .limit(1)
         .single()

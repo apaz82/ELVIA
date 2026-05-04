@@ -40,6 +40,7 @@ export default function CVvsJob() {
       .select('id, contenido, metadata, created_at')
       .eq('user_id', user.id)
       .eq('tipo', 'optimize')
+      .not('contenido', 'like', '{%')
       .order('created_at', { ascending: false })
       .then(({ data }) => {
         const results = data || []
