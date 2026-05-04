@@ -102,6 +102,7 @@ export default function CVOptimizer() {
     supabase
       .from('cv_results')
       .select('id, contenido, metadata, created_at')
+      .eq('user_id', user.id)
       .eq('tipo', 'optimize')
       .order('created_at', { ascending: false })
       .then(({ data }) => setCvsExistentes(data || []))
@@ -188,6 +189,7 @@ export default function CVOptimizer() {
       const { data: actualizados } = await supabase
         .from('cv_results')
         .select('id, contenido, metadata, created_at')
+        .eq('user_id', user.id)
         .eq('tipo', 'optimize')
         .order('created_at', { ascending: false })
       setCvsExistentes(actualizados || [])
