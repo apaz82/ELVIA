@@ -41,6 +41,7 @@ export default function Auth() {
   const [apellido, setApellido]   = useState('')
   const [indicativo, setIndicativo] = useState('+52')
   const [telefono, setTelefono]   = useState('')
+  const [pais, setPais]           = useState('')
   const [loading, setLoading]           = useState(false)
   const [error, setError]               = useState('')
   const [aceptaPolitica, setAceptaPolitica] = useState(false)
@@ -115,6 +116,7 @@ export default function Auth() {
           apellido1:  apellido.trim(),
           indicativo1: indicativo,
           telefono1:  telefono.trim() || null,
+          pais:       pais || null,
         }, turnstileToken)
         if (error) {
           if (turnstileRef.current) turnstileRef.current.reset()
@@ -327,6 +329,22 @@ export default function Auth() {
                       className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 transition-colors"
                     />
                   </div>
+                </div>
+              )}
+
+              {/* País — solo en registro */}
+              {modo === 'register' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-600 mb-1">País <span className="text-red-400">*</span></label>
+                  <select
+                    value={pais} onChange={e => setPais(e.target.value)} required
+                    className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 bg-white transition-colors"
+                  >
+                    <option value="">Selecciona tu país</option>
+                    {['México','Colombia','Argentina','Chile','Perú','España','Estados Unidos','Venezuela','Ecuador','Bolivia','Uruguay','Paraguay','Costa Rica','Guatemala','Panamá','Otro'].map(p => (
+                      <option key={p} value={p}>{p}</option>
+                    ))}
+                  </select>
                 </div>
               )}
 

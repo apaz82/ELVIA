@@ -3,11 +3,12 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../services/authService'
-import { generarCVDesdeCero, extractarPerfilCV, descargarCV } from '../services/cvService'
+import { generarCVDesdeCero, extractarPerfilCV, descargarCV, optimizarResumenIA } from '../services/cvService'
 import {
   Plus, X, ArrowLeft, ArrowRight, Question, Check,
   CheckFat, SpinnerGap, Warning, FileArrowDown, UploadSimple,
-  WarningCircle, CheckCircle, DownloadSimple, FileDoc
+  WarningCircle, CheckCircle, DownloadSimple, FileDoc, MagicWand,
+  ArrowUUpLeft, Sparkle, Lock, PencilSimple, Notepad
 } from '@phosphor-icons/react'
 
 const PASOS = [
@@ -27,7 +28,7 @@ const HABILIDADES_COMUNES = ['Liderazgo', 'Comunicación', 'Resolución de probl
 const ESTADO_EMPTY = {
   nombre: '', nombre2: '', apellido: '', apellido2: '',
   email: '', indicativo: '+52', telefono: '', ciudad: '', pais: '',
-  cargo_objetivo: '', resumen: '',
+  resumen: '',
   experiencias: [{ empresa: '', cargo: '', fecha_inicio: '', fecha_fin: '', descripcion: '' }],
   educacion:    [{ institucion: '', titulo: '', anio: '' }],
   habilidades: [],
@@ -60,8 +61,7 @@ function analizarCalidad(d) {
   const recs = []
 
   // ── 1. Encabezado (18 pts) ─────────────────────────────────────────────────
-  if (d.nombre && d.apellido) pts += 4; else recs.push('Completa tu nombre y apellido completo')
-  if (d.cargo_objetivo)       pts += 4; else recs.push('Agrega un título profesional (ej: Operations Manager | Supply Chain)')
+  if (d.nombre && d.apellido) pts += 8; else recs.push('Completa tu nombre y apellido completo')
   if (d.email)                pts += 3; else recs.push('Agrega un correo electrónico profesional (nombre.apellido@...)')
   if (d.telefono)             pts += 4; else recs.push('Agrega tu número de teléfono con código de área internacional')
   if (d.ciudad && d.pais)     pts += 3; else recs.push('Especifica tu ciudad y país (sin dirección exacta)')
@@ -132,8 +132,7 @@ function calcularLlenado(d) {
   if (d.nombre && d.apellido) pts += 2
   if (d.email)   pts++
   if (d.telefono) pts++
-  if (d.ciudad && d.pais) pts++
-  if (d.cargo_objetivo) pts++
+  if (d.ciudad && d.pais) pts += 2
   if (d.resumen && d.resumen.length > 30) pts++
   if ((d.experiencias || []).some(e => e.empresa && e.cargo)) pts++
   if ((d.educacion || []).some(e => e.institucion && e.titulo)) pts++
@@ -214,7 +213,6 @@ function generarTipsPorPaso(d) {
 
   // Datos personales
   if (!d.nombre || !d.apellido) tips.datos.push('Agrega tu nombre y apellido completo')
-  if (!d.cargo_objetivo) tips.datos.push('Define un título profesional claro (ej: Operations Manager | Supply Chain)')
   if (!d.email) tips.datos.push('Agrega un correo profesional (nombre.apellido@...)')
   if (!d.telefono) tips.datos.push('Incluye tu teléfono con código internacional (+52, +57, etc.)')
   if (!d.ciudad || !d.pais) tips.datos.push('Especifica ciudad y país — mejora el match con vacantes locales')
@@ -282,6 +280,9 @@ export default function CVDesdeCero() {
   const [cvPending,     setCvPending]     = useState(null)   // datos extraídos en espera de confirmar
   const [cvFileName,    setCvFileName]    = useState('')
   const [alertaExistente, setAlertaExistente] = useState(false)
+  const [optimizandoResumen, setOptimizandoResumen] = useState(false)
+  const [resumenSugerido, setResumenSugerido] = useState('')
+  const [resumenBloqueado, setResumenBloqueado] = useState(false)
 
   // 1. Verificar si ya tiene CV al cargar
   useEffect(() => {
@@ -310,12 +311,13 @@ export default function CVDesdeCero() {
       if (!user) return
       const CACHE_KEY = `cv_draft_${user.id}`
 
-      // 1. Carga instantánea desde sessionStorage (evita spinner al regresar)
+      // 1. Carga desde sessionStorage (Solo si tiene datos reales para evitar pisar el perfil con vacíos)
       const cached = sessionStorage.getItem(CACHE_KEY)
       if (cached) {
         try {
           const b = JSON.parse(cached)
-          if (b?.datos && Object.keys(b.datos).length > 0) {
+          // Solo usar caché si tiene al menos un nombre o si el paso es avanzado
+          if (b?.datos && (b.datos.nombre || b.paso_actual > 0)) {
             setDatos(b.datos)
             setPasoActual(b.paso_actual || 0)
             setInicializando(false)
@@ -331,23 +333,25 @@ export default function CVDesdeCero() {
         if (!p) return
 
         const borrador = p?.job_search_profile?.cv_borrador
+        const jsp = p?.job_search_profile || {}
+
         if (borrador?.datos && Object.keys(borrador.datos).length > 0) {
           setDatos(borrador.datos)
           setPasoActual(borrador.paso_actual || 0)
           sessionStorage.setItem(CACHE_KEY, JSON.stringify({ datos: borrador.datos, paso_actual: borrador.paso_actual || 0 }))
         } else {
+          // Si no hay borrador, intentamos pre-llenar desde el perfil y del Gerente de Búsqueda (jsp)
           setDatos({
             ...ESTADO_EMPTY,
-            nombre:    p.nombre1  || '',
-            nombre2:   p.nombre2  || '',
-            apellido:  p.apellido1 || '',
-            apellido2: p.apellido2 || '',
+            nombre:    p.nombre1  || jsp.nombre1 || '',
+            nombre2:   p.nombre2  || jsp.nombre2 || '',
+            apellido:  p.apellido1 || jsp.apellido1 || '',
+            apellido2: p.apellido2 || jsp.apellido2 || '',
             email:     p.email_principal || p.email || '',
-            indicativo: p.indicativo1 || '+52',
-            telefono:  p.telefono1 || '',
-            ciudad:    p.ciudad   || '',
-            pais:      p.pais     || '',
-            cargo_objetivo: p.industria_actual || '',
+            indicativo: p.indicativo1 || jsp.indicativo1 || '+52',
+            telefono:  p.telefono1 || jsp.telefono1 || '',
+            ciudad:    p.ciudad   || jsp.ciudad   || '',
+            pais:      p.pais     || jsp.pais     || '',
           })
         }
       } catch (e) {
@@ -434,7 +438,6 @@ export default function CVDesdeCero() {
       telefono:       d.telefono1  || datos.telefono  || '',
       ciudad:         d.ciudad     || datos.ciudad    || '',
       pais:           d.pais       || datos.pais      || '',
-      cargo_objetivo: d.cargo_actual || datos.cargo_objetivo || '',
       resumen:        d.resumen    || '',                          // idioma original
       experiencias:   expArr,
       educacion:      eduArr,
@@ -508,6 +511,42 @@ export default function CVDesdeCero() {
       setGenerando(false)
     }
   }
+
+  const handleOptimizarResumen = async () => {
+    if (!datos.resumen || datos.resumen.length < 20) {
+      setError('Escribe al menos un borrador de tu resumen para optimizarlo.')
+      return
+    }
+    setOptimizandoResumen(true)
+    setError('')
+    setResumenBloqueado(false)
+    try {
+      const res = await optimizarResumenIA(datos.resumen, 'es')
+      console.log('[Debug] Respuesta IA:', res)
+      if (res.optimizado) {
+        setResumenSugerido(res.optimizado)
+      } else {
+        console.warn('[Debug] La respuesta no contiene un resumen optimizado:', res)
+      }
+    } catch (err) {
+      console.error('[Debug] Error capturado en handleOptimizarResumen:', err)
+      setError(`No pudimos optimizar tu resumen: ${err.message}`)
+    } finally {
+      setOptimizandoResumen(false)
+    }
+  }
+
+  // Compara dos textos y pone en negrita las palabras nuevas
+  const renderDiff = (original, sugerido) => {
+    if (!original || !sugerido) return sugerido
+    const wordsO = original.split(/\s+/)
+    const wordsS = sugerido.split(/\s+/)
+    return wordsS.map((w, i) => {
+      const exists = wordsO.some(ow => ow.toLowerCase().replace(/[.,]/g,'') === w.toLowerCase().replace(/[.,]/g,''))
+      return exists ? w + ' ' : <strong key={i} className="text-indigo-700 font-bold">{w} </strong>
+    })
+  }
+
 
   // ── Confirmar y guardar en BD ─────────────────────────────────────────────
   const confirmarYGuardar = async () => {
@@ -825,8 +864,7 @@ export default function CVDesdeCero() {
                   </select>
                 </div>
 
-                <input type="text" placeholder="Cargo objetivo (ej: Operations Manager)" value={datos.cargo_objetivo} onChange={e => upDatos('cargo_objetivo', e.target.value)}
-                  className="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400/50" />
+
                 {tipsPorPaso.datos.length > 0 && (
                   <div className="mt-1 p-3.5 bg-amber-50 border border-amber-200 rounded-xl">
                     <p className="text-xs font-bold text-amber-800 mb-1.5">💡 Tips para mejorar esta sección:</p>
@@ -838,19 +876,113 @@ export default function CVDesdeCero() {
 
             {/* PASO 1: Resumen */}
             {pasoActual === 1 && (
-              <div className="space-y-4">
-                <label className="text-sm font-bold text-slate-700 flex items-center gap-1 mb-2">
-                  Resumen profesional (3-4 líneas)
-                  <Tooltip text="Ej: 'Operations Manager with 8 years in manufacturing. Reduced costs by $2M in 2022. Seeking regional leadership role.'" />
-                </label>
-                <textarea placeholder="Describe tu perfil en el idioma que prefieras..." value={datos.resumen}
-                  onChange={e => upDatos('resumen', e.target.value)} rows={6} maxLength={800}
-                  className="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400/50 resize-none" />
-                <div className={`text-xs text-right -mt-1 ${datos.resumen.length >= 750 ? 'text-amber-500 font-semibold' : 'text-slate-400'}`}>{datos.resumen.length}/800 caracteres</div>
-                {tipsPorPaso.resumen.length > 0 && (
-                  <div className="mt-1 p-3.5 bg-amber-50 border border-amber-200 rounded-xl">
-                    <p className="text-xs font-bold text-amber-800 mb-1.5">💡 Tips para mejorar esta sección:</p>
-                    <ul className="space-y-1">{tipsPorPaso.resumen.map((t,i)=><li key={i} className="text-xs text-amber-700 flex gap-1.5"><span className="shrink-0">→</span><span>{t}</span></li>)}</ul>
+              <div className="space-y-6">
+                
+                {/* CAJA 1: Borrador / Entrada */}
+                <div className={`transition-all duration-300 ${resumenBloqueado ? 'opacity-50 pointer-events-none scale-[0.98]' : ''}`}>
+                  <label className="text-sm font-bold text-slate-700 flex items-center justify-between mb-2">
+                    <span className="flex items-center gap-1">
+                      1. Tu borrador profesional
+                      <Tooltip text="Escribe libremente tus logros y trayectoria. La IA te ayudará a pulirlo." />
+                    </span>
+                    {resumenBloqueado && <button onClick={()=>setResumenBloqueado(false)} className="text-xs text-indigo-600 font-bold hover:underline">Editar de nuevo</button>}
+                  </label>
+                  <textarea 
+                    placeholder="Describe tu trayectoria..." 
+                    value={datos.resumen}
+                    onChange={e => upDatos('resumen', e.target.value)} 
+                    rows={5} 
+                    maxLength={800}
+                    className="w-full border border-slate-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400/50 resize-none bg-white shadow-sm" 
+                  />
+                  <div className="flex items-center justify-between mt-2">
+                    <button
+                      onClick={handleOptimizarResumen}
+                      disabled={optimizandoResumen || !datos.resumen || resumenBloqueado}
+                      className={`flex items-center gap-2 text-xs font-bold px-4 py-2 rounded-xl transition-all shadow-sm ${optimizandoResumen ? 'bg-slate-100 text-slate-400' : 'bg-white text-indigo-600 hover:bg-indigo-50 border border-indigo-100'}`}
+                    >
+                      {optimizandoResumen ? <SpinnerGap size={16} className="animate-spin" /> : <MagicWand size={16} weight="bold" />}
+                      {optimizandoResumen ? 'Analizando...' : 'Sugerencia de mejora'}
+                    </button>
+                    <div className={`text-[10px] ${datos.resumen.length >= 750 ? 'text-amber-500 font-bold' : 'text-slate-400'}`}>{datos.resumen.length}/800 caracteres</div>
+                  </div>
+                </div>
+
+                {/* CAJA 2: Sugerencia Editable con Diff */}
+                {resumenSugerido && !resumenBloqueado && (
+                  <div className="p-5 bg-indigo-50/40 border border-indigo-100 rounded-2xl animate-in fade-in slide-in-from-top-4 shadow-sm border-dashed border-2">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-2">
+                        <MagicWand size={18} weight="fill" className="text-indigo-600" />
+                        <span className="text-xs font-black text-indigo-900 uppercase tracking-widest">Sugerencia de mejora (Editable)</span>
+                      </div>
+                      <button onClick={() => setResumenSugerido('')} className="text-slate-400 hover:text-slate-600 transition-colors"><X size={18} /></button>
+                    </div>
+                    
+                    {/* Visualización de Cambios (Diff) */}
+                    <div className="mb-4 p-3 bg-white/60 rounded-lg text-xs leading-relaxed text-slate-600 border border-indigo-50">
+                      <p className="font-bold text-[10px] text-indigo-400 uppercase mb-1">Cambios detectados:</p>
+                      {renderDiff(datos.resumen, resumenSugerido)}
+                    </div>
+
+                    <textarea 
+                      value={resumenSugerido}
+                      onChange={e => setResumenSugerido(e.target.value)}
+                      rows={4}
+                      className="w-full bg-white border border-indigo-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400/30 resize-none shadow-inner mb-4"
+                    />
+
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() => { upDatos('resumen', resumenSugerido); setResumenSugerido(''); setResumenBloqueado(true) }}
+                        className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2 shadow-md shadow-indigo-200"
+                      >
+                        <CheckFat size={16} weight="fill" /> Aplicar y Finalizar
+                      </button>
+                      <button
+                        onClick={() => setResumenSugerido('')}
+                        className="px-6 bg-white border border-slate-200 text-slate-500 text-xs font-bold py-3 rounded-xl hover:bg-slate-50 transition-all"
+                      >
+                        Ignorar
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* CAJA 3: Resultado Final (Solo Lectura) */}
+                {resumenBloqueado && (
+                  <div className="p-6 bg-emerald-50/50 border border-emerald-200 rounded-3xl animate-in zoom-in-95 duration-500 shadow-xl shadow-emerald-900/5">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-10 h-10 rounded-2xl bg-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-200">
+                        <Lock size={20} weight="fill" className="text-white" />
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Sección Completada</p>
+                        <p className="text-sm font-bold text-slate-800 leading-tight">Tu resumen profesional final</p>
+                      </div>
+                    </div>
+                    <div className="bg-white p-5 rounded-2xl border border-emerald-100 shadow-inner relative group">
+                      <p className="text-sm text-slate-700 leading-relaxed italic">
+                        "{datos.resumen}"
+                      </p>
+                      <button 
+                        onClick={() => setResumenBloqueado(false)}
+                        className="absolute -top-3 -right-3 w-8 h-8 bg-white border border-slate-200 rounded-full flex items-center justify-center text-slate-400 hover:text-indigo-600 hover:border-indigo-200 shadow-sm transition-all opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100"
+                        title="Editar de nuevo"
+                      >
+                        <PencilSimple size={16} weight="bold" />
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {tipsPorPaso.resumen.length > 0 && !resumenBloqueado && !resumenSugerido && (
+                  <div className="mt-2 p-4 bg-amber-50 border border-amber-200 rounded-2xl shadow-sm">
+                    <p className="text-xs font-bold text-amber-800 mb-2 flex items-center gap-1.5">
+                      <Notepad size={16} className="text-amber-500" />
+                      💡 Tips para mejorar esta sección:
+                    </p>
+                    <ul className="space-y-1.5">{tipsPorPaso.resumen.map((t,i)=><li key={i} className="text-xs text-amber-700 flex gap-2 leading-relaxed"><span className="shrink-0 text-amber-400">●</span><span>{t}</span></li>)}</ul>
                   </div>
                 )}
               </div>

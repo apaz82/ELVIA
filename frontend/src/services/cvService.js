@@ -40,6 +40,11 @@ export const generarCVDesdeCero = async (datos, language = 'es') => {
   return api.post('/api/cv/generar', { datos, language })
 }
 
+// Optimizar resumen profesional con IA
+export const optimizarResumenIA = async (texto, idioma = 'es') => {
+  return api.post('/api/cv/optimizar-resumen', { texto, idioma })
+}
+
 // Descargar CV generado como PDF o Word
 export const descargarCV = async (id, format = 'pdf') => {
   const res = await api.download(`/api/cv/download/${id}?format=${format}`)

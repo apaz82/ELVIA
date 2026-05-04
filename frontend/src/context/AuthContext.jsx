@@ -128,7 +128,8 @@ export const AuthProvider = ({ children }) => {
     return () => subscription.unsubscribe()
   }, [fetchPerfil, fetchJpData])
 
-  const login    = useCallback((email, password) => supabase.auth.signInWithPassword({ email, password }), [])
+  const login = useCallback((email, password) =>
+    supabase.auth.signInWithPassword({ email, password }), [])
   const register = useCallback((email, password, extraData = {}, captchaToken) =>
     supabase.auth.signUp({ email, password, options: { data: extraData, captchaToken } }), [])
   const logout   = useCallback(() => supabase.auth.signOut(), [])

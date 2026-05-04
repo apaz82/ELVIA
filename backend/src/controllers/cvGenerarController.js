@@ -82,17 +82,21 @@ HABILIDADES
 IDIOMAS
 • Idioma - Nivel`
 
-    // Llamar a Claude
-    const Anthropic = require('@anthropic-ai/sdk')
-    const anthropic = new Anthropic()
+    // Llamar a DeepSeek V3 (compatible con OpenAI API — más económico que Haiku)
+    const OpenAI = require('openai')
+    const deepseek = new OpenAI({
+      apiKey: process.env.DEEPSEEK_API_KEY,
+      baseURL: 'https://api.deepseek.com/v1',
+    })
 
-    const response = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',  // Haiku es suficiente para generar desde datos estructurados
+    const response = await deepseek.chat.completions.create({
+      model: 'deepseek-chat',
       max_tokens: 4096,
-      system: SISTEMA_CV,
-      messages: [{
-        role: 'user',
-        content: `Construye un CV profesional en formato Harvard a partir de los siguientes datos estructurados.
+      messages: [
+        { role: 'system', content: SISTEMA_CV },
+        {
+          role: 'user',
+          content: `Construye un CV profesional en formato Harvard a partir de los siguientes datos estructurados.
 
 REGLAS CRITICAS:
 - USA SOLO la informacion provista. NO inventes datos ni logros
@@ -124,10 +128,11 @@ Responde EXACTAMENTE con estos delimitadores XML (sin texto fuera de ellos):
 <CV>[CV completo optimizado en formato Harvard]</CV>
 <CAMBIOS>- mejora aplicada 1\n- mejora 2</CAMBIOS>
 <RECOMENDACIONES>- recomendacion 1\n- recomendacion 2</RECOMENDACIONES>`
-      }]
+        }
+      ]
     })
 
-    const text = response.content[0].text
+    const text = response.choices[0].message.content
 
     // Parsear respuesta con delimitadores XML
     const cvMatch  = text.match(/<CV>([\s\S]*?)<\/CV>/)

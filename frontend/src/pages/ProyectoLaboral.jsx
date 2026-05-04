@@ -537,20 +537,14 @@ function PilarMiPerfil({ perfil, extraData, onChange, onSavePerfil, saving, isPa
         </div>
         {cvDatos && (
           <>
-            {cvMismatch && !cvForceApply ? (
+            {cvMismatch ? (
               <div className="mt-3 flex items-start gap-3 p-3 rounded-xl bg-red-50 border border-red-200">
                 <WarningCircle size={16} weight="fill" className="text-red-500 shrink-0 mt-0.5"/>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-bold text-red-700 mb-1">El CV no corresponde al usuario registrado</p>
-                  <p className="text-xs text-red-600 mb-2">
-                    El nombre en el CV ({[cvDatos.nombre1, cvDatos.apellido1].filter(Boolean).join(' ')})
-                    no coincide con tu registro ({[perfil?.nombre1, perfil?.apellido1].filter(Boolean).join(' ')}).
+                  <p className="text-sm font-bold text-red-700 mb-1">El CV no corresponde al usuario registrado</p>
+                  <p className="text-sm text-red-600 leading-snug">
+                    Los nombres y apellidos con los que te registraste deben estar en la CV, valida que el documento esta correctamente escrito.
                   </p>
-                  <button
-                    onClick={() => setCvForceApply(true)}
-                    className="text-xs text-white bg-red-600 hover:bg-red-700 px-3 py-1 rounded font-bold cursor-pointer transition-colors">
-                    Confirmar que es mi CV →
-                  </button>
                 </div>
               </div>
             ) : (
@@ -579,7 +573,7 @@ function PilarMiPerfil({ perfil, extraData, onChange, onSavePerfil, saving, isPa
 
         {/* Disclaimer */}
         <div className="mt-3 p-3 rounded-lg bg-amber-50 border border-amber-200">
-          <p className="text-[10px] font-semibold text-amber-800 leading-relaxed">
+          <p className="text-xs font-semibold text-amber-800 leading-relaxed">
             <span className="font-bold">⚠️ Aviso importante:</span> Si usas la información de otra persona sin autorización expresa, se incumplen los términos y condiciones de ELVIA así como la privacidad de la información. Solo debes subir CVs propios o autorizados.
           </p>
         </div>
@@ -592,8 +586,8 @@ function PilarMiPerfil({ perfil, extraData, onChange, onSavePerfil, saving, isPa
         {/* Detección de borrador guardado (solo usuarios pago) */}
         {isPaidPlan && data?.cv_borrador && (
           <div className="mt-4 bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-center justify-between">
-            <p className="text-xs text-amber-800 font-semibold">Tienes un CV en progreso</p>
-            <Link to="/cv-desde-cero" className="text-xs text-amber-600 hover:text-amber-700 font-bold">Continuar →</Link>
+            <p className="text-sm text-amber-800 font-semibold">Tienes un CV en progreso</p>
+            <Link to="/cv-desde-cero" className="text-sm text-amber-600 hover:text-amber-700 font-bold">Continuar →</Link>
           </div>
         )}
 
@@ -609,7 +603,7 @@ function PilarMiPerfil({ perfil, extraData, onChange, onSavePerfil, saving, isPa
                   <p className="text-sm font-black text-slate-800">Tu CV Inicial Generado</p>
                 </div>
                 {!isComplete && (
-                  <p className="text-[10px] font-bold text-amber-600 mb-2 uppercase tracking-tight bg-amber-50 px-2 py-0.5 rounded border border-amber-100 w-fit">
+                  <p className="text-xs font-bold text-amber-600 mb-2 uppercase tracking-tight bg-amber-50 px-2 py-0.5 rounded border border-amber-100 w-fit">
                     Bloqueado hasta completar el 100%
                   </p>
                 )}
@@ -656,7 +650,7 @@ function PilarMiPerfil({ perfil, extraData, onChange, onSavePerfil, saving, isPa
         {/* Banner: Importancia de CV (si no hay CV cargada ni borrador) */}
         {!perfil?.cv_path && !data?.cv_borrador && (
           <div className="mt-4 bg-slate-50 border border-slate-200 rounded-xl p-3">
-            <p className="text-xs text-slate-700 font-semibold">⚠️ Sin CV inicial no llegarás al 100% de esta sección y no podrás usar todas las funcionalidades del Gerente de Proyecto.</p>
+            <p className="text-sm text-slate-700 font-semibold">⚠️ Sin CV inicial no llegarás al 100% de esta sección y no podrás usar todas las funcionalidades del Gerente de Proyecto.</p>
           </div>
         )}
       </div>
@@ -671,10 +665,30 @@ function PilarMiPerfil({ perfil, extraData, onChange, onSavePerfil, saving, isPa
       {subTab==='datos'&&(
         <div className="space-y-5">
           <div className="grid grid-cols-2 gap-3">
-            {[['nombre1','Primer nombre *'],['nombre2','Segundo nombre'],['apellido1','Primer apellido *'],['apellido2','Segundo apellido']].map(([k,l])=>(
-              <div key={k}><label className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1 block">{l}</label>
-                <input value={lp[k]||''} onChange={e=>setLP(f=>({...f,[k]:e.target.value}))} placeholder={l.replace(' *','')}
-                  className="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400/40 focus:border-indigo-400"/></div>
+            {[
+              { k: 'nombre1',   label: 'Primer nombre *',   isReadOnly: true },
+              { k: 'nombre2',   label: 'Segundo nombre',     isReadOnly: false },
+              { k: 'apellido1', label: 'Primer apellido *', isReadOnly: true },
+              { k: 'apellido2', label: 'Segundo apellido',   isReadOnly: false }
+            ].map(({ k, label, isReadOnly }) => (
+              <div key={k}>
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1 block">{label}</label>
+                {isReadOnly ? (
+                  <input 
+                    value={perfil?.[k] || ''} 
+                    readOnly 
+                    title="Este campo no se puede modificar"
+                    className="w-full border border-slate-200 bg-slate-50 rounded-xl px-3 py-2.5 text-sm text-slate-500 cursor-not-allowed focus:outline-none"
+                  />
+                ) : (
+                  <input 
+                    value={lp[k] || ''} 
+                    onChange={e => setLP(f => ({ ...f, [k]: e.target.value }))}
+                    placeholder="Opcional"
+                    className="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400/40"
+                  />
+                )}
+              </div>
             ))}
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -2148,25 +2162,59 @@ export default function ProyectoLaboral() {
 
       {/* ══════════ HERO HEADER ══════════ */}
       {!mostrarHeroCompleto && (
-        <div className="bg-white border-b border-slate-200 py-3 px-6">
+        <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 border-b border-slate-700 py-4 px-6 shadow-lg">
           <div className="max-w-5xl mx-auto flex items-center gap-4">
-            <div className="w-6 h-6 rounded-lg bg-violet-600/10 flex items-center justify-center shrink-0">
-              <Target size={13} weight="fill" className="text-violet-600"/>
-            </div>
-            <span className="text-sm font-semibold text-slate-700 flex-1">Gerente de Búsqueda</span>
-            <div className="flex items-center gap-2">
-              <div className="w-24 h-1.5 bg-slate-100 rounded-full">
-                <div className="h-1.5 bg-violet-500 rounded-full transition-all" style={{ width: `${pct}%` }} />
+            {/* Icono + título */}
+            <div className="flex items-center gap-2.5 shrink-0">
+              <div className="w-8 h-8 rounded-xl bg-violet-500/20 border border-violet-400/30 flex items-center justify-center">
+                <Target size={16} weight="fill" className="text-violet-300"/>
               </div>
-              <span className="text-xs font-bold text-violet-600">{pct}%</span>
+              <span className="text-sm font-black text-white tracking-tight hidden sm:block">Autoconocimiento</span>
             </div>
+
+            {/* Barra de progreso — centrada y más grande */}
+            <div className="flex-1 flex flex-col items-center gap-1">
+              <div className="flex items-center gap-2 w-full max-w-xs">
+                <div className="flex-1 h-2.5 bg-slate-700 rounded-full overflow-hidden shadow-inner">
+                  <div
+                    className="h-full rounded-full transition-all duration-1000"
+                    style={{
+                      width: `${pct}%`,
+                      background: pct >= 80
+                        ? 'linear-gradient(90deg,#10b981,#34d399)'
+                        : pct >= 40
+                        ? 'linear-gradient(90deg,#f59e0b,#fbbf24)'
+                        : 'linear-gradient(90deg,#8b5cf6,#a78bfa)'
+                    }}
+                  />
+                </div>
+                <span className="text-sm font-black text-white tabular-nums">{pct}%</span>
+              </div>
+              <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">tu progreso actual</span>
+            </div>
+
+            {/* Botón "Ver avance" centrado con animación */}
             <button
               onClick={() => setHeroVisible(true)}
-              className="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-white text-[11px] font-black px-3 py-1.5 rounded-lg transition-all hover:scale-105 shadow-sm ml-2"
+              className="shrink-0 flex items-center gap-2 bg-violet-600 hover:bg-violet-500 text-white text-xs font-black px-4 py-2.5 rounded-xl transition-all hover:scale-105 shadow-lg shadow-violet-900/50"
+              style={{ animation: 'pulse-glow 2s ease-in-out infinite' }}
             >
-              Ver avance ↓
+              <span>Ver avance</span>
+              <span className="inline-block" style={{ animation: 'bounce-y 1s ease-in-out infinite' }}>↓</span>
             </button>
           </div>
+
+          {/* Keyframes inline para la animación */}
+          <style>{`
+            @keyframes pulse-glow {
+              0%, 100% { box-shadow: 0 0 0 0 rgba(139,92,246,0.4), 0 4px 24px rgba(139,92,246,0.3); }
+              50%       { box-shadow: 0 0 0 6px rgba(139,92,246,0), 0 4px 24px rgba(139,92,246,0.6); }
+            }
+            @keyframes bounce-y {
+              0%, 100% { transform: translateY(0); }
+              50%       { transform: translateY(3px); }
+            }
+          `}</style>
         </div>
       )}
       {mostrarHeroCompleto && <div className="bg-white border-b border-slate-200">

@@ -9,8 +9,8 @@ const checkCvMatchLimit     = require('../middleware/checkCvMatchLimit');
 const requireActiveTrial    = require('../middleware/requireActiveTrial');
 const { dailyCap }          = require('../middleware/dailyCap');
 const upload                = require('../middleware/upload');
-const { limiterOptimize, limiterMatch } = require('../middleware/rateLimiter');
-const { optimize, matchToJob, download, extractProfile, generarInfografia, generarInfografiaProyecto, generarCartaPresentacion } = require('../controllers/cvController')
+const { limiterOptimize, limiterMatch, limiterResumen } = require('../middleware/rateLimiter');
+const { optimize, matchToJob, download, extractProfile, generarInfografia, generarInfografiaProyecto, generarCartaPresentacion, optimizarResumen } = require('../controllers/cvController')
 const { generarCV } = require('../controllers/cvGenerarController')
 
 // Optimización de CV — hard cap + 1 análisis gratis + rate limit (5/15min)
@@ -36,5 +36,8 @@ router.post('/infografia-proyecto', auth, generarInfografiaProyecto);
 
 // Carta de presentación para una vacante (consume dailyCap, auth requerido)
 router.post('/carta', auth, dailyCap, limiterMatch, generarCartaPresentacion);
+
+// Optimiza el resumen profesional (tono humano, ortografía, estructura)
+router.post('/optimizar-resumen', auth, limiterResumen, optimizarResumen);
 
 module.exports = router;

@@ -8,6 +8,7 @@ const TABS_B2C = [
   { id: 'codigos',       label: 'Códigos',        icon: PI.Tag },
   { id: 'waitlist',      label: 'Lista de Espera', icon: PI.ListStar },
   { id: 'marketing',     label: 'Marketing Hub',  icon: PI.TrendUp },
+  { id: 'knowledge',     label: 'Conocimiento',   icon: PI.Brain },
   { id: 'sistema',       label: 'Configuración',  icon: PI.Gear },
 ]
 

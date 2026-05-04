@@ -8,13 +8,43 @@ try {
   console.error('[Anthropic] CRITICAL: Error al inicializar cliente. ¿Falta ANTHROPIC_API_KEY?', error.message);
 }
 
-// ── Estrategia de modelos ─────────────────────────────────────
-// Sonnet 4.6  → tasks que requieren escritura creativa de alta calidad:
-//               optimizeCV, matchCVtoJob, analizarLinkedin, evaluarEntrevista
-// Haiku 4.5   → tasks de extracción/clasificación/respuestas cortas:
-//               generateChatResponse, generarPreguntasEntrevista, extractProfile
-const MODELO        = 'claude-sonnet-4-6';
+const MODELO = 'claude-sonnet-4-6';
 const MODELO_RAPIDO = 'claude-haiku-4-5-20251001';
+
+/**
+ * Optimiza un resumen profesional con tono humano y ejecutivo.
+ * @param {string} texto El resumen original del usuario.
+ * @param {string} idioma Idioma destino ('es' o 'en').
+ */
+async function optimizarResumen(texto, idioma = 'es') {
+  if (!texto || texto.trim().length < 10) return texto;
+  
+  try {
+    const response = await client.messages.create({
+      model: MODELO, // Cambiamos a Sonnet 3.5 para probar estabilidad
+      max_tokens: 1000,
+      temperature: 0.3, // Estable y sin divagaciones
+      system: `Eres un Senior Career Coach experto en redacción profesional.
+      Tu tarea es optimizar el resumen del usuario para que sea claro, ejecutivo y sin sesgos.
+
+      REGLAS:
+      1. REESCRITURA: Mejora la redacción, gramática y vocabulario.
+      2. FIDELIDAD: No inventes datos. Usa solo la información proporcionada.
+      3. ESTRUCTURA: [Trayectoria] + [Especialidad] + [Valor Diferencial].
+      4. SÍNTESIS: Sé directo y profesional.
+      5. PRIMERA PERSONA: Usa "yo", "mis", "mi" — escribe como si la persona hablara de sí misma.
+      6. Responde únicamente con el párrafo optimizado en ${idioma === 'es' ? 'Español' : 'Inglés'}. Sin comillas ni explicaciones.`,
+      messages: [{ role: 'user', content: `Optimiza este resumen profesional: "${texto}"` }]
+    });
+
+    const result = response.content[0].text.trim().replace(/^["'«]+|["'»]+$/g, '').trim();
+    console.log('[Claude] Resumen optimizado con éxito.');
+    return result;
+  } catch (error) {
+    console.error('[Claude] Error en optimizarResumen:', error.message);
+    return texto;
+  }
+}
 
 // --- Instrucciones del sistema compartidas ---
 const SISTEMA_BASE = `Eres un experto en recursos humanos y redacción de CV con 20 años de experiencia
@@ -81,20 +111,20 @@ const parsearRespuestaOptimize = (text) => {
 };
 
 const parsearRespuestaMatch = (text) => {
-  const cvMatch        = text.match(/<CV>([\s\S]*?)<\/CV>/);
-  const scoreMatch     = text.match(/<SCORE>([\s\S]*?)<\/SCORE>/);
-  const analisisMatch  = text.match(/<ANALISIS>([\s\S]*?)<\/ANALISIS>/);
-  const cambiosMatch   = text.match(/<CAMBIOS>([\s\S]*?)<\/CAMBIOS>/);
-  const jobMatch       = text.match(/<VACANTE>([\s\S]*?)<\/VACANTE>/);
-  const kwMatch        = text.match(/<KEYWORDS>([\s\S]*?)<\/KEYWORDS>/);
-  const dimMatch       = text.match(/<DIMENSIONES>([\s\S]*?)<\/DIMENSIONES>/);
+  const cvMatch = text.match(/<CV>([\s\S]*?)<\/CV>/);
+  const scoreMatch = text.match(/<SCORE>([\s\S]*?)<\/SCORE>/);
+  const analisisMatch = text.match(/<ANALISIS>([\s\S]*?)<\/ANALISIS>/);
+  const cambiosMatch = text.match(/<CAMBIOS>([\s\S]*?)<\/CAMBIOS>/);
+  const jobMatch = text.match(/<VACANTE>([\s\S]*?)<\/VACANTE>/);
+  const kwMatch = text.match(/<KEYWORDS>([\s\S]*?)<\/KEYWORDS>/);
+  const dimMatch = text.match(/<DIMENSIONES>([\s\S]*?)<\/DIMENSIONES>/);
 
   // Parsear análisis en secciones
   let analisis = null;
   if (analisisMatch) {
     const raw = analisisMatch[1].trim();
     const fortalezasMatch = raw.match(/FORTALEZAS:\s*([\s\S]*?)(?=BRECHAS:|$)/i);
-    const brechasMatch    = raw.match(/BRECHAS:\s*([\s\S]*?)(?=CONCLUSION:|$)/i);
+    const brechasMatch = raw.match(/BRECHAS:\s*([\s\S]*?)(?=CONCLUSION:|$)/i);
     const conclusionMatch = raw.match(/CONCLUSION:\s*([\s\S]*?)$/i);
     analisis = {
       fortalezas: fortalezasMatch
@@ -110,13 +140,13 @@ const parsearRespuestaMatch = (text) => {
   let jobData = { title: '', location: '', country: '' };
   if (jobMatch) {
     const jobText = jobMatch[1].trim();
-    const titleMatch    = jobText.match(/titulo:\s*(.+)/i);
+    const titleMatch = jobText.match(/titulo:\s*(.+)/i);
     const locationMatch = jobText.match(/ubicacion:\s*(.+)/i);
-    const countryMatch  = jobText.match(/pais:\s*(.+)/i);
+    const countryMatch = jobText.match(/pais:\s*(.+)/i);
     jobData = {
-      title:    titleMatch    ? titleMatch[1].trim()    : '',
+      title: titleMatch ? titleMatch[1].trim() : '',
       location: locationMatch ? locationMatch[1].trim() : '',
-      country:  countryMatch  ? countryMatch[1].trim()  : '',
+      country: countryMatch ? countryMatch[1].trim() : '',
     };
   }
 
@@ -130,7 +160,7 @@ const parsearRespuestaMatch = (text) => {
       return m[1].split(',').map(s => s.trim().replace(/^["'\[\]]+|["'\[\]]+$/g, '')).filter(Boolean);
     };
     keywords = {
-      criticas:        { presentes: parseKwList(/CRITICAS_PRESENTES:\s*\[([^\]]*)\]/i),  ausentes: parseKwList(/CRITICAS_AUSENTES:\s*\[([^\]]*)\]/i)  },
+      criticas: { presentes: parseKwList(/CRITICAS_PRESENTES:\s*\[([^\]]*)\]/i), ausentes: parseKwList(/CRITICAS_AUSENTES:\s*\[([^\]]*)\]/i) },
       complementarias: { presentes: parseKwList(/COMPLEMENTARIAS_PRESENTES:\s*\[([^\]]*)\]/i), ausentes: parseKwList(/COMPLEMENTARIAS_AUSENTES:\s*\[([^\]]*)\]/i) },
     };
   }
@@ -281,50 +311,56 @@ formato_ats: [0-100, qué tan optimizado está el CV para superar filtros ATS: c
  * Genera respuesta conversacional para el AI Copilot
  */
 const generateChatResponse = async (message, history, context) => {
+  console.log('[Claude] Generando respuesta RAG Híbrida para:', message.substring(0, 50));
+
+  let retrievedDocs = '';
+  try {
+    const { searchKnowledgeBase } = require('./geminiService');
+    retrievedDocs = await searchKnowledgeBase(message);
+    console.log('[Claude] Contexto RAG recuperado con éxito.');
+  } catch (e) {
+    console.error('[Claude] Error recuperando RAG (Gemini):', e.message);
+  }
+
   const systemPrompt = `Eres "ELVIA", la asistente y mentora experta en crecimiento profesional y reclutamiento para la plataforma "ELVIA". Tu personalidad es empoderadora, profesional y cercana.
 
 TEMAS QUE PUEDES RESPONDER:
-- Uso de las funciones de ELVIA (CV Optimizer, CV vs Vacante, Gerente de Búsqueda, Pipeline, Biblioteca, etc.)
+- Uso de las funciones de ELVIA (CV Optimizer, CV vs Vacante, Gerente de Búsqueda, Biblioteca, etc.)
 - Consejos de carrera: CV, carta de presentación, negociación salarial, LinkedIn
 - Procesos de selección: entrevistas, qué buscan los reclutadores, cómo destacar
-- Estrategias de búsqueda de empleo en LATAM y USA hispanohablante
-- Bienestar durante la búsqueda: manejo del estrés, motivación, organización
 
-TEMAS PROHIBIDOS — responde exactamente con la frase indicada, sin agregar más:
-- Política, religión, ideologías, noticias, entretenimiento, deportes → responde: "Ese tema está fuera de mi especialidad. ¿Te puedo ayudar con algo de tu carrera o con el uso de la app?"
-- Precios, cobros, facturación, reembolsos → responde: "Para temas de suscripción y pagos, escríbenos a soporte@elvia.lat"
-- Información interna de la empresa, estrategia, métricas, datos de otros usuarios → responde: "No tengo acceso a esa información."
-- Documentos internos, archivos, políticas no públicas → responde: "Esa información está disponible en la sección Biblioteca de la app para usuarios con acceso."
-- Generar código, scripts, o cualquier contenido dañino → responde: "Eso está fuera de mis capacidades como mentora de carrera."
+TEMAS PROHIBIDOS — responde exactamente:
+- Política, religión, deportes, etc. → "Ese tema está fuera de mi especialidad."
+- Generar código, scripts → "Eso está fuera de mis capacidades."
 
-FORMATO:
-- Usa Markdown (negritas, listas) para respuestas fáciles de leer
-- Máximo 3-4 párrafos o 5-6 bullets — respuestas concisas
-- Si el usuario está en /dashboard, recuérdale al final que completar el Gerente de Búsqueda desbloquea todas las herramientas
+BASE DE CONOCIMIENTOS (Usa esta información para responder si es relevante):
+${retrievedDocs ? retrievedDocs : 'No hay documentos específicos para esta pregunta.'}
 
-Acciones rápidas disponibles:
-- "Preguntas sobre la app": explica CV Optimizer, CV vs Vacante, Gerente de Búsqueda, Mis CVs
-- "Sobre procesos de selección": consejos de entrevista, LinkedIn, negociación salarial
-- "Quieres una frase motivadora": frase corta e inspiradora sobre éxito profesional
-
-Contexto actual: ${context || 'Navegando en la plataforma'}
+Contexto actual del usuario: ${context || 'Navegando en la plataforma'}
 `;
 
-  const formattedHistory = history.map(msg => ({
-    role: msg.role === 'user' ? 'user' : 'assistant',
-    content: msg.content
-  }));
+  const formattedHistory = (Array.isArray(history) ? history : [])
+    .filter(msg => msg && (msg.content || msg.text || msg.message))
+    .map(msg => ({
+      role: msg.role === 'user' ? 'user' : 'assistant',
+      content: String(msg.content || msg.text || msg.message || '')
+    }));
 
   formattedHistory.push({ role: 'user', content: message });
 
-  const response = await client.messages.create({
-    model: MODELO_RAPIDO,
-    max_tokens: 600,
-    system: systemPrompt,
-    messages: formattedHistory,
-  });
-
-  return response.content[0].text;
+  try {
+    const response = await client.messages.create({
+      model: MODELO_RAPIDO, // Claude 3 Haiku
+      max_tokens: 1000,
+      temperature: 0.6,
+      system: systemPrompt,
+      messages: formattedHistory,
+    });
+    return response.content[0].text;
+  } catch (error) {
+    console.error('[Claude] Error generando respuesta de chat:', error);
+    return "Lo siento, tengo un problema técnico al conectarme con mis servidores. ¿Podrías intentar tu pregunta de nuevo?";
+  }
 };
 
 /**
@@ -332,7 +368,7 @@ Contexto actual: ${context || 'Navegando en la plataforma'}
  */
 const generarPreguntasEntrevista = async ({ empresa, cargo, entrevistador, descripcion, numPreguntas }) => {
   const tecnicas = Math.ceil(numPreguntas * 0.5)
-  const soft     = numPreguntas - tecnicas
+  const soft = numPreguntas - tecnicas
 
   const prompt = `Eres un experto en procesos de selección en LATAM. Genera exactamente ${numPreguntas} preguntas de entrevista para el siguiente perfil:
 
@@ -448,11 +484,11 @@ Responde ÚNICAMENTE con este JSON (sin texto adicional):
  */
 const analizarLinkedin = async ({ titular, extracto, experiencia, habilidades, educacion, contextoLaboral }) => {
   const secciones = []
-  if (titular?.trim())    secciones.push(`TITULAR:\n${titular}`)
-  if (extracto?.trim())   secciones.push(`EXTRACTO:\n${extracto}`)
+  if (titular?.trim()) secciones.push(`TITULAR:\n${titular}`)
+  if (extracto?.trim()) secciones.push(`EXTRACTO:\n${extracto}`)
   if (experiencia?.trim()) secciones.push(`EXPERIENCIA:\n${experiencia}`)
   if (habilidades?.trim()) secciones.push(`HABILIDADES:\n${habilidades}`)
-  if (educacion?.trim())   secciones.push(`EDUCACION:\n${educacion}`)
+  if (educacion?.trim()) secciones.push(`EDUCACION:\n${educacion}`)
 
   const prompt = `Eres un experto en personal branding y LinkedIn para el mercado laboral de LATAM 2026.
 Analiza las siguientes secciones del perfil LinkedIn de un profesional y devuelve un análisis detallado.
@@ -461,13 +497,13 @@ PERFIL A ANALIZAR:
 ${secciones.join('\n\n')}
 
 ${contextoLaboral ? `CONTEXTO DEL PROYECTO LABORAL DEL USUARIO:
-${JSON.stringify({ 
-  objetivo: contextoLaboral.objetivoLaboral, 
-  industrias: contextoLaboral.sectoresInteres,
-  ciudades: contextoLaboral.ciudadesDestino,
-  esquemas: contextoLaboral.esquemasTrabajo,
-  empresasTarget: contextoLaboral.empresasMock
-}, null, 2)}
+${JSON.stringify({
+    objetivo: contextoLaboral.objetivoLaboral,
+    industrias: contextoLaboral.sectoresInteres,
+    ciudades: contextoLaboral.ciudadesDestino,
+    esquemas: contextoLaboral.esquemasTrabajo,
+    empresasTarget: contextoLaboral.empresasMock
+  }, null, 2)}
 ` : ''}
 
 CRITERIOS DE EVALUACIÓN 2026:
@@ -624,10 +660,10 @@ REGLAS:
   let jsonText = response.content[0].text.trim()
   // Limpieza robusta de markdown
   jsonText = jsonText.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim()
-  
+
   try {
     const rawData = JSON.parse(jsonText)
-    
+
     // Sanitizar: La IA a veces se pone creativa y devuelve objetos/arrays aunque pidas strings.
     // Convertimos todo a string plano para que los textareas del frontend no rompan.
     const formatEntry = (entry) => {
@@ -643,7 +679,7 @@ REGLAS:
     const sanitized = {
       titular: typeof rawData.titular === 'string' ? rawData.titular : formatEntry(rawData.titular || ''),
       extracto: typeof rawData.extracto === 'string' ? rawData.extracto : formatEntry(rawData.extracto || ''),
-      experiencia: Array.isArray(rawData.experiencia) 
+      experiencia: Array.isArray(rawData.experiencia)
         ? rawData.experiencia.map(formatEntry).join('\n\n')
         : formatEntry(rawData.experiencia || ''),
       habilidades: Array.isArray(rawData.habilidades) ? rawData.habilidades.join(', ') : String(rawData.habilidades || ''),
@@ -688,7 +724,7 @@ Devuelve ÚNICAMENTE el JSON estructurado con las mismas llaves, pero con el tex
 
   let jsonText = response.content[0].text.trim()
   jsonText = jsonText.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim()
-  
+
   try {
     return JSON.parse(jsonText)
   } catch (error) {
@@ -737,15 +773,21 @@ Responde ÚNICAMENTE con el texto de la carta, sin explicaciones adicionales.`;
   return response.content[0].text.trim();
 };
 
+
+
 module.exports = {
+  // ── Escritura creativa → Claude Sonnet 4.6 (calidad premium) ──────────────
   optimizeCV,
   matchCVtoJob,
-  generateChatResponse,
-  generarPreguntasEntrevista,
   evaluarEntrevista,
   analizarLinkedin,
-  extraerDatosLinkedin,
-  extraerDatosInfografia,
-  corregirProyectoLaboral,
   generarCarta,
+  optimizarResumen,
+  // ── Bot de Chat ELVIA (RAG Híbrido: Claude lee Gemini) ─────────────────────
+  generateChatResponse,
+  // ── Extracción / clasificación → DeepSeek V3 (~70% más barato) ────────────
+  generarPreguntasEntrevista: require('./deepseekService').generarPreguntasEntrevista,
+  extraerDatosInfografia: require('./deepseekService').extraerDatosInfografia,
+  extraerDatosLinkedin: require('./deepseekService').extraerDatosLinkedin,
+  corregirProyectoLaboral: require('./deepseekService').corregirProyectoLaboral,
 };

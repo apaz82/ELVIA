@@ -51,4 +51,16 @@ const limiterGeneral = rateLimit({
   }),
 });
 
-module.exports = { limiterOptimize, limiterMatch, limiterGeneral };
+// ── Resumen Optimizer: máximo 10 sugerencias por usuario por 15 minutos ──
+const limiterResumen = rateLimit({
+  windowMs:          15 * 60 * 1000,
+  max:               10,
+  standardHeaders:   true,
+  legacyHeaders:     false,
+  validate:          { keyGeneratorIpFallback: false },
+  keyGenerator:      (req) => req.user?.id || ipKeyGenerator(req),
+  handler:           (_req, res) => res.status(429).json(mensaje429('sugerencias de resumen')),
+  skip:              (req) => req.planInfo?.isPaidPlan,
+});
+
+module.exports = { limiterOptimize, limiterMatch, limiterResumen, limiterGeneral };

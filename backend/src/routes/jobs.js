@@ -1,12 +1,17 @@
 const express = require('express');
 const router = express.Router();
-const Anthropic = require('@anthropic-ai/sdk');
+const OpenAI = require('openai');
 const auth                = require('../middleware/auth');
 const { planContext }     = require('../middleware/planContext');
 const checkCvMatchLimit   = require('../middleware/checkCvMatchLimit');
 const requireActiveTrial  = require('../middleware/requireActiveTrial');
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+// DeepSeek V3 — compatible con OpenAI API, ~70% más barato que Claude Haiku
+const client = new OpenAI({
+  apiKey: process.env.DEEPSEEK_API_KEY,
+  baseURL: 'https://api.deepseek.com/v1',
+});
+const DS_MODEL = 'deepseek-chat';
 
 // Genera una clave única por usuario+vacante
 const generarJobKey = (title, company) =>
@@ -105,9 +110,9 @@ router.post('/fetch-url', auth, async (req, res) => {
     // Limitar el texto crudo antes de enviarlo a Claude
     const textoRecortado = texto.length > 12000 ? texto.slice(0, 12000) : texto;
 
-    // Usar Claude para extraer solo la descripción de la vacante
-    const respuesta = await client.messages.create({
-      model: 'claude-haiku-4-5-20251001',
+    // Usar DeepSeek para extraer solo la descripción de la vacante
+    const respuesta = await client.chat.completions.create({
+      model: DS_MODEL,
       max_tokens: 1024,
       messages: [{
         role: 'user',
@@ -115,7 +120,7 @@ router.post('/fetch-url', auth, async (req, res) => {
       }],
     });
 
-    res.json({ text: respuesta.content[0].text.trim() });
+    res.json({ text: respuesta.choices[0].message.content.trim() });
   } catch (err) {
     console.error('[fetch-url]', err.message);
     res.status(500).json({ error: 'No se pudo obtener la página. Intenta pegar la descripción manualmente.' });
@@ -187,15 +192,15 @@ const searchGoogleJobs = async ({ title, location, datecreated }) => {
 // Expande el título del cargo con sinónimos usando Claude
 const expandirCargo = async (title) => {
   try {
-    const resp = await client.messages.create({
-      model: 'claude-haiku-4-5-20251001',
+    const resp = await client.chat.completions.create({
+      model: DS_MODEL,
       max_tokens: 150,
       messages: [{
         role: 'user',
         content: `Para el cargo "${title}", genera una lista de 4-6 títulos sinónimos o equivalentes en el mercado laboral de LATAM y USA (en español e inglés). Responde SOLO con los títulos separados por comas, sin explicaciones. Ejemplo para "Country Manager": Director General, General Manager, Managing Director, CEO, Gerente General, Country Director`,
       }],
     });
-    const sinonimos = resp.content[0].text.trim().split(',').map(s => s.trim()).filter(Boolean);
+    const sinonimos = resp.choices[0].message.content.trim().split(',').map(s => s.trim()).filter(Boolean);
     // Combinar cargo original con sinónimos, máx 4 términos para no saturar la búsqueda
     return [title, ...sinonimos.slice(0, 3)].join(' OR ');
   } catch {
@@ -247,13 +252,13 @@ router.get('/similar', auth, async (req, res) => {
       ? `Se buscó con las palabras clave: "${queryOriginal}". De esta lista, devuelve los índices de vacantes que estén relacionadas con estas palabras clave. Incluye vacantes que coincidan aunque sea parcialmente. Responde únicamente con los índices separados por comas.\n\n${listaParaFiltrar}`
       : `Se buscó el cargo: "${title}". De esta lista, devuelve SOLO los índices de vacantes relevantes para ese cargo. Excluye solo las que sean de un área completamente distinta. Responde únicamente con los índices separados por comas.\n\n${listaParaFiltrar}`;
 
-    const filtroResp = await client.messages.create({
-      model: 'claude-haiku-4-5-20251001',
+    const filtroResp = await client.chat.completions.create({
+      model: DS_MODEL,
       max_tokens: 512,
       messages: [{ role: 'user', content: promptFiltro }],
     });
 
-    const indicesTexto = filtroResp.content[0].text.trim();
+    const indicesTexto = filtroResp.choices[0].message.content.trim();
     const indicesValidos = new Set(
       indicesTexto.split(',').map(n => parseInt(n.trim())).filter(n => !isNaN(n))
     );
@@ -313,9 +318,9 @@ router.post('/compatibility', auth, planContext, checkCvMatchLimit, async (req, 
       return res.json({ score: cached.score, motivos: cached.motivos, fromCache: true });
     }
 
-    // 2. Llamar a Claude (los límites ya fueron verificados por checkCvMatchLimit)
-    const respuesta = await client.messages.create({
-      model: 'claude-haiku-4-5-20251001',
+    // 2. Llamar a DeepSeek (los límites ya fueron verificados por checkCvMatchLimit)
+    const respuesta = await client.chat.completions.create({
+      model: DS_MODEL,
       max_tokens: 300,
       messages: [{
         role: 'user',
@@ -335,7 +340,7 @@ ${jobSnippet || ''}`,
       }],
     });
 
-    const texto = respuesta.content[0].text.trim();
+    const texto = respuesta.choices[0].message.content.trim();
     const scoreMatch  = texto.match(/SCORE:\s*(\d+)/i);
     const motivosMatch = texto.match(/MOTIVOS:\s*([\s\S]+)/i);
 

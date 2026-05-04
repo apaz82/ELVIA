@@ -34,32 +34,40 @@ app.set('trust proxy', 1);
 
 
 // --- CORS Configuración Segura ---
-const ALLOWED_ORIGINS = [
+const PRODUCTION_ORIGINS = [
   'https://elvia.lat',
   'https://www.elvia.lat',
-'https://gestioncv.netlify.app',
-  'http://localhost:5173',
-  'http://localhost:5174',
-  'http://localhost:5175',
-  'http://localhost:5176',
-  'http://localhost:5177',
-  'http://localhost:5178',
-  'http://localhost:4173',
+  'https://gestioncv.netlify.app',
 ];
+
+// En desarrollo, permitir cualquier puerto localhost (Vite elige el puerto dinámicamente)
+const IS_DEV = process.env.NODE_ENV !== 'production';
+const LOCALHOST_REGEX = /^http:\/\/localhost:\d+$/;
 
 app.use(cors({
   origin: function (origin, callback) {
-    if (!origin || ALLOWED_ORIGINS.includes(origin)) {
-      callback(null, true);
-    } else {
-      console.warn(`[CORS Blocked] Origin: ${origin}`);
-      callback(new Error('No permitido por CORS'));
-    }
+    // Permitir requests sin origin (Postman, curl, server-to-server)
+    if (!origin) return callback(null, true);
+
+    // Producción: solo orígenes explícitos
+    if (PRODUCTION_ORIGINS.includes(origin)) return callback(null, true);
+
+    // Desarrollo: cualquier localhost
+    if (IS_DEV && LOCALHOST_REGEX.test(origin)) return callback(null, true);
+
+    console.warn(`[CORS Blocked] Origin: ${origin}`);
+    callback(new Error('No permitido por CORS'));
   },
   credentials: true,
   exposedHeaders: ['Content-Disposition'],
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
 }));
+
+// Lista unificada para el error handler (necesita saber si el origin es válido)
+const isAllowedOrigin = (origin) =>
+  !origin ||
+  PRODUCTION_ORIGINS.includes(origin) ||
+  (IS_DEV && LOCALHOST_REGEX.test(origin));
 
 // --- Ruta de salud (health check) ---
 // Se coloca aquí para que responda incluso si fallan otros middlewares pesados
@@ -112,7 +120,7 @@ app.use((err, req, res, next) => {
 
   // Asegurar que los errores mantengan headers CORS para que el browser los reciba
   const origin = req.headers.origin;
-  if (origin && ALLOWED_ORIGINS.includes(origin)) {
+  if (origin && isAllowedOrigin(origin)) {
     res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Access-Control-Allow-Credentials', 'true');
   }

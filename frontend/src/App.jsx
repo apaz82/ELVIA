@@ -52,39 +52,41 @@ const RUTAS_APP = [
 ]
 
 function PublicRoute({ children }) {
-  const { user, loading, isRecovering } = useAuth()
+  const { user, loading, isRecovering, onboardingPendiente, featuresDesbloqueadas, perfilCargado } = useAuth()
   const location = useLocation()
   
-  if (loading) return null
+  if (loading || !perfilCargado) return null
   
   const isRecoveryMode = sessionStorage.getItem('optima_recovery_mode') === 'true' || isRecovering || location.hash.includes('type=recovery')
   
-  // Si estamos en recuperación, NO redirigir (dejar que ResetPassword maneje)
   if (isRecoveryMode || location.hash.includes('access_token')) {
     return children
   }
 
   if (user) {
+    // Si tiene onboarding pendiente, dejar que PrivateRoute lo mande a /bienvenida o similar
+    // Pero si ya pasó el onboarding inicial y no tiene herramientas desbloqueadas -> /proyecto-laboral
+    if (!onboardingPendiente && !featuresDesbloqueadas) {
+      return <Navigate to="/proyecto-laboral" replace />
+    }
     return <Navigate to="/dashboard" replace />
   }
   return children
 }
 
 function OnboardingGuard({ children }) {
-  const { onboardingPendiente, loading, isRecovering } = useAuth()
+  const { onboardingPendiente, featuresDesbloqueadas, loading, isRecovering } = useAuth()
   const location = useLocation()
 
   if (loading) return null
 
   const isRecoveryMode = sessionStorage.getItem('optima_recovery_mode') === 'true' || isRecovering || location.hash.includes('type=recovery')
-
-  // Nunca redirigir si estamos en el flujo de recuperación
   const path = location.pathname.toLowerCase()
+
   if (isRecoveryMode || path.startsWith('/reset-password')) {
     return children
   }
 
-  // No redirigir si estamos en una ruta excluida del guard
   if (RUTAS_SIN_GUARD.includes(path)) {
     return children
   }
@@ -92,6 +94,13 @@ function OnboardingGuard({ children }) {
   if (onboardingPendiente) {
     return <Navigate to="/bienvenida" replace />
   }
+
+  // Gating de herramientas: si intenta entrar a dashboard o herramientas y no están desbloqueadas
+  const RUTAS_GATED = ['/dashboard', '/cv-optimizer', '/cv-vs-job', '/jobs', '/mis-cvs', '/mis-vacantes', '/pipeline', '/entrevista', '/biblioteca', '/linkedin-pro']
+  if (RUTAS_GATED.includes(path) && !featuresDesbloqueadas) {
+    return <Navigate to="/proyecto-laboral" replace />
+  }
+
   return children
 }
 

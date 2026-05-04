@@ -1,7 +1,14 @@
 // Orquesta los servicios para cada endpoint de CV
 const { parseCV } = require('../utils/cvParser');
 const { detectLanguage } = require('../utils/languageDetector');
-const { optimizeCV, matchCVtoJob, extraerDatosInfografia, corregirProyectoLaboral, generarCarta } = require('../services/claudeService');
+const { 
+  optimizeCV, 
+  matchCVtoJob, 
+  extraerDatosInfografia, 
+  corregirProyectoLaboral, 
+  generarCarta, 
+  optimizarResumen: optimizarResumenService 
+} = require('../services/claudeService');
 const { generarPDF } = require('../services/pdfService');
 const { generarWord } = require('../services/wordService');
 const { incrementDailyCap } = require('../middleware/dailyCap');
@@ -323,8 +330,11 @@ const extractProfile = async (req, res, next) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'No se recibio ningun archivo' });
 
-    const Anthropic = require('@anthropic-ai/sdk');
-    const anthropic = new Anthropic();
+    const OpenAI = require('openai');
+    const deepseek = new OpenAI({
+      apiKey: process.env.DEEPSEEK_API_KEY,
+      baseURL: 'https://api.deepseek.com/v1',
+    });
 
     const cvText = await parseCV(req.file.buffer, req.file.mimetype);
     if (!cvText || cvText.trim().length === 0) {
@@ -333,8 +343,8 @@ const extractProfile = async (req, res, next) => {
 
     const fragmento = cvText.substring(0, 4000);
 
-    const response = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
+    const response = await deepseek.chat.completions.create({
+      model: 'deepseek-chat',
       max_tokens: 1500,
       messages: [{
         role: 'user',
@@ -374,11 +384,11 @@ Return ONLY this JSON:
       }],
     });
 
-    if (!response.content || !response.content[0]) {
+    if (!response.choices || !response.choices[0]) {
       return res.status(500).json({ error: 'Respuesta invalida de la IA. Intenta de nuevo.' });
     }
 
-    let jsonText = response.content[0].text.trim();
+    let jsonText = response.choices[0].message.content.trim();
     jsonText = jsonText.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
     const perfil = JSON.parse(jsonText);
 
@@ -535,8 +545,43 @@ const generarCartaPresentacion = async (req, res, next) => {
     const carta = await generarCarta({ empresa, cargo, descripcion, cvText, language: language || 'es' });
     res.json({ carta });
   } catch (err) {
-    next(err);
+    next(err)
   }
 };
 
-module.exports = { optimize, matchToJob, download, extractProfile, generarInfografia, generarInfografiaProyecto, generarCartaPresentacion };
+const optimizarResumenController = async (req, res, next) => {
+  const { texto, idioma } = req.body;
+  if (!texto) return res.status(400).json({ error: 'Falta el texto a optimizar' });
+
+  try {
+    // Usamos el nombre diferenciado del servicio
+    const optimizado = await optimizarResumenService(texto, idioma || 'es');
+    
+    const exito = !!optimizado && optimizado !== texto;
+    
+    return res.json({ 
+      optimizado: optimizado || texto, 
+      exito,
+      mensaje: exito ? 'Optimizado con éxito' : 'Usando borrador original'
+    });
+  } catch (err) {
+    console.error('[Controller] Error crítico capturado:', err.message);
+    return res.json({ 
+      optimizado: texto, 
+      exito: false, 
+      error: err.message,
+      mensaje: 'Servicio de IA temporalmente indisponible' 
+    });
+  }
+};
+
+module.exports = { 
+  optimize, 
+  matchToJob, 
+  download, 
+  extractProfile, 
+  generarInfografia, 
+  generarInfografiaProyecto, 
+  generarCartaPresentacion,
+  optimizarResumen: optimizarResumenController
+};

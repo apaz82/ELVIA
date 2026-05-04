@@ -26,6 +26,11 @@ export const api = {
       headers,
       body: JSON.stringify(body),
     })
+    if (!res.ok) {
+      let msg = `Error ${res.status}`
+      try { const body = await res.json(); msg = body.error || body.mensaje || msg } catch {}
+      throw new Error(msg)
+    }
     return res.json()
   },
 
