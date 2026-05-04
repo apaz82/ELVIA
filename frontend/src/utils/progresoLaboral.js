@@ -31,27 +31,26 @@ export function calcularProgreso(data, perfil) {
   core += calcPerfilPts(perfil, data)
 
   const auto = (data&&data.autoconocimiento) ? data.autoconocimiento : {}
-  const perf = (data&&data.perfil) ? data.perfil : {}
   let autoPts = 0
-  
-  // 1. Aspiraciones (Areas + Industrias) - 5 pts
-  const areas = auto.areas || perf.areas || []
-  const ind   = auto.industrias || perf.industrias_deseadas || []
-  if (areas.length >= 1 && ind.length >= 1) autoPts += 5
-  
-  // 2. Hard Skills - 5 pts
+
+  // 1. Hard Skills - 5 pts
   if (Array.isArray(auto.hard_skills) && auto.hard_skills.length >= 2) autoPts += 5
-  
-  // 3. Soft Skills - 5 pts
+
+  // 2. Soft Skills - 5 pts
   if (Array.isArray(auto.soft_skills) && auto.soft_skills.length >= 2) autoPts += 5
-  
-  // 4. Power Skills - 5 pts
+
+  // 3. Power Skills - 5 pts
   if (Array.isArray(auto.power_skills) && auto.power_skills.length >= 2) autoPts += 5
-  
-  // 5. Compañías - 5 pts
+
+  // 4. Compañías - 5 pts
   if (Array.isArray(auto.top5empresas) && auto.top5empresas.filter(function(e){return e && String(e).trim()}).length >= 1) autoPts += 5
 
-  core += Math.min(autoPts, 25)
+  core += Math.min(autoPts, 20)
+
+  // Documentos - hasta 5 pts (1 pt por documento completado)
+  const checks = (data&&data.documentos&&data.documentos.checks) ? data.documentos.checks : {}
+  const docsDone = DOCS_IDS.filter(function(d){return checks[d]}).length
+  core += docsDone
 
   const bloques = (data&&data.semana&&data.semana.bloques) ? data.semana.bloques : {}
   const bN = Object.values(bloques).filter(Boolean).length
