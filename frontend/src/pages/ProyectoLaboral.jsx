@@ -1675,7 +1675,7 @@ function PilarOfertaDeValor({ data, onChange, onSave, justSaved }) {
           placeholder={'Ej: Soy un profesional de Supply Chain con 12 años de experiencia en manufactura automotriz. Mi valor está en reducir costos operativos sin sacrificar calidad: en mis últimos 3 roles, lideré proyectos que redujeron tiempos de entrega en un 30% y costos logísticos en un 18%. Combino análisis de datos con liderazgo de equipos multiculturales y me adapto rápido a entornos de alta presión. Lo que me diferencia es mi capacidad de conectar la estrategia de negocio con la operación del día a día.'}
           rows={8}
           maxLength={700}
-          className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-rose-200 resize-none bg-white"
+          className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-rose-200 resize-none bg-white whitespace-pre-wrap break-words"
         />
         <div className="flex justify-end mt-1.5">
           <span className="text-xs text-slate-400">{(d.oferta_valor||'').length}/700 caracteres</span>
