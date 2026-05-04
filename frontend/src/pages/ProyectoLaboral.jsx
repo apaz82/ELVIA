@@ -1377,6 +1377,17 @@ function PilarAutoconocimiento({ data, onChange, onSave, justSaved }) {
         )})}
       </div>
       <div>
+        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Industrias de interés · <span className="text-rose-600">Debes seleccionar al menos 1</span></h3>
+        <div className="flex flex-wrap gap-2 mb-6">
+          {INDUSTRIAS.map(function(ind){
+            const sel = Array.isArray(d.industrias_deseadas)&&d.industrias_deseadas.includes(ind)
+            return <button key={ind} onClick={function(){toggle('industrias_deseadas',ind)}}
+              className={'px-3 py-1.5 rounded-lg text-sm font-semibold border transition-colors cursor-pointer '+(sel?'bg-rose-600 text-white border-rose-600':'border-rose-200 text-slate-600 hover:border-rose-400 hover:text-rose-700')}>{ind}</button>
+          })}
+        </div>
+      </div>
+
+      <div>
         <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Top 5 Compañías objetivo · <span className="text-amber-600">Debes llenar al menos 2</span></h3>
         <p className="text-xs text-slate-400 mb-4">Estas empresas aparecerán primero en tu radar de Vacantes.</p>
         <div className="space-y-2">
