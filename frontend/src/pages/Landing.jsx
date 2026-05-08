@@ -523,15 +523,7 @@ export default function Landing() {
 
             <motion.h1 variants={fadeInUp} className="font-headline font-black text-4xl sm:text-5xl md:text-6xl lg:text-7xl leading-[1.1] tracking-tight mb-8">
               Sé tu propio gerente<br />
-              <span
-                style={{
-                  background: 'linear-gradient(to right, rgb(13, 148, 136), rgb(16, 185, 129), rgb(59, 130, 246))',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                  backgroundClip: 'text',
-                  display: 'inline-block'
-                }}
-              >
+              <span className="text-[#002650] inline-block">
                 de tu búsqueda laboral
               </span>
             </motion.h1>
@@ -582,10 +574,10 @@ export default function Landing() {
             <div className="bg-white border border-gray-200 rounded-3xl p-8 shadow-[0_20px_60px_rgba(0,0,0,0.08)] flex-1 flex flex-col">
               {/* Header con badge PMI® */}
               <div className="mb-6">
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-teal-50 border border-teal-200 mb-3">
-                  <span className="text-xs font-bold text-teal-700 uppercase tracking-wide">Según PMI®</span>
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-50 border border-gray-200 mb-3">
+                  <span className="text-xs font-bold text-slate-600 uppercase tracking-wide">Según PMI®</span>
                 </div>
-                <h3 className="text-2xl font-black text-gray-900 mb-2">Gerente de Proyecto</h3>
+                <h3 className="text-2xl font-black text-[#002650] mb-2">Gerente de Proyecto</h3>
                 <p className="text-sm text-gray-500">De tu búsqueda laboral</p>
               </div>
 
@@ -606,8 +598,8 @@ export default function Landing() {
                   { icon: ChartBar, label: 'Seguimiento', desc: 'Control y visibilidad' },
                   { icon: CheckCircle, label: 'Tranquilidad', desc: 'Te guía en el proceso' }
                 ].map((benefit, idx) => (
-                  <div key={idx} className="flex flex-col items-center text-center p-4 rounded-2xl bg-gradient-to-br from-teal-50 to-emerald-50 border border-teal-100 hover:border-teal-300 transition-colors">
-                    <benefit.icon size={24} weight="duotone" className="text-teal-600 mb-2" />
+                  <div key={idx} className="flex flex-col items-center text-center p-4 rounded-2xl bg-white border border-gray-100 hover:border-[#002650]/20 hover:bg-slate-50/50 transition-all">
+                    <benefit.icon size={24} weight="duotone" className="text-[#002650] mb-2" />
                     <p className="text-xs font-bold text-gray-900 mb-1">{benefit.label}</p>
                     <p className="text-[10px] text-gray-500">{benefit.desc}</p>
                   </div>
@@ -616,7 +608,7 @@ export default function Landing() {
 
               {/* CTA Button */}
               <div
-                className="w-full flex items-center justify-center gap-2 bg-teal-500 text-white font-bold py-3 px-6 rounded-2xl transition-all shadow-lg shadow-teal-500/20 mt-auto cursor-default group"
+                className="w-full flex items-center justify-center gap-2 bg-[#E8541A] hover:bg-[#d44813] text-white font-bold py-3 px-6 rounded-2xl transition-all shadow-md shadow-orange-500/10 mt-auto cursor-default group"
               >
                 Únete y sé pionero ELVIA <ArrowDown size={16} weight="bold" className="group-hover:translate-y-1 transition-transform" />
               </div>
