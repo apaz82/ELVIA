@@ -552,7 +552,7 @@ export default function Entrevista() {
               {/* Avatar */}
               <div className="shrink-0 relative">
                 <div className={`w-14 h-14 rounded-2xl overflow-hidden border-2 transition-all ${hablando ? 'border-primary shadow-lg shadow-primary/20' : 'border-gray-200'}`}>
-                  <img src="/Avatar Optima.png" alt="ELVIA" className="w-full h-full object-cover rounded-full" />
+                  <img src="/Avatar Optima.webp" alt="ELVIA" className="w-full h-full object-cover rounded-full" />
                 </div>
                 {hablando && (
                   <span className="absolute -bottom-1 -right-1 flex h-4 w-4">

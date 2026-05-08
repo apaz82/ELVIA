@@ -81,6 +81,7 @@ function HoverSliderCard({ index, image, alt }) {
       <img
         src={image}
         alt={alt}
+        loading="lazy"
         className="w-full h-full object-cover object-center"
         draggable={false}
       />
@@ -89,10 +90,10 @@ function HoverSliderCard({ index, image, alt }) {
 }
 
 const SLIDES = [
-  { text: 'AUTOCONOCIMIENTO',           image: '/landing/slide-autoconocimiento.jpg' },
-  { text: 'HERRAMIENTAS',               image: '/landing/slide-herramientas.jpg' },
-  { text: 'SEGUIMIENTO Y CONTROL',      image: '/landing/slide-seguimiento.jpg' },
-  { text: 'NUEVO PROYECTO PROFESIONAL', image: '/landing/slide-proyecto.jpg' },
+  { text: 'AUTOCONOCIMIENTO',           image: '/landing/slide-autoconocimiento.webp' },
+  { text: 'HERRAMIENTAS',               image: '/landing/slide-herramientas.webp' },
+  { text: 'SEGUIMIENTO Y CONTROL',      image: '/landing/slide-seguimiento.webp' },
+  { text: 'NUEVO PROYECTO PROFESIONAL', image: '/landing/slide-proyecto.webp' },
 ]
 
 // ─── Página ───────────────────────────────────────────────────────────────────
