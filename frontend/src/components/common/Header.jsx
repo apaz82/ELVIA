@@ -2,7 +2,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
-import { List, UserCircle, CaretDown, SignOut, Sparkle, Crown } from '@phosphor-icons/react'
+import { List, UserCircle, CaretDown, SignOut, Sparkle, Crown, Coins } from '@phosphor-icons/react'
 
 // Configuración de badges por plan (solo los 3 planes activos)
 const PLAN_CONFIG = {
