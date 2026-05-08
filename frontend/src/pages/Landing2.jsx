@@ -286,7 +286,7 @@ export default function Landing() {
       {/* ─── Nav landing ────────────────────────────────────────────────────────── */}
       <nav className="sticky top-0 z-50 flex items-center justify-between px-6 h-24 bg-white/80 backdrop-blur-xl border-b border-gray-200/80 transition-all duration-300">
         <Link to="/" className="flex items-center">
-          <img src="/elvia-logo-transparent.png" alt="ELVIA" className="h-10 py-1 w-auto object-contain" />
+          <img src="/LOGOS/ELVIA_logo_fondo_transparente.png" alt="ELVIA" className="h-10 py-1 w-auto object-contain" />
         </Link>
 
         {/* Acciones nav */}
@@ -1219,7 +1219,7 @@ export default function Landing() {
         <div className="container mx-auto max-w-6xl px-6 py-12 flex flex-col md:flex-row items-center justify-between gap-8">
           <div className="flex flex-col items-center md:items-start gap-4">
             <Link to="/">
-              <img src="/elvia-logo-transparent.png" alt="ELVIA" className="h-10 w-auto opacity-90" />
+              <img src="/LOGOS/ELVIA_logo_fondo_transparente.png" alt="ELVIA" className="h-10 w-auto opacity-90" />
             </Link>
             <p className="text-gray-400 text-xs font-medium uppercase tracking-widest text-center md:text-left">
               <span style={{ color: '#0D9488' }}>CONECTA</span> TU PRESENTE CON EL FUTURO QUE QUIERES.

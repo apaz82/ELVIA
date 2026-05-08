@@ -119,7 +119,7 @@ export default function LandingMuyPronto() {
         >
           {/* Logo */}
           <Link to="/" className="mb-8 block">
-            <img src="/elvia-logo-transparent.png" alt="ELVIA®" className="h-12 w-auto object-contain mx-auto" />
+            <img src="/LOGOS/ELVIA_logo_fondo_transparente.png" alt="ELVIA®" className="h-12 w-auto object-contain mx-auto" />
           </Link>
 
           {/* Badge */}

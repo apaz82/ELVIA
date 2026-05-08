@@ -242,7 +242,7 @@ export default function Auth() {
           {/* Logo + título */}
           <div className="text-center mb-7">
             <Link to="/">
-              <img src="/elvia-logo-transparent.png" alt="ELVIA" className="h-10 mx-auto mb-6" />
+              <img src="/LOGOS/ELVIA_logo_fondo_transparente.png" alt="ELVIA" className="h-10 mx-auto mb-6" />
             </Link>
             <h1 className="text-2xl font-bold text-gray-900">
               {modo === 'login'    ? 'Iniciar sesión'

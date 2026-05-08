@@ -74,7 +74,7 @@ const AdminLogin = ({ onLogin }) => {
         <div className="text-center mb-10">
           <div className="mb-8 p-1 group">
             <img 
-              src="/elvia-logo-transparent.png" 
+              src="/LOGOS/ELVIA_logo_fondo_transparente.png" 
               alt="ELVIA Logo" 
               className="h-16 mx-auto drop-shadow-[0_0_30px_rgba(79,70,229,0.3)] hover:scale-105 transition-transform duration-500" 
             />
