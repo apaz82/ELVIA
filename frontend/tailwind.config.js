@@ -61,10 +61,11 @@ export default {
         'on-error-container':         '#93000a',
       },
       fontFamily: {
-        sans:     ['Inter', 'system-ui', 'sans-serif'],
-        headline: ['"Public Sans"', 'system-ui', 'sans-serif'],
-        body:     ['Inter', 'system-ui', 'sans-serif'],
-        label:    ['Inter', 'system-ui', 'sans-serif'],
+        sans:      ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
+        montserrat: ['"Montserrat"', 'sans-serif'],
+        headline:  ['"Montserrat"', 'sans-serif'],
+        body:      ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
+        label:     ['"Montserrat"', 'sans-serif'],
       },
       borderRadius: {
         DEFAULT: '0.125rem',   // 2px  — casi cuadrado
