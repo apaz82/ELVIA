@@ -101,7 +101,7 @@ export default function BienvenidaOnboarding() {
 
         {/* ── Logo bar ── */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 28, paddingBottom: 0 }}>
-          <img src="/optima_logo_v3_clean_1.png" alt="ELVIA" style={{ height: 40, width: 'auto', opacity: 0.92 }} />
+          <img src="/LOGOS/ELVIA_logo_fondo_transparente.png" alt="ELVIA" style={{ height: 40, width: 'auto', opacity: 0.92 }} />
           <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
             <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#34d399', boxShadow: '0 0 8px #34d399', animation: 'pulse 2s infinite' }} />
             <span style={{ fontSize: 11, letterSpacing: '0.12em', color: 'rgba(255,255,255,0.35)', fontWeight: 600, textTransform: 'uppercase' }}>
