@@ -7,10 +7,15 @@ const checkCvMatchLimit   = require('../middleware/checkCvMatchLimit');
 const requireActiveTrial  = require('../middleware/requireActiveTrial');
 
 // DeepSeek V3 — compatible con OpenAI API, ~70% más barato que Claude Haiku
-const client = new OpenAI({
-  apiKey: process.env.DEEPSEEK_API_KEY,
-  baseURL: 'https://api.deepseek.com/v1',
-});
+let client;
+try {
+  client = new OpenAI({
+    apiKey: process.env.DEEPSEEK_API_KEY || 'fake-key-to-prevent-crash',
+    baseURL: 'https://api.deepseek.com/v1',
+  });
+} catch (err) {
+  console.error('[DeepSeek/Jobs] Error al inicializar cliente:', err.message);
+}
 const DS_MODEL = 'deepseek-chat';
 
 // Genera una clave única por usuario+vacante

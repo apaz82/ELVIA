@@ -3,7 +3,12 @@
 
 const { Resend } = require('resend');
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+let resend;
+try {
+  resend = new Resend(process.env.RESEND_API_KEY || 'fake-key-to-prevent-crash');
+} catch (err) {
+  console.error('[Resend] Error al inicializar cliente:', err.message);
+}
 const FROM_EMAIL = 'Equipo ELVIA <noreply@elvia.lat>'; // Dominio verificado en Resend
 
 // Escapa caracteres HTML para evitar XSS en emails generados con template strings

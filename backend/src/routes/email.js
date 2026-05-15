@@ -4,7 +4,12 @@ const { Resend } = require('resend');
 const auth = require('../middleware/auth');
 const { supabaseAdmin } = require('../lib/supabase');
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+let resend;
+try {
+  resend = new Resend(process.env.RESEND_API_KEY || 'fake-key-to-prevent-crash');
+} catch (err) {
+  console.error('[Resend/email] Error al inicializar cliente:', err.message);
+}
 
 // ── Rate limiter en memoria para endpoints públicos de email ──────────────────
 // Evita abuso de relay de correo: máx 3 requests por IP cada 10 minutos

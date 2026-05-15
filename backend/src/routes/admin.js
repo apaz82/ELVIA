@@ -396,7 +396,6 @@ router.patch('/companies/:id', auth, requireRole('super_admin'), async (req, res
 const multer = require('multer');
 const upload = multer({ limits: { fileSize: 10 * 1024 * 1024 } }); // 10MB
 const pdfParse = require('pdf-parse');
-const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 router.post('/knowledge/upload', auth, requireRole('super_admin'), upload.single('file'), async (req, res) => {
   console.log('[KnowledgeUpload] Inicio de proceso para archivo:', req.file?.originalname);
