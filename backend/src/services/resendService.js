@@ -3,11 +3,16 @@
 
 const { Resend } = require('resend');
 
-let resend;
-try {
-  resend = new Resend(process.env.RESEND_API_KEY || 'fake-key-to-prevent-crash');
-} catch (err) {
-  console.error('[Resend] Error al inicializar cliente:', err.message);
+let resend = null;
+const _resendKey = process.env.RESEND_API_KEY;
+if (!_resendKey) {
+  console.error('[Resend] RESEND_API_KEY no configurada — emails deshabilitados');
+} else {
+  try {
+    resend = new Resend(_resendKey);
+  } catch (err) {
+    console.error('[Resend] Error al inicializar cliente:', err.message);
+  }
 }
 const FROM_EMAIL = 'Equipo ELVIA <noreply@elvia.lat>'; // Dominio verificado en Resend
 

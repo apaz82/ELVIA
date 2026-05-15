@@ -1,20 +1,37 @@
 const express = require('express');
 const router = express.Router();
 const OpenAI = require('openai');
+const Anthropic = require('@anthropic-ai/sdk');
 const auth                = require('../middleware/auth');
 const { planContext }     = require('../middleware/planContext');
 const checkCvMatchLimit   = require('../middleware/checkCvMatchLimit');
 const requireActiveTrial  = require('../middleware/requireActiveTrial');
 
-// DeepSeek V3 — compatible con OpenAI API, ~70% más barato que Claude Haiku
-let client;
-try {
-  client = new OpenAI({
-    apiKey: process.env.DEEPSEEK_API_KEY || 'fake-key-to-prevent-crash',
-    baseURL: 'https://api.deepseek.com/v1',
-  });
-} catch (err) {
-  console.error('[DeepSeek/Jobs] Error al inicializar cliente:', err.message);
+// DeepSeek V3 — para búsqueda y filtrado (no toca datos de usuario/PII)
+let client = null;
+const _deepseekKey = process.env.DEEPSEEK_API_KEY;
+if (!_deepseekKey) {
+  console.error('[DeepSeek/Jobs] DEEPSEEK_API_KEY no configurada — búsqueda de IA deshabilitada');
+} else {
+  try {
+    client = new OpenAI({ apiKey: _deepseekKey, baseURL: 'https://api.deepseek.com/v1' });
+  } catch (err) {
+    console.error('[DeepSeek/Jobs] Error al inicializar cliente:', err.message);
+  }
+}
+
+// Claude Haiku — para análisis de compatibilidad CV vs vacante (maneja PII del usuario)
+// Se usa en vez de DeepSeek para cumplimiento LGPD/GDPR: DPA firmado con Anthropic
+let claudeClient = null;
+const _anthropicKey = process.env.ANTHROPIC_API_KEY;
+if (!_anthropicKey) {
+  console.error('[Claude/Jobs] ANTHROPIC_API_KEY no configurada — análisis de compatibilidad deshabilitado');
+} else {
+  try {
+    claudeClient = new Anthropic({ apiKey: _anthropicKey });
+  } catch (err) {
+    console.error('[Claude/Jobs] Error al inicializar cliente:', err.message);
+  }
 }
 const DS_MODEL = 'deepseek-chat';
 
@@ -53,6 +70,7 @@ router.post('/fetch-url', auth, async (req, res) => {
 
   try {
     const response = await fetch(url, {
+      redirect: 'manual', // No seguir redirects — previene SSRF a IPs internas o metadata endpoints
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
@@ -70,6 +88,13 @@ router.post('/fetch-url', auth, async (req, res) => {
         'Upgrade-Insecure-Requests': '1',
       },
     });
+
+    // Bloquear redirects — el destino final podría ser una IP interna o metadata service
+    if (response.status >= 300 && response.status < 400) {
+      return res.status(400).json({
+        error: 'La URL redirige a otra página. Por favor pega la descripción manualmente.'
+      });
+    }
 
     if (!response.ok) {
       if (response.status === 403) {
@@ -115,7 +140,8 @@ router.post('/fetch-url', auth, async (req, res) => {
     // Limitar el texto crudo antes de enviarlo a Claude
     const textoRecortado = texto.length > 12000 ? texto.slice(0, 12000) : texto;
 
-    // Usar DeepSeek para extraer solo la descripción de la vacante
+    // Usar DeepSeek para extraer solo la descripción de la vacante (degrada sin IA si no hay cliente)
+    if (!client) return res.json({ text: textoRecortado });
     const respuesta = await client.chat.completions.create({
       model: DS_MODEL,
       max_tokens: 1024,
@@ -323,9 +349,10 @@ router.post('/compatibility', auth, planContext, checkCvMatchLimit, async (req, 
       return res.json({ score: cached.score, motivos: cached.motivos, fromCache: true });
     }
 
-    // 2. Llamar a DeepSeek (los límites ya fueron verificados por checkCvMatchLimit)
-    const respuesta = await client.chat.completions.create({
-      model: DS_MODEL,
+    // 2. Llamar a Claude Haiku — el CV contiene PII, DeepSeek no tiene DPA para LATAM
+    if (!claudeClient) return res.status(503).json({ error: 'Servicio de análisis no disponible temporalmente' });
+    const respuesta = await claudeClient.messages.create({
+      model: process.env.CLAUDE_MODEL_FAST || 'claude-haiku-4-5-20251001',
       max_tokens: 300,
       messages: [{
         role: 'user',
@@ -345,7 +372,7 @@ ${jobSnippet || ''}`,
       }],
     });
 
-    const texto = respuesta.choices[0].message.content.trim();
+    const texto = respuesta.content[0].text.trim();
     const scoreMatch  = texto.match(/SCORE:\s*(\d+)/i);
     const motivosMatch = texto.match(/MOTIVOS:\s*([\s\S]+)/i);
 

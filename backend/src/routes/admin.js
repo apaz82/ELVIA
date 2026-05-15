@@ -9,6 +9,10 @@ const { sendOTPEmail } = require('../services/resendService');
 // Middleware
 const auth = require('../middleware/auth');
 const requireRole = require('../middleware/requireAdmin');
+const auditAdmin = require('../middleware/auditAdmin');
+
+// Auditar todas las acciones mutantes del panel admin (POST/PUT/PATCH/DELETE)
+router.use(auth, auditAdmin);
 
 /**
  * GET /api/admin/system-status
