@@ -8,8 +8,9 @@ try {
   console.error('[Anthropic] CRITICAL: Error al inicializar cliente. ¿Falta ANTHROPIC_API_KEY?', error.message);
 }
 
-const MODELO = 'claude-sonnet-4-6';
-const MODELO_RAPIDO = 'claude-haiku-4-5-20251001';
+// Claude 4.x IDs. Fallback a 3.5 si la cuenta no tiene acceso a 4.x.
+const MODELO = process.env.CLAUDE_MODEL || 'claude-sonnet-4-6';
+const MODELO_RAPIDO = process.env.CLAUDE_MODEL_FAST || 'claude-haiku-4-5-20251001';
 
 /**
  * Optimiza un resumen profesional con tono humano y ejecutivo.
@@ -221,16 +222,22 @@ Responde usando exactamente estos delimitadores (sin texto fuera de ellos):
 - recomendación adicional 2 (en ${idioma})
 </RECOMENDACIONES>`;
 
+  if (!client) throw new Error('Claude client no inicializado. Verifica ANTHROPIC_API_KEY en Railway.');
+
   const t0 = Date.now();
-  const response = await client.messages.create({
-    model: MODELO,
-    max_tokens: 4096,
-    // cache_control en el system prompt: Anthropic reutiliza el prompt cacheado
-    // durante 5 min — ahorra ~90% del costo de tokens de entrada en requests repetidos.
-    // Requiere ≥1024 tokens para activarse; por debajo de eso no se aplica pero tampoco rompe.
-    system: [{ type: 'text', text: SISTEMA_BASE, cache_control: { type: 'ephemeral' } }],
-    messages: [{ role: 'user', content: prompt }],
-  });
+  console.log(`[optimizeCV] Iniciando con modelo: ${MODELO}`);
+  let response;
+  try {
+    response = await client.messages.create({
+      model: MODELO,
+      max_tokens: 4096,
+      system: [{ type: 'text', text: SISTEMA_BASE, cache_control: { type: 'ephemeral' } }],
+      messages: [{ role: 'user', content: prompt }],
+    });
+  } catch (apiErr) {
+    console.error(`[optimizeCV] Error de API Claude (modelo: ${MODELO}):`, apiErr.message, apiErr.status);
+    throw apiErr;
+  }
   console.log(`[optimizeCV] Claude tardó ${((Date.now() - t0) / 1000).toFixed(1)}s | cache: ${JSON.stringify(response.usage?.cache_read_input_tokens ?? 0)} tokens leídos de caché`);
 
   return parsearRespuestaOptimize(response.content[0].text);
