@@ -33,6 +33,7 @@ import MisMetricas from './pages/MisMetricas'
 import Cookies from './pages/Cookies'
 import CookieConsent from './components/common/CookieConsent'
 import AiChatBot from './components/chat/AiChatBot'
+import ErrorBoundary from './components/common/ErrorBoundary'
 import { useAuth } from './context/AuthContext'
 import { Toaster } from 'react-hot-toast'
 
@@ -223,24 +224,26 @@ export default function App() {
   )
 
   return (
-    <>
-      <Toaster 
-        position="top-right"
-        toastOptions={{
-          style: {
-            background: '#111827',
-            color: '#fff',
-            border: '1px solid #1f2937',
-            borderRadius: '1rem',
-            fontSize: '13px',
-            fontFamily: 'Inter, sans-serif'
-          },
-          success: { iconTheme: { primary: '#10b981', secondary: '#fff' } },
-          error: { iconTheme: { primary: '#ef4444', secondary: '#fff' } }
-        }}
-      />
-      {isFullLayout ? <FullLayout>{routes}</FullLayout> : <AppLayout>{routes}</AppLayout>}
-      <CookieConsent />
-    </>
+    <ErrorBoundary>
+      <>
+        <Toaster
+          position="top-right"
+          toastOptions={{
+            style: {
+              background: '#111827',
+              color: '#fff',
+              border: '1px solid #1f2937',
+              borderRadius: '1rem',
+              fontSize: '13px',
+              fontFamily: 'Inter, sans-serif'
+            },
+            success: { iconTheme: { primary: '#10b981', secondary: '#fff' } },
+            error: { iconTheme: { primary: '#ef4444', secondary: '#fff' } }
+          }}
+        />
+        {isFullLayout ? <FullLayout>{routes}</FullLayout> : <AppLayout>{routes}</AppLayout>}
+        <CookieConsent />
+      </>
+    </ErrorBoundary>
   )
 }

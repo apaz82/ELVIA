@@ -448,7 +448,7 @@ function NavPublic({ user }) {
   return (
     <nav className="sticky top-0 z-50 flex items-center justify-between px-6 h-16 bg-white border-b border-gray-200 shadow-sm">
       <Link to="/" className="flex items-center">
-        <img src="/optima_logo_v3_clean_1.png" alt="ELVIA" className="h-10 w-auto object-contain" />
+        <img src="/LOGOS/ELVIA_logo_fondo_transparente.png" alt="ELVIA" className="h-10 w-auto object-contain" />
       </Link>
       <div className="flex items-center gap-4">
         {user ? (

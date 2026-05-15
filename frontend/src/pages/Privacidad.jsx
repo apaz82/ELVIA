@@ -254,7 +254,7 @@ export default function Privacidad() {
             <ArrowLeft size={16} weight="bold" />
             Volver al inicio
           </Link>
-          <img src="/optima_logo_v3_clean_1.png" alt="ELVIA" className="h-9 w-auto object-contain" />
+          <img src="/LOGOS/ELVIA_logo_fondo_transparente.png" alt="ELVIA" className="h-9 w-auto object-contain" />
         </div>
       </div>
 

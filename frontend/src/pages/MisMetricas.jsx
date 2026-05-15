@@ -275,7 +275,7 @@ export default function MisMetricas() {
             <div className="bg-white rounded-2xl border border-gray-100 p-5">
               <h2 className="text-sm font-bold text-gray-700 mb-1">Conversión por etapa</h2>
               <p className="text-xs text-gray-400 mb-4">Del total de vacantes, cuántas llegaron a cada etapa.</p>
-              <div className="grid grid-cols-5 gap-2 text-center">
+              <div className="flex flex-wrap justify-center gap-4 text-center">
                 {ETAPAS_ORDEN.map((etapa, i) => {
                   const cnt = etapasCount[etapa] || 0
                   const pct = jobs.length > 0 ? Math.round((cnt / jobs.length) * 100) : 0

@@ -83,6 +83,17 @@ function VacanteCard({ item, onMover, onEliminar, onGuardarNota, onGuardarContac
           </div>
         </div>
         <div className="shrink-0 flex items-center gap-1.5">
+          {!perdida && (
+            <button
+              className="sm:hidden text-gray-400 hover:text-gray-600 p-1 rounded-lg"
+              onClick={(e) => { e.stopPropagation(); setMostrarMenu(m => !m) }}
+              aria-label="Acciones"
+            >
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z"/>
+              </svg>
+            </button>
+          )}
           {mostrarMenu && !perdida ? (
             /* Hover quick actions — inline in header */
             <>

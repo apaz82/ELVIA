@@ -71,8 +71,9 @@ export function useChat() {
           : 'Lo siento, hubo un error al conectar con mis sistemas. Intenta de nuevo más tarde.';
         setMessages(prev => [...prev, { role: 'assistant', content: msg }]);
       }
-    } catch {
-      setMessages(prev => [...prev, { role: 'assistant', content: 'Error de red. Asegúrate de tener conexión.' }]);
+    } catch (err) {
+      const msg = err?.message || 'Error de red. Asegúrate de tener conexión.';
+      setMessages(prev => [...prev, { role: 'assistant', content: msg }]);
     } finally {
       setLoading(false);
     }
