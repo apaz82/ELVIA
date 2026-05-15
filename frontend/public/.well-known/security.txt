@@ -1,0 +1,9 @@
+Contact: security@elvia.lat
+Expires: 2027-05-15T00:00:00.000Z
+Preferred-Languages: es, en
+Canonical: https://elvia.lat/.well-known/security.txt
+Policy: https://elvia.lat/privacidad
+
+# ELVIA® Security Policy
+# For responsible disclosure of security vulnerabilities, contact security@elvia.lat
+# Please do not publicly disclose vulnerabilities until we have had 90 days to address them.

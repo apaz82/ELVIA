@@ -6,3 +6,34 @@
   from = "/*"
   to = "/index.html"
   status = 200
+
+# ────────────────────────────────────────────────────────────────────────────
+# Security Headers — SOC2 + OWASP compliance
+# ────────────────────────────────────────────────────────────────────────────
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    # ── Previene inyección de scripts (XSS) ───────────────────────────────
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdn.tailwindcss.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https: blob:; connect-src 'self' https://api.railway.app https://*.supabase.co https://api.deepseek.com https://api.anthropic.com; frame-ancestors 'none'; form-action 'self'; base-uri 'self'"
+
+    # ── Previene MIME sniffing (evita que navegador interprete mal archivos) ──
+    X-Content-Type-Options = "nosniff"
+
+    # ── Previene clickjacking (no permitir iframe embeddings) ───────────────
+    X-Frame-Options = "DENY"
+
+    # ── Controla referer leakage ───────────────────────────────────────────
+    Referrer-Policy = "strict-origin-when-cross-origin"
+
+    # ── HSTS: fuerza HTTPS en el navegador ────────────────────────────────
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains; preload"
+
+    # ── Permissions Policy: bloquea acceso a cámaras, micrófonos, etc. ──────
+    Permissions-Policy = "camera=(), microphone=(), geolocation=(), payment=()"
+
+    # ── Habilita filtro XSS del navegador ─────────────────────────────────
+    X-XSS-Protection = "1; mode=block"
+
+    # ── Reduce información expuesta en headers ────────────────────────────
+    X-Powered-By = ""
