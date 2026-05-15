@@ -196,8 +196,8 @@ export default function CVOptimizer() {
       setResultadoOptimize(data)
       setTabActiva('cv')
       refreshUsage()
-    } catch {
-      setError('Error al conectar con el servidor')
+    } catch (err) {
+      setError(err.message || 'Error al conectar con el servidor')
     } finally {
       setLoading(false)
     }

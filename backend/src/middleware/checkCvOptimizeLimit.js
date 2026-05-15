@@ -7,14 +7,14 @@ const checkCvOptimizeLimit = (req, res, next) => {
   if (trialExpired) {
     return res.status(403).json({
       error: 'TRIAL_EXPIRED',
-      mensaje: 'Tu período de prueba de 14 días ha terminado. Invierte en tu carrera para continuar.',
+      mensaje: 'Llegaste al límite de tu período de prueba. Elige un plan para continuar.',
     });
   }
 
   if (plan === 'free' && cv_optimizer_count >= config.cv_optimizer) {
     return res.status(403).json({
       error: 'OPTIMIZER_LIMIT_REACHED',
-      mensaje: 'Ya utilizaste tu análisis gratuito de CV Optimizer. Suscríbete para generar más.',
+      mensaje: 'Llegaste al límite de tus créditos. Elige un plan para continuar optimizando CVs.',
       cv_optimizer_count,
     });
   }

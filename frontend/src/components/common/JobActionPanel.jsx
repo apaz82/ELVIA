@@ -65,8 +65,8 @@ export default function JobActionPanel({
       }
       setResultadoMatch(data)
       if (onRefreshUsage) onRefreshUsage()
-    } catch {
-      setError('Error al generar el CV')
+    } catch (err) {
+      setError(err.message || 'Error al conectar con el servidor')
     } finally {
       setLoadingMatch(false)
     }

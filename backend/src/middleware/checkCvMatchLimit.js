@@ -7,14 +7,14 @@ const checkCvMatchLimit = (req, res, next) => {
   if (trialExpired) {
     return res.status(403).json({
       error: 'TRIAL_EXPIRED',
-      mensaje: 'Tu período de prueba de 14 días ha terminado. Invierte en tu carrera para continuar.',
+      mensaje: 'Llegaste al límite de tu período de prueba. Elige un plan para continuar.',
     });
   }
 
   if (plan === 'free' && cv_match_count >= config.cv_match) {
     return res.status(403).json({
       error: 'MATCH_LIMIT_REACHED',
-      mensaje: 'Agotaste tus 3 análisis de compatibilidad gratuitos. Suscríbete para continuar.',
+      mensaje: 'Llegaste al límite de tus créditos. Elige un plan para continuar analizando vacantes.',
       cv_match_count,
     });
   }

@@ -7,14 +7,14 @@ const checkCvGenerarLimit = (req, res, next) => {
   if (trialExpired) {
     return res.status(403).json({
       error: 'TRIAL_EXPIRED',
-      mensaje: 'Tu período de prueba de 7 días ha terminado. Invierte en tu carrera para continuar.',
+      mensaje: 'Llegaste al límite de tu período de prueba. Elige un plan para continuar.',
     });
   }
 
   if (plan === 'free' && cv_generar_count >= config.cv_generar) {
     return res.status(403).json({
       error: 'GENERAR_LIMIT_REACHED',
-      mensaje: 'Ya utilizaste tu CV gratuito desde cero. Suscríbete para generar más.',
+      mensaje: 'Llegaste al límite de tus créditos. Elige un plan para generar más CVs.',
       cv_generar_count,
     });
   }

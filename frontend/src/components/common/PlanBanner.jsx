@@ -15,7 +15,7 @@ export default function PlanBanner({ tipo = 'upgrade_teaser', mensaje, ctaText, 
       bg:    'bg-error/10 border-error/20',
       text:  'text-error',
       icono: <WarningCircle size={18} weight="fill" className="text-error shrink-0" />,
-      msg:   'Agotaste tus análisis gratuitos.',
+      msg:   'Llegaste al límite de tus créditos.',
     },
     upgrade_teaser: {
       bg:    'bg-primary/8 border-primary/20',
@@ -33,7 +33,7 @@ export default function PlanBanner({ tipo = 'upgrade_teaser', mensaje, ctaText, 
       bg:    'bg-amber-50 border-amber-300',
       text:  'text-amber-800',
       icono: <Clock size={18} weight="fill" className="text-amber-600 shrink-0" />,
-      msg:   'Tu período de prueba de 14 días ha terminado.',
+      msg:   'Llegaste al límite de tu período de prueba.',
     },
   }
 

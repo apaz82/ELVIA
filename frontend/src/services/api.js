@@ -28,7 +28,7 @@ export const api = {
     })
     if (!res.ok) {
       let msg = `Error ${res.status}`
-      try { const body = await res.json(); msg = body.error || body.mensaje || msg } catch {}
+      try { const body = await res.json(); msg = body.mensaje || body.error || msg } catch {}
       throw new Error(msg)
     }
     return res.json()
@@ -48,7 +48,7 @@ export const api = {
     })
     if (!res.ok) {
       let msg = `Error ${res.status}`
-      try { const body = await res.json(); msg = body.error || body.mensaje || msg } catch {}
+      try { const body = await res.json(); msg = body.mensaje || body.error || msg } catch {}
       throw new Error(msg)
     }
     return res.json()
