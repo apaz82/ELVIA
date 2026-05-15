@@ -1,11 +1,15 @@
 const Anthropic = require('@anthropic-ai/sdk');
 
-// Inicialización segura para evitar crashes en producción si falta la llave
-let client;
-try {
-  client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY || 'fake-key-to-prevent-crash' });
-} catch (error) {
-  console.error('[Anthropic] CRITICAL: Error al inicializar cliente. ¿Falta ANTHROPIC_API_KEY?', error.message);
+let client = null;
+const _anthropicKey = process.env.ANTHROPIC_API_KEY;
+if (!_anthropicKey) {
+  console.error('[Anthropic] ANTHROPIC_API_KEY no configurada — optimización de CV deshabilitada');
+} else {
+  try {
+    client = new Anthropic({ apiKey: _anthropicKey });
+  } catch (error) {
+    console.error('[Anthropic] Error al inicializar cliente:', error.message);
+  }
 }
 
 // Claude 4.x IDs. Fallback a 3.5 si la cuenta no tiene acceso a 4.x.
@@ -370,49 +374,6 @@ Contexto actual del usuario: ${context || 'Navegando en la plataforma'}
   }
 };
 
-/**
- * Genera preguntas de entrevista mixtas (técnicas + soft skills)
- */
-const generarPreguntasEntrevista = async ({ empresa, cargo, entrevistador, descripcion, numPreguntas }) => {
-  const tecnicas = Math.ceil(numPreguntas * 0.5)
-  const soft = numPreguntas - tecnicas
-
-  const prompt = `Eres un experto en procesos de selección en LATAM. Genera exactamente ${numPreguntas} preguntas de entrevista para el siguiente perfil:
-
-Empresa: ${empresa}
-Cargo: ${cargo}
-Tipo de entrevistador: ${entrevistador}
-Descripción de la vacante: ${descripcion || 'No proporcionada'}
-
-DISTRIBUCIÓN OBLIGATORIA:
-- ${tecnicas} preguntas técnicas (conocimientos, experiencia, habilidades del cargo)
-- ${soft} preguntas de soft skills (liderazgo, trabajo en equipo, manejo de conflictos, etc.)
-
-REGLAS:
-- Las preguntas deben ser abiertas (no sí/no)
-- Adapta la dificultad al nivel del cargo
-- Si el entrevistador es Headhunter, enfócate más en logros y propuesta de valor
-- Si es HR, incluye preguntas de cultura y motivación
-- Si es Hiring Manager, enfócate en habilidades técnicas y casos prácticos
-- Las preguntas deben ser en español
-
-Responde ÚNICAMENTE con un JSON array con este formato exacto (sin texto extra):
-[
-  { "id": 1, "pregunta": "...", "tipo": "tecnica" },
-  { "id": 2, "pregunta": "...", "tipo": "soft" }
-]`
-
-  const response = await client.messages.create({
-    model: MODELO_RAPIDO,
-    max_tokens: 1500,
-    messages: [{ role: 'user', content: prompt }],
-  })
-
-  const text = response.content[0].text.trim()
-  const jsonMatch = text.match(/\[[\s\S]*\]/)
-  if (!jsonMatch) throw new Error('No se pudo parsear las preguntas')
-  return JSON.parse(jsonMatch[0])
-}
 
 /**
  * Evalúa las respuestas de la entrevista y genera feedback
@@ -792,9 +753,10 @@ module.exports = {
   optimizarResumen,
   // ── Bot de Chat ELVIA (RAG Híbrido: Claude lee Gemini) ─────────────────────
   generateChatResponse,
-  // ── Extracción / clasificación → DeepSeek V3 (~70% más barato) ────────────
+  // ── Extracción con PII → Claude Haiku (PII permanece en Anthropic/LGPD) ───
+  extraerDatosInfografia,
+  extraerDatosLinkedin,
+  corregirProyectoLaboral,
+  // ── Sin PII → DeepSeek V3 (~70% más barato) ──────────────────────────────
   generarPreguntasEntrevista: require('./deepseekService').generarPreguntasEntrevista,
-  extraerDatosInfografia: require('./deepseekService').extraerDatosInfografia,
-  extraerDatosLinkedin: require('./deepseekService').extraerDatosLinkedin,
-  corregirProyectoLaboral: require('./deepseekService').corregirProyectoLaboral,
 };

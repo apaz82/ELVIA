@@ -10,14 +10,16 @@
 
 const OpenAI = require('openai');
 
-let deepseek;
-try {
-  deepseek = new OpenAI({
-    apiKey: process.env.DEEPSEEK_API_KEY || 'fake-key-to-prevent-crash',
-    baseURL: 'https://api.deepseek.com/v1',
-  });
-} catch (error) {
-  console.error('[DeepSeek] CRITICAL: Error al inicializar cliente.', error.message);
+let deepseek = null;
+const _deepseekKey = process.env.DEEPSEEK_API_KEY;
+if (!_deepseekKey) {
+  console.error('[DeepSeek] DEEPSEEK_API_KEY no configurada — extracción vía DeepSeek deshabilitada');
+} else {
+  try {
+    deepseek = new OpenAI({ apiKey: _deepseekKey, baseURL: 'https://api.deepseek.com/v1' });
+  } catch (error) {
+    console.error('[DeepSeek] Error al inicializar cliente:', error.message);
+  }
 }
 
 const MODELO_DS = 'deepseek-chat'; // DeepSeek V3
@@ -56,6 +58,7 @@ Contexto actual: ${context || 'Navegando en la plataforma'}`;
 
   formattedHistory.push({ role: 'user', content: message });
 
+  if (!deepseek) throw new Error('[DeepSeek] DEEPSEEK_API_KEY no configurada');
   const response = await deepseek.chat.completions.create({
     model: MODELO_DS,
     max_tokens: 600,
@@ -97,6 +100,7 @@ Responde ÚNICAMENTE con un JSON array con este formato exacto (sin texto extra)
   { "id": 2, "pregunta": "...", "tipo": "soft" }
 ]`;
 
+  if (!deepseek) throw new Error('[DeepSeek] DEEPSEEK_API_KEY no configurada');
   const response = await deepseek.chat.completions.create({
     model: MODELO_DS,
     max_tokens: 1500,
@@ -168,6 +172,7 @@ REGLAS:
 - experiencia: máximo 3 entradas más recientes, máximo 3 bullets cada una
 - Si no encuentras un dato, usa null o array vacío`;
 
+  if (!deepseek) throw new Error('[DeepSeek] DEEPSEEK_API_KEY no configurada');
   const response = await deepseek.chat.completions.create({
     model: MODELO_DS,
     max_tokens: 1500,
@@ -205,6 +210,7 @@ REGLAS:
 - Limpia ruidos del PDF (como 'Página 1 de 2', 'LinkedIn', etc.) pero mantén el contenido profesional intacto.
 - En 'experiencia', trata de mantener el formato descriptivo original.`;
 
+  if (!deepseek) throw new Error('[DeepSeek] DEEPSEEK_API_KEY no configurada');
   const response = await deepseek.chat.completions.create({
     model: MODELO_DS,
     max_tokens: 2500,
@@ -251,6 +257,7 @@ ${JSON.stringify(proyectoData, null, 2)}
 
 Devuelve ÚNICAMENTE el JSON estructurado con las mismas llaves, pero con el texto corregido. Valida que el JSON es 100% válido sintácticamente.`;
 
+  if (!deepseek) return proyectoData;
   const response = await deepseek.chat.completions.create({
     model: MODELO_DS,
     max_tokens: 2000,
@@ -303,6 +310,7 @@ Estructura requerida:
 
 Si un campo no existe en el CV, usa null. Arrays vacíos si no hay datos.`;
 
+  if (!deepseek) throw new Error('[DeepSeek] DEEPSEEK_API_KEY no configurada');
   const response = await deepseek.chat.completions.create({
     model: MODELO_DS,
     max_tokens: 1500,

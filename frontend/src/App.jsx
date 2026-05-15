@@ -1,41 +1,50 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, lazy, Suspense } from 'react'
 import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import Header from './components/common/Header'
 import Sidebar from './components/common/Sidebar'
-import Landing from './pages/Landing'
-import Landing2 from './pages/Landing2'
-import LandingMuyPronto from './pages/LandingMuyPronto'
-import CVOptimizer from './pages/CVOptimizer'
-import CVDesdeCero from './pages/CVDesdeCero'
-import CVvsJob from './pages/CVvsJob'
-import JobMatches from './pages/JobMatches'
-import Auth from './pages/Auth'
-import MisCVs from './pages/MisCVs'
-import MisVacantes from './pages/MisVacantes'
-import Pipeline from './pages/Pipeline'
-import Perfil from './pages/Perfil'
-import MiPlan from './pages/MiPlan'
-import Dashboard from './pages/Dashboard'
-import BienvenidaOnboarding from './pages/BienvenidaOnboarding'
-import Admin from './pages/Admin'
-import Entrevista from './pages/Entrevista'
-import Biblioteca from './pages/Biblioteca'
-import LinkedinPro from './pages/LinkedinPro'
-import Privacidad from './pages/Privacidad'
-import ResetPassword from './pages/ResetPassword'
-import Expertos from './pages/Expertos'
-import Infografias from './pages/Infografias'
-import Pricing from './pages/Pricing'
-import ProyectoLaboral from './pages/ProyectoLaboral'
-import ReporteLaboral from './pages/ReporteLaboral'
-import Bienestar from './pages/Bienestar'
-import MisMetricas from './pages/MisMetricas'
-import Cookies from './pages/Cookies'
 import CookieConsent from './components/common/CookieConsent'
 import AiChatBot from './components/chat/AiChatBot'
 import ErrorBoundary from './components/common/ErrorBoundary'
 import { useAuth } from './context/AuthContext'
 import { Toaster } from 'react-hot-toast'
+
+const Landing            = lazy(() => import('./pages/Landing'))
+const Landing2           = lazy(() => import('./pages/Landing2'))
+const LandingMuyPronto   = lazy(() => import('./pages/LandingMuyPronto'))
+const CVOptimizer        = lazy(() => import('./pages/CVOptimizer'))
+const CVDesdeCero        = lazy(() => import('./pages/CVDesdeCero'))
+const CVvsJob            = lazy(() => import('./pages/CVvsJob'))
+const JobMatches         = lazy(() => import('./pages/JobMatches'))
+const Auth               = lazy(() => import('./pages/Auth'))
+const MisCVs             = lazy(() => import('./pages/MisCVs'))
+const MisVacantes        = lazy(() => import('./pages/MisVacantes'))
+const Pipeline           = lazy(() => import('./pages/Pipeline'))
+const Perfil             = lazy(() => import('./pages/Perfil'))
+const MiPlan             = lazy(() => import('./pages/MiPlan'))
+const Dashboard          = lazy(() => import('./pages/Dashboard'))
+const BienvenidaOnboarding = lazy(() => import('./pages/BienvenidaOnboarding'))
+const Admin              = lazy(() => import('./pages/Admin'))
+const Entrevista         = lazy(() => import('./pages/Entrevista'))
+const Biblioteca         = lazy(() => import('./pages/Biblioteca'))
+const LinkedinPro        = lazy(() => import('./pages/LinkedinPro'))
+const Privacidad         = lazy(() => import('./pages/Privacidad'))
+const ResetPassword      = lazy(() => import('./pages/ResetPassword'))
+const Expertos           = lazy(() => import('./pages/Expertos'))
+const Infografias        = lazy(() => import('./pages/Infografias'))
+const Pricing            = lazy(() => import('./pages/Pricing'))
+const ProyectoLaboral    = lazy(() => import('./pages/ProyectoLaboral'))
+const ReporteLaboral     = lazy(() => import('./pages/ReporteLaboral'))
+const Bienestar          = lazy(() => import('./pages/Bienestar'))
+const MisMetricas        = lazy(() => import('./pages/MisMetricas'))
+const Cookies            = lazy(() => import('./pages/Cookies'))
+
+function PageLoader() {
+  return (
+    <div className="flex items-center justify-center min-h-screen bg-surface">
+      <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+    </div>
+  )
+}
 
 // Rutas que NO muestran sidebar ni header estándar
 const RUTAS_FULL = ['/', '/waitlist', '/inicio', '/auth', '/bienvenida', '/admin', '/privacidad', '/cookies', '/reset-password', '/pricing']
@@ -180,6 +189,7 @@ export default function App() {
   const isFullLayout = RUTAS_FULL.includes(currentPath) || !RUTAS_APP.includes(currentPath)
 
   const routes = (
+    <Suspense fallback={<PageLoader />}>
     <Routes>
       <Route path="/reset-password"  element={<ResetPassword />} />  {/* Por si acaso falla el bloqueo anterior */}
       <Route path="/"              element={<LandingMuyPronto />} />
@@ -221,6 +231,7 @@ export default function App() {
       {/* CATCH-ALL: Redirigir cualquier ruta no válida al home/dashboard según auth */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    </Suspense>
   )
 
   return (
