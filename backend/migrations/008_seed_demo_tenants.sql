@@ -19,16 +19,16 @@ VALUES (
   'ES',
   'enterprise',
   true,
-  '/LOGOS/telefonica.svg',
-  '#0066FF',
-  '#0019A5',
-  '#00C8FF',
+  '/LOGOS/LOGOTELEFONICAAZUL.webp',
+  '#019DF4',  -- Telefonica vivid blue (oficial)
+  '#0B2A6B',  -- Telefonica deep blue
+  '#5BC2E7',  -- Telefonica light cyan
   'Tu próximo capítulo profesional',
   'Programa de transición y desarrollo de carrera para colaboradores de Telefónica — operado por ELVIA®.',
   'Bienvenido al programa exclusivo de Telefónica × ELVIA. Tu información es estrictamente confidencial; tu organización solo recibe métricas agregadas y anónimas del programa.',
   'rrhh@telefonica.com',
   'soporte@elvia.lat',
-  'telefonica.com',
+  NULL,  -- demo-friendly: cualquier email; en produccion poner 'telefonica.com'
   false,
   false,
   'eu-west-1'
