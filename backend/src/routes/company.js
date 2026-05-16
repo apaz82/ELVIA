@@ -172,7 +172,7 @@ router.post('/registration/:slug', registrationLimiter, async (req, res) => {
     // 1. Validar que la empresa existe y está activa
     const { data: company, error: companyErr } = await db
       .from('companies')
-      .select('id, is_active, allowed_email_domain, require_invite, name')
+      .select('id, is_active, allowed_email_domain, require_invite, require_allowlist, name')
       .eq('slug', slug)
       .eq('is_active', true)
       .single()
@@ -190,6 +190,30 @@ router.post('/registration/:slug', registrationLimiter, async (req, res) => {
           error: `El acceso a ${company.name} requiere un correo corporativo @${requiredDomain}.`,
         })
       }
+    }
+
+    // 1c. Gate por allowlist (si la empresa lo exige)
+    // El email debe estar pre-aprobado por HR en company_allowlist
+    let allowlistRow = null
+    if (company.require_allowlist) {
+      const { data: row } = await db
+        .from('company_allowlist')
+        .select('id, status, nombre, apellido, cohort, area, cargo_actual')
+        .eq('company_id', company.id)
+        .ilike('email', email)
+        .maybeSingle()
+
+      if (!row) {
+        return res.status(403).json({
+          error: `Tu correo no esta en la lista aprobada del programa ${company.name}. Contacta a tu area de RRHH para que te incluyan.`,
+        })
+      }
+      if (row.status === 'revoked') {
+        return res.status(403).json({
+          error: `Tu acceso al programa ${company.name} fue revocado. Contacta a RRHH.`,
+        })
+      }
+      allowlistRow = row
     }
 
     // 1b. Gate por invitación (si la empresa lo exige)
@@ -264,17 +288,21 @@ router.post('/registration/:slug', registrationLimiter, async (req, res) => {
 
     // 3. Upsert profile vinculado al tenant. Esto cubre tanto user nuevo
     //    como user existente que se esta vinculando por primera vez.
+    //    Si hubo match en allowlist, backfill con esos datos pre-cargados por HR.
+    const profileData = {
+      id: userId,
+      email_principal: userEmail,
+      nombre1:  (allowlistRow?.nombre   || nombre   || '').trim(),
+      apellido1:(allowlistRow?.apellido || apellido || '').trim(),
+      company_id: company.id,
+      role: 'user',
+      plan: 'pro',
+    }
+    if (allowlistRow?.cohort) profileData.cohort = allowlistRow.cohort
+
     const { data: profile, error: profileErr } = await db
       .from('profiles')
-      .upsert([{
-        id: userId,
-        email_principal: userEmail,
-        nombre1: nombre || '',
-        apellido1: apellido || '',
-        company_id: company.id,
-        role: 'user',
-        plan: 'pro',
-      }], { onConflict: 'id' })
+      .upsert([profileData], { onConflict: 'id' })
       .select()
       .single()
 
@@ -287,10 +315,18 @@ router.post('/registration/:slug', registrationLimiter, async (req, res) => {
       return res.status(500).json({ error: 'Error al crear perfil de usuario' })
     }
 
+    // 4. Marcar allowlist como activated (si vino por esa via)
+    if (allowlistRow) {
+      await db.from('company_allowlist')
+        .update({ status: 'activated', activated_at: new Date().toISOString(), activated_user_id: userId })
+        .eq('id', allowlistRow.id)
+        .catch(err => console.warn('No se pudo marcar allowlist activated:', err.message))
+    }
+
     res.json({
       ok: true,
       message: createdNow
-        ? 'Usuario registrado exitosamente. Revisa tu correo para activar.'
+        ? 'Usuario registrado exitosamente.'
         : 'Tu cuenta existente fue vinculada al programa exitosamente.',
       linked: !createdNow,
       user: {
@@ -804,6 +840,183 @@ router.post('/costs/export', auth, requireRole('company_admin'), async (req, res
   } catch (err) {
     console.error('Error exporting costs:', err)
     res.status(500).json({ error: 'Error al exportar reporte' })
+  }
+})
+
+// ─────────────────────────────────────────────────────────────────────────
+// Company Admin: Listar allowlist (personas pre-aprobadas)
+// GET /api/company/allowlist
+// ─────────────────────────────────────────────────────────────────────────
+
+router.get('/allowlist', auth, requireRole('company_admin'), async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Servicio no disponible' })
+  try {
+    const { data, error } = await db
+      .from('company_allowlist')
+      .select('id, email, nombre, apellido, cohort, area, cargo_actual, status, added_at, activated_at, activated_user_id, revoked_at')
+      .eq('company_id', req.companyId)
+      .order('added_at', { ascending: false })
+
+    if (error) {
+      console.error('Allowlist fetch error:', error)
+      return res.status(500).json({ error: 'Error al obtener allowlist' })
+    }
+    res.json({ allowlist: data || [] })
+  } catch (err) {
+    console.error('Error fetching allowlist:', err)
+    res.status(500).json({ error: 'Error al obtener allowlist' })
+  }
+})
+
+// ─────────────────────────────────────────────────────────────────────────
+// Company Admin: Bulk upload allowlist (parseado en frontend desde CSV)
+// POST /api/company/allowlist/bulk
+// Body: { rows: [{ email, nombre?, apellido?, cohort?, area?, cargo_actual? }], cohort_default? }
+// ─────────────────────────────────────────────────────────────────────────
+
+router.post('/allowlist/bulk', auth, requireRole('company_admin'), async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Servicio no disponible' })
+  try {
+    const { rows, cohort_default } = req.body || {}
+    if (!Array.isArray(rows) || rows.length === 0) {
+      return res.status(400).json({ error: 'Debes enviar rows[] con al menos una fila.' })
+    }
+    if (rows.length > 5000) {
+      return res.status(400).json({ error: 'Demasiadas filas. Máximo 5000 por carga.' })
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    const cleaned = []
+    const errors = []
+
+    rows.forEach((r, i) => {
+      const email = String(r.email || '').trim().toLowerCase()
+      if (!email) { errors.push({ row: i + 1, error: 'email vacio' }); return }
+      if (!emailRegex.test(email)) { errors.push({ row: i + 1, error: 'email invalido: ' + email }); return }
+      cleaned.push({
+        company_id:   req.companyId,
+        email,
+        nombre:       (r.nombre || '').trim() || null,
+        apellido:     (r.apellido || '').trim() || null,
+        cohort:       (r.cohort || cohort_default || '').trim() || null,
+        area:         (r.area || '').trim() || null,
+        cargo_actual: (r.cargo_actual || '').trim() || null,
+        status:       'pending',
+        added_by:     req.user.id,
+      })
+    })
+
+    if (cleaned.length === 0) {
+      return res.status(400).json({ error: 'Ninguna fila valida.', errors })
+    }
+
+    const { data: inserted, error } = await db
+      .from('company_allowlist')
+      .upsert(cleaned, { onConflict: 'company_id,email', ignoreDuplicates: false })
+      .select('id, email, status')
+
+    if (error) {
+      console.error('Allowlist bulk error:', error)
+      return res.status(500).json({ error: 'Error al guardar allowlist: ' + error.message })
+    }
+
+    res.json({
+      ok: true,
+      processed: cleaned.length,
+      upserted: inserted?.length || 0,
+      errors,
+      summary: `${cleaned.length} filas procesadas, ${errors.length} con error.`,
+    })
+  } catch (err) {
+    console.error('Error allowlist bulk:', err)
+    res.status(500).json({ error: 'Error al procesar allowlist' })
+  }
+})
+
+// ─────────────────────────────────────────────────────────────────────────
+// Company Admin: Revocar entrada del allowlist
+// PATCH /api/company/allowlist/:id  Body: { action: 'revoke' | 'unrevoke' }
+// ─────────────────────────────────────────────────────────────────────────
+
+router.patch('/allowlist/:id', auth, requireRole('company_admin'), async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Servicio no disponible' })
+  try {
+    const { id } = req.params
+    const { action } = req.body || {}
+
+    // Verificar ownership
+    const { data: row } = await db
+      .from('company_allowlist')
+      .select('id, company_id, status, activated_user_id')
+      .eq('id', id)
+      .single()
+
+    if (!row || row.company_id !== req.companyId) {
+      return res.status(403).json({ error: 'No tienes acceso a esta entrada' })
+    }
+
+    let updates = {}
+    if (action === 'revoke') {
+      updates = { status: 'revoked', revoked_at: new Date().toISOString(), revoked_by: req.user.id }
+      // Si ya estaba activado, suspender al usuario asociado
+      if (row.activated_user_id) {
+        await db.from('profiles').update({ suspended: true }).eq('id', row.activated_user_id).catch(() => {})
+      }
+    } else if (action === 'unrevoke') {
+      updates = { status: row.activated_user_id ? 'activated' : 'pending', revoked_at: null, revoked_by: null }
+      if (row.activated_user_id) {
+        await db.from('profiles').update({ suspended: false }).eq('id', row.activated_user_id).catch(() => {})
+      }
+    } else {
+      return res.status(400).json({ error: 'action debe ser revoke o unrevoke' })
+    }
+
+    const { data: updated, error } = await db
+      .from('company_allowlist')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Allowlist patch error:', error)
+      return res.status(500).json({ error: 'Error al actualizar' })
+    }
+    res.json({ ok: true, entry: updated })
+  } catch (err) {
+    console.error('Error patching allowlist:', err)
+    res.status(500).json({ error: 'Error al actualizar' })
+  }
+})
+
+// ─────────────────────────────────────────────────────────────────────────
+// Company Admin: Borrar entrada del allowlist (hard delete - solo si pending)
+// DELETE /api/company/allowlist/:id
+// ─────────────────────────────────────────────────────────────────────────
+
+router.delete('/allowlist/:id', auth, requireRole('company_admin'), async (req, res) => {
+  if (!db) return res.status(503).json({ error: 'Servicio no disponible' })
+  try {
+    const { id } = req.params
+    const { data: row } = await db
+      .from('company_allowlist')
+      .select('id, company_id, status')
+      .eq('id', id)
+      .single()
+
+    if (!row || row.company_id !== req.companyId) {
+      return res.status(403).json({ error: 'No tienes acceso a esta entrada' })
+    }
+    if (row.status === 'activated') {
+      return res.status(400).json({ error: 'No puedes borrar una entrada ya activada. Revocala en su lugar.' })
+    }
+
+    const { error } = await db.from('company_allowlist').delete().eq('id', id)
+    if (error) return res.status(500).json({ error: 'Error al borrar' })
+    res.json({ ok: true })
+  } catch (err) {
+    console.error('Error deleting allowlist:', err)
+    res.status(500).json({ error: 'Error al borrar' })
   }
 })
 
