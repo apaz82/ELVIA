@@ -140,11 +140,11 @@ export default function RegistroEmpresa() {
             </>
           ) : (
             <>
-              <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3">Revisa tu correo</h1>
-              <p className="text-sm text-gray-500 mb-2">Enviamos un enlace de verificación a:</p>
+              <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3">¡Cuenta activada!</h1>
+              <p className="text-sm text-gray-500 mb-2">Tu cuenta del programa <strong>{tenant.name} × ELVIA®</strong> ya está lista:</p>
               <p className="text-base font-semibold text-gray-900 mb-6">{email}</p>
               <p className="text-xs text-gray-400 mb-8 leading-relaxed">
-                Haz clic en el enlace que recibiste para activar tu cuenta. Luego ya puedes iniciar sesión en el programa <strong>{tenant.name} × ELVIA®</strong>.
+                Inicia sesión con la contraseña que acabas de crear y empieza tu programa de transición profesional.
               </p>
             </>
           )}

@@ -225,10 +225,14 @@ router.post('/registration/:slug', registrationLimiter, async (req, res) => {
     let userEmail = email
     let createdNow = false
 
+    // Auto-confirmar email en B2B: la empresa ya valido al colaborador
+    // antes de invitarlo al programa, asi que evitamos friccion de verificacion.
+    // Casos de uso: outplacement donde el candidato usa correo personal, o programas
+    // donde el dominio corporativo no aplica al usuario final.
     const { data: authUser, error: authErr } = await db.auth.admin.createUser({
       email,
       password,
-      email_confirm: false,
+      email_confirm: true,
     })
 
     if (authErr) {
