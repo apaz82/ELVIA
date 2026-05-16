@@ -1,12 +1,8 @@
--- ============================================================================
--- MIGRATION 008: Seed demo tenants (Telefónica + Universidad genérica)
--- Estos tenants son los que se mostrarán en los demos del 19 y 20 de mayo.
+-- Migration 008: Seed demo tenants (Telefonica + Universidad Innova).
+-- Estos tenants se usaran en los demos del 19 y 20 de mayo.
 -- Idempotente: si los tenants ya existen, solo actualiza campos de branding.
--- ============================================================================
 
--- ─────────────────────────────────────────────────────────────────────────
--- 1. Telefónica — demo del miércoles 20 mayo
--- ─────────────────────────────────────────────────────────────────────────
+-- 1. Telefonica — demo del miercoles 20 mayo
 
 INSERT INTO companies (
   name, slug, sector, country, plan, is_active,
@@ -57,10 +53,7 @@ ON CONFLICT (slug) DO UPDATE SET
   show_pricing     = EXCLUDED.show_pricing,
   data_region      = EXCLUDED.data_region;
 
--- ─────────────────────────────────────────────────────────────────────────
--- 2. Universidad demo — demo del martes 19 mayo
---    Nombre genérico para no comprometer ningún partner real.
--- ─────────────────────────────────────────────────────────────────────────
+-- 2. Universidad demo — demo del martes 19 mayo. Nombre generico.
 
 INSERT INTO companies (
   name, slug, sector, country, plan, is_active,
@@ -112,6 +105,4 @@ ON CONFLICT (slug) DO UPDATE SET
   show_pricing     = EXCLUDED.show_pricing,
   data_region      = EXCLUDED.data_region;
 
--- ─────────────────────────────────────────────────────────────────────────
 -- FIN MIGRATION 008
--- ─────────────────────────────────────────────────────────────────────────
