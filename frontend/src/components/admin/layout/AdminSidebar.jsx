@@ -4,6 +4,7 @@ import * as PI from '@phosphor-icons/react'
 const TABS_B2C = [
   { id: 'overview',      label: 'Escritorio',     icon: PI.Kanban },
   { id: 'users',         label: 'Usuarios',       icon: PI.UsersThree },
+  { id: 'b2b',           label: 'Empresas (B2B)', icon: PI.Storefront },
   { id: 'suscripciones', label: 'Suscripciones',  icon: PI.Coins },
   { id: 'codigos',       label: 'Códigos',        icon: PI.Tag },
   { id: 'waitlist',      label: 'Lista de Espera', icon: PI.ListStar },

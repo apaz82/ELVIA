@@ -39,6 +39,7 @@ const MisMetricas        = lazy(() => import('./pages/MisMetricas'))
 const Cookies            = lazy(() => import('./pages/Cookies'))
 const LandingEmpresa     = lazy(() => import('./pages/LandingEmpresa'))
 const RegistroEmpresa    = lazy(() => import('./pages/RegistroEmpresa'))
+const CompanyAdmin       = lazy(() => import('./pages/CompanyAdmin'))
 
 function PageLoader() {
   return (
@@ -49,9 +50,9 @@ function PageLoader() {
 }
 
 // Rutas que NO muestran sidebar ni header estándar
-const RUTAS_FULL = ['/', '/waitlist', '/inicio', '/auth', '/bienvenida', '/admin', '/privacidad', '/cookies', '/reset-password', '/pricing']
+const RUTAS_FULL = ['/', '/waitlist', '/inicio', '/auth', '/bienvenida', '/admin', '/empresa-admin', '/privacidad', '/cookies', '/reset-password', '/pricing']
 // Rutas excluidas del guard de onboarding (no redirigen a /bienvenida aunque haya onboarding pendiente)
-const RUTAS_SIN_GUARD = ['/', '/waitlist', '/inicio', '/auth', '/bienvenida', '/admin', '/privacidad', '/cookies', '/reset-password', '/pricing', '/proyecto-laboral', '/cv-desde-cero', '/linkedin-pro']
+const RUTAS_SIN_GUARD = ['/', '/waitlist', '/inicio', '/auth', '/bienvenida', '/admin', '/empresa-admin', '/privacidad', '/cookies', '/reset-password', '/pricing', '/proyecto-laboral', '/cv-desde-cero', '/linkedin-pro']
 // Rutas públicas (solo para usuarios NO autenticados)
 const RUTAS_PUBLICAS = ['/', '/waitlist', '/auth', '/privacidad', '/cookies', '/reset-password', '/pricing']
 
@@ -64,18 +65,22 @@ const RUTAS_APP = [
 ]
 
 function PublicRoute({ children }) {
-  const { user, loading, isRecovering, onboardingPendiente, featuresDesbloqueadas, perfilCargado } = useAuth()
+  const { user, loading, isRecovering, onboardingPendiente, featuresDesbloqueadas, perfilCargado, isCompanyAdmin } = useAuth()
   const location = useLocation()
-  
+
   if (loading || !perfilCargado) return null
-  
+
   const isRecoveryMode = sessionStorage.getItem('optima_recovery_mode') === 'true' || isRecovering || location.hash.includes('type=recovery')
-  
+
   if (isRecoveryMode || location.hash.includes('access_token')) {
     return children
   }
 
   if (user) {
+    // Company admin (HR) → panel de empresa, no flujo de usuario
+    if (isCompanyAdmin) {
+      return <Navigate to="/empresa-admin" replace />
+    }
     // Si tiene onboarding pendiente, dejar que PrivateRoute lo mande a /bienvenida o similar
     // Pero si ya pasó el onboarding inicial y no tiene herramientas desbloqueadas -> /proyecto-laboral
     if (!onboardingPendiente && !featuresDesbloqueadas) {
@@ -87,7 +92,7 @@ function PublicRoute({ children }) {
 }
 
 function OnboardingGuard({ children }) {
-  const { onboardingPendiente, featuresDesbloqueadas, loading, isRecovering } = useAuth()
+  const { onboardingPendiente, featuresDesbloqueadas, loading, isRecovering, isCompanyAdmin, isAdmin } = useAuth()
   const location = useLocation()
 
   if (loading) return null
@@ -97,6 +102,15 @@ function OnboardingGuard({ children }) {
 
   if (isRecoveryMode || path.startsWith('/reset-password')) {
     return children
+  }
+
+  // Company admin / super admin → bypass guards de usuario.
+  // Si intenta entrar a rutas de usuario común, redirigir a su panel.
+  if (isCompanyAdmin || isAdmin) {
+    if (path === '/empresa-admin' || path.startsWith('/admin')) {
+      return children
+    }
+    return <Navigate to="/empresa-admin" replace />
   }
 
   if (RUTAS_SIN_GUARD.includes(path)) {
@@ -208,6 +222,9 @@ export default function App() {
       <Route path="/empresas/:slug/registro"    element={<RegistroEmpresa />} />
       <Route path="/universidades/:slug"          element={<LandingEmpresa />} />
       <Route path="/universidades/:slug/registro" element={<RegistroEmpresa />} />
+
+      {/* Panel del HR Director / Gestor de programa B2B */}
+      <Route path="/empresa-admin" element={<PrivateRoute><CompanyAdmin /></PrivateRoute>} />
 
       {/* Admin / Especiales */}
       <Route path="/admin"         element={<Admin />} />
