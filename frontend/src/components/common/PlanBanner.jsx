@@ -1,6 +1,7 @@
 // Banner reutilizable de upgrade / límite / trial para páginas de la app
 import { useNavigate } from 'react-router-dom'
 import { RocketLaunch, WarningCircle, Clock } from '@phosphor-icons/react'
+import { useTenant } from '../../context/TenantContext'
 
 /**
  * @param {'limit_reached'|'upgrade_teaser'|'trial_warning'|'trial_expired'} tipo
@@ -9,6 +10,10 @@ import { RocketLaunch, WarningCircle, Clock } from '@phosphor-icons/react'
  */
 export default function PlanBanner({ tipo = 'upgrade_teaser', mensaje, ctaText, className = '' }) {
   const navigate = useNavigate()
+  const { isB2B } = useTenant()
+
+  // En B2B la empresa paga el programa: nunca mostramos CTAs de upgrade ni de pricing
+  if (isB2B) return null
 
   const config = {
     limit_reached: {

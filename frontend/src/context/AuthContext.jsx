@@ -217,7 +217,10 @@ export const AuthProvider = ({ children }) => {
     return calcularProgreso(jpData, perfil)
   }, [jpData, perfil, jpLoaded])
 
-  const featuresDesbloqueadas = (progresoLaboral >= 100) || (planInfo.isPaidPlan)
+  // Usuarios B2B (con company_id) tienen todas las features desbloqueadas:
+  // la empresa pagó por el programa completo, no debemos forzarles el gate de proyecto-laboral.
+  const isB2BUser = !!perfil?.company_id
+  const featuresDesbloqueadas = (progresoLaboral >= 100) || (planInfo.isPaidPlan) || isB2BUser
 
   const refreshJpData = useCallback(async () => {
     if (!user) return

@@ -2,9 +2,10 @@
 import { useState, useRef, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
+import { useTenant } from '../../context/TenantContext'
 import { List, UserCircle, CaretDown, SignOut, Sparkle, Crown, Coins } from '@phosphor-icons/react'
 
-// Configuración de badges por plan (solo los 3 planes activos)
+// Configuración de badges por plan (solo los 3 planes activos B2C)
 const PLAN_CONFIG = {
   free:        { label: 'Plan Gratuito',   icon: Sparkle, bg: 'bg-slate-700/80',     text: 'text-slate-100',  border: 'border-slate-600/50' },
   mensual:     { label: 'Plan Mensual',    icon: Crown,   bg: 'bg-emerald-600/90',   text: 'text-white',      border: 'border-emerald-400/40' },
@@ -12,7 +13,8 @@ const PLAN_CONFIG = {
 }
 
 export default function Header({ onMenuToggle }) {
-  const { user, perfil, logout, planInfo } = useAuth()
+  const { user, perfil, logout } = useAuth()
+  const { tenant, isB2B } = useTenant()
   const navigate = useNavigate()
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const dropdownRef = useRef(null)
@@ -20,6 +22,14 @@ export default function Header({ onMenuToggle }) {
   const planKey = perfil?.plan || 'free'
   const planCfg = PLAN_CONFIG[planKey] || PLAN_CONFIG['free']
   const PlanIcon = planCfg.icon
+
+  // Gradiente tenant-aware: B2B usa branding del tenant
+  const headerStyle = isB2B
+    ? { background: `linear-gradient(90deg, ${tenant.secondary_color} 0%, ${tenant.primary_color} 100%)` }
+    : undefined
+  const headerClass = isB2B
+    ? 'sticky top-0 z-20 h-24 flex items-center px-5 gap-4 shadow-md'
+    : 'sticky top-0 z-20 h-24 flex items-center px-5 gap-4 bg-gradient-to-r from-[#0A3D2A] to-[#0D2B4E] shadow-md'
 
   const nombre = perfil?.nombre1
     ? `${perfil.nombre1}${perfil.apellido1 ? ' ' + perfil.apellido1 : ''}`
@@ -37,7 +47,7 @@ export default function Header({ onMenuToggle }) {
   }, [])
 
   return (
-    <header className="sticky top-0 z-20 h-24 flex items-center px-5 gap-4 bg-gradient-to-r from-[#0A3D2A] to-[#0D2B4E] shadow-md">
+    <header className={headerClass} style={headerStyle}>
 
       {/* Hamburguesa — móvil */}
       <button
@@ -48,9 +58,17 @@ export default function Header({ onMenuToggle }) {
         <List size={22} />
       </button>
 
-      {/* Logo — solo en móvil */}
+      {/* Logo — solo en móvil; en B2B se muestra logo del tenant + ELVIA chiquito */}
       <Link to="/" className="flex items-center gap-2 md:hidden">
-        <img src="/LOGOS/ELVIA_logo_fondo_transparente.png" alt="ELVIA" className="h-10 w-auto object-contain py-1" />
+        {isB2B && tenant.logo_url ? (
+          <>
+            <img src={tenant.logo_url} alt={tenant.name} className="h-7 object-contain" />
+            <div className="h-4 w-px bg-white/30" />
+            <img src="/LOGOS/ELVIA_logo_fondo_transparente.png" alt="ELVIA" className="h-4 opacity-80 object-contain" />
+          </>
+        ) : (
+          <img src="/LOGOS/ELVIA_logo_fondo_transparente.png" alt="ELVIA" className="h-10 w-auto object-contain py-1" />
+        )}
       </Link>
 
       <div className="flex-1" />
@@ -58,14 +76,21 @@ export default function Header({ onMenuToggle }) {
       {/* Info usuario — desktop */}
       {user ? (
         <div className="hidden md:flex items-center gap-3">
-          {/* Badge de Plan */}
-          <Link
-            to="/mi-plan"
-            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold border transition-all hover:opacity-90 hover:scale-105 ${planCfg.bg} ${planCfg.text} ${planCfg.border}`}
-          >
-            <PlanIcon size={13} weight="duotone" />
-            {planCfg.label}
-          </Link>
+          {/* Badge: B2B muestra "Programa {tenant}", B2C muestra plan freemium */}
+          {isB2B ? (
+            <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold border bg-white/15 text-white border-white/20 backdrop-blur-sm">
+              <Crown size={13} weight="duotone" />
+              Programa {tenant.name}
+            </div>
+          ) : (
+            <Link
+              to="/mi-plan"
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold border transition-all hover:opacity-90 hover:scale-105 ${planCfg.bg} ${planCfg.text} ${planCfg.border}`}
+            >
+              <PlanIcon size={13} weight="duotone" />
+              {planCfg.label}
+            </Link>
+          )}
 
           {/* Avatar + nombre — con dropdown */}
           <div className="relative" ref={dropdownRef}>
@@ -95,14 +120,16 @@ export default function Header({ onMenuToggle }) {
                   <UserCircle size={16} weight="duotone" className="text-primary" />
                   Mi Perfil
                 </Link>
-                <Link
-                  to="/mi-plan"
-                  onClick={() => setDropdownOpen(false)}
-                  className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-on-surface hover:bg-surface-container-low transition-colors"
-                >
-                  <Coins size={16} weight="duotone" className="text-primary" />
-                  Mi Plan
-                </Link>
+                {!isB2B && (
+                  <Link
+                    to="/mi-plan"
+                    onClick={() => setDropdownOpen(false)}
+                    className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-on-surface hover:bg-surface-container-low transition-colors"
+                  >
+                    <Coins size={16} weight="duotone" className="text-primary" />
+                    Mi Plan
+                  </Link>
+                )}
                 <div className="h-px bg-outline-variant/20 mx-2 my-1" />
                 <button
                   onClick={async () => { setDropdownOpen(false); await logout(); navigate('/') }}
