@@ -32,6 +32,7 @@ export default function RegistroEmpresa() {
   const [loading, setLoading]     = useState(false)
   const [error, setError]         = useState('')
   const [success, setSuccess]     = useState(false)
+  const [linked, setLinked]       = useState(false)  // true si vinculamos cuenta existente en vez de crear
 
   const pwdChecks = checkPassword(password)
   const pwdStrong = Object.values(pwdChecks).filter(Boolean).length === 4
@@ -108,6 +109,7 @@ export default function RegistroEmpresa() {
         return
       }
 
+      setLinked(Boolean(data.linked))
       setSuccess(true)
     } catch (err) {
       setError('Error de conexión. Verifica tu internet e intenta de nuevo.')
@@ -125,14 +127,27 @@ export default function RegistroEmpresa() {
             className="w-16 h-16 rounded-2xl mx-auto mb-6 flex items-center justify-center"
             style={{ background: `${primary}15` }}
           >
-            <PI.EnvelopeSimpleOpen size={32} weight="duotone" style={{ color: primary }} />
+            <PI.CheckCircle size={32} weight="duotone" style={{ color: primary }} />
           </div>
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3">Revisa tu correo</h1>
-          <p className="text-sm text-gray-500 mb-2">Enviamos un enlace de verificación a:</p>
-          <p className="text-base font-semibold text-gray-900 mb-6">{email}</p>
-          <p className="text-xs text-gray-400 mb-8 leading-relaxed">
-            Haz clic en el enlace que recibiste para activar tu cuenta. Luego ya puedes iniciar sesión en el programa <strong>{tenant.name} × ELVIA®</strong>.
-          </p>
+          {linked ? (
+            <>
+              <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3">Cuenta vinculada al programa</h1>
+              <p className="text-sm text-gray-500 mb-2">Tu cuenta existente fue vinculada exitosamente al programa <strong>{tenant.name} × ELVIA®</strong>.</p>
+              <p className="text-base font-semibold text-gray-900 mb-6">{email}</p>
+              <p className="text-xs text-gray-400 mb-8 leading-relaxed">
+                Inicia sesión con tu <strong>contraseña existente</strong> (la que pusiste aquí no se aplicó porque ya tenías cuenta). Si no la recuerdas, usa "Olvidé mi contraseña".
+              </p>
+            </>
+          ) : (
+            <>
+              <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3">Revisa tu correo</h1>
+              <p className="text-sm text-gray-500 mb-2">Enviamos un enlace de verificación a:</p>
+              <p className="text-base font-semibold text-gray-900 mb-6">{email}</p>
+              <p className="text-xs text-gray-400 mb-8 leading-relaxed">
+                Haz clic en el enlace que recibiste para activar tu cuenta. Luego ya puedes iniciar sesión en el programa <strong>{tenant.name} × ELVIA®</strong>.
+              </p>
+            </>
+          )}
           <button
             onClick={() => navigate('/auth')}
             className="w-full py-3 rounded-xl text-white text-sm font-semibold transition-opacity hover:opacity-90"

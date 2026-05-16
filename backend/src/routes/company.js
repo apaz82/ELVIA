@@ -218,50 +218,80 @@ router.post('/registration/:slug', registrationLimiter, async (req, res) => {
       }
     }
 
-    // 2. Crear user en Supabase Auth
+    // 2. Crear user en Supabase Auth. Si el email ya existe (caso comun en demos
+    //    donde el mismo email se reusa entre B2C y B2B), lo localizamos y
+    //    vinculamos al tenant via upsert de profile en vez de fallar.
+    let userId = null
+    let userEmail = email
+    let createdNow = false
+
     const { data: authUser, error: authErr } = await db.auth.admin.createUser({
       email,
       password,
-      email_confirm: false, // enviar confirmation email
+      email_confirm: false,
     })
 
     if (authErr) {
-      console.error('Auth error:', authErr)
-      return res.status(400).json({
-        error: authErr.message || 'Error al crear usuario',
-      })
+      const msg = (authErr.message || '').toLowerCase()
+      const isDuplicate = msg.includes('already') || msg.includes('registered') || msg.includes('exists') || authErr.status === 422
+
+      if (!isDuplicate) {
+        console.error('Auth error:', authErr)
+        return res.status(400).json({ error: authErr.message || 'Error al crear usuario' })
+      }
+
+      // Email ya existe → encontrar el user y vincularlo al tenant
+      const { data: listData, error: listErr } = await db.auth.admin.listUsers({ page: 1, perPage: 200 })
+      if (listErr) {
+        console.error('listUsers error:', listErr)
+        return res.status(500).json({ error: 'Error al validar usuario existente' })
+      }
+      const found = (listData?.users || []).find(u => (u.email || '').toLowerCase() === email.toLowerCase())
+      if (!found) {
+        return res.status(400).json({ error: 'Este correo ya esta registrado. Inicia sesion con tu contrasena existente.' })
+      }
+      userId = found.id
+      userEmail = found.email
+    } else {
+      userId = authUser.user.id
+      userEmail = authUser.user.email
+      createdNow = true
     }
 
-    // 3. Crear profile con company_id asignado
+    // 3. Upsert profile vinculado al tenant. Esto cubre tanto user nuevo
+    //    como user existente que se esta vinculando por primera vez.
     const { data: profile, error: profileErr } = await db
       .from('profiles')
-      .insert([
-        {
-          id: authUser.user.id,
-          email_principal: email,
-          nombre1: nombre || '',
-          apellido1: apellido || '',
-          company_id: company.id,
-          role: 'user', // todos los usuarios B2B comienzan como 'user'
-          plan: 'pro', // TODO: esto debería depender del plan de la empresa
-        },
-      ])
+      .upsert([{
+        id: userId,
+        email_principal: userEmail,
+        nombre1: nombre || '',
+        apellido1: apellido || '',
+        company_id: company.id,
+        role: 'user',
+        plan: 'pro',
+      }], { onConflict: 'id' })
       .select()
       .single()
 
     if (profileErr) {
-      console.error('Profile error:', profileErr)
-      // Rollback: borrar user auth si profile falló
-      await db.auth.admin.deleteUser(authUser.user.id)
+      console.error('Profile upsert error:', profileErr)
+      // Rollback solo si nosotros creamos el user en este request
+      if (createdNow) {
+        await db.auth.admin.deleteUser(userId).catch(() => {})
+      }
       return res.status(500).json({ error: 'Error al crear perfil de usuario' })
     }
 
     res.json({
       ok: true,
-      message: 'Usuario registrado exitosamente',
+      message: createdNow
+        ? 'Usuario registrado exitosamente. Revisa tu correo para activar.'
+        : 'Tu cuenta existente fue vinculada al programa exitosamente.',
+      linked: !createdNow,
       user: {
-        id: authUser.user.id,
-        email: authUser.user.email,
+        id: userId,
+        email: userEmail,
         company_id: profile.company_id,
       },
     })
