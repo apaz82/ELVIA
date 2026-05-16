@@ -37,6 +37,8 @@ const ReporteLaboral     = lazy(() => import('./pages/ReporteLaboral'))
 const Bienestar          = lazy(() => import('./pages/Bienestar'))
 const MisMetricas        = lazy(() => import('./pages/MisMetricas'))
 const Cookies            = lazy(() => import('./pages/Cookies'))
+const LandingEmpresa     = lazy(() => import('./pages/LandingEmpresa'))
+const RegistroEmpresa    = lazy(() => import('./pages/RegistroEmpresa'))
 
 function PageLoader() {
   return (
@@ -200,6 +202,12 @@ export default function App() {
       <Route path="/cookies"         element={<Cookies />} />
       <Route path="/pricing"              element={<PublicRoute><Pricing /></PublicRoute>} />
       <Route path="/bienvenida"     element={<BienvenidaRoute><BienvenidaOnboarding /></BienvenidaRoute>} />
+
+      {/* Landings co-brandeadas B2B y registro por slug de empresa/universidad */}
+      <Route path="/empresas/:slug"             element={<LandingEmpresa />} />
+      <Route path="/empresas/:slug/registro"    element={<RegistroEmpresa />} />
+      <Route path="/universidades/:slug"          element={<LandingEmpresa />} />
+      <Route path="/universidades/:slug/registro" element={<RegistroEmpresa />} />
 
       {/* Admin / Especiales */}
       <Route path="/admin"         element={<Admin />} />

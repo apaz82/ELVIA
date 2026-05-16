@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 90" fill="none">
+  <!-- Academic shield mark -->
+  <g>
+    <path d="M40 14 L72 14 L72 46 C72 60 58 70 56 70 C54 70 40 60 40 46 Z" fill="#7C2D12"/>
+    <path d="M40 14 L56 14 L56 70 C54 70 40 60 40 46 Z" fill="#9A3412"/>
+    <circle cx="56" cy="38" r="6" fill="#FB923C"/>
+  </g>
+  <!-- Wordmark -->
+  <text x="92" y="38"
+        font-family="Georgia, 'Times New Roman', serif"
+        font-size="20" font-weight="700" fill="#1C1917" letter-spacing="0.5">
+    UNIVERSIDAD
+  </text>
+  <text x="92" y="68"
+        font-family="Georgia, 'Times New Roman', serif"
+        font-size="32" font-weight="700" fill="#7C2D12" letter-spacing="-0.5">
+    Innova
+  </text>
+</svg>

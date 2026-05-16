@@ -21,15 +21,19 @@ const registrationLimiter = rateLimit({
   keyGenerator: (req) => req.ip || req.connection.remoteAddress,
   handler:      (req, res) => res.status(429).json({ error: 'Demasiados intentos de registro. Intenta en una hora.' })
 })
-const db = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-)
+// Null-guard: si faltan credenciales, dejamos el cliente en null y avisamos.
+// Las rutas que dependen de DB devolverán 503 en runtime en vez de crashear al cargar.
+let db = null
 
-const dbAuth = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_ANON_KEY
-)
+if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  console.error('[Company] SUPABASE_URL o SUPABASE_SERVICE_ROLE_KEY no configuradas — endpoints B2B deshabilitados')
+} else {
+  try {
+    db = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
+  } catch (err) {
+    console.error('[Company] Error inicializando supabase admin client:', err.message)
+  }
+}
 
 // ─────────────────────────────────────────────────────────────────────────
 // Endpoint PÚBLICO: Obtener datos de empresa por slug
@@ -42,7 +46,15 @@ router.get('/registration/:slug', async (req, res) => {
 
     const { data: company, error } = await db
       .from('companies')
-      .select('id, name, slug, is_active, country')
+      .select(`
+        id, name, slug, sector, country, is_active,
+        logo_url, logo_secondary,
+        primary_color, secondary_color, accent_color,
+        hero_title, hero_subtitle, hero_image_url, welcome_message,
+        contact_email, support_email,
+        allowed_email_domain, require_invite,
+        show_pricing, enabled_features
+      `)
       .eq('slug', slug)
       .eq('is_active', true)
       .single()
@@ -51,17 +63,85 @@ router.get('/registration/:slug', async (req, res) => {
       return res.status(404).json({ error: 'Empresa no encontrada' })
     }
 
-    res.json({
-      company: {
-        id: company.id,
-        name: company.name,
-        slug: company.slug,
-        country: company.country,
-      },
-    })
+    res.json({ company })
   } catch (err) {
     console.error('Error fetching company registration:', err)
     res.status(500).json({ error: 'Error al obtener datos de empresa' })
+  }
+})
+
+// ─────────────────────────────────────────────────────────────────────────
+// Endpoint AUTENTICADO: Branding del tenant del usuario actual
+// GET /api/company/my-tenant
+// Cualquier usuario autenticado que tenga company_id en su profile.
+// Devuelve null si el usuario no pertenece a ningún tenant (B2C).
+// ─────────────────────────────────────────────────────────────────────────
+
+router.get('/my-tenant', auth, async (req, res) => {
+  try {
+    const { data: profile, error: profileErr } = await db
+      .from('profiles')
+      .select('company_id, role, cohort')
+      .eq('id', req.user.id)
+      .single()
+
+    if (profileErr || !profile?.company_id) {
+      return res.json({ company: null, role: profile?.role || 'user', cohort: profile?.cohort || null })
+    }
+
+    const { data: company, error } = await db
+      .from('companies')
+      .select(`
+        id, name, slug, sector, country, is_active,
+        logo_url, logo_secondary,
+        primary_color, secondary_color, accent_color,
+        hero_title, hero_subtitle, welcome_message,
+        contact_email, support_email,
+        show_pricing, enabled_features
+      `)
+      .eq('id', profile.company_id)
+      .eq('is_active', true)
+      .single()
+
+    if (error || !company) {
+      return res.json({ company: null, role: profile.role, cohort: profile.cohort })
+    }
+    res.json({ company, role: profile.role, cohort: profile.cohort })
+  } catch (err) {
+    console.error('Error fetching my-tenant:', err)
+    res.status(500).json({ error: 'Error al obtener tenant' })
+  }
+})
+
+// ─────────────────────────────────────────────────────────────────────────
+// Endpoint PÚBLICO: Branding de una empresa por slug (alias semántico)
+// GET /api/company/branding/:slug
+// Misma respuesta que /registration/:slug — separado para claridad de propósito
+// ─────────────────────────────────────────────────────────────────────────
+
+router.get('/branding/:slug', async (req, res) => {
+  try {
+    const { slug } = req.params
+    const { data: company, error } = await db
+      .from('companies')
+      .select(`
+        id, name, slug, sector, country, is_active,
+        logo_url, logo_secondary,
+        primary_color, secondary_color, accent_color,
+        hero_title, hero_subtitle, hero_image_url, welcome_message,
+        contact_email, support_email,
+        allowed_email_domain, require_invite,
+        show_pricing, enabled_features
+      `)
+      .eq('slug', slug)
+      .eq('is_active', true)
+      .single()
+
+    if (error || !company) return res.status(404).json({ error: 'Empresa no encontrada' })
+    res.json({ company })
+  } catch (err) {
+    console.error('Error fetching company branding:', err)
+    res.status(500).json({ error: 'Error al obtener branding' })
   }
 })
 
@@ -92,13 +172,50 @@ router.post('/registration/:slug', registrationLimiter, async (req, res) => {
     // 1. Validar que la empresa existe y está activa
     const { data: company, error: companyErr } = await db
       .from('companies')
-      .select('id, is_active')
+      .select('id, is_active, allowed_email_domain, require_invite, name')
       .eq('slug', slug)
       .eq('is_active', true)
       .single()
 
     if (companyErr || !company) {
       return res.status(404).json({ error: 'Empresa no encontrada o inactiva' })
+    }
+
+    // 1a. Gate por dominio corporativo (si la empresa lo exige)
+    if (company.allowed_email_domain) {
+      const userDomain = email.split('@')[1]?.toLowerCase()
+      const requiredDomain = company.allowed_email_domain.toLowerCase()
+      if (userDomain !== requiredDomain) {
+        return res.status(403).json({
+          error: `El acceso a ${company.name} requiere un correo corporativo @${requiredDomain}.`,
+        })
+      }
+    }
+
+    // 1b. Gate por invitación (si la empresa lo exige)
+    if (company.require_invite) {
+      const inviteToken = req.body.invite_token
+      if (!inviteToken) {
+        return res.status(403).json({
+          error: `El acceso a ${company.name} requiere un código de invitación.`,
+        })
+      }
+      const { data: invitation } = await db
+        .from('company_invitations')
+        .select('id, email, status, expires_at')
+        .eq('token', inviteToken)
+        .eq('company_id', company.id)
+        .single()
+
+      if (!invitation || invitation.status !== 'pending') {
+        return res.status(403).json({ error: 'Invitación inválida o ya utilizada.' })
+      }
+      if (new Date(invitation.expires_at) < new Date()) {
+        return res.status(403).json({ error: 'Esta invitación ha expirado.' })
+      }
+      if (invitation.email && invitation.email.toLowerCase() !== email.toLowerCase()) {
+        return res.status(403).json({ error: 'Esta invitación fue emitida para otro correo.' })
+      }
     }
 
     // 2. Crear user en Supabase Auth
