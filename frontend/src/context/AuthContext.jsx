@@ -217,10 +217,10 @@ export const AuthProvider = ({ children }) => {
     return calcularProgreso(jpData, perfil)
   }, [jpData, perfil, jpLoaded])
 
-  // Usuarios B2B (con company_id) tienen todas las features desbloqueadas:
-  // la empresa pagó por el programa completo, no debemos forzarles el gate de proyecto-laboral.
-  const isB2BUser = !!perfil?.company_id
-  const featuresDesbloqueadas = (progresoLaboral >= 100) || (planInfo.isPaidPlan) || isB2BUser
+  // Usuarios B2B siguen el MISMO flujo que B2C: onboarding -> gerente -> 100% -> features.
+  // (Cambio de criterio: la empresa paga el programa pero el flujo educativo del
+  // Gerente de Búsqueda es parte del valor, no debe saltarse.)
+  const featuresDesbloqueadas = (progresoLaboral >= 100) || (planInfo.isPaidPlan)
 
   const refreshJpData = useCallback(async () => {
     if (!user) return

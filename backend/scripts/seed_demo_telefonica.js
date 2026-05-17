@@ -24,19 +24,67 @@ const COHORT = 'telefonica-2026-05'
 const COMPANY_SLUG = 'telefonica'
 const DEMO_PASSWORD = 'DemoElvia2026!'
 
-// Persona demo con metricas realistas. Mix de estados para que el dashboard luzca.
+// Persona demo con estados diferenciados:
+// - state 'unlocked': hizo onboarding + Gerente al 100% -> ve todas las features
+// - state 'in_progress': hizo onboarding, Gerente parcial -> solo Gerente desbloqueado
+// - state 'fresh': recien activado, sin onboarding -> /bienvenida al login
 const DEMO_USERS = [
-  { nombre: 'Carmen',   apellido: 'Iglesias',   area: 'Comercial',     cargo_actual: 'Gerente de cuentas',     cv_opt: 4, cv_match: 8,  usage: 22, hired: true,  hired_company: 'Vodafone Espana',   bienestar: true },
-  { nombre: 'David',    apellido: 'Ruiz',       area: 'Tecnologia',    cargo_actual: 'Arquitecto cloud',       cv_opt: 5, cv_match: 12, usage: 31, hired: true,  hired_company: 'Amazon Web Services', bienestar: true },
-  { nombre: 'Laura',    apellido: 'Fernandez',  area: 'Marketing',     cargo_actual: 'Brand Manager',          cv_opt: 3, cv_match: 6,  usage: 18, hired: false, bienestar: true },
-  { nombre: 'Javier',   apellido: 'Gomez',      area: 'Finanzas',      cargo_actual: 'Controller financiero',  cv_opt: 4, cv_match: 9,  usage: 25, hired: false, bienestar: true },
-  { nombre: 'Sofia',    apellido: 'Lopez',      area: 'Personas',      cargo_actual: 'HRBP Senior',            cv_opt: 2, cv_match: 4,  usage: 12, hired: false, bienestar: true },
-  { nombre: 'Marcos',   apellido: 'Hernandez',  area: 'Operaciones',   cargo_actual: 'Project Manager',        cv_opt: 3, cv_match: 7,  usage: 19, hired: false, bienestar: false },
-  { nombre: 'Isabel',   apellido: 'Vargas',     area: 'Legal',         cargo_actual: 'Counsel corporativo',    cv_opt: 2, cv_match: 3,  usage: 9,  hired: false, bienestar: true },
-  { nombre: 'Pablo',    apellido: 'Martinez',   area: 'Tecnologia',    cargo_actual: 'Engineering Manager',    cv_opt: 5, cv_match: 11, usage: 28, hired: true,  hired_company: 'Glovo',             bienestar: false },
-  { nombre: 'Andrea',   apellido: 'Santos',     area: 'Producto',      cargo_actual: 'Product Owner',          cv_opt: 4, cv_match: 7,  usage: 21, hired: false, bienestar: true },
-  { nombre: 'Roberto',  apellido: 'Castro',     area: 'Comercial',     cargo_actual: 'Director Regional',      cv_opt: 1, cv_match: 2,  usage: 5,  hired: false, bienestar: false },
+  // ── FULLY UNLOCKED (5) — usalos para demo de features ──
+  { nombre: 'Carmen',   apellido: 'Iglesias',   area: 'Comercial',     cargo_actual: 'Gerente de cuentas',     cv_opt: 4, cv_match: 8,  usage: 22, hired: true,  hired_company: 'Vodafone España',   state: 'unlocked' },
+  { nombre: 'David',    apellido: 'Ruiz',       area: 'Tecnologia',    cargo_actual: 'Arquitecto cloud',       cv_opt: 5, cv_match: 12, usage: 31, hired: true,  hired_company: 'Amazon Web Services', state: 'unlocked' },
+  { nombre: 'Pablo',    apellido: 'Martinez',   area: 'Tecnologia',    cargo_actual: 'Engineering Manager',    cv_opt: 5, cv_match: 11, usage: 28, hired: true,  hired_company: 'Glovo',             state: 'unlocked' },
+  { nombre: 'Laura',    apellido: 'Fernandez',  area: 'Marketing',     cargo_actual: 'Brand Manager',          cv_opt: 3, cv_match: 6,  usage: 18, hired: false, state: 'unlocked' },
+  { nombre: 'Javier',   apellido: 'Gomez',      area: 'Finanzas',      cargo_actual: 'Controller financiero',  cv_opt: 4, cv_match: 9,  usage: 25, hired: false, state: 'unlocked' },
+
+  // ── IN PROGRESS (3) — gerente parcial, ven el progreso bloqueado ──
+  { nombre: 'Sofia',    apellido: 'Lopez',      area: 'Personas',      cargo_actual: 'HRBP Senior',            cv_opt: 0, cv_match: 0,  usage: 6,  hired: false, state: 'in_progress' },
+  { nombre: 'Marcos',   apellido: 'Hernandez',  area: 'Operaciones',   cargo_actual: 'Project Manager',        cv_opt: 0, cv_match: 0,  usage: 8,  hired: false, state: 'in_progress' },
+  { nombre: 'Isabel',   apellido: 'Vargas',     area: 'Legal',         cargo_actual: 'Counsel corporativo',    cv_opt: 0, cv_match: 0,  usage: 4,  hired: false, state: 'in_progress' },
+
+  // ── FRESH (2) — sin onboarding, van directo a /bienvenida ──
+  { nombre: 'Andrea',   apellido: 'Santos',     area: 'Producto',      cargo_actual: 'Product Owner',          cv_opt: 0, cv_match: 0,  usage: 0,  hired: false, state: 'fresh' },
+  { nombre: 'Roberto',  apellido: 'Castro',     area: 'Comercial',     cargo_actual: 'Director Regional',      cv_opt: 0, cv_match: 0,  usage: 0,  hired: false, state: 'fresh' },
 ]
+
+// ── Plantillas de job_search_profile para alcanzar 100% del Gerente ──
+function buildFullJobProfile(area, cargo) {
+  return {
+    perfil: {
+      nivel_educativo: 'Pregrado',
+      anios_experiencia: '8-12',
+    },
+    autoconocimiento: {
+      hard_skills:  ['Excel avanzado', 'Power BI', 'SQL'],
+      soft_skills:  ['Comunicacion', 'Liderazgo'],
+      power_skills: ['Negociacion', 'Pensamiento estrategico'],
+      top5empresas: ['Microsoft', 'Google', 'Amazon', 'IBM'],
+    },
+    semana: {
+      bloques: {
+        lunes_am: true, lunes_pm: true, martes_am: true, miercoles_pm: true,
+      },
+    },
+    recursos: [
+      { id: '1', nombre: 'Espacio de trabajo tranquilo', tengo: true },
+      { id: '2', nombre: 'Conexion a internet estable', tengo: true },
+      { id: '3', nombre: 'Celular activo', tengo: true },
+    ],
+    oferta: {
+      cultura: ['Aprendizaje continuo', 'Equipos colaborativos', 'Innovacion'],
+      oferta_valor: `Profesional con experiencia en ${area} en posiciones de ${cargo}. Aporto enfoque en resultados y trabajo en equipo.`,
+    },
+  }
+}
+
+function buildPartialJobProfile() {
+  return {
+    perfil: { nivel_educativo: 'Pregrado' },
+    autoconocimiento: {
+      hard_skills:  ['Excel'],
+      soft_skills:  ['Comunicacion'],
+    },
+  }
+}
 
 const slugifyEmail = (nombre, apellido) =>
   (nombre + '.' + apellido)
@@ -63,12 +111,20 @@ async function main() {
 
   for (const u of DEMO_USERS) {
     const email = slugifyEmail(u.nombre, u.apellido)
+    // Construir profile segun estado
+    const isFresh      = u.state === 'fresh'
+    const isInProgress = u.state === 'in_progress'
+
     const profile = {
       email_principal: email,
-      nombre1: u.nombre,
-      apellido1: u.apellido,
-      nombre: u.nombre + ' ' + u.apellido,
-      pais: 'España',
+      // FRESH: nombre1 null -> dispara /bienvenida en el login
+      nombre1:   isFresh ? null : u.nombre,
+      apellido1: isFresh ? null : u.apellido,
+      nombre:    isFresh ? null : (u.nombre + ' ' + u.apellido),
+      pais:      isFresh ? null : 'España',
+      telefono1: isFresh ? null : '+34600000000',
+      salario_esperado: isFresh || isInProgress ? null : '50000',
+      indicativo1: isFresh ? null : '+34',
       company_id: company.id,
       cohort: COHORT,
       role: 'user',
@@ -78,6 +134,10 @@ async function main() {
       usage_count: u.usage,
       hired_at: u.hired ? new Date(Date.now() - Math.floor(Math.random() * 30) * 86400000).toISOString() : null,
       hired_company: u.hired ? u.hired_company : null,
+      // Gerente de Busqueda — unlocked tiene 100%, in_progress tiene parcial, fresh null
+      job_search_profile: isFresh ? null
+                       : isInProgress ? buildPartialJobProfile()
+                       : buildFullJobProfile(u.area, u.cargo_actual),
     }
 
     // Buscar si ya existe el auth user
@@ -175,6 +235,14 @@ async function main() {
   console.log('  Activados:', allowlistRows.length)
   console.log('  Tasa activacion:', Math.round((allowlistRows.length / (allowlistRows.length + pendingRows.length)) * 100) + '%')
   console.log('  Empleados:', DEMO_USERS.filter(u => u.hired).length)
+  console.log('\nEstados para demo de flujo de usuario:')
+  console.log('  FULLY UNLOCKED (acceso completo a herramientas):')
+  DEMO_USERS.filter(u => u.state === 'unlocked').forEach(u => console.log('    -', slugifyEmail(u.nombre, u.apellido)))
+  console.log('  IN PROGRESS (solo Gerente desbloqueado):')
+  DEMO_USERS.filter(u => u.state === 'in_progress').forEach(u => console.log('    -', slugifyEmail(u.nombre, u.apellido)))
+  console.log('  FRESH (login -> /bienvenida):')
+  DEMO_USERS.filter(u => u.state === 'fresh').forEach(u => console.log('    -', slugifyEmail(u.nombre, u.apellido)))
+  console.log('\nPassword: ' + DEMO_PASSWORD)
 }
 
 main().catch(e => { console.error(e); process.exit(1) })
