@@ -69,6 +69,9 @@ export default function AiChatBot() {
 
   // No renderizar si no hay usuario autenticado (después de todos los hooks)
   if (!user) return null;
+  // No renderizar el bot de candidato en el Panel HR (es para otro publico).
+  // HR-aware bot se construira en iteracion posterior con contexto de cohort.
+  if (location.pathname.startsWith('/empresa-admin')) return null;
 
   return (
     <>

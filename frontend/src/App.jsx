@@ -39,6 +39,7 @@ const MisMetricas        = lazy(() => import('./pages/MisMetricas'))
 const Cookies            = lazy(() => import('./pages/Cookies'))
 const LandingEmpresa     = lazy(() => import('./pages/LandingEmpresa'))
 const RegistroEmpresa    = lazy(() => import('./pages/RegistroEmpresa'))
+const LoginHR            = lazy(() => import('./pages/LoginHR'))
 const CompanyAdmin       = lazy(() => import('./pages/CompanyAdmin'))
 
 function PageLoader() {
@@ -220,8 +221,10 @@ export default function App() {
       {/* Landings co-brandeadas B2B y registro por slug de empresa/universidad */}
       <Route path="/empresas/:slug"             element={<LandingEmpresa />} />
       <Route path="/empresas/:slug/registro"    element={<RegistroEmpresa />} />
+      <Route path="/empresas/:slug/hr"          element={<LoginHR />} />
       <Route path="/universidades/:slug"          element={<LandingEmpresa />} />
       <Route path="/universidades/:slug/registro" element={<RegistroEmpresa />} />
+      <Route path="/universidades/:slug/hr"       element={<LoginHR />} />
 
       {/* Panel del HR Director / Gestor de programa B2B */}
       <Route path="/empresa-admin" element={<PrivateRoute><CompanyAdmin /></PrivateRoute>} />

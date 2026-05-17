@@ -104,7 +104,10 @@ export default function RegistroEmpresa() {
       const data = await res.json().catch(() => ({}))
 
       if (!res.ok) {
-        setError(data.error || 'No fue posible completar tu registro. Intenta de nuevo.')
+        const msg = data.error || 'No fue posible completar tu registro. Intenta de nuevo.'
+        const hint = data.hint ? ` ${data.hint}` : ''
+        const detail = data.detail && data.detail !== msg ? ` (${data.detail})` : ''
+        setError(msg + hint + detail)
         setLoading(false)
         return
       }

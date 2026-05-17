@@ -105,6 +105,14 @@ export default function LandingEmpresa() {
 
           <div className="flex items-center gap-3">
             <button
+              onClick={() => navigate(`/${sectorPath}/${slug}/hr`)}
+              className="hidden md:inline-flex items-center gap-1.5 text-xs font-semibold text-gray-500 hover:text-gray-900 px-3 py-2"
+              title="Acceso para gestores del programa"
+            >
+              <PI.ShieldCheck size={14} weight="duotone" />
+              Acceso HR
+            </button>
+            <button
               onClick={() => navigate('/auth')}
               className="hidden sm:inline-flex text-sm font-semibold text-gray-700 hover:text-gray-900 px-4 py-2"
             >

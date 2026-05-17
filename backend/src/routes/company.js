@@ -337,7 +337,11 @@ router.post('/registration/:slug', registrationLimiter, async (req, res) => {
     })
   } catch (err) {
     console.error('Error registering company user:', err)
-    res.status(500).json({ error: 'Error al registrar usuario' })
+    res.status(500).json({
+      error: 'Error al registrar usuario',
+      detail: (err && err.message) ? err.message : String(err),
+      hint: 'Si tu email ya existe en la plataforma, intenta iniciar sesion en /auth en vez de registrarte aqui.',
+    })
   }
 })
 
