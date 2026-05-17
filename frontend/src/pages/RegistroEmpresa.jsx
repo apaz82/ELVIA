@@ -104,10 +104,17 @@ export default function RegistroEmpresa() {
       const data = await res.json().catch(() => ({}))
 
       if (!res.ok) {
-        const msg = data.error || 'No fue posible completar tu registro. Intenta de nuevo.'
-        const hint = data.hint ? ` ${data.hint}` : ''
-        const detail = data.detail && data.detail !== msg ? ` (${data.detail})` : ''
-        setError(msg + hint + detail)
+        // Mostrar mensaje profesional. Si el backend dice "ya existe", ofrecer login.
+        const rawMsg = (data.error || '').toLowerCase()
+        if (rawMsg.includes('ya esta registrad') || rawMsg.includes('ya existe') || rawMsg.includes('already')) {
+          setError('__EMAIL_EXISTS__')
+        } else if (rawMsg.includes('no esta en la lista') || rawMsg.includes('lista aprobada')) {
+          setError('__NOT_IN_ALLOWLIST__')
+        } else if (rawMsg.includes('dominio') || rawMsg.includes('corporativo')) {
+          setError(data.error)
+        } else {
+          setError(data.error || 'No fue posible completar tu activación. Intenta de nuevo en unos minutos.')
+        }
         setLoading(false)
         return
       }
@@ -298,10 +305,45 @@ export default function RegistroEmpresa() {
                 </span>
               </label>
 
-              {/* Error */}
-              {error && (
+              {/* Error — renderizado contextual segun tipo */}
+              {error === '__EMAIL_EXISTS__' && (
+                <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl">
+                  <div className="flex items-start gap-2.5 mb-3">
+                    <PI.Info size={18} className="text-blue-600 shrink-0 mt-0.5" weight="duotone" />
+                    <div className="text-sm text-blue-900">
+                      <strong>Ya tienes una cuenta con este correo.</strong>
+                      <div className="text-blue-700 mt-1 leading-relaxed">
+                        Detectamos que <strong>{email}</strong> ya está registrado en ELVIA. Inicia sesión con tu contraseña existente.
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => navigate('/auth')}
+                    className="w-full py-2.5 rounded-xl text-white text-sm font-semibold hover:opacity-90 transition-opacity"
+                    style={{ background: primary }}
+                  >
+                    Ir a iniciar sesión
+                  </button>
+                </div>
+              )}
+              {error === '__NOT_IN_ALLOWLIST__' && (
+                <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-2.5">
+                  <PI.WarningCircle size={18} className="text-amber-600 shrink-0 mt-0.5" weight="duotone" />
+                  <div className="text-sm text-amber-900">
+                    <strong>Tu correo no está en la lista aprobada.</strong>
+                    <div className="text-amber-700 mt-1 leading-relaxed">
+                      Para acceder al programa <strong>{tenant.name}</strong>, tu área de Recursos Humanos debe incluirte previamente. Contacta a{' '}
+                      <a href={`mailto:${tenant.contact_email || 'rrhh@' + (tenant.allowed_email_domain || 'tu-empresa.com')}`} className="font-semibold underline">
+                        {tenant.contact_email || 'tu HR'}
+                      </a>.
+                    </div>
+                  </div>
+                </div>
+              )}
+              {error && error !== '__EMAIL_EXISTS__' && error !== '__NOT_IN_ALLOWLIST__' && (
                 <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700 flex items-start gap-2">
-                  <PI.WarningCircle size={16} className="shrink-0 mt-0.5" />
+                  <PI.WarningCircle size={16} className="shrink-0 mt-0.5" weight="duotone" />
                   <span>{error}</span>
                 </div>
               )}

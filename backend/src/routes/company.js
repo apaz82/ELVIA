@@ -315,12 +315,18 @@ router.post('/registration/:slug', registrationLimiter, async (req, res) => {
       return res.status(500).json({ error: 'Error al crear perfil de usuario' })
     }
 
-    // 4. Marcar allowlist como activated (si vino por esa via)
+    // 4. Marcar allowlist como activated (si vino por esa via).
+    //    Nota: queries de Supabase NO tienen .catch() directo, hay que envolver en try.
     if (allowlistRow) {
-      await db.from('company_allowlist')
-        .update({ status: 'activated', activated_at: new Date().toISOString(), activated_user_id: userId })
-        .eq('id', allowlistRow.id)
-        .catch(err => console.warn('No se pudo marcar allowlist activated:', err.message))
+      try {
+        const { error: alUpdErr } = await db
+          .from('company_allowlist')
+          .update({ status: 'activated', activated_at: new Date().toISOString(), activated_user_id: userId })
+          .eq('id', allowlistRow.id)
+        if (alUpdErr) console.warn('No se pudo marcar allowlist activated:', alUpdErr.message)
+      } catch (e) {
+        console.warn('Error actualizando allowlist:', e.message)
+      }
     }
 
     res.json({
@@ -336,11 +342,11 @@ router.post('/registration/:slug', registrationLimiter, async (req, res) => {
       },
     })
   } catch (err) {
-    console.error('Error registering company user:', err)
+    // Log completo en server logs (Railway), pero NO devolver detalle tecnico al cliente
+    console.error('[Registration] Error registering company user:', err)
     res.status(500).json({
-      error: 'Error al registrar usuario',
-      detail: (err && err.message) ? err.message : String(err),
-      hint: 'Si tu email ya existe en la plataforma, intenta iniciar sesion en /auth en vez de registrarte aqui.',
+      error: 'No fue posible completar tu activación. Por favor intenta de nuevo o contacta a soporte si el problema persiste.',
+      code: 'REGISTRATION_FAILED',
     })
   }
 })
@@ -964,12 +970,12 @@ router.patch('/allowlist/:id', auth, requireRole('company_admin'), async (req, r
       updates = { status: 'revoked', revoked_at: new Date().toISOString(), revoked_by: req.user.id }
       // Si ya estaba activado, suspender al usuario asociado
       if (row.activated_user_id) {
-        await db.from('profiles').update({ suspended: true }).eq('id', row.activated_user_id).catch(() => {})
+        try { await db.from('profiles').update({ suspended: true }).eq('id', row.activated_user_id) } catch (e) { console.warn('suspend warn:', e.message) }
       }
     } else if (action === 'unrevoke') {
       updates = { status: row.activated_user_id ? 'activated' : 'pending', revoked_at: null, revoked_by: null }
       if (row.activated_user_id) {
-        await db.from('profiles').update({ suspended: false }).eq('id', row.activated_user_id).catch(() => {})
+        try { await db.from('profiles').update({ suspended: false }).eq('id', row.activated_user_id) } catch (e) { console.warn('unsuspend warn:', e.message) }
       }
     } else {
       return res.status(400).json({ error: 'action debe ser revoke o unrevoke' })

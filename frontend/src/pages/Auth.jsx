@@ -493,7 +493,22 @@ export default function Auth() {
               )}
 
               {error && (
-                <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600">{error}</div>
+                <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600">
+                  {error === '__NO_REGISTRADO__' ? (
+                    <span>
+                      No encontramos una cuenta con ese correo y contraseña.{' '}
+                      <button type="button" onClick={() => cambiarModo('register')}
+                        className="underline font-semibold hover:text-red-800 cursor-pointer">
+                        ¿Quieres crear una cuenta?
+                      </button>
+                      {' '}o{' '}
+                      <button type="button" onClick={() => cambiarModo('forgot')}
+                        className="underline font-semibold hover:text-red-800 cursor-pointer">
+                        recuperar tu contraseña
+                      </button>.
+                    </span>
+                  ) : error}
+                </div>
               )}
 
               <button
