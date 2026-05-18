@@ -261,10 +261,10 @@ function calcularPorPilar(data, perfil) {
   const oferta = (data&&data.oferta) ? data.oferta : {}
   let ofertaPts = 0
   if (Array.isArray(oferta.cultura)&&oferta.cultura.length>=2) ofertaPts+=4
-  if (String(oferta.oferta_valor||'').trim().length>=30) ofertaPts+=6
+  if (String(oferta.oferta_valor||'').trim().length>=30) ofertaPts+=4
   const IKIGAI_KEYS_PP = ['ikigai_amas','ikigai_bueno','ikigai_necesita','ikigai_pagar']
   const ikigaiOk = IKIGAI_KEYS_PP.filter(function(k){ return String(oferta[k]||'').trim().length>=50 }).length
-  ofertaPts += Math.min(ikigaiOk * 2.5, 10)
+  ofertaPts += ikigaiOk * 3
 
   return {
     perfil:           Math.round((perfilPts/20)*100),

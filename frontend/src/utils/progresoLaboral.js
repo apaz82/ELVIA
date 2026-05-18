@@ -59,11 +59,11 @@ export function calcularProgreso(data, perfil) {
   const oferta = (data&&data.oferta) ? data.oferta : {}
   let ofertaPts = 0
   if (Array.isArray(oferta.cultura)&&oferta.cultura.length>=2) ofertaPts+=4
-  if (String(oferta.oferta_valor||'').trim().length>=30) ofertaPts+=6
-  // IKIGAI: 4 cajas obligatorias · ≥50 chars cada una · 2.5 pts c/u (10 max)
+  if (String(oferta.oferta_valor||'').trim().length>=30) ofertaPts+=4
+  // IKIGAI: 4 cajas · ≥50 chars cada una · 3 pts c/u = 12 max (enteros, sin decimales)
   const IKIGAI_KEYS = ['ikigai_amas','ikigai_bueno','ikigai_necesita','ikigai_pagar']
   const ikigaiCompletas = IKIGAI_KEYS.filter(function(k){ return String(oferta[k]||'').trim().length>=50 }).length
-  ofertaPts += Math.min(ikigaiCompletas * 2.5, 10)
+  ofertaPts += ikigaiCompletas * 3
   core += Math.min(ofertaPts, 20)
 
   return Math.min(core, 100)
