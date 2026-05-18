@@ -1934,7 +1934,10 @@ export default function ProyectoLaboral() {
 
     cargarDatos()
     return () => { mounted = false }
-  }, [user])
+    // Depender de user?.id (no de user) para evitar re-cargar y sobrescribir
+    // edits en curso cuando el objeto user cambia de referencia (p.ej. al volver
+    // a la pestaña tras un refresh de token de Supabase).
+  }, [user?.id])
 
   // 2. Detectar banner de éxito y limpiar URL — solo al montar o cambiar búsqueda
   useEffect(function(){

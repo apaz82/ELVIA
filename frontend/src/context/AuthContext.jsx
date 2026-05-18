@@ -106,6 +106,19 @@ export const AuthProvider = ({ children }) => {
         setIsRecovering(true)
       }
 
+      // REGLA: NUNCA re-fetch en TOKEN_REFRESHED ni INITIAL_SESSION.
+      // Supabase emite TOKEN_REFRESHED al volver a la pestaña tras perder foco,
+      // y re-cargar perfil/jpData causa que efectos dependientes de `user` se
+      // re-disparen y sobrescriban estado local en progreso del usuario
+      // (formularios de Proyecto Laboral, drafts de CV, etc.). Solo actuamos
+      // ante cambios reales de identidad (SIGNED_IN / SIGNED_OUT / USER_UPDATED).
+      const eventosIgnorados = ['TOKEN_REFRESHED', 'INITIAL_SESSION']
+      if (eventosIgnorados.includes(_event)) {
+        // Mantener la session fresca (token nuevo) pero NO tocar user/perfil/jpData
+        setSession(session)
+        return
+      }
+
       setSession(session)
       setUser(session?.user ?? null)
       if (session?.user) {
