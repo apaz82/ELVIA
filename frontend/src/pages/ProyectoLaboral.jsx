@@ -1278,7 +1278,36 @@ function DashboardResumen({ data, pct, onSelect, perfil, activePilar }) {
 function PilarAutoconocimiento({ data, onChange, onSave, justSaved }) {
   const d = data || {}
   const up = function(key, val) { onChange(Object.assign({}, d, {[key]:val})) }
+  const [modalIncompleto, setModalIncompleto] = useState(null)
+
+  function getIncompletos() {
+    const items = []
+    if (!Array.isArray(d.hard_skills)||d.hard_skills.length<2)   items.push('Hard Skills — selecciona al menos 2')
+    if (!Array.isArray(d.soft_skills)||d.soft_skills.length<2)   items.push('Soft Skills — selecciona al menos 2')
+    if (!Array.isArray(d.power_skills)||d.power_skills.length<2) items.push('Power Skills — selecciona al menos 2')
+    if (!Array.isArray(d.top5empresas)||d.top5empresas.filter(function(e){return e&&String(e).trim()}).length<1) items.push('Top 5 Compañías — escribe al menos 1')
+    return items
+  }
+  function handleSave() {
+    const f = getIncompletos()
+    if (f.length>0) { setModalIncompleto(f) } else { onSave() }
+  }
+
   const HARD_SKILLS = [
+    'Tecnología y Datos','Gestión de Proyectos','Finanzas y Negocio',
+    'Operaciones','Supply Chain','Marketing Digital','Ventas y Comercial',
+    'Diseño','Ingeniería y Procesos','Idiomas','Comercio Exterior','Legal',
+  ]
+  const SOFT_SKILLS = [
+    'Adaptabilidad','Pensamiento analítico','Pensamiento creativo',
+    'Comunicación','Inteligencia emocional','Liderazgo',
+    'Resolución de problemas','Trabajo en equipo y colaboración','Resiliencia',
+    'Flexibilidad y agilidad','Curiosidad y aprendizaje continuo','Pensamiento sistémico',
+    'Resolución de conflictos','Gestión del estrés','Gestión y servicio al cliente',
+    'Influencia social','Motivación y autoconciencia','Empatía y escucha activa',
+    'Hablar en público y presentaciones',
+  ]
+  const POWER_SKILLS = [
     'Inteligencia Artificial (IA), Machine Learning e Ingeniería de Prompts',
     'Ciencia de datos, ingeniería de datos y análisis estadístico',
     'Diseño UX/UI y arquitectura de la información',
@@ -1295,20 +1324,6 @@ function PilarAutoconocimiento({ data, onChange, onSave, justSaved }) {
     'Marketing digital avanzado (SEO, SEM y campañas de correo)',
     'Logística: control de inventarios, compras y gestión de la cadena de suministro',
     'Operación de equipos',
-  ]
-  const SOFT_SKILLS = [
-    'Adaptabilidad','Pensamiento analítico','Pensamiento creativo',
-    'Comunicación','Inteligencia emocional','Liderazgo',
-    'Resolución de problemas','Trabajo en equipo y colaboración','Resiliencia',
-    'Flexibilidad y agilidad','Curiosidad y aprendizaje continuo','Pensamiento sistémico',
-    'Resolución de conflictos','Gestión del estrés','Gestión y servicio al cliente',
-    'Influencia social','Motivación y autoconciencia','Empatía y escucha activa',
-    'Hablar en público y presentaciones',
-  ]
-  const POWER_SKILLS = [
-    'Learnability','Pensamiento Crítico','Inteligencia Emocional',
-    'Resolución de Problemas Complejos','Resiliencia y Adaptabilidad',
-    'Fluidez Digital','Liderazgo de Equipos','Visión Estratégica','Toma de Decisiones',
   ]
   const INDUSTRIAS = ['Tecnología','Finanzas / Banca','Salud','Retail / FMCG','Manufactura','Consultoría','Educación','Gobierno','Startups','Energía']
   const MOVILIDAD = ['Presencial','Remoto','Híbrido']
@@ -1339,19 +1354,11 @@ function PilarAutoconocimiento({ data, onChange, onSave, justSaved }) {
               <div className="text-xs text-blue-600 font-medium">El "Saber hacer" · Competencias técnicas medibles · <strong>Debes seleccionar al menos 3</strong></div>
             </div>
           </div>
-          <div className="space-y-2">
+          <div className="flex flex-wrap gap-2">
             {HARD_SKILLS.map(function(a){
               const sel = Array.isArray(d.hard_skills)&&d.hard_skills.includes(a)
-              return (
-                <button key={a} onClick={function(){toggle('hard_skills',a)}}
-                  className={'w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left text-sm border-2 transition-all cursor-pointer '+(sel?'bg-blue-600 text-white border-blue-600 font-semibold shadow-sm':'bg-white border-blue-100 text-slate-700 font-medium hover:border-blue-300 hover:bg-blue-50/60')}
-                >
-                  <span className={'w-5 h-5 rounded-full border-2 shrink-0 flex items-center justify-center transition-colors '+(sel?'border-white bg-white/20':'border-blue-300')}>
-                    {sel && <span className="w-2.5 h-2.5 rounded-full bg-white"/>}
-                  </span>
-                  {a}
-                </button>
-              )
+              return <button key={a} onClick={function(){toggle('hard_skills',a)}}
+                className={'px-3 py-1.5 rounded-lg text-sm font-semibold border transition-colors cursor-pointer '+(sel?'bg-blue-600 text-white border-blue-600':'border-blue-200 text-slate-600 hover:border-blue-400 hover:text-blue-700')}>{a}</button>
             })}
           </div>
         </div>
@@ -1387,11 +1394,19 @@ function PilarAutoconocimiento({ data, onChange, onSave, justSaved }) {
               <div className="text-xs text-violet-600 font-medium">El "Saber lograr" · Competencias de alto impacto · <strong>Debes seleccionar al menos 3</strong></div>
             </div>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="space-y-2">
             {POWER_SKILLS.map(function(a){
               const sel = Array.isArray(d.power_skills)&&d.power_skills.includes(a)
-              return <button key={a} onClick={function(){toggle('power_skills',a)}}
-                className={'px-3 py-1.5 rounded-lg text-sm font-semibold border transition-colors cursor-pointer '+(sel?'bg-violet-600 text-white border-violet-600':'border-violet-200 text-slate-600 hover:border-violet-400 hover:text-violet-700')}>{a}</button>
+              return (
+                <button key={a} onClick={function(){toggle('power_skills',a)}}
+                  className={'w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left text-sm border-2 transition-all cursor-pointer '+(sel?'bg-violet-600 text-white border-violet-600 font-semibold shadow-sm':'bg-white border-violet-100 text-slate-700 font-medium hover:border-violet-300 hover:bg-violet-50/60')}
+                >
+                  <span className={'w-5 h-5 rounded-full border-2 shrink-0 flex items-center justify-center transition-colors '+(sel?'border-white bg-white/20':'border-violet-300')}>
+                    {sel && <span className="w-2.5 h-2.5 rounded-full bg-white"/>}
+                  </span>
+                  {a}
+                </button>
+              )
             })}
           </div>
         </div>
@@ -1413,11 +1428,30 @@ function PilarAutoconocimiento({ data, onChange, onSave, justSaved }) {
 
       {/* Botón de guardar */}
       <div className="mt-8 pt-6 border-t border-slate-200 flex justify-end">
-        <button onClick={onSave}
+        <button onClick={handleSave}
           className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm transition-all cursor-pointer ${justSaved?'bg-emerald-600 text-white':'bg-violet-600 hover:bg-violet-700 text-white'}`}>
           {justSaved ? (<><CheckFat size={16} weight="fill"/> Guardado</>) : 'Guardar'}
         </button>
       </div>
+
+      {modalIncompleto && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{backgroundColor:'rgba(15,10,40,0.55)',backdropFilter:'blur(4px)'}} onClick={function(e){if(e.target===e.currentTarget)setModalIncompleto(null)}}>
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden">
+            <div className="px-6 py-5 bg-gradient-to-r from-violet-500 to-violet-600 rounded-t-3xl flex items-center gap-3">
+              <WarningCircle size={24} className="text-white" weight="fill"/>
+              <div><h2 className="text-white font-bold text-base leading-tight">Sección incompleta</h2><p className="text-violet-100 text-xs mt-0.5">Autoconocimiento tiene campos sin completar</p></div>
+            </div>
+            <div className="px-6 py-5">
+              <p className="text-sm text-slate-600 mb-4">Para guardar correctamente y reflejar tu progreso, completa:</p>
+              <ul className="space-y-2 mb-6">{modalIncompleto.map(function(item,i){return(<li key={i} className="flex items-start gap-2 text-sm text-slate-700"><span className="w-5 h-5 rounded-full bg-violet-100 text-violet-600 text-xs font-black flex items-center justify-center shrink-0 mt-0.5">!</span>{item}</li>)})}</ul>
+              <div className="flex gap-3">
+                <button onClick={function(){setModalIncompleto(null)}} className="flex-1 px-4 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-700 text-white font-bold text-sm transition-colors cursor-pointer">Volver a completar</button>
+                <button onClick={function(){setModalIncompleto(null);onSave()}} className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-500 hover:bg-slate-50 font-medium text-sm transition-colors cursor-pointer">Guardar así</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -1425,10 +1459,9 @@ function PilarAutoconocimiento({ data, onChange, onSave, justSaved }) {
 // ─── Pilar 2: Recursos ───────────────────────────────────────────────────────
 
 function PilarRecursos({ data, onChange, onSave, justSaved, pais }) {
-  // Parent passes data={data.recursos} which is {recursos: [array]} → read data.recursos
-  // If stored as array directly or empty, fall back to defaults
   const rawArr = data ? (Array.isArray(data) ? data : (Array.isArray(data.recursos) ? data.recursos : null)) : null
   const recursos = (rawArr && rawArr.length > 0) ? rawArr : RECURSOS_DEFAULT
+  const [modalIncompleto, setModalIncompleto] = useState(null)
 
   const moneda = detectarMoneda(pais)
   const upR = function(id,f,v){onChange({recursos:recursos.map(function(r){return r.id===id?Object.assign({},r,{[f]:v}):r})})}
@@ -1436,6 +1469,12 @@ function PilarRecursos({ data, onChange, onSave, justSaved, pais }) {
   const delR = function(id){onChange({recursos:recursos.filter(function(r){return r.id!==id})})}
   const totalAll = recursos.reduce(function(s,r){return s+(Number(r.costo)||0)},0)
   const monedaSymbol = MONEDAS_LIST.find(function(m){return m.code===moneda})?.symbol || '$'
+
+  function handleSave() {
+    const activos = recursos.filter(function(r){return r.tengo===true}).length
+    if (activos < 1) { setModalIncompleto(['Marca al menos 1 recurso que ya tienes disponible']) }
+    else { onSave() }
+  }
 
   return (
     <div className="space-y-6">
@@ -1499,11 +1538,30 @@ function PilarRecursos({ data, onChange, onSave, justSaved, pais }) {
 
       {/* Botón de guardar */}
       <div className="mt-8 pt-6 border-t border-slate-200 flex justify-end">
-        <button onClick={onSave}
+        <button onClick={handleSave}
           className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm transition-all cursor-pointer ${justSaved?'bg-emerald-600 text-white':'bg-blue-600 hover:bg-blue-700 text-white'}`}>
           {justSaved ? (<><CheckFat size={16} weight="fill"/> Guardado</>) : 'Guardar'}
         </button>
       </div>
+
+      {modalIncompleto && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{backgroundColor:'rgba(15,10,40,0.55)',backdropFilter:'blur(4px)'}} onClick={function(e){if(e.target===e.currentTarget)setModalIncompleto(null)}}>
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden">
+            <div className="px-6 py-5 bg-gradient-to-r from-blue-500 to-blue-600 rounded-t-3xl flex items-center gap-3">
+              <WarningCircle size={24} className="text-white" weight="fill"/>
+              <div><h2 className="text-white font-bold text-base leading-tight">Sección incompleta</h2><p className="text-blue-100 text-xs mt-0.5">Recursos tiene campos sin completar</p></div>
+            </div>
+            <div className="px-6 py-5">
+              <p className="text-sm text-slate-600 mb-4">Para guardar correctamente y reflejar tu progreso, completa:</p>
+              <ul className="space-y-2 mb-6">{modalIncompleto.map(function(item,i){return(<li key={i} className="flex items-start gap-2 text-sm text-slate-700"><span className="w-5 h-5 rounded-full bg-blue-100 text-blue-600 text-xs font-black flex items-center justify-center shrink-0 mt-0.5">!</span>{item}</li>)})}</ul>
+              <div className="flex gap-3">
+                <button onClick={function(){setModalIncompleto(null)}} className="flex-1 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm transition-colors cursor-pointer">Volver a completar</button>
+                <button onClick={function(){setModalIncompleto(null);onSave()}} className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-500 hover:bg-slate-50 font-medium text-sm transition-colors cursor-pointer">Guardar así</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -1518,6 +1576,13 @@ function PilarSemana({ data, onChange, onSave, justSaved }) {
   const toggleB = function(dia,h){ const k=dia+'_'+h; onChange(Object.assign({},d,{bloques:Object.assign({},bloques,{[k]:!bloques[k]})})) }
   const totalH = Object.values(bloques).filter(Boolean).length*2
   const bench = totalH>=15?'green':totalH>=8?'amber':'red'
+  const [modalIncompleto, setModalIncompleto] = useState(null)
+
+  function handleSave() {
+    const bN = Object.values(bloques).filter(Boolean).length
+    if (bN < 1) { setModalIncompleto(['Agrega al menos 1 bloque de horas en tu horario semanal']) }
+    else { onSave() }
+  }
   return (
     <div className="space-y-8">
       <div className="p-5 rounded-2xl bg-teal-50 border border-teal-100">
@@ -1573,11 +1638,30 @@ function PilarSemana({ data, onChange, onSave, justSaved }) {
 
       {/* Botón de guardar */}
       <div className="mt-8 pt-6 border-t border-slate-200 flex justify-end">
-        <button onClick={onSave}
+        <button onClick={handleSave}
           className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm transition-all cursor-pointer ${justSaved?'bg-emerald-600 text-white':'bg-teal-600 hover:bg-teal-700 text-white'}`}>
           {justSaved ? (<><CheckFat size={16} weight="fill"/> Guardado</>) : 'Guardar'}
         </button>
       </div>
+
+      {modalIncompleto && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{backgroundColor:'rgba(15,10,40,0.55)',backdropFilter:'blur(4px)'}} onClick={function(e){if(e.target===e.currentTarget)setModalIncompleto(null)}}>
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden">
+            <div className="px-6 py-5 bg-gradient-to-r from-teal-500 to-teal-600 rounded-t-3xl flex items-center gap-3">
+              <WarningCircle size={24} className="text-white" weight="fill"/>
+              <div><h2 className="text-white font-bold text-base leading-tight">Sección incompleta</h2><p className="text-teal-100 text-xs mt-0.5">Horario semanal no tiene bloques definidos</p></div>
+            </div>
+            <div className="px-6 py-5">
+              <p className="text-sm text-slate-600 mb-4">Para guardar correctamente y reflejar tu progreso, completa:</p>
+              <ul className="space-y-2 mb-6">{modalIncompleto.map(function(item,i){return(<li key={i} className="flex items-start gap-2 text-sm text-slate-700"><span className="w-5 h-5 rounded-full bg-teal-100 text-teal-600 text-xs font-black flex items-center justify-center shrink-0 mt-0.5">!</span>{item}</li>)})}</ul>
+              <div className="flex gap-3">
+                <button onClick={function(){setModalIncompleto(null)}} className="flex-1 px-4 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-bold text-sm transition-colors cursor-pointer">Volver a completar</button>
+                <button onClick={function(){setModalIncompleto(null);onSave()}} className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-500 hover:bg-slate-50 font-medium text-sm transition-colors cursor-pointer">Guardar así</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -2208,9 +2292,33 @@ export default function ProyectoLaboral() {
     return items
   }
 
+  function pilarIncompletos(pilar, d) {
+    const IKIGAI_LABELS = {ikigai_amas:'¿Qué AMAS?',ikigai_bueno:'¿Para qué eres BUENO/A?',ikigai_necesita:'¿Qué NECESITA el mundo?',ikigai_pagar:'¿Por qué te PAGARÍAN?'}
+    if (pilar==='autoconocimiento') {
+      const a = d.autoconocimiento||{}
+      const items=[]
+      if (!Array.isArray(a.hard_skills)||a.hard_skills.length<2)   items.push('Hard Skills — selecciona al menos 2')
+      if (!Array.isArray(a.soft_skills)||a.soft_skills.length<2)   items.push('Soft Skills — selecciona al menos 2')
+      if (!Array.isArray(a.power_skills)||a.power_skills.length<2) items.push('Power Skills — selecciona al menos 2')
+      if (!Array.isArray(a.top5empresas)||a.top5empresas.filter(function(e){return e&&String(e).trim()}).length<1) items.push('Top 5 Compañías — escribe al menos 1')
+      return items
+    }
+    if (pilar==='recursos') {
+      const rawArr = d.recursos ? (Array.isArray(d.recursos)?d.recursos:(d.recursos.recursos||[])) : []
+      const activos = rawArr.filter(function(r){return r.tengo===true}).length
+      return activos<1 ? ['Marca al menos 1 recurso que ya tienes disponible'] : []
+    }
+    if (pilar==='semana') {
+      const bN = Object.values((d.semana&&d.semana.bloques)||{}).filter(Boolean).length
+      return bN<1 ? ['Agrega al menos 1 bloque de horas en tu horario semanal'] : []
+    }
+    if (pilar==='oferta') { return ofertaIncompletos(d.oferta) }
+    return []
+  }
+
   function handleSelectPilar(id) {
-    if (pilarId==='oferta' && id!=='oferta') {
-      const faltantes = ofertaIncompletos(data.oferta)
+    if (id!==pilarId) {
+      const faltantes = pilarIncompletos(pilarId, data)
       if (faltantes.length>0) { setModalOfertaIncompleta({items:faltantes, nextPilar:id}); return }
     }
     setPilarId(id)
