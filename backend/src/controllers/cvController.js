@@ -330,13 +330,24 @@ const extractProfile = async (req, res, next) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'No se recibio ningun archivo' });
 
+    if (!process.env.DEEPSEEK_API_KEY) {
+      console.error('extractProfile: DEEPSEEK_API_KEY no configurada en Railway');
+      return res.status(500).json({ error: 'Servicio de IA no configurado. Contacta soporte.' });
+    }
+
     const OpenAI = require('openai');
     const deepseek = new OpenAI({
       apiKey: process.env.DEEPSEEK_API_KEY,
       baseURL: 'https://api.deepseek.com/v1',
     });
 
-    const cvText = await parseCV(req.file.buffer, req.file.mimetype);
+    let cvText;
+    try {
+      cvText = await parseCV(req.file.buffer, req.file.mimetype);
+    } catch (parseErr) {
+      console.error('extractProfile [parseCV]:', parseErr.message);
+      return res.status(400).json({ error: 'No se pudo leer el archivo. Usa un PDF o Word sin contraseña.' });
+    }
     if (!cvText || cvText.trim().length === 0) {
       return res.status(400).json({ error: 'No se pudo extraer texto del CV. Verifica que sea un PDF o Word valido.' });
     }
@@ -440,9 +451,17 @@ Return ONLY this JSON:
     res.json({ ...perfil, mismatch, id: savedCV?.id });
 
   } catch (err) {
-    console.error('Error en extractProfile:', err.message);
+    console.error('extractProfile ERROR:', err.message, err.stack);
     if (err instanceof SyntaxError) {
       return res.status(400).json({ error: 'No se pudo procesar la informacion del CV. Intenta con otro archivo.' });
+    }
+    // Errores de DeepSeek API (auth, rate limit, etc.)
+    if (err.status === 401 || err.status === 403) {
+      console.error('extractProfile: DeepSeek auth error - verificar DEEPSEEK_API_KEY');
+      return res.status(500).json({ error: 'Error de autenticacion con servicio de IA.' });
+    }
+    if (err.status === 429) {
+      return res.status(429).json({ error: 'Servicio de IA saturado. Intenta en unos segundos.' });
     }
     res.status(500).json({ error: 'Error al procesar el CV. Intenta de nuevo.' });
   }
