@@ -330,16 +330,13 @@ const extractProfile = async (req, res, next) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'No se recibio ningun archivo' });
 
-    if (!process.env.DEEPSEEK_API_KEY) {
-      console.error('extractProfile: DEEPSEEK_API_KEY no configurada en Railway');
+    if (!process.env.ANTHROPIC_API_KEY) {
+      console.error('extractProfile: ANTHROPIC_API_KEY no configurada en Railway');
       return res.status(500).json({ error: 'Servicio de IA no configurado. Contacta soporte.' });
     }
 
-    const OpenAI = require('openai');
-    const deepseek = new OpenAI({
-      apiKey: process.env.DEEPSEEK_API_KEY,
-      baseURL: 'https://api.deepseek.com/v1',
-    });
+    const Anthropic = require('@anthropic-ai/sdk');
+    const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
     let cvText;
     try {
@@ -354,8 +351,8 @@ const extractProfile = async (req, res, next) => {
 
     const fragmento = cvText.substring(0, 4000);
 
-    const response = await deepseek.chat.completions.create({
-      model: 'deepseek-chat',
+    const response = await anthropic.messages.create({
+      model: 'claude-haiku-4-5-20251001',
       max_tokens: 1500,
       messages: [{
         role: 'user',
@@ -395,11 +392,11 @@ Return ONLY this JSON:
       }],
     });
 
-    if (!response.choices || !response.choices[0]) {
+    if (!response.content || !response.content[0]) {
       return res.status(500).json({ error: 'Respuesta invalida de la IA. Intenta de nuevo.' });
     }
 
-    let jsonText = response.choices[0].message.content.trim();
+    let jsonText = response.content[0].text.trim();
     jsonText = jsonText.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
     const perfil = JSON.parse(jsonText);
 
@@ -455,9 +452,8 @@ Return ONLY this JSON:
     if (err instanceof SyntaxError) {
       return res.status(400).json({ error: 'No se pudo procesar la informacion del CV. Intenta con otro archivo.' });
     }
-    // Errores de DeepSeek API (auth, rate limit, etc.)
     if (err.status === 401 || err.status === 403) {
-      console.error('extractProfile: DeepSeek auth error - verificar DEEPSEEK_API_KEY');
+      console.error('extractProfile: Anthropic auth error - verificar ANTHROPIC_API_KEY');
       return res.status(500).json({ error: 'Error de autenticacion con servicio de IA.' });
     }
     if (err.status === 429) {
