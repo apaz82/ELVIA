@@ -1,5 +1,5 @@
 // Estado global de autenticación con control de plan freemium
-import { createContext, useContext, useEffect, useState, useMemo, useCallback } from 'react'
+import { createContext, useContext, useEffect, useState, useMemo, useCallback, useRef } from 'react'
 import { supabase } from '../services/authService'
 import { calcularProgreso } from '../utils/progresoLaboral'
 
@@ -39,6 +39,10 @@ export const AuthProvider = ({ children }) => {
   const [isRecovering, setIsRecovering]   = useState(false)
   const [jpData, setJpData]               = useState(null)
   const [jpLoaded, setJpLoaded]           = useState(false)
+  // Ref para saber el user.id activo SIN depender del closure del efecto.
+  // Permite que onAuthStateChange distinga "mismo usuario, token refrescado"
+  // de "login real" sin tener que re-crear la suscripción.
+  const activeUserIdRef = useRef(null)
 
   const fetchPerfil = useCallback(async (userId, email) => {
     const { data } = await supabase
@@ -91,6 +95,7 @@ export const AuthProvider = ({ children }) => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session)
       setUser(session?.user ?? null)
+      activeUserIdRef.current = session?.user?.id ?? null
       if (session?.user) {
         fetchPerfil(session.user.id, session.user.email)
         fetchJpData(session.user.id)
@@ -106,21 +111,21 @@ export const AuthProvider = ({ children }) => {
         setIsRecovering(true)
       }
 
-      // REGLA: NUNCA re-fetch en TOKEN_REFRESHED ni INITIAL_SESSION.
-      // Supabase emite TOKEN_REFRESHED al volver a la pestaña tras perder foco,
-      // y re-cargar perfil/jpData causa que efectos dependientes de `user` se
-      // re-disparen y sobrescriban estado local en progreso del usuario
-      // (formularios de Proyecto Laboral, drafts de CV, etc.). Solo actuamos
-      // ante cambios reales de identidad (SIGNED_IN / SIGNED_OUT / USER_UPDATED).
-      const eventosIgnorados = ['TOKEN_REFRESHED', 'INITIAL_SESSION']
-      if (eventosIgnorados.includes(_event)) {
-        // Mantener la session fresca (token nuevo) pero NO tocar user/perfil/jpData
+      // Si el user.id no cambió (token refresh, INITIAL_SESSION, tab focus, etc.),
+      // solo actualizamos la sesión (token fresco) sin tocar user/perfil/jpData.
+      // Esto evita que setPerfilCargado(false) desmonte páginas con formularios
+      // en progreso (ProyectoLaboral, CVOptimizer, etc.) cada vez que el usuario
+      // vuelve a la pestaña después de que Supabase renueva el access token.
+      const incomingId = session?.user?.id ?? null
+      const isSameUser = incomingId !== null && incomingId === activeUserIdRef.current
+      if (isSameUser) {
         setSession(session)
         return
       }
 
       setSession(session)
       setUser(session?.user ?? null)
+      activeUserIdRef.current = incomingId
       if (session?.user) {
         setPerfilCargado(false)
         fetchPerfil(session.user.id, session.user.email)

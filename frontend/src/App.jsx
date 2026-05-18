@@ -96,7 +96,7 @@ function OnboardingGuard({ children }) {
   const { onboardingPendiente, featuresDesbloqueadas, loading, isRecovering, isCompanyAdmin, isAdmin, jpLoaded, perfilCargado } = useAuth()
   const location = useLocation()
 
-  if (loading || !jpLoaded || !perfilCargado) return null
+  if (loading) return null
 
   const isRecoveryMode = sessionStorage.getItem('optima_recovery_mode') === 'true' || isRecovering || location.hash.includes('type=recovery')
   const path = location.pathname.toLowerCase()
@@ -114,9 +114,14 @@ function OnboardingGuard({ children }) {
     return <Navigate to="/empresa-admin" replace />
   }
 
+  // RUTAS_SIN_GUARD pasan sin esperar jpLoaded/perfilCargado para evitar
+  // que el guard desmonte páginas con formularios en progreso (ej. /proyecto-laboral)
   if (RUTAS_SIN_GUARD.includes(path)) {
     return children
   }
+
+  // Solo las RUTAS_GATED esperan a que jpData y perfil estén listos
+  if (!jpLoaded || !perfilCargado) return null
 
   if (onboardingPendiente) {
     return <Navigate to="/bienvenida" replace />
