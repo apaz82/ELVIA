@@ -93,10 +93,10 @@ function PublicRoute({ children }) {
 }
 
 function OnboardingGuard({ children }) {
-  const { onboardingPendiente, featuresDesbloqueadas, loading, isRecovering, isCompanyAdmin, isAdmin } = useAuth()
+  const { onboardingPendiente, featuresDesbloqueadas, loading, isRecovering, isCompanyAdmin, isAdmin, jpLoaded, perfilCargado } = useAuth()
   const location = useLocation()
 
-  if (loading) return null
+  if (loading || !jpLoaded || !perfilCargado) return null
 
   const isRecoveryMode = sessionStorage.getItem('optima_recovery_mode') === 'true' || isRecovering || location.hash.includes('type=recovery')
   const path = location.pathname.toLowerCase()

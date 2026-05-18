@@ -430,16 +430,6 @@ export default function Bienestar() {
   const [perfil, setPerfil] = useState({})
   const [saving, setSaving] = useState(false)
 
-  if (!featuresDesbloqueadas) {
-    return (
-      <FeatureLocked 
-        titulo="Ecosistema de Bienestar" 
-        descripcion="Herramientas de salud mental, control de ansiedad y meditación guiada diseñadas específicamente para candidatos en transición."
-        icono={<Heart size={44} weight="light" />}
-      />
-    )
-  }
-
   useEffect(() => {
     if (!user) return
     supabase.from('profiles').select('bienestar_data').eq('id', user.id).single()
@@ -452,6 +442,16 @@ export default function Bienestar() {
     setSaving(true)
     await supabase.from('profiles').update({ bienestar_data: nuevo }).eq('id', user.id)
     setSaving(false)
+  }
+
+  if (!featuresDesbloqueadas) {
+    return (
+      <FeatureLocked
+        titulo="Ecosistema de Bienestar"
+        descripcion="Herramientas de salud mental, control de ansiedad y meditación guiada diseñadas específicamente para candidatos en transición."
+        icono={<Heart size={44} weight="light" />}
+      />
+    )
   }
 
   return (

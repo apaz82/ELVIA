@@ -1919,6 +1919,7 @@ export default function ProyectoLaboral() {
           if (res?.job_search_profile) {
             setData(res.job_search_profile)
             sessionStorage.setItem(CACHE_KEY, JSON.stringify(res.job_search_profile))
+            refreshJpData()
           }
           setCargando(false)
         }
