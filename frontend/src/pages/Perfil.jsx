@@ -103,7 +103,7 @@ const detectarMoneda = (pais) => MONEDA_POR_PAIS[pais] || 'USD'
 // ─── Componente ───────────────────────────────────────────────────────────────
 
 export default function Perfil() {
-  const { user, loading: authLoading, perfil, refreshPerfil, creditosRestantes, LIMITE_PLAN, usageCount } = useAuth()
+  const { user, loading: authLoading, perfil, refreshPerfil, creditosRestantes, LIMITE_PLAN, usageCount, plan, isPaidPlan } = useAuth()
   const navigate = useNavigate()
 
   const bloqueado = !!(perfil?.nombre1 && perfil?.apellido1)
@@ -777,25 +777,45 @@ export default function Perfil() {
           {/* Plan y créditos */}
           <div className="bg-white rounded-2xl border border-gray-200 p-6">
             <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">Plan actual</h2>
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-3xl font-bold text-gray-900">{creditosRestantes}</span>
-                  <span className="text-gray-400">/ {LIMITE_PLAN} créditos disponibles</span>
+            {(() => {
+              const PLAN_LABELS = { free:'Gratuito', mensual:'Pro Mensual', trimestral:'Pro 3 Meses', semanal:'Pro Semanal' }
+              const planLabel   = PLAN_LABELS[plan] || (plan ? String(plan) : 'Gratuito')
+              const expiresAt   = perfil?.plan_expires_at ? new Date(perfil.plan_expires_at) : null
+              const diasRest    = expiresAt ? Math.max(0, Math.ceil((expiresAt - new Date()) / (1000*60*60*24))) : null
+              const creditosDisp = isPaidPlan ? '∞' : Math.max(0, creditosRestantes)
+              const barPct       = isPaidPlan ? 100 : Math.round((Math.max(0,creditosRestantes) / LIMITE_PLAN) * 100)
+              return (
+                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className={`text-2xl font-black ${isPaidPlan ? 'text-primary' : 'text-gray-900'}`}>{planLabel}</span>
+                      {isPaidPlan && <span className="bg-primary/10 text-primary text-xs font-bold px-2 py-0.5 rounded-full">Activo</span>}
+                    </div>
+                    {expiresAt && (
+                      <p className={`text-sm font-medium mb-3 ${diasRest <= 7 ? 'text-amber-600' : 'text-gray-600'}`}>
+                        📅 Vigente hasta: <strong>{expiresAt.toLocaleDateString('es-MX', { day:'2-digit', month:'long', year:'numeric' })}</strong>
+                        {diasRest !== null && <span className="ml-2 text-xs text-gray-400">({diasRest} días restantes)</span>}
+                      </p>
+                    )}
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-3xl font-bold text-gray-900">{creditosDisp}</span>
+                      <span className="text-gray-400">/ {isPaidPlan ? '∞' : LIMITE_PLAN} créditos disponibles</span>
+                    </div>
+                    <p className="text-sm text-gray-500 mt-1">{usageCount} utilizados</p>
+                    <div className="w-48 bg-gray-100 rounded-full h-1.5 mt-2">
+                      <div className={`h-1.5 rounded-full ${!isPaidPlan && creditosRestantes === 0 ? 'bg-red-400' : !isPaidPlan && creditosRestantes === 1 ? 'bg-amber-400' : 'bg-green-500'}`}
+                        style={{ width: `${barPct}%` }} />
+                    </div>
+                  </div>
+                  <div className="flex flex-col items-start gap-2 shrink-0">
+                    <button className="bg-primary text-white text-sm font-medium px-5 py-2.5 rounded-xl hover:bg-blue-700 transition-colors">
+                      {isPaidPlan ? 'Ver todos los planes →' : 'Mejorar plan — Próximamente'}
+                    </button>
+                    {!isPaidPlan && <p className="text-xs text-gray-400">Planes desde $9 USD/mes</p>}
+                  </div>
                 </div>
-                <p className="text-sm text-gray-500 mt-1">Plan gratuito · {usageCount} utilizados</p>
-                <div className="w-48 bg-gray-100 rounded-full h-1.5 mt-2">
-                  <div className={`h-1.5 rounded-full ${creditosRestantes === 0 ? 'bg-red-400' : creditosRestantes === 1 ? 'bg-amber-400' : 'bg-green-500'}`}
-                    style={{ width: `${(creditosRestantes / LIMITE_PLAN) * 100}%` }} />
-                </div>
-              </div>
-              <div className="flex flex-col items-start gap-2">
-                <button className="bg-primary text-white text-sm font-medium px-5 py-2.5 rounded-xl hover:bg-blue-700 transition-colors">
-                  Mejorar plan — Próximamente
-                </button>
-                <p className="text-xs text-gray-400">Planes desde $9 USD/mes</p>
-              </div>
-            </div>
+              )
+            })()}
           </div>
 
           {/* Referidos */}
