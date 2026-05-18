@@ -1284,9 +1284,13 @@ function PilarAutoconocimiento({ data, onChange, onSave, justSaved }) {
     'Diseño','Ingeniería y Procesos','Idiomas','Comercio Exterior','Legal',
   ]
   const SOFT_SKILLS = [
-    'Comunicación Asertiva','Trabajo en Equipo','Empatía',
-    'Gestión del Tiempo','Escucha Activa','Resolución de Conflictos',
-    'Creatividad','Orientación al Servicio','Organización',
+    'Adaptabilidad','Pensamiento analítico','Pensamiento creativo',
+    'Comunicación','Inteligencia emocional','Liderazgo',
+    'Resolución de problemas','Trabajo en equipo y colaboración','Resiliencia',
+    'Flexibilidad y agilidad','Curiosidad y aprendizaje continuo','Pensamiento sistémico',
+    'Resolución de conflictos','Gestión del estrés','Gestión y servicio al cliente',
+    'Influencia social','Motivación y autoconciencia','Empatía y escucha activa',
+    'Hablar en público y presentaciones',
   ]
   const POWER_SKILLS = [
     'Learnability','Pensamiento Crítico','Inteligencia Emocional',
