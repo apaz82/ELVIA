@@ -56,12 +56,12 @@ export function calcularProgreso(data, perfil) {
   const nActivos = rec.filter(function(r){return r.tengo===true}).length
   core += (nActivos >= 2) ? 20 : (nActivos * 10)
 
-  // Oferta: 5 ítems × 4 pts = 20 · umbral 20 chars · sin fracciones
+  // Oferta: 5 ítems × 4 pts = 20 · sin fracciones
   const oferta = (data&&data.oferta) ? data.oferta : {}
   let ofertaPts = 0
   if (String(oferta.oferta_valor||'').trim().length>=20) ofertaPts+=4
   const IKIGAI_KEYS = ['ikigai_amas','ikigai_bueno','ikigai_necesita','ikigai_pagar']
-  IKIGAI_KEYS.forEach(function(k){ if (String(oferta[k]||'').trim().length>=20) ofertaPts+=4 })
+  IKIGAI_KEYS.forEach(function(k){ if (String(oferta[k]||'').trim().length>=50) ofertaPts+=4 })
   core += Math.min(ofertaPts, 20)
 
   return Math.min(core, 100)

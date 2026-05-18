@@ -263,7 +263,7 @@ function calcularPorPilar(data, perfil) {
   let ofertaPts = 0
   if (String(oferta.oferta_valor||'').trim().length>=20) ofertaPts+=4
   const IKIGAI_KEYS_PP = ['ikigai_amas','ikigai_bueno','ikigai_necesita','ikigai_pagar']
-  IKIGAI_KEYS_PP.forEach(function(k){ if (String(oferta[k]||'').trim().length>=20) ofertaPts+=4 })
+  IKIGAI_KEYS_PP.forEach(function(k){ if (String(oferta[k]||'').trim().length>=50) ofertaPts+=4 })
 
   return {
     perfil:           Math.round((perfilPts/20)*100),
@@ -1573,6 +1573,32 @@ function PilarOfertaDeValor({ data, onChange, onSave, justSaved }) {
   const up = function(key, val) { onChange(Object.assign({}, d, {[key]: val})) }
   const [cultInput, setCultInput] = useState('')
   const [modalIkigai, setModalIkigai] = useState(false)
+  const [modalIncompleto, setModalIncompleto] = useState(null) // null | string[]
+
+  const IKIGAI_LABELS = {
+    ikigai_amas:     '¿Qué es lo que AMAS?',
+    ikigai_bueno:    '¿Para qué eres BUENO/A?',
+    ikigai_necesita: '¿Qué NECESITA el mundo de ti?',
+    ikigai_pagar:    '¿Por qué podrían PAGARTE?',
+  }
+
+  function getIncompletos() {
+    const items = []
+    if (String(d.oferta_valor||'').trim().length < 20) items.push('Tu oferta de valor (mínimo 20 caracteres)')
+    Object.keys(IKIGAI_LABELS).forEach(function(k) {
+      if (String(d[k]||'').trim().length < 50) items.push(IKIGAI_LABELS[k] + ' (mínimo 50 caracteres)')
+    })
+    return items
+  }
+
+  function handleSave() {
+    const faltantes = getIncompletos()
+    if (faltantes.length > 0) {
+      setModalIncompleto(faltantes)
+    } else {
+      onSave()
+    }
+  }
 
   const cultura = Array.isArray(d.cultura) ? d.cultura : []
 
@@ -1833,7 +1859,7 @@ function PilarOfertaDeValor({ data, onChange, onSave, justSaved }) {
           },
         ].map(function(it){
           const val = String(d[it.key]||'')
-          const ok = val.trim().length >= 20
+          const ok = val.trim().length >= 50
           const colorMap = {
             rose:    { ring:'border-rose-200 bg-rose-50/40',    badge:'bg-rose-500',    text:'text-rose-700',    ringFocus:'focus:ring-rose-200' },
             blue:    { ring:'border-blue-200 bg-blue-50/40',    badge:'bg-blue-500',    text:'text-blue-700',    ringFocus:'focus:ring-blue-200' },
@@ -1869,7 +1895,7 @@ function PilarOfertaDeValor({ data, onChange, onSave, justSaved }) {
               />
               <div className="flex justify-end mt-1">
                 <span className={'text-[10px] font-semibold '+(ok ? 'text-emerald-600' : 'text-slate-400')}>
-                  {val.trim().length}/20 mínimo
+                  {val.trim().length}/50 mínimo
                 </span>
               </div>
             </div>
@@ -1915,11 +1941,59 @@ function PilarOfertaDeValor({ data, onChange, onSave, justSaved }) {
 
       {/* Botón de guardar */}
       <div className="mt-8 pt-6 border-t border-slate-200 flex justify-end">
-        <button onClick={onSave}
+        <button onClick={handleSave}
           className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm transition-all cursor-pointer ${justSaved?'bg-emerald-600 text-white':'bg-rose-600 hover:bg-rose-700 text-white'}`}>
           {justSaved ? (<><CheckFat size={16} weight="fill"/> Guardado</>) : 'Guardar'}
         </button>
       </div>
+
+      {/* ── Modal: sección incompleta ── */}
+      {modalIncompleto && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{backgroundColor:'rgba(15,10,40,0.55)', backdropFilter:'blur(4px)'}}
+          onClick={function(e){ if(e.target===e.currentTarget) setModalIncompleto(null) }}
+        >
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden">
+            <div className="px-6 py-5 bg-gradient-to-r from-rose-500 to-rose-600 rounded-t-3xl flex items-center gap-3">
+              <WarningCircle size={24} className="text-white" weight="fill"/>
+              <div>
+                <h2 className="text-white font-bold text-base leading-tight">Sección incompleta</h2>
+                <p className="text-rose-100 text-xs mt-0.5">Completa estos campos para guardar tu progreso</p>
+              </div>
+            </div>
+            <div className="px-6 py-5">
+              <p className="text-sm text-slate-600 mb-4">
+                Para guardar correctamente y reflejar tu progreso, necesitas completar:
+              </p>
+              <ul className="space-y-2 mb-6">
+                {modalIncompleto.map(function(item, i){
+                  return (
+                    <li key={i} className="flex items-start gap-2 text-sm text-slate-700">
+                      <span className="w-5 h-5 rounded-full bg-rose-100 text-rose-600 text-xs font-black flex items-center justify-center shrink-0 mt-0.5">!</span>
+                      {item}
+                    </li>
+                  )
+                })}
+              </ul>
+              <div className="flex gap-3">
+                <button
+                  onClick={function(){ setModalIncompleto(null) }}
+                  className="flex-1 px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-sm transition-colors cursor-pointer"
+                >
+                  Volver a completar
+                </button>
+                <button
+                  onClick={function(){ setModalIncompleto(null); onSave() }}
+                  className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-500 hover:bg-slate-50 font-medium text-sm transition-colors cursor-pointer"
+                >
+                  Guardar así
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -2095,6 +2169,28 @@ export default function ProyectoLaboral() {
   const [saving,setSaving]   = useState(false)
   const [saved,setSaved]     = useState(false)
   const [justSaved, setJustSaved] = useState(null)  // pilar que acaba de guardarse
+  const [modalOfertaIncompleta, setModalOfertaIncompleta] = useState(null) // null | { items, nextPilar }
+
+  function ofertaIncompletos(oferta) {
+    const o = oferta || {}
+    const LABELS = {
+      ikigai_amas:'¿Qué es lo que AMAS?', ikigai_bueno:'¿Para qué eres BUENO/A?',
+      ikigai_necesita:'¿Qué NECESITA el mundo de ti?', ikigai_pagar:'¿Por qué podrían PAGARTE?'
+    }
+    const items = []
+    if (String(o.oferta_valor||'').trim().length<20) items.push('Tu oferta de valor (mínimo 20 caracteres)')
+    Object.keys(LABELS).forEach(function(k){ if (String(o[k]||'').trim().length<50) items.push(LABELS[k]+' (mínimo 50 caracteres)') })
+    return items
+  }
+
+  function handleSelectPilar(id) {
+    if (pilarId==='oferta' && id!=='oferta') {
+      const faltantes = ofertaIncompletos(data.oferta)
+      if (faltantes.length>0) { setModalOfertaIncompleta({items:faltantes, nextPilar:id}); return }
+    }
+    setPilarId(id)
+    setTimeout(function(){ pilarCardRef.current&&pilarCardRef.current.scrollIntoView({behavior:'smooth',block:'start'}) },50)
+  }
   const [cargando,setCargando] = useState(true)  // estado de carga inicial
   const [errorCarga, setErrorCarga] = useState(null)  // error al cargar datos
   const [bannerCvCreada, setBannerCvCreada] = useState(false)  // banner tras guardar CV
@@ -2586,7 +2682,7 @@ export default function ProyectoLaboral() {
         <DashboardResumen
           data={data}
           pct={pct}
-          onSelect={function(id){setPilarId(id);setTimeout(function(){pilarCardRef.current&&pilarCardRef.current.scrollIntoView({behavior:'smooth',block:'start'})},50)}}
+          onSelect={handleSelectPilar}
           perfil={perfil}
           activePilar={pilarId}
         />
@@ -2628,6 +2724,57 @@ export default function ProyectoLaboral() {
           </div>
         )}
       </div>
+
+      {/* ── Modal: navegación con oferta incompleta ── */}
+      {modalOfertaIncompleta && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{backgroundColor:'rgba(15,10,40,0.55)', backdropFilter:'blur(4px)'}}
+          onClick={function(e){ if(e.target===e.currentTarget) setModalOfertaIncompleta(null) }}
+        >
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden">
+            <div className="px-6 py-5 bg-gradient-to-r from-rose-500 to-rose-600 rounded-t-3xl flex items-center gap-3">
+              <WarningCircle size={24} className="text-white" weight="fill"/>
+              <div>
+                <h2 className="text-white font-bold text-base leading-tight">Sección incompleta</h2>
+                <p className="text-rose-100 text-xs mt-0.5">Mi oferta de valor tiene campos sin completar</p>
+              </div>
+            </div>
+            <div className="px-6 py-5">
+              <p className="text-sm text-slate-600 mb-4">Si sales ahora, tu progreso no llegará al 100%. Faltan:</p>
+              <ul className="space-y-2 mb-6">
+                {modalOfertaIncompleta.items.map(function(item, i){
+                  return (
+                    <li key={i} className="flex items-start gap-2 text-sm text-slate-700">
+                      <span className="w-5 h-5 rounded-full bg-rose-100 text-rose-600 text-xs font-black flex items-center justify-center shrink-0 mt-0.5">!</span>
+                      {item}
+                    </li>
+                  )
+                })}
+              </ul>
+              <div className="flex gap-3">
+                <button
+                  onClick={function(){ setModalOfertaIncompleta(null) }}
+                  className="flex-1 px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-sm transition-colors cursor-pointer"
+                >
+                  Volver a completar
+                </button>
+                <button
+                  onClick={function(){
+                    const next = modalOfertaIncompleta.nextPilar
+                    setModalOfertaIncompleta(null)
+                    setPilarId(next)
+                    setTimeout(function(){ pilarCardRef.current&&pilarCardRef.current.scrollIntoView({behavior:'smooth',block:'start'}) },50)
+                  }}
+                  className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-500 hover:bg-slate-50 font-medium text-sm transition-colors cursor-pointer"
+                >
+                  Salir de todas formas
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
