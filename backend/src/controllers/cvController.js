@@ -358,10 +358,14 @@ const extractProfile = async (req, res, next) => {
         role: 'user',
         content: `Extract information from this resume/CV. Reply ONLY with valid JSON, no additional text. Use null or empty array when data is not found.
 
+CRITICAL DISTINCTION — read carefully:
+- "educacion" = academic degrees, diplomas, certifications from schools/universities. "titulo" is the NAME OF THE DEGREE (e.g. "Ingenieria Industrial", "Maestria en Finanzas", "Diplomado en Six Sigma"). NEVER put a job title or position in "titulo". A job title like "Auditor", "Gerente", "Analista" is NEVER an education entry.
+- "experiencias" = jobs/work positions. "cargo" is the job title (e.g. "Auditor Interno", "Gerente de Ventas").
+
 Rules:
 - "pais" field: full country name in Spanish (e.g. "Mexico", "Colombia", "Espana"). Infer from city, address, phone code, or any context clue.
 - "idiomas": CEFR level. "fluent/advanced" -> C1; "intermediate" -> B2; "basic" -> A2; "native/mother tongue" -> Nativo.
-- "educacion": max 4 entries. "nivel" must be one of: "Preparatoria / Bachillerato", "Tecnico / Tecnologo", "Universidad / Licenciatura", "Especializacion", "Maestria", "Doctorado", "Certificacion Profesional".
+- "educacion": max 4 entries. ONLY real academic institutions (universities, schools, certification bodies). "nivel" must be one of: "Preparatoria / Bachillerato", "Tecnico / Tecnologo", "Universidad / Licenciatura", "Especializacion", "Maestria", "Doctorado", "Certificacion Profesional".
 - IMPORTANT: Keep "resumen", "experiencias[].descripcion" and "habilidades" in the ORIGINAL LANGUAGE of the CV. Do NOT translate them.
 - "experiencias": last 4 jobs. Keep descriptions in original language.
 - "habilidades": up to 12 skills in original language of the CV.
@@ -385,7 +389,7 @@ Return ONLY this JSON:
   "cargo_actual": "most recent title (original language) or null",
   "resumen": "profile summary (original language) or null",
   "idiomas": [{ "idioma": "Ingles", "nivel": "B2" }],
-  "educacion": [{ "nivel": "Universidad / Licenciatura", "titulo": "...", "institucion": "...", "anio": "2018" }],
+  "educacion": [{ "nivel": "Universidad / Licenciatura", "titulo": "Ingenieria Industrial Administrativa", "institucion": "Universidad de Celaya", "anio": "2010" }],
   "experiencias": [{ "empresa": "...", "cargo": "...", "fecha_inicio": "...", "fecha_fin": "...", "descripcion": "..." }],
   "habilidades": ["Excel", "Leadership", "Power BI"]
 }`,
