@@ -55,40 +55,75 @@ async function optimizarResumen(texto, idioma = 'es') {
 const SISTEMA_BASE = `Eres un experto en recursos humanos y redacción de CV con 20 años de experiencia
 en el mercado laboral de LATAM y USA. Tus análisis son objetivos, sin sesgos por edad, género u origen.
 
-REGLAS ESTRICTAS:
-- Nunca inventes información que no esté en el CV original
-- Solo optimiza y reformula lo que ya existe
-- Usa verbos de acción en los logros (lideré, implementé, aumenté, reduje, gestioné)
-- Cuantifica logros solo si los datos ya están presentes en el CV
+╔══════════════════════════════════════════════════════════════════════════╗
+║  REGLA #1 (ABSOLUTA, NO NEGOCIABLE): CERO INVENCIÓN DE DATOS             ║
+║  Tu trabajo es REFORMULAR y REORGANIZAR únicamente. Nada más.            ║
+╚══════════════════════════════════════════════════════════════════════════╝
+
+PROHIBIDO ABSOLUTAMENTE inventar, deducir, completar o "rellenar":
+  ✗ Emails (jamás generes uno; ni siquiera "nombre@email.com" como placeholder)
+  ✗ Teléfonos, indicativos de país o números de contacto
+  ✗ URLs de LinkedIn, GitHub, portafolios, sitios web
+  ✗ Fechas (de inicio, fin, graduación) — si no están en el CV, OMITE la fecha
+  ✗ Métricas o cifras (%, $, K, número de personas, año, equipos) — si no están, NO las pongas
+  ✗ Empresas, cargos o instituciones que no aparezcan en el texto original
+  ✗ Certificaciones, premios o títulos no mencionados
+  ✗ Ciudades, países o ubicaciones no presentes en el CV
+  ✗ Idiomas o niveles CEFR no declarados
+
+REGLA DE OMISIÓN: si un campo del formato Harvard NO existe en el CV original,
+OMITE ese campo por completo. Es preferible un CV sin email a un CV con un email falso.
+
+EJEMPLO DE ERROR CRÍTICO QUE NUNCA DEBES COMETER:
+  Input: "Juan Pérez | +52 55 1234 5678 | Ciudad de México"
+  ❌ MAL:  "Juan Pérez | juan.perez@gmail.com | +52 55 1234 5678 | Ciudad de México"
+            (inventaste el email — esto es FALSIFICACIÓN, viola toda la regla #1)
+  ✓ BIEN: "Juan Pérez | +52 55 1234 5678 | Ciudad de México"
+            (sin email porque no había email en el original — CORRECTO)
+
+LO QUE SÍ PUEDES HACER:
+  ✓ Reescribir frases para mayor claridad y profesionalismo
+  ✓ Cambiar voz pasiva a activa ("fui responsable de" → "lideré")
+  ✓ Reordenar secciones según el formato Harvard
+  ✓ Mejorar gramática, ortografía y vocabulario
+  ✓ Agrupar habilidades sueltas en categorías lógicas
+  ✓ Usar verbos de acción del banco autorizado: lideré, implementé, gestioné,
+    optimicé, diseñé, coordiné, ejecuté, desarrollé, supervisé, analicé
 
 ESTRUCTURA HARVARD OBLIGATORIA (sigue este orden y formato exacto):
 
 NOMBRE COMPLETO
-Email | Teléfono | Ciudad, País | LinkedIn (si existe)
+[Email solo si existe en el original] | [Teléfono solo si existe] | [Ciudad, País solo si existen] | [LinkedIn solo si existe]
 ──────────────────────────────────────────────────────
 RESUMEN PROFESIONAL
-Párrafo de 3-4 líneas con propuesta de valor.
+Párrafo de 3-4 líneas con propuesta de valor (basado SOLO en lo que ya dice el CV).
 ──────────────────────────────────────────────────────
 EXPERIENCIA PROFESIONAL
 Empresa — Cargo | Ciudad, País | Mes Año – Mes Año
-• Logro o responsabilidad con verbo de acción
-• Logro o responsabilidad con verbo de acción
+• Logro o responsabilidad con verbo de acción (sin inventar métricas)
+• Logro o responsabilidad con verbo de acción (sin inventar métricas)
 ──────────────────────────────────────────────────────
 EDUCACIÓN
 Institución — Título | Ciudad, País | Año
-• Detalle relevante si aplica
+• Detalle relevante si aplica (solo si está en el original)
 ──────────────────────────────────────────────────────
 HABILIDADES
 • Categoría: habilidad 1, habilidad 2, habilidad 3
 
 REGLAS DE FORMATO:
 - El nombre va en la primera línea, sin etiquetas
-- Los datos de contacto van en la segunda línea, separados por |
+- Los datos de contacto van en la segunda línea, separados por | (OMITE los que falten — no dejes "Email: -" ni placeholders)
 - Los encabezados de sección van en MAYÚSCULAS
 - Usa ── como divisor entre secciones (al menos 30 guiones)
 - NO uses secciones como "Datos Personales", "Personal Details" o "Información Personal" — esa info va en el encabezado
 - NO incluyas fecha de nacimiento, estado civil, ni nacionalidad (no es estándar Harvard)
-- Los bullets van con • seguido de espacio`;
+- Los bullets van con • seguido de espacio
+
+CALIBRACIÓN POR SENIORITY (detecta el nivel y ajusta el tono):
+- Junior (0-3 años): enfoca en formación, potencial, proyectos académicos, prácticas. Tono: prometedor, orientado a aprendizaje.
+- Mid (4-9 años): balance entre logros concretos y proyección. Verbos de gestión + ejecución técnica.
+- Senior/C-Level (10+ años): protagonismo estratégico, escala de equipos, impacto de negocio. Tono: ejecutivo, sin diminutivos.
+NUNCA cambies datos para "ajustarte" al seniority. Solo cambia el TONO de la reescritura.`;
 
 // --- Etiquetas de idioma para los prompts ---
 const ETIQUETA_IDIOMA = {
@@ -113,6 +148,133 @@ const parsearRespuestaOptimize = (text) => {
       ? recMatch[1].trim().split('\n').map(l => l.replace(/^[-•]\s*/, '').trim()).filter(Boolean)
       : [],
   };
+};
+
+// ─── Validación anti-alucinación de datos de contacto ─────────────────────────
+// Extrae todos los emails / teléfonos / URLs de un texto para poder comparar
+// input vs output y detectar si el modelo inventó algún dato de contacto.
+
+const _emailRegex = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi;
+const _urlRegex   = /(https?:\/\/[^\s|<>"']+|(?:linkedin\.com|github\.com|behance\.net|dribbble\.com|medium\.com|notion\.so)\/[^\s|<>"']+)/gi;
+// Teléfono: secuencias de ≥7 dígitos (con guiones/espacios/paréntesis/+ permitidos)
+const _phoneRegex = /[+]?[\d][\d\s\-().]{6,}\d/g;
+
+const extraerEmails = (text) => {
+  if (!text) return new Set();
+  return new Set((text.match(_emailRegex) || []).map(s => s.toLowerCase().trim()));
+};
+
+const extraerUrls = (text) => {
+  if (!text) return new Set();
+  return new Set((text.match(_urlRegex) || []).map(s => s.toLowerCase().trim().replace(/[.,;]$/, '')));
+};
+
+const extraerTelefonos = (text) => {
+  if (!text) return new Set();
+  // Normalizar: solo dígitos
+  return new Set((text.match(_phoneRegex) || [])
+    .map(s => s.replace(/\D/g, ''))
+    .filter(s => s.length >= 7));
+};
+
+/**
+ * Detecta y elimina datos de contacto alucinados en el CV optimizado.
+ * Si el output contiene un email/teléfono/URL que NO está en el input ni en los
+ * datos verificados del usuario, lo elimina del output (no inventamos PII jamás).
+ * @returns {{ cv: string, hallucinated: string[] }}
+ */
+const sanitizarContactoAlucinado = (cvOptimizado, cvOriginal, perfilVerificado = {}) => {
+  if (!cvOptimizado) return { cv: cvOptimizado, hallucinated: [] };
+
+  const emailsPermitidos = extraerEmails(cvOriginal);
+  if (perfilVerificado.email) emailsPermitidos.add(perfilVerificado.email.toLowerCase().trim());
+
+  const urlsPermitidas = extraerUrls(cvOriginal);
+  if (perfilVerificado.linkedin_url) urlsPermitidas.add(perfilVerificado.linkedin_url.toLowerCase().trim());
+
+  const telefonosPermitidos = extraerTelefonos(cvOriginal);
+  if (perfilVerificado.telefono1) {
+    const t = String(perfilVerificado.telefono1).replace(/\D/g, '');
+    if (t.length >= 7) telefonosPermitidos.add(t);
+  }
+  if (perfilVerificado.indicativo1 && perfilVerificado.telefono1) {
+    const t = (String(perfilVerificado.indicativo1) + String(perfilVerificado.telefono1)).replace(/\D/g, '');
+    if (t.length >= 7) telefonosPermitidos.add(t);
+  }
+
+  const hallucinated = [];
+  let cv = cvOptimizado;
+
+  // Emails: eliminar cualquiera que no esté permitido
+  const emailsEnOutput = cvOptimizado.match(_emailRegex) || [];
+  for (const email of emailsEnOutput) {
+    if (!emailsPermitidos.has(email.toLowerCase().trim())) {
+      hallucinated.push(`email:${email}`);
+      // Eliminar el email del CV (incluyendo separadores adyacentes "|" si los hay)
+      cv = cv.replace(new RegExp(`\\s*\\|\\s*${email.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}|${email.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*\\|?\\s*`, 'gi'), '');
+    }
+  }
+
+  // URLs: eliminar las no permitidas (LinkedIn, GitHub falsos, etc.)
+  const urlsEnOutput = cvOptimizado.match(_urlRegex) || [];
+  for (const url of urlsEnOutput) {
+    const norm = url.toLowerCase().trim().replace(/[.,;]$/, '');
+    let permitida = false;
+    for (const ok of urlsPermitidas) {
+      // Match flexible: el output puede tener http vs https, o trailing slash
+      if (norm.includes(ok.replace(/^https?:\/\//, '')) || ok.includes(norm.replace(/^https?:\/\//, ''))) {
+        permitida = true; break;
+      }
+    }
+    if (!permitida) {
+      hallucinated.push(`url:${url}`);
+      cv = cv.replace(new RegExp(`\\s*\\|\\s*${url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}|${url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*\\|?\\s*`, 'gi'), '');
+    }
+  }
+
+  // Teléfonos: eliminar los no permitidos (solo si el output tiene MÁS teléfonos que el input)
+  // Esto evita falsos positivos por reformateo (ej. "+52 55 1234 5678" → "(+52) 55-1234-5678")
+  const telefonosEnOutput = (cvOptimizado.match(_phoneRegex) || []).map(s => s.replace(/\D/g, '')).filter(s => s.length >= 7);
+  if (telefonosEnOutput.length > telefonosPermitidos.size) {
+    for (const tel of telefonosEnOutput) {
+      // Match parcial: el último 7 dígitos deben coincidir con algún permitido
+      const ultimos7 = tel.slice(-7);
+      let permitido = false;
+      for (const ok of telefonosPermitidos) {
+        if (ok.slice(-7) === ultimos7) { permitido = true; break; }
+      }
+      if (!permitido) hallucinated.push(`telefono:${tel}`);
+    }
+  }
+
+  // Limpiar separadores duplicados que puedan quedar tras eliminar campos: "| |" → "|"
+  cv = cv.replace(/\s*\|\s*\|\s*/g, ' | ').replace(/^\s*\|\s*/gm, '').replace(/\s*\|\s*$/gm, '');
+
+  return { cv: cv.trim(), hallucinated };
+};
+
+// Construye el bloque de "DATOS VERIFICADOS" que se inyecta al prompt
+const construirBloqueVerificado = (perfilVerificado = {}) => {
+  const p = perfilVerificado;
+  const lineas = [];
+  if (p.nombre1 || p.apellido1) lineas.push(`- Nombre completo: ${[p.nombre1, p.apellido1].filter(Boolean).join(' ')}`);
+  if (p.email)         lineas.push(`- Email: ${p.email}`);
+  if (p.telefono1)     lineas.push(`- Teléfono: ${p.indicativo1 || ''} ${p.telefono1}`.trim());
+  if (p.pais)          lineas.push(`- País: ${p.pais}`);
+  if (p.ciudad)        lineas.push(`- Ciudad: ${p.ciudad}`);
+  if (p.linkedin_url)  lineas.push(`- LinkedIn: ${p.linkedin_url}`);
+  if (lineas.length === 0) return '';
+  return `
+═══════════════════════════════════════════════════════════════════
+DATOS DE CONTACTO VERIFICADOS DEL USUARIO (registrados en su perfil):
+${lineas.join('\n')}
+
+REGLA: si alguno de estos datos aparece en el encabezado del CV, úsalo
+TEXTUALMENTE. NO uses ningún email, teléfono, LinkedIn ni URL que no esté
+en la lista de arriba ni en el CV original. Si un campo no está ni en
+el CV ni en esta lista, OMÍTELO del encabezado por completo.
+═══════════════════════════════════════════════════════════════════
+`;
 };
 
 const parsearRespuestaMatch = (text) => {
@@ -200,15 +362,20 @@ const parsearRespuestaMatch = (text) => {
 
 /**
  * Optimiza un CV al formato Harvard
- * @param {string} cvText   - Texto extraído del CV original
- * @param {string} language - Código de idioma: 'es' | 'en' | 'pt'
+ * @param {string} cvText           - Texto extraído del CV original
+ * @param {string} language         - Código de idioma: 'es' | 'en' | 'pt'
+ * @param {object} verifiedProfile  - Datos verificados del perfil del usuario
+ *   { nombre1, apellido1, email, telefono1, indicativo1, pais, ciudad, linkedin_url }
  */
-const optimizeCV = async (cvText, language = 'es') => {
+const optimizeCV = async (cvText, language = 'es', verifiedProfile = {}) => {
   const idioma = ETIQUETA_IDIOMA[language] || 'español';
+  const bloqueVerificado = construirBloqueVerificado(verifiedProfile);
 
   const prompt = `Analiza el siguiente CV y optimízalo al formato Harvard.
 IMPORTANTE: El CV, los cambios realizados y las recomendaciones deben estar TODOS en ${idioma}.
-
+RECORDATORIO ABSOLUTO: NO inventes emails, teléfonos, URLs ni datos que no estén en el CV original
+o en los datos verificados de abajo. Si un campo falta, OMÍTELO del encabezado — no uses placeholders.
+${bloqueVerificado}
 CV ORIGINAL:
 ${cvText}
 
@@ -228,37 +395,66 @@ Responde usando exactamente estos delimitadores (sin texto fuera de ellos):
 
   if (!client) throw new Error('Claude client no inicializado. Verifica ANTHROPIC_API_KEY en Railway.');
 
+  const callClaude = async () => client.messages.create({
+    model: MODELO,
+    max_tokens: 8000,
+    temperature: 0.2, // bajo para reducir alucinaciones; >0 permite reformulación
+    system: [{ type: 'text', text: SISTEMA_BASE, cache_control: { type: 'ephemeral' } }],
+    messages: [{ role: 'user', content: prompt }],
+  });
+
   const t0 = Date.now();
   console.log(`[optimizeCV] Iniciando con modelo: ${MODELO}`);
   let response;
   try {
-    response = await client.messages.create({
-      model: MODELO,
-      max_tokens: 4096,
-      system: [{ type: 'text', text: SISTEMA_BASE, cache_control: { type: 'ephemeral' } }],
-      messages: [{ role: 'user', content: prompt }],
-    });
+    response = await callClaude();
+    // Retry una vez si la respuesta llegó sin el delimitador <CV> (parseo fallaría)
+    if (!response.content?.[0]?.text || !/<CV>[\s\S]*<\/CV>/.test(response.content[0].text)) {
+      console.warn('[optimizeCV] Respuesta sin delimitadores <CV>. Reintentando una vez...');
+      response = await callClaude();
+    }
   } catch (apiErr) {
     console.error(`[optimizeCV] Error de API Claude (modelo: ${MODELO}):`, apiErr.message, apiErr.status);
     throw apiErr;
   }
   console.log(`[optimizeCV] Claude tardó ${((Date.now() - t0) / 1000).toFixed(1)}s | cache: ${JSON.stringify(response.usage?.cache_read_input_tokens ?? 0)} tokens leídos de caché`);
 
-  return parsearRespuestaOptimize(response.content[0].text);
+  const parsed = parsearRespuestaOptimize(response.content[0].text);
+
+  // ── Validación post-hoc anti-alucinación de PII ─────────────────────────────
+  // Si Claude inventó un email/telefono/URL, lo eliminamos del CV antes de devolverlo.
+  const { cv: cvSaneado, hallucinated } = sanitizarContactoAlucinado(
+    parsed.optimizedCV, cvText, verifiedProfile
+  );
+  if (hallucinated.length > 0) {
+    console.warn(`[optimizeCV] PII alucinada eliminada del output: ${hallucinated.join(', ')}`);
+    parsed.optimizedCV = cvSaneado;
+    parsed.recommendations = parsed.recommendations || [];
+    parsed.recommendations.unshift(
+      'Algunos datos de contacto se omitieron porque no estaban en tu CV original. ' +
+      'Agrégalos manualmente si quieres incluirlos.'
+    );
+  }
+
+  return parsed;
 };
 
 /**
  * Adapta un CV a una vacante específica y calcula el % de match
- * @param {string} cvText   - Texto del CV
- * @param {string} jobText  - Descripción de la vacante
- * @param {string} language - Idioma de salida
+ * @param {string} cvText           - Texto del CV
+ * @param {string} jobText          - Descripción de la vacante
+ * @param {string} language         - Idioma de salida
+ * @param {object} verifiedProfile  - Datos verificados del perfil del usuario
  */
-const matchCVtoJob = async (cvText, jobText, language = 'es') => {
+const matchCVtoJob = async (cvText, jobText, language = 'es', verifiedProfile = {}) => {
   const idioma = ETIQUETA_IDIOMA[language] || 'español';
+  const bloqueVerificado = construirBloqueVerificado(verifiedProfile);
 
   const prompt = `Analiza el CV y la vacante. Adapta el CV específicamente para esta vacante.
 IMPORTANTE: El CV y los cambios realizados deben estar TODOS en ${idioma}.
-
+RECORDATORIO ABSOLUTO: NO inventes emails, teléfonos, URLs ni habilidades/experiencias
+que no estén en el CV original. Adaptar = reordenar y reformular lo existente.
+${bloqueVerificado}
 CV ORIGINAL:
 ${cvText}
 
@@ -305,17 +501,34 @@ experiencia: [0-100, qué tan adecuado es el nivel y años de experiencia para e
 formato_ats: [0-100, qué tan optimizado está el CV para superar filtros ATS: claridad, estructura, palabras clave]
 </DIMENSIONES>`;
 
-  const t0 = Date.now();
-  const response = await client.messages.create({
+  const callClaude = async () => client.messages.create({
     model: MODELO,
-    max_tokens: 4096,
+    max_tokens: 8000,
     temperature: 0,
     system: [{ type: 'text', text: SISTEMA_BASE, cache_control: { type: 'ephemeral' } }],
     messages: [{ role: 'user', content: prompt }],
   });
+
+  const t0 = Date.now();
+  let response = await callClaude();
+  if (!response.content?.[0]?.text || !/<CV>[\s\S]*<\/CV>/.test(response.content[0].text)) {
+    console.warn('[matchCVtoJob] Respuesta sin delimitadores <CV>. Reintentando una vez...');
+    response = await callClaude();
+  }
   console.log(`[matchCVtoJob] Claude tardó ${((Date.now() - t0) / 1000).toFixed(1)}s | cache: ${JSON.stringify(response.usage?.cache_read_input_tokens ?? 0)} tokens leídos de caché`);
 
-  return parsearRespuestaMatch(response.content[0].text);
+  const parsed = parsearRespuestaMatch(response.content[0].text);
+
+  // Sanitizar PII alucinada en el CV adaptado
+  const { cv: cvSaneado, hallucinated } = sanitizarContactoAlucinado(
+    parsed.tailoredCV, cvText, verifiedProfile
+  );
+  if (hallucinated.length > 0) {
+    console.warn(`[matchCVtoJob] PII alucinada eliminada del output: ${hallucinated.join(', ')}`);
+    parsed.tailoredCV = cvSaneado;
+  }
+
+  return parsed;
 };
 
 /**

@@ -52,26 +52,42 @@ const generarCV = async (req, res, next) => {
 
     const idiomaLabel = language === 'en' ? 'ENGLISH' : language === 'pt' ? 'PORTUGUES' : 'ESPANOL'
 
-    // Sistema base (inline — no depende del export de claudeService)
+    // Sistema base endurecido contra alucinación
     const SISTEMA_CV = `Eres un experto en recursos humanos y redaccion de CV con 20 anos de experiencia
 en el mercado laboral de LATAM y USA. Tus analisis son objetivos.
 
-REGLAS ESTRICTAS:
-- Nunca inventes informacion que no este en los datos provistos
-- Solo optimiza y reformula lo que ya existe
-- Usa verbos de accion en los logros (lidere, implemente, aumente, reduje, gestioné)
-- Cuantifica logros solo si los datos ya estan presentes
+╔══════════════════════════════════════════════════════════════════════════╗
+║  REGLA #1 (ABSOLUTA): CERO INVENCION DE DATOS                            ║
+║  Construye SOLO con lo que el usuario llenó en el formulario.            ║
+╚══════════════════════════════════════════════════════════════════════════╝
+
+PROHIBIDO ABSOLUTAMENTE inventar, deducir o "rellenar":
+  ✗ Emails, teléfonos o URLs que no están en los datos del candidato
+  ✗ Fechas, métricas, cifras o años que no aparezcan en el input
+  ✗ Empresas, cargos, instituciones o títulos no listados
+  ✗ Certificaciones, premios o idiomas no declarados
+  ✗ Ciudades, países o ubicaciones no mencionadas
+  ✗ Logros con números (%, $, equipos, personas) si no estaban en la descripción original
+
+REGLA DE OMISION: si un campo viene como "No proporcionado", "No especificado" o vacio,
+OMITELO por completo del CV. No uses placeholders.
+
+LO QUE SI PUEDES HACER:
+  ✓ Reescribir frases para mas claridad y profesionalismo
+  ✓ Cambiar voz pasiva a activa
+  ✓ Usar verbos de accion: lidere, implemente, gestione, optimice, diseñe, coordine
+  ✓ Agrupar habilidades sueltas en categorias logicas
 
 ESTRUCTURA HARVARD OBLIGATORIA:
 NOMBRE COMPLETO
-Email | Telefono | Ciudad, Pais
+[Email solo si fue provisto] | [Telefono solo si fue provisto] | [Ciudad, Pais solo si fueron provistos]
 ───────────────────────────────────────────
 RESUMEN PROFESIONAL
-Parrafo de 3-4 lineas con propuesta de valor.
+Parrafo de 3-4 lineas con propuesta de valor (basado SOLO en el resumen y experiencias provistas).
 ───────────────────────────────────────────
 EXPERIENCIA PROFESIONAL
 Empresa — Cargo | Ciudad, Pais | Mes Año – Mes Año
-• Logro o responsabilidad con verbo de accion
+• Logro o responsabilidad con verbo de accion (sin inventar metricas)
 ───────────────────────────────────────────
 EDUCACION
 Institucion — Titulo | Año
@@ -82,25 +98,20 @@ HABILIDADES
 IDIOMAS
 • Idioma - Nivel`
 
-    // Llamar a DeepSeek V3 (compatible con OpenAI API — más económico que Haiku)
-    const OpenAI = require('openai')
-    const deepseek = new OpenAI({
-      apiKey: process.env.DEEPSEEK_API_KEY,
-      baseURL: 'https://api.deepseek.com/v1',
-    })
+    // Migrado de DeepSeek a Claude Haiku (mismo modelo que extractProfile)
+    if (!process.env.ANTHROPIC_API_KEY) {
+      console.error('generarCV: ANTHROPIC_API_KEY no configurada en Railway')
+      return res.status(500).json({ error: 'Servicio de IA no configurado. Contacta soporte.' })
+    }
+    const Anthropic = require('@anthropic-ai/sdk')
+    const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
-    const response = await deepseek.chat.completions.create({
-      model: 'deepseek-chat',
-      max_tokens: 4096,
-      messages: [
-        { role: 'system', content: SISTEMA_CV },
-        {
-          role: 'user',
-          content: `Construye un CV profesional en formato Harvard a partir de los siguientes datos estructurados.
+    const userPrompt = `Construye un CV profesional en formato Harvard a partir de los siguientes datos estructurados.
 
-REGLAS CRITICAS:
+REGLAS CRITICAS (no negociables):
 - USA SOLO la informacion provista. NO inventes datos ni logros
-- Aplica verbos de impacto y cuantifica logros cuando hay numeros en los datos
+- Si un campo dice "No proporcionado" o "No especificado", OMITELO del CV
+- NO inventes emails, telefonos, URLs ni metricas
 - Sigue el formato Harvard estrictamente
 - Todo el CV DEBE estar en ${idiomaLabel}
 - Usa bullets con "•" y lineas divisoras "──────────────────────────────────────────────"
@@ -109,7 +120,7 @@ REGLAS CRITICAS:
 DATOS DEL CANDIDATO:
 Nombre: ${nombreCompleto}
 Cargo objetivo: ${datos.cargo_objetivo || 'No especificado'}
-Contacto: ${contacto}
+Contacto: ${contacto || 'No proporcionado'}
 Resumen profesional: ${datos.resumen || 'No proporcionado'}
 
 EXPERIENCIA LABORAL:
@@ -128,11 +139,21 @@ Responde EXACTAMENTE con estos delimitadores XML (sin texto fuera de ellos):
 <CV>[CV completo optimizado en formato Harvard]</CV>
 <CAMBIOS>- mejora aplicada 1\n- mejora 2</CAMBIOS>
 <RECOMENDACIONES>- recomendacion 1\n- recomendacion 2</RECOMENDACIONES>`
-        }
-      ]
+
+    const callClaude = async () => anthropic.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 8000,
+      temperature: 0.2,
+      system: SISTEMA_CV,
+      messages: [{ role: 'user', content: userPrompt }],
     })
 
-    const text = response.choices[0].message.content
+    let response = await callClaude()
+    if (!response.content?.[0]?.text || !/<CV>[\s\S]*<\/CV>/.test(response.content[0].text)) {
+      console.warn('[generarCV] Respuesta sin delimitadores <CV>. Reintentando una vez...')
+      response = await callClaude()
+    }
+    const text = response.content[0].text
 
     // Parsear respuesta con delimitadores XML
     const cvMatch  = text.match(/<CV>([\s\S]*?)<\/CV>/)

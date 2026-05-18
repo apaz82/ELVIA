@@ -43,8 +43,12 @@ const optimize = async (req, res, next) => {
       });
     }
 
-    // Validacion de Identidad del Onboarding
-    const { data: profile } = await db.from('profiles').select('nombre1, apellido1').eq('id', req.user.id).single();
+    // Validacion de Identidad del Onboarding + carga de datos verificados para anclar el prompt
+    const { data: profile } = await db
+      .from('profiles')
+      .select('nombre1, apellido1, email_principal, telefono1, indicativo1, pais, ciudad, linkedin_url')
+      .eq('id', req.user.id)
+      .single();
     if (profile) {
       const cvTextNorm = cvText.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
       const n1 = profile.nombre1 ? profile.nombre1.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim() : '';
@@ -62,8 +66,19 @@ const optimize = async (req, res, next) => {
       }
     }
 
+    const verifiedProfile = profile ? {
+      nombre1:      profile.nombre1,
+      apellido1:    profile.apellido1,
+      email:        profile.email_principal || req.user.email,
+      telefono1:    profile.telefono1,
+      indicativo1:  profile.indicativo1,
+      pais:         profile.pais,
+      ciudad:       profile.ciudad,
+      linkedin_url: profile.linkedin_url,
+    } : { email: req.user.email };
+
     const language = req.body.language || 'es';
-    const resultado = await optimizeCV(cvText, language);
+    const resultado = await optimizeCV(cvText, language, verifiedProfile);
 
     // Incrementar contador diario de analisis (hard cap)
     if (req.dailyCapDate) {
@@ -177,8 +192,25 @@ const matchToJob = async (req, res, next) => {
       });
     }
 
+    // Cargar perfil verificado para anclar el prompt y prevenir alucinación de PII
+    const { data: profileMatch } = await db
+      .from('profiles')
+      .select('nombre1, apellido1, email_principal, telefono1, indicativo1, pais, ciudad, linkedin_url')
+      .eq('id', req.user.id)
+      .single();
+    const verifiedProfile = profileMatch ? {
+      nombre1:      profileMatch.nombre1,
+      apellido1:    profileMatch.apellido1,
+      email:        profileMatch.email_principal || req.user.email,
+      telefono1:    profileMatch.telefono1,
+      indicativo1:  profileMatch.indicativo1,
+      pais:         profileMatch.pais,
+      ciudad:       profileMatch.ciudad,
+      linkedin_url: profileMatch.linkedin_url,
+    } : { email: req.user.email };
+
     const language = req.body.language || 'es';
-    const resultado = await matchCVtoJob(cvText, req.body.jobText, language);
+    const resultado = await matchCVtoJob(cvText, req.body.jobText, language, verifiedProfile);
 
     // Incrementar contador diario de analisis (hard cap)
     if (req.dailyCapDate) {
