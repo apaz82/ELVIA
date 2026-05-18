@@ -251,25 +251,28 @@ function calcularPorPilar(data, perfil) {
   const bloques = (data&&data.semana&&data.semana.bloques) ? data.semana.bloques : {}
   const bN = Object.values(bloques).filter(Boolean).length
   let semanaPts = 0
-  if (bN>=3) semanaPts=10; else if (bN>=1) semanaPts=5;
+  if (bN>=3) semanaPts=20; else if (bN>=1) semanaPts=10;
 
   const rawRec2 = data&&data.recursos ? (Array.isArray(data.recursos) ? data.recursos : (data.recursos.recursos||null)) : null
   const rec = (rawRec2&&rawRec2.length>0) ? rawRec2 : RECURSOS_DEFAULT
   const nRecActivos = rec.filter(function(r){return r.tengo===true}).length
-  let recPts = (nRecActivos >= 2) ? 10 : (nRecActivos * 5)
+  let recPts = (nRecActivos >= 2) ? 20 : (nRecActivos * 10)
 
   const oferta = (data&&data.oferta) ? data.oferta : {}
   let ofertaPts = 0
-  if (Array.isArray(oferta.cultura)&&oferta.cultura.length>=2) ofertaPts+=10
-  if (String(oferta.oferta_valor||'').trim().length>=30) ofertaPts+=20
+  if (Array.isArray(oferta.cultura)&&oferta.cultura.length>=2) ofertaPts+=4
+  if (String(oferta.oferta_valor||'').trim().length>=30) ofertaPts+=6
+  const IKIGAI_KEYS_PP = ['ikigai_amas','ikigai_bueno','ikigai_necesita','ikigai_pagar']
+  const ikigaiOk = IKIGAI_KEYS_PP.filter(function(k){ return String(oferta[k]||'').trim().length>=50 }).length
+  ofertaPts += Math.min(ikigaiOk * 2.5, 10)
 
   return {
-    perfil:           Math.round((perfilPts/30)*100),
+    perfil:           Math.round((perfilPts/20)*100),
     autoconocimiento: Math.round((Math.min(autoPts,20)/20)*100),
     documentos:       Math.round((docsDone/DOCS_LIST.length)*100),
-    semana:           Math.round((semanaPts/10)*100),
-    recursos:         Math.round((recPts/10)*100),
-    oferta:           Math.round((Math.min(ofertaPts,30)/30)*100),
+    semana:           Math.round((semanaPts/20)*100),
+    recursos:         Math.round((recPts/20)*100),
+    oferta:           Math.round((Math.min(ofertaPts,20)/20)*100),
   }
 }
 
@@ -1879,7 +1882,14 @@ function PilarOfertaDeValor({ data, onChange, onSave, justSaved }) {
       <div className="p-6 rounded-2xl bg-white border border-slate-200">
         <div className="flex items-center gap-2 mb-1">
           <MicrophoneStage size={16} className="text-rose-600" weight="duotone"/>
-          <h3 className="font-bold text-slate-800">¿Cuál es tu oferta de valor?</h3>
+          <h3 className="font-bold text-slate-800">¿Cuál es tu oferta de valor? <span className="text-red-500">*</span></h3>
+          {String(d.oferta_valor||'').trim().length >= 30 ? (
+            <span className="ml-auto inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full shrink-0">
+              <CheckFat size={10} weight="fill"/> Completo
+            </span>
+          ) : (
+            <span className="ml-auto text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full shrink-0">Obligatorio</span>
+          )}
         </div>
         <p className="text-xs text-slate-500 mb-1">
           Si tuvieras 5 minutos en una charla TED, ¿cómo le explicarías a una empresa exactamente
@@ -1894,9 +1904,12 @@ function PilarOfertaDeValor({ data, onChange, onSave, justSaved }) {
           placeholder={'Ej: Soy un profesional de Supply Chain con 12 años de experiencia en manufactura automotriz. Mi valor está en reducir costos operativos sin sacrificar calidad: en mis últimos 3 roles, lideré proyectos que redujeron tiempos de entrega en un 30% y costos logísticos en un 18%. Combino análisis de datos con liderazgo de equipos multiculturales y me adapto rápido a entornos de alta presión. Lo que me diferencia es mi capacidad de conectar la estrategia de negocio con la operación del día a día.'}
           rows={8}
           maxLength={700}
-          className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-rose-200 resize-none bg-white whitespace-pre-wrap break-words"
+          className={'w-full border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 resize-none bg-white '+(String(d.oferta_valor||'').trim().length>=30?'border-emerald-300 focus:ring-emerald-200':'border-rose-200 focus:ring-rose-200')}
         />
-        <div className="flex justify-end mt-1.5">
+        <div className="flex justify-between mt-1.5">
+          <span className={'text-xs font-semibold '+(String(d.oferta_valor||'').trim().length>=30?'text-emerald-600':'text-slate-400')}>
+            {String(d.oferta_valor||'').trim().length < 30 && `Mínimo 30 caracteres (${String(d.oferta_valor||'').trim().length}/30)`}
+          </span>
           <span className="text-xs text-slate-400">{(d.oferta_valor||'').length}/700 caracteres</span>
         </div>
       </div>
@@ -2231,10 +2244,10 @@ export default function ProyectoLaboral() {
     setSaving(true)
     setErrorCarga(null)
 
-    // Sanitizar campos de texto largo antes de guardar
+    // Sanitizar campos de texto largo antes de guardar (deep-copy oferta para no mutar nd)
     const sanitizedData = { ...nd }
     if (sanitizedData.oferta && sanitizedData.oferta.oferta_valor) {
-      sanitizedData.oferta.oferta_valor = sanitizarTexto(sanitizedData.oferta.oferta_valor)
+      sanitizedData.oferta = { ...sanitizedData.oferta, oferta_valor: sanitizarTexto(sanitizedData.oferta.oferta_valor) }
     }
 
     // Actualizar caché inmediatamente para que al regresar cargue instantáneo

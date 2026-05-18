@@ -17,13 +17,13 @@ const DOCS_IDS = ['cv', 'linkedin', 'cv_vacante', 'entrevista', 'carta', 'refere
 
 export function calcPerfilPts(perfil, jpData) {
   let pts = 0
-  if (String(perfil?.nombre1||'').trim().length>1) pts+=10
-  if (String(perfil?.pais||'').trim().length>1) pts+=5
-  if (String(perfil?.telefono1||'').trim().length>4) pts+=5
-  if (String(perfil?.salario_esperado||'').trim().length>1) pts+=5
-  if (String(jpData?.perfil?.nivel_educativo||'').length>1) pts+=3
+  if (String(perfil?.nombre1||'').trim().length>1) pts+=7
+  if (String(perfil?.pais||'').trim().length>1) pts+=3
+  if (String(perfil?.telefono1||'').trim().length>4) pts+=3
+  if (String(perfil?.salario_esperado||'').trim().length>1) pts+=3
+  if (String(jpData?.perfil?.nivel_educativo||'').length>1) pts+=2
   if (String(jpData?.perfil?.anios_experiencia||'').length>0) pts+=2
-  return Math.min(pts, 30)
+  return Math.min(pts, 20)
 }
 
 export function calcularProgreso(data, perfil) {
@@ -49,22 +49,22 @@ export function calcularProgreso(data, perfil) {
 
   const bloques = (data&&data.semana&&data.semana.bloques) ? data.semana.bloques : {}
   const bN = Object.values(bloques).filter(Boolean).length
-  if (bN>=3) core+=10; else if (bN>=1) core+=5; 
+  if (bN>=3) core+=20; else if (bN>=1) core+=10;
 
   const rawRec = data&&data.recursos ? (Array.isArray(data.recursos) ? data.recursos : (data.recursos.recursos||null)) : null
   const rec = (rawRec&&rawRec.length>0) ? rawRec : RECURSOS_DEFAULT
   const nActivos = rec.filter(function(r){return r.tengo===true}).length
-  core += (nActivos >= 2) ? 10 : (nActivos * 5) 
+  core += (nActivos >= 2) ? 20 : (nActivos * 10)
 
   const oferta = (data&&data.oferta) ? data.oferta : {}
   let ofertaPts = 0
-  if (Array.isArray(oferta.cultura)&&oferta.cultura.length>=2) ofertaPts+=5
-  if (String(oferta.oferta_valor||'').trim().length>=30) ofertaPts+=10
-  // IKIGAI: 4 cajas obligatorias · ≥50 chars cada una · 4 pts c/u (15 max)
+  if (Array.isArray(oferta.cultura)&&oferta.cultura.length>=2) ofertaPts+=4
+  if (String(oferta.oferta_valor||'').trim().length>=30) ofertaPts+=6
+  // IKIGAI: 4 cajas obligatorias · ≥50 chars cada una · 2.5 pts c/u (10 max)
   const IKIGAI_KEYS = ['ikigai_amas','ikigai_bueno','ikigai_necesita','ikigai_pagar']
   const ikigaiCompletas = IKIGAI_KEYS.filter(function(k){ return String(oferta[k]||'').trim().length>=50 }).length
-  ofertaPts += Math.min(ikigaiCompletas * 4, 15)
-  core += Math.min(ofertaPts, 30)
+  ofertaPts += Math.min(ikigaiCompletas * 2.5, 10)
+  core += Math.min(ofertaPts, 20)
 
   return Math.min(core, 100)
 }
