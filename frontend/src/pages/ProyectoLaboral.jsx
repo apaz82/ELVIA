@@ -1369,20 +1369,6 @@ function PilarAutoconocimiento({ data, onChange, onSave, justSaved }) {
           </div>
         </div>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {[
-          {key:'puede_mejorar',label:'Puede mejorar (Mínimo 50 caracteres)',border:'border-blue-200 bg-blue-50',ph:'Ej: inglés escrito...'},
-          {key:'no_le_gusta',  label:'Prefiere evitar (Mínimo 50 caracteres)',border:'border-amber-200 bg-amber-50',ph:'Ej: atención al cliente...'},
-          {key:'no_es_bueno',  label:'No haría (Mínimo 50 caracteres)',border:'border-red-200 bg-red-50',ph:'Ej: programación backend...'},
-        ].map(function(it){return(
-          <div key={it.key} className={'p-4 rounded-xl border '+it.border}>
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 block">{it.label}</label>
-            <textarea value={d[it.key]||''} onChange={function(e){up(it.key,e.target.value)}}
-              placeholder={it.ph} rows={3}
-              className="w-full bg-white/70 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-violet-300 resize-none"/>
-          </div>
-        )})}
-      </div>
       <div>
         <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Top 5 Compañías objetivo · <span className="text-amber-600">Debes llenar al menos 1</span></h3>
         <p className="text-xs text-slate-400 mb-4">Estas empresas aparecerán primero en tu radar de Vacantes.</p>
@@ -1661,6 +1647,98 @@ function PilarOfertaDeValor({ data, onChange, onSave, justSaved }) {
             + Agregar
           </button>
         </div>
+      </div>
+
+      {/* ── IKIGAI · 4 cajas obligatorias ── */}
+      <div className="p-6 rounded-2xl bg-gradient-to-br from-violet-50 via-white to-rose-50 border border-violet-100 space-y-5">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <Sparkle size={16} className="text-violet-600" weight="duotone"/>
+            <h3 className="font-bold text-slate-800">Descubre tu IKIGAI profesional</h3>
+          </div>
+          <p className="text-xs text-slate-500">
+            Las 4 preguntas del método IKIGAI japonés para encontrar el propósito en tu carrera.
+            Tómate tu tiempo — esta reflexión es la base de tu oferta de valor.
+          </p>
+        </div>
+
+        {[
+          {
+            key: 'ikigai_amas',
+            title: '¿Qué es lo que AMAS?',
+            color: 'rose',
+            desc: 'La primera parte de IKIGAI descubrirá el tipo de actividades que hacen latir tu corazón y el tipo de actividades que no te gustan. No sobrepienses, solo elige tu primer instinto.',
+            ej: '¿Qué actividades haces sin que te importe el paso del tiempo? ¿Qué temas investigarías gratis?',
+            placeholder: 'Me apasiona enseñar y ver cómo otros crecen. Investigo de innovación y modelos de negocio sin que nadie me lo pida...',
+          },
+          {
+            key: 'ikigai_bueno',
+            title: '¿Para qué eres BUENO?',
+            color: 'blue',
+            desc: 'En esta sección descubrirás para qué eres bueno. Esta parte del IKIGAI buscará tus mejores aptitudes, incluso si en realidad no disfrutas usarlas, así que ten la mente abierta al contestar.',
+            ej: '¿Qué elogios recibes con frecuencia de tus colegas o jefes? ¿En qué tareas eres más eficiente que el promedio?',
+            placeholder: 'Mis colegas dicen que explico ideas complejas de forma simple. Soy rápida estructurando información en presentaciones...',
+          },
+          {
+            key: 'ikigai_necesita',
+            title: '¿Qué es lo que el mundo NECESITA de ti?',
+            color: 'emerald',
+            desc: 'Esta sección se enfoca en el conocimiento que tienes o te gustaría tener. Después de todo, con la educación adecuada puedes hacer todo lo que te propongas para ayudar al mundo.',
+            ej: '¿Qué problemas ves en tu comunidad o en tu industria que nadie está resolviendo?',
+            placeholder: 'En mi industria muchas empresas no usan datos para tomar decisiones. Veo el problema de que los equipos juniors no tienen mentoría real...',
+          },
+          {
+            key: 'ikigai_pagar',
+            title: '¿Por qué podrían PAGARTE?',
+            color: 'amber',
+            desc: 'Esta sección se enfoca en entender qué habilidades son necesarias en el mercado laboral y que son tu diferenciador.',
+            ej: '¿Qué servicios o conocimientos están contratando hoy en día las empresas en los que tú puedes generar valor?',
+            placeholder: 'Las empresas hoy buscan profesionales que combinen análisis de datos con storytelling. Mi mezcla de Marketing + SQL + presentación a C-level es escasa...',
+          },
+        ].map(function(it){
+          const val = String(d[it.key]||'')
+          const ok = val.trim().length >= 50
+          const colorMap = {
+            rose:    { ring:'border-rose-200 bg-rose-50/40',    badge:'bg-rose-500',    text:'text-rose-700',    ringFocus:'focus:ring-rose-200' },
+            blue:    { ring:'border-blue-200 bg-blue-50/40',    badge:'bg-blue-500',    text:'text-blue-700',    ringFocus:'focus:ring-blue-200' },
+            emerald: { ring:'border-emerald-200 bg-emerald-50/40', badge:'bg-emerald-500', text:'text-emerald-700', ringFocus:'focus:ring-emerald-200' },
+            amber:   { ring:'border-amber-200 bg-amber-50/40',  badge:'bg-amber-500',   text:'text-amber-700',   ringFocus:'focus:ring-amber-200' },
+          }
+          const c = colorMap[it.color]
+          return (
+            <div key={it.key} className={'p-4 rounded-xl border-2 transition-all '+c.ring}>
+              <div className="flex items-start justify-between gap-3 mb-2">
+                <div className="flex items-center gap-2">
+                  <span className={'w-6 h-6 rounded-full text-white text-xs font-black flex items-center justify-center shrink-0 '+c.badge}>★</span>
+                  <h4 className={'font-bold text-sm '+c.text}>
+                    {it.title} <span className="text-red-500">*</span>
+                  </h4>
+                </div>
+                {ok ? (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full shrink-0">
+                    <CheckFat size={10} weight="fill"/> Completo
+                  </span>
+                ) : (
+                  <span className="text-[10px] font-bold text-slate-500 bg-white/70 px-2 py-0.5 rounded-full shrink-0">Obligatorio</span>
+                )}
+              </div>
+              <p className="text-xs text-slate-600 leading-relaxed mb-1">{it.desc}</p>
+              <p className="text-xs text-slate-500 italic mb-3"><strong>Ej:</strong> {it.ej}</p>
+              <textarea
+                value={val}
+                onChange={function(e){ up(it.key, e.target.value) }}
+                placeholder={it.placeholder}
+                rows={3}
+                className={'w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 resize-none '+c.ringFocus}
+              />
+              <div className="flex justify-end mt-1">
+                <span className={'text-[10px] font-semibold '+(ok ? 'text-emerald-600' : 'text-slate-400')}>
+                  {val.length}/50 mínimo
+                </span>
+              </div>
+            </div>
+          )
+        })}
       </div>
 
       {/* ── Oferta de valor ── */}
