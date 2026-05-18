@@ -18,6 +18,18 @@ const generarCV = async (req, res, next) => {
       return res.status(400).json({ error: 'Completa al menos el resumen o una experiencia laboral' })
     }
 
+    // Detectar seniority desde cargo_objetivo
+    const detectarSeniority = (cargo) => {
+      if (!cargo) return null
+      const c = cargo.toLowerCase()
+      if (/c-?level|ceo|cfo|coo|cto|cpo|chief|vp\b|vice|vicepresidente/.test(c)) return 'C-Level/VP (perfil ejecutivo, foco en impacto estratégico, gobierno y resultados de negocio)'
+      if (/gerente|director|head of|l[ií]der\b|lead\b/.test(c)) return 'Senior (gerente/director): liderazgo de equipos, gestión de P&L, impacto cross-funcional, métricas de negocio'
+      if (/jefe|coordinador|supervisor|especialista\b/.test(c)) return 'Mid-Senior (jefe/coordinador): supervisión operativa, coordinación de proyectos, logros cuantificados'
+      if (/analista|asistente|auxiliar|jr\b|junior/.test(c)) return 'Junior (analista/asistente): aprendizaje, soporte, iniciativa propia, habilidades técnicas'
+      return null
+    }
+    const seniority = detectarSeniority(datos.cargo_objetivo)
+
     // Construir texto estructurado para enviar a Claude
     const nombreCompleto = [datos.nombre, datos.nombre2, datos.apellido, datos.apellido2]
       .filter(Boolean).join(' ').trim()
@@ -116,6 +128,7 @@ REGLAS CRITICAS (no negociables):
 - Todo el CV DEBE estar en ${idiomaLabel}
 - Usa bullets con "•" y lineas divisoras "──────────────────────────────────────────────"
 - NO incluyas fecha de nacimiento, estado civil, ni foto
+${seniority ? `- CALIBRACION DE SENIORITY: El candidato aplica para nivel ${seniority}. Ajusta el tono, verbos y enfoque del resumen y logros a este nivel.` : ''}
 
 DATOS DEL CANDIDATO:
 Nombre: ${nombreCompleto}

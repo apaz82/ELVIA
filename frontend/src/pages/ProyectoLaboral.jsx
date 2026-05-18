@@ -347,7 +347,7 @@ function PilarMiPerfil({ perfil, extraData, onChange, onSavePerfil, saving, isPa
   const [lp, setLP] = useState({
     nombre1:'',nombre2:'',apellido1:'',apellido2:'',
     pais:'',ciudad:'',edad:'',indicativo1:'+52',telefono1:'',
-    email_secundario:'',industria_actual:'',
+    email_secundario:'',
     pais_prestaciones:'',salario_monto:'',moneda:'',
     prestaciones:[],prestaciones_detalle:{},
     bono_activo:false,bono_tipo:'',bono_esquema:'',
@@ -384,7 +384,7 @@ function PilarMiPerfil({ perfil, extraData, onChange, onSavePerfil, saving, isPa
       apellido1:perfil.apellido1||'',apellido2:perfil.apellido2||'',
       pais:perfil.pais||'',ciudad:perfil.ciudad||'',edad:perfil.edad||'',
       indicativo1:perfil.indicativo1||'+52',telefono1:perfil.telefono1||'',
-      email_secundario:perfil.email_secundario||'',industria_actual:perfil.industria_actual||'',
+      email_secundario:perfil.email_secundario||'',
       salario_monto:(perfil.salario_esperado||'').split(' ')[0]||'',
       moneda:(perfil.salario_esperado||'').split(' ')[1]||detectarMoneda(perfil.pais)||'',
       pais_prestaciones:perfil.pais_prestaciones||perfil.pais||'',
@@ -688,7 +688,7 @@ function PilarMiPerfil({ perfil, extraData, onChange, onSavePerfil, saving, isPa
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div><label className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1 block">País *</label>
-              <select value={lp.pais} onChange={e=>setLP(f=>({...f,pais:e.target.value,indicativo1:indicativoPorPais(e.target.value),moneda:detectarMoneda(e.target.value)}))}
+              <select value={lp.pais} onChange={e=>{const p=e.target.value;setLP(f=>({...f,pais:p,indicativo1:indicativoPorPais(p),moneda:detectarMoneda(p),pais_prestaciones:(!f.pais_prestaciones||f.pais_prestaciones===f.pais)?p:f.pais_prestaciones}))}}
                 className="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400/40">
                 <option value="">Selecciona</option>{PAISES_LATAM.map(p=><option key={p} value={p}>{p}</option>)}</select></div>
             <div><label className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1 block">Ciudad actual</label>
@@ -707,10 +707,6 @@ function PilarMiPerfil({ perfil, extraData, onChange, onSavePerfil, saving, isPa
               <input type="number" value={lp.edad||''} onChange={e=>setLP(f=>({...f,edad:e.target.value}))} placeholder="Ej: 32" min={18} max={70}
                 className="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400/40"/></div>
           </div>
-          <div><label className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1 block">Industria actual</label>
-            <select value={lp.industria_actual||''} onChange={e=>setLP(f=>({...f,industria_actual:e.target.value}))}
-              className="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400/40">
-              <option value="">Selecciona</option>{INDUSTRIAS_LATAM.map(i=><option key={i} value={i}>{i}</option>)}</select></div>
           <button onClick={()=>onSavePerfil(lp)} disabled={saving}
             className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm px-6 py-3 rounded-xl transition-colors cursor-pointer disabled:opacity-60">
             {saving?<SpinnerGap size={16} className="animate-spin"/>:<CheckCircle size={16} weight="fill"/>} Guardar datos personales</button>
@@ -929,6 +925,22 @@ function PilarMiPerfil({ perfil, extraData, onChange, onSavePerfil, saving, isPa
       )}
       {subTab==='asp'&&(
         <div className="space-y-6">
+          <div>
+            <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Cargo objetivo</h3>
+            <p className="text-xs text-slate-400 mb-2">¿Qué puesto estás buscando? (ej. Gerente de Marketing, Analista de Datos, CFO)</p>
+            <input value={d.cargo_objetivo||''} onChange={e=>up('cargo_objetivo',e.target.value)}
+              placeholder="Ej. Gerente de Operaciones, Analista Senior, Director Comercial..."
+              className="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400/40"/>
+            {d.cargo_objetivo&&(()=>{
+              const c=d.cargo_objetivo.toLowerCase()
+              const s=/c-?level|ceo|cfo|coo|cto|cpo|chief|vp\b|vice|vicepresidente/.test(c)?{label:'C-Level / VP',color:'bg-purple-100 text-purple-700'}
+                :/gerente|director|head of|l[ií]der\b|lead\b/.test(c)?{label:'Senior (Gerente/Director)',color:'bg-blue-100 text-blue-700'}
+                :/jefe|coordinador|supervisor|especialista\b/.test(c)?{label:'Mid-Senior (Jefe/Coordinador)',color:'bg-indigo-100 text-indigo-700'}
+                :/analista|asistente|auxiliar|jr\b|junior/.test(c)?{label:'Junior (Analista/Asistente)',color:'bg-emerald-100 text-emerald-700'}
+                :null
+              return s?<span className={`inline-block mt-2 text-xs font-bold px-2.5 py-1 rounded-full ${s.color}`}>Seniority detectado: {s.label}</span>:null
+            })()}
+          </div>
           <div><h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Nivel de cargo objetivo</h3>
             <div className="flex flex-wrap gap-2">{NIVELES_CARGO.map(n=>{const sel=Array.isArray(d.niveles_cargo)&&d.niveles_cargo.includes(n);return iBtn(sel,n,()=>toggleNC(n))})}</div></div>
           <div><h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Área funcional objetivo</h3>
@@ -2049,7 +2061,6 @@ export default function ProyectoLaboral() {
       pais: lp.pais||null,
       ciudad: lp.ciudad?.trim()||null,
       edad: lp.edad ? parseInt(lp.edad) : null,
-      industria_actual: lp.industria_actual||null,
       salario_esperado: salario_esperado||null,
       prestaciones: lp.prestaciones||[],
       nombre: nombreCompleto||null,

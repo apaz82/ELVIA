@@ -28,6 +28,7 @@ const HABILIDADES_COMUNES = ['Liderazgo', 'Comunicación', 'Resolución de probl
 const ESTADO_EMPTY = {
   nombre: '', nombre2: '', apellido: '', apellido2: '',
   email: '', indicativo: '+52', telefono: '', ciudad: '', pais: '',
+  cargo_objetivo: '',
   resumen: '',
   experiencias: [{ empresa: '', cargo: '', fecha_inicio: '', fecha_fin: '', descripcion: '' }],
   educacion:    [{ institucion: '', titulo: '', anio: '' }],
@@ -343,15 +344,16 @@ export default function CVDesdeCero() {
           // Si no hay borrador, intentamos pre-llenar desde el perfil y del Gerente de Búsqueda (jsp)
           setDatos({
             ...ESTADO_EMPTY,
-            nombre:    p.nombre1  || jsp.nombre1 || '',
-            nombre2:   p.nombre2  || jsp.nombre2 || '',
-            apellido:  p.apellido1 || jsp.apellido1 || '',
-            apellido2: p.apellido2 || jsp.apellido2 || '',
-            email:     p.email_principal || p.email || '',
-            indicativo: p.indicativo1 || jsp.indicativo1 || '+52',
-            telefono:  p.telefono1 || jsp.telefono1 || '',
-            ciudad:    p.ciudad   || jsp.ciudad   || '',
-            pais:      p.pais     || jsp.pais     || '',
+            nombre:        p.nombre1  || jsp.nombre1 || '',
+            nombre2:       p.nombre2  || jsp.nombre2 || '',
+            apellido:      p.apellido1 || jsp.apellido1 || '',
+            apellido2:     p.apellido2 || jsp.apellido2 || '',
+            email:         p.email_principal || p.email || '',
+            indicativo:    p.indicativo1 || jsp.indicativo1 || '+52',
+            telefono:      p.telefono1 || jsp.telefono1 || '',
+            ciudad:        p.ciudad   || jsp.ciudad   || '',
+            pais:          p.pais     || jsp.pais     || '',
+            cargo_objetivo: jsp.cargo_objetivo || '',
           })
         }
       } catch (e) {
@@ -438,6 +440,7 @@ export default function CVDesdeCero() {
       telefono:       d.telefono1  || datos.telefono  || '',
       ciudad:         d.ciudad     || datos.ciudad    || '',
       pais:           d.pais       || datos.pais      || '',
+      cargo_objetivo: datos.cargo_objetivo || '',
       resumen:        d.resumen    || '',                          // idioma original
       experiencias:   expArr,
       educacion:      eduArr,
@@ -864,6 +867,20 @@ export default function CVDesdeCero() {
                   </select>
                 </div>
 
+                <div>
+                  <input type="text" placeholder="Cargo objetivo (ej. Gerente de Marketing, Analista Senior, CFO...)"
+                    value={datos.cargo_objetivo} onChange={e => upDatos('cargo_objetivo', e.target.value)}
+                    className="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400/50" />
+                  {datos.cargo_objetivo && (() => {
+                    const c = datos.cargo_objetivo.toLowerCase()
+                    const s = /c-?level|ceo|cfo|coo|cto|cpo|chief|vp\b|vice|vicepresidente/.test(c) ? { label: 'C-Level / VP', color: 'bg-purple-100 text-purple-700' }
+                      : /gerente|director|head of|l[ií]der\b|lead\b/.test(c) ? { label: 'Senior (Gerente/Director)', color: 'bg-blue-100 text-blue-700' }
+                      : /jefe|coordinador|supervisor|especialista\b/.test(c) ? { label: 'Mid-Senior (Jefe/Coordinador)', color: 'bg-indigo-100 text-indigo-700' }
+                      : /analista|asistente|auxiliar|jr\b|junior/.test(c) ? { label: 'Junior (Analista/Asistente)', color: 'bg-emerald-100 text-emerald-700' }
+                      : null
+                    return s ? <span className={`inline-block mt-1.5 text-xs font-bold px-2.5 py-1 rounded-full ${s.color}`}>Seniority: {s.label}</span> : null
+                  })()}
+                </div>
 
                 {tipsPorPaso.datos.length > 0 && (
                   <div className="mt-1 p-3.5 bg-amber-50 border border-amber-200 rounded-xl">
