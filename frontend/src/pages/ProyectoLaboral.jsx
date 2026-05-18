@@ -258,13 +258,12 @@ function calcularPorPilar(data, perfil) {
   const nRecActivos = rec.filter(function(r){return r.tengo===true}).length
   let recPts = (nRecActivos >= 2) ? 20 : (nRecActivos * 10)
 
+  // Oferta: 5 ítems × 4 pts = 20 · mismo umbral que progresoLaboral.js
   const oferta = (data&&data.oferta) ? data.oferta : {}
   let ofertaPts = 0
-  if (Array.isArray(oferta.cultura)&&oferta.cultura.length>=2) ofertaPts+=4
-  if (String(oferta.oferta_valor||'').trim().length>=30) ofertaPts+=4
+  if (String(oferta.oferta_valor||'').trim().length>=20) ofertaPts+=4
   const IKIGAI_KEYS_PP = ['ikigai_amas','ikigai_bueno','ikigai_necesita','ikigai_pagar']
-  const ikigaiOk = IKIGAI_KEYS_PP.filter(function(k){ return String(oferta[k]||'').trim().length>=50 }).length
-  ofertaPts += ikigaiOk * 3
+  IKIGAI_KEYS_PP.forEach(function(k){ if (String(oferta[k]||'').trim().length>=20) ofertaPts+=4 })
 
   return {
     perfil:           Math.round((perfilPts/20)*100),
@@ -1834,7 +1833,7 @@ function PilarOfertaDeValor({ data, onChange, onSave, justSaved }) {
           },
         ].map(function(it){
           const val = String(d[it.key]||'')
-          const ok = val.trim().length >= 50
+          const ok = val.trim().length >= 20
           const colorMap = {
             rose:    { ring:'border-rose-200 bg-rose-50/40',    badge:'bg-rose-500',    text:'text-rose-700',    ringFocus:'focus:ring-rose-200' },
             blue:    { ring:'border-blue-200 bg-blue-50/40',    badge:'bg-blue-500',    text:'text-blue-700',    ringFocus:'focus:ring-blue-200' },
@@ -1870,7 +1869,7 @@ function PilarOfertaDeValor({ data, onChange, onSave, justSaved }) {
               />
               <div className="flex justify-end mt-1">
                 <span className={'text-[10px] font-semibold '+(ok ? 'text-emerald-600' : 'text-slate-400')}>
-                  {val.length}/50 mínimo
+                  {val.trim().length}/20 mínimo
                 </span>
               </div>
             </div>
@@ -1883,7 +1882,7 @@ function PilarOfertaDeValor({ data, onChange, onSave, justSaved }) {
         <div className="flex items-center gap-2 mb-1">
           <MicrophoneStage size={16} className="text-rose-600" weight="duotone"/>
           <h3 className="font-bold text-slate-800">¿Cuál es tu oferta de valor? <span className="text-red-500">*</span></h3>
-          {String(d.oferta_valor||'').trim().length >= 30 ? (
+          {String(d.oferta_valor||'').trim().length >= 20 ? (
             <span className="ml-auto inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full shrink-0">
               <CheckFat size={10} weight="fill"/> Completo
             </span>
@@ -1904,11 +1903,11 @@ function PilarOfertaDeValor({ data, onChange, onSave, justSaved }) {
           placeholder={'Ej: Soy un profesional de Supply Chain con 12 años de experiencia en manufactura automotriz. Mi valor está en reducir costos operativos sin sacrificar calidad: en mis últimos 3 roles, lideré proyectos que redujeron tiempos de entrega en un 30% y costos logísticos en un 18%. Combino análisis de datos con liderazgo de equipos multiculturales y me adapto rápido a entornos de alta presión. Lo que me diferencia es mi capacidad de conectar la estrategia de negocio con la operación del día a día.'}
           rows={8}
           maxLength={700}
-          className={'w-full border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 resize-none bg-white '+(String(d.oferta_valor||'').trim().length>=30?'border-emerald-300 focus:ring-emerald-200':'border-rose-200 focus:ring-rose-200')}
+          className={'w-full border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 resize-none bg-white '+(String(d.oferta_valor||'').trim().length>=20?'border-emerald-300 focus:ring-emerald-200':'border-rose-200 focus:ring-rose-200')}
         />
         <div className="flex justify-between mt-1.5">
-          <span className={'text-xs font-semibold '+(String(d.oferta_valor||'').trim().length>=30?'text-emerald-600':'text-slate-400')}>
-            {String(d.oferta_valor||'').trim().length < 30 && `Mínimo 30 caracteres (${String(d.oferta_valor||'').trim().length}/30)`}
+          <span className={'text-xs font-semibold '+(String(d.oferta_valor||'').trim().length>=20?'text-emerald-600':'text-slate-400')}>
+            {String(d.oferta_valor||'').trim().length < 20 && `Mínimo 20 caracteres (${String(d.oferta_valor||'').trim().length}/20)`}
           </span>
           <span className="text-xs text-slate-400">{(d.oferta_valor||'').length}/700 caracteres</span>
         </div>
