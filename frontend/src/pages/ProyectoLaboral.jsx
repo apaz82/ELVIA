@@ -1294,9 +1294,22 @@ function PilarAutoconocimiento({ data, onChange, onSave, justSaved }) {
   }
 
   const HARD_SKILLS = [
-    'Tecnología y Datos','Gestión de Proyectos','Finanzas y Negocio',
-    'Operaciones','Supply Chain','Marketing Digital','Ventas y Comercial',
-    'Diseño','Ingeniería y Procesos','Idiomas','Comercio Exterior','Legal',
+    'Inteligencia Artificial (IA), Machine Learning e Ingeniería de Prompts',
+    'Ciencia de datos, ingeniería de datos y análisis estadístico',
+    'Diseño UX/UI y arquitectura de la información',
+    'Tecnología Blockchain y contratos inteligentes',
+    'Desarrollo de plataformas Low-Code / No-Code',
+    'Realidad Aumentada (AR), Realidad Virtual (VR) y computación espacial',
+    'Gestión de proyectos (Project Management) y metodologías ágiles',
+    'Sostenibilidad, reportes ESG, contabilidad de carbono y "Green Skills"',
+    'Modelado financiero, minería de datos financieros y gestión de inversiones',
+    'Cumplimiento normativo (Compliance)',
+    'Evaluación de riesgos',
+    'Ciencias actuariales y análisis crediticio',
+    'Estrategia de comercialización (Go-to-Market) y venta consultiva',
+    'Marketing digital avanzado (SEO, SEM y campañas de correo)',
+    'Logística: control de inventarios, compras y gestión de la cadena de suministro',
+    'Operación de equipos',
   ]
   const SOFT_SKILLS = [
     'Adaptabilidad','Pensamiento analítico','Pensamiento creativo',
@@ -1354,11 +1367,19 @@ function PilarAutoconocimiento({ data, onChange, onSave, justSaved }) {
               <div className="text-xs text-blue-600 font-medium">El "Saber hacer" · Competencias técnicas medibles · <strong>Debes seleccionar al menos 3</strong></div>
             </div>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="space-y-2">
             {HARD_SKILLS.map(function(a){
               const sel = Array.isArray(d.hard_skills)&&d.hard_skills.includes(a)
-              return <button key={a} onClick={function(){toggle('hard_skills',a)}}
-                className={'px-3 py-1.5 rounded-lg text-sm font-semibold border transition-colors cursor-pointer '+(sel?'bg-blue-600 text-white border-blue-600':'border-blue-200 text-slate-600 hover:border-blue-400 hover:text-blue-700')}>{a}</button>
+              return (
+                <button key={a} onClick={function(){toggle('hard_skills',a)}}
+                  className={'w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left text-sm border-2 transition-all cursor-pointer '+(sel?'bg-blue-600 text-white border-blue-600 font-semibold shadow-sm':'bg-white border-blue-100 text-slate-700 font-medium hover:border-blue-300 hover:bg-blue-50/60')}
+                >
+                  <span className={'w-5 h-5 rounded-full border-2 shrink-0 flex items-center justify-center transition-colors '+(sel?'border-white bg-white/20':'border-blue-300')}>
+                    {sel && <span className="w-2.5 h-2.5 rounded-full bg-white"/>}
+                  </span>
+                  {a}
+                </button>
+              )
             })}
           </div>
         </div>
