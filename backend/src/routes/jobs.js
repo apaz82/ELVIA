@@ -220,8 +220,9 @@ const searchGoogleJobs = async ({ title, location, datecreated }) => {
   } catch { return []; }
 };
 
-// Expande el título del cargo con sinónimos usando Claude
+// Expande el título del cargo con sinónimos usando DeepSeek
 const expandirCargo = async (title) => {
+  if (!client) return title;
   try {
     const resp = await client.chat.completions.create({
       model: DS_MODEL,
@@ -274,7 +275,13 @@ router.get('/similar', auth, async (req, res) => {
 
     if (rawVacantes.length === 0) return res.json({ vacantes: [], total: 0 });
 
-    // Filtrar con Claude según el modo de búsqueda
+    // Si DeepSeek no está disponible, devolver resultados sin filtrar (degrade graceful)
+    if (!client) {
+      console.warn('[jobs/similar] DeepSeek no disponible — devolviendo sin filtrar IA');
+      return res.json({ vacantes: rawVacantes, total: rawVacantes.length, sinFiltroIA: true });
+    }
+
+    // Filtrar con DeepSeek según el modo de búsqueda
     const listaParaFiltrar = rawVacantes
       .map((v, i) => `${i}. ${v.title} | ${v.company || ''}`)
       .join('\n');
@@ -283,20 +290,25 @@ router.get('/similar', auth, async (req, res) => {
       ? `Se buscó con las palabras clave: "${queryOriginal}". De esta lista, devuelve los índices de vacantes que estén relacionadas con estas palabras clave. Incluye vacantes que coincidan aunque sea parcialmente. Responde únicamente con los índices separados por comas.\n\n${listaParaFiltrar}`
       : `Se buscó el cargo: "${title}". De esta lista, devuelve SOLO los índices de vacantes relevantes para ese cargo. Excluye solo las que sean de un área completamente distinta. Responde únicamente con los índices separados por comas.\n\n${listaParaFiltrar}`;
 
-    const filtroResp = await client.chat.completions.create({
-      model: DS_MODEL,
-      max_tokens: 512,
-      messages: [{ role: 'user', content: promptFiltro }],
-    });
+    let vacantes = rawVacantes;
+    try {
+      const filtroResp = await client.chat.completions.create({
+        model: DS_MODEL,
+        max_tokens: 512,
+        messages: [{ role: 'user', content: promptFiltro }],
+      });
 
-    const indicesTexto = filtroResp.choices[0].message.content.trim();
-    const indicesValidos = new Set(
-      indicesTexto.split(',').map(n => parseInt(n.trim())).filter(n => !isNaN(n))
-    );
+      const indicesTexto = filtroResp.choices[0].message.content.trim();
+      const indicesValidos = new Set(
+        indicesTexto.split(',').map(n => parseInt(n.trim())).filter(n => !isNaN(n))
+      );
 
-    const vacantes = indicesValidos.size > 0
-      ? rawVacantes.filter((_, i) => indicesValidos.has(i))
-      : rawVacantes;
+      if (indicesValidos.size > 0) {
+        vacantes = rawVacantes.filter((_, i) => indicesValidos.has(i));
+      }
+    } catch (filtroErr) {
+      console.warn('[jobs/similar] Filtro DeepSeek falló, devolviendo sin filtrar:', filtroErr.message);
+    }
 
     res.json({ vacantes, total: vacantes.length });
   } catch (err) {
