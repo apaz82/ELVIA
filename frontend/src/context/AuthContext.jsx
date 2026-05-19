@@ -150,7 +150,18 @@ export const AuthProvider = ({ children }) => {
     supabase.auth.signInWithPassword({ email, password }), [])
   const register = useCallback((email, password, extraData = {}, captchaToken) =>
     supabase.auth.signUp({ email, password, options: { data: extraData, captchaToken } }), [])
-  const logout   = useCallback(() => supabase.auth.signOut(), [])
+  const logout   = useCallback(async () => {
+    // Limpiar caché de tenant para evitar contaminación entre sesiones
+    try {
+      const keysToRemove = []
+      for (let i = 0; i < sessionStorage.length; i++) {
+        const key = sessionStorage.key(i)
+        if (key && key.startsWith('tenant_v1_')) keysToRemove.push(key)
+      }
+      keysToRemove.forEach(k => sessionStorage.removeItem(k))
+    } catch { /* silenciar errores de quota */ }
+    return supabase.auth.signOut()
+  }, [])
 
   // ── Lógica de plan y acceso ───────────────────────────────────────────────
 

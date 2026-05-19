@@ -46,12 +46,23 @@ const TenantContext = createContext({
 
 // Cache keys
 const CACHE_PREFIX = 'tenant_v1_'
+const CACHE_TTL_MS = 10 * 60 * 1000   // 10 minutos
 const URL_SLUG_REGEX = /^\/(empresas|universidades)\/([^/]+)/
 
 function readCache(key) {
   try {
     const raw = sessionStorage.getItem(CACHE_PREFIX + key)
-    return raw ? JSON.parse(raw) : null
+    if (!raw) return null
+    const parsed = JSON.parse(raw)
+    // Soporta formato nuevo {__ttl, __data} y legacy (objeto plano)
+    if (parsed && typeof parsed === 'object' && '__ttl' in parsed) {
+      if (Date.now() > parsed.__ttl) {
+        sessionStorage.removeItem(CACHE_PREFIX + key)
+        return null
+      }
+      return parsed.__data
+    }
+    return parsed
   } catch {
     return null
   }
@@ -59,10 +70,17 @@ function readCache(key) {
 
 function writeCache(key, value) {
   try {
-    sessionStorage.setItem(CACHE_PREFIX + key, JSON.stringify(value))
+    sessionStorage.setItem(CACHE_PREFIX + key, JSON.stringify({
+      __ttl: Date.now() + CACHE_TTL_MS,
+      __data: value,
+    }))
   } catch {
     // Silenciar errores de quota
   }
+}
+
+function clearCache(key) {
+  try { sessionStorage.removeItem(CACHE_PREFIX + key) } catch {}
 }
 
 export function TenantProvider({ children }) {
@@ -121,7 +139,11 @@ export function TenantProvider({ children }) {
       // PRIORIDAD 2: usuario autenticado con company_id
       if (user && session?.access_token && perfil?.company_id) {
         const cached = readCache('user_' + user.id)
-        if (cached) {
+        // Validar que el caché coincida con el company_id actual del perfil.
+        // Previene contaminación cuando un super_admin cambia su company_id
+        // o cuando otro usuario reutiliza la misma pestaña.
+        const cacheIsValid = cached?.tenant?.id === perfil.company_id
+        if (cacheIsValid) {
           if (!cancelled) {
             setTenant(cached.tenant || DEFAULT_TENANT)
             setTenantRole(cached.role || 'user')
@@ -129,6 +151,8 @@ export function TenantProvider({ children }) {
           }
           return
         }
+        // Caché stale: limpiar para forzar fetch fresco
+        if (cached) clearCache('user_' + user.id)
         setLoading(true)
         try {
           const res = await fetch(`${API}/api/company/my-tenant`, {

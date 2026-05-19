@@ -13,7 +13,7 @@ import { useTenant, DEFAULT_TENANT } from '../context/TenantContext'
 export default function LoginHR() {
   const { slug } = useParams()
   const navigate = useNavigate()
-  const { login, user, perfil, perfilCargado } = useAuth()
+  const { login, logout, user, perfil, perfilCargado } = useAuth()
   const { tenant, loading: tenantLoading, isUniversity } = useTenant()
 
   const [email, setEmail]     = useState('')
@@ -26,14 +26,26 @@ export default function LoginHR() {
   const secondary = tenant.secondary_color || DEFAULT_TENANT.secondary_color
   const sectorPath = isUniversity ? 'universidades' : 'empresas'
 
-  // Si ya esta logueado y es HR, redirigir
+  // Si ya esta logueado y es HR, validar tenant y redirigir
   useEffect(() => {
-    if (user && perfilCargado && perfil) {
-      if (perfil.role === 'company_admin' || perfil.role === 'super_admin') {
-        navigate('/empresa-admin', { replace: true })
-      }
+    if (!user || !perfilCargado || !perfil || !tenant?.id) return
+
+    // super_admin tiene acceso global a cualquier tenant
+    if (perfil.role === 'super_admin') {
+      navigate('/empresa-admin', { replace: true })
+      return
     }
-  }, [user, perfil, perfilCargado, navigate])
+
+    if (perfil.role === 'company_admin') {
+      // Bloqueo de tenant cruzado: la cuenta HR debe pertenecer al tenant del slug
+      if (perfil.company_id && perfil.company_id !== tenant.id) {
+        setError(`Esta cuenta HR no pertenece al programa de ${tenant.name}. Cierra sesión y usa la cuenta correcta.`)
+        logout()
+        return
+      }
+      navigate('/empresa-admin', { replace: true })
+    }
+  }, [user, perfil, perfilCargado, tenant, navigate, logout])
 
   useEffect(() => {
     if (tenant?.name) document.title = `Panel HR · ${tenant.name} × ELVIA®`
