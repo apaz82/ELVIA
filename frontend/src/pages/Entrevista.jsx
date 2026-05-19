@@ -161,21 +161,25 @@ export default function Entrevista() {
     return () => window.speechSynthesis?.removeEventListener('voiceschanged', cargarVoces)
   }, [])
 
-  // ── TTS: voz femenina en español ───────────────────────────────────────
+  // ── TTS: solo voces neuronales/de alta calidad ─────────────────────────
+  // Si el navegador no tiene voz "Natural" (Edge) ni "Google" (Chrome), no habla
+  // — preferimos silencio a una voz robótica de baja calidad.
   const leerEnVoz = (texto) => {
     if (!window.speechSynthesis) return
+    const voces = vocesRef.current
+
+    const vozBuena =
+         voces.find(v => /es/i.test(v.lang) && /Natural|Online|Neural/i.test(v.name))
+      || voces.find(v => /es/i.test(v.lang) && /Google/i.test(v.name))
+
+    if (!vozBuena) return // sin voz neuronal disponible → silencio
+
     window.speechSynthesis.cancel()
     const utt = new SpeechSynthesisUtterance(texto)
-    utt.lang  = 'es-MX'
-    utt.rate  = 0.82
-    utt.pitch = 1.2
-
-    // Buscar voz femenina en español (Google o del sistema)
-    const voces = vocesRef.current
-    const vozFem = voces.find(v => /es/i.test(v.lang) && /female|mujer|paulina|mónica|monica|lucia|lucía|helena|jorge|sabina/i.test(v.name))
-      || voces.find(v => /es-MX|es-US|es-ES/i.test(v.lang))
-      || voces.find(v => /es/i.test(v.lang))
-    if (vozFem) utt.voice = vozFem
+    utt.voice = vozBuena
+    utt.lang  = vozBuena.lang
+    utt.rate  = 0.95
+    utt.pitch = 1.0
 
     utt.onstart = () => setHablando(true)
     utt.onend   = () => setHablando(false)
