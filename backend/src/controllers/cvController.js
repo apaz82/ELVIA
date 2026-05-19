@@ -550,12 +550,14 @@ const generarInfografiaProyecto = async (req, res, next) => {
     // Adjuntar nombre para la UI
     proyectoCorregido.nombreCandidato = `${profile.nombre1 || ''} ${profile.apellido1 || ''}`.trim() || 'Ejecutivo';
 
-    // 2. Guardar en cv_results como registro persistente (Bypassing potential Enum constraints)
+    // 2. Guardar en cv_results como registro persistente
+    // Nota: tipo='optimize' por compatibilidad con check constraint cv_results_tipo_check
+    // (solo permite 'original'|'optimize'|'match'). Discriminamos vía metadata.subtipo.
     const { data: savedRecord, error: dbError } = await db
       .from('cv_results')
       .insert({
         user_id: userId,
-        tipo: 'infografia_proyecto', // Tipo diferente para no mezclar con CVs reales
+        tipo: 'optimize',
         contenido: JSON.stringify(proyectoCorregido),
         metadata: {
           filename: `Plan de Carrera Ejecutivo.pdf`,
