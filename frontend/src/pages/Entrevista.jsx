@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext'
 import { supabase } from '../services/authService'
 import { api } from '../services/api'
 import {
-  MicrophoneStage, Microphone, MicrophoneSlash, SpeakerHigh,
+  MicrophoneStage, Microphone, MicrophoneSlash, SpeakerHigh, SpeakerSimpleSlash,
   ArrowRight, ArrowLeft, CheckCircle, Star, Lightning,
   ChatText, Trophy, Target, Spinner, Crown,
 } from '@phosphor-icons/react'
@@ -100,6 +100,7 @@ export default function Entrevista() {
   const [inputRespuesta, setInputRespuesta] = useState('')
   const [escuchando, setEscuchando]       = useState(false)
   const [hablando, setHablando]           = useState(false)
+  const [muted, setMuted]                 = useState(() => localStorage.getItem('entrevista_muted') === '1')
   const [feedbackInmediato, setFeedbackInmediato] = useState(null)
   const [loadingFeedbackInm, setLoadingFeedbackInm] = useState(false)
 
@@ -161,10 +162,24 @@ export default function Entrevista() {
     return () => window.speechSynthesis?.removeEventListener('voiceschanged', cargarVoces)
   }, [])
 
+  // Toggle mute (persistente en localStorage)
+  const toggleMute = () => {
+    setMuted(prev => {
+      const next = !prev
+      localStorage.setItem('entrevista_muted', next ? '1' : '0')
+      if (next) {
+        window.speechSynthesis?.cancel()
+        setHablando(false)
+      }
+      return next
+    })
+  }
+
   // ── TTS: solo voces neuronales/de alta calidad ─────────────────────────
   // Si el navegador no tiene voz "Natural" (Edge) ni "Google" (Chrome), no habla
   // — preferimos silencio a una voz robótica de baja calidad.
   const leerEnVoz = (texto) => {
+    if (muted) return
     if (!window.speechSynthesis) return
     const voces = vocesRef.current
 
@@ -572,8 +587,17 @@ export default function Entrevista() {
                 <div className="flex items-center gap-2 mb-2">
                   <p className="text-xs font-bold text-primary">ELVIA</p>
                   <button onClick={() => leerEnVoz(preguntaActual.pregunta)} title="Escuchar de nuevo"
-                    className="text-gray-400 hover:text-primary transition-colors">
+                    disabled={muted}
+                    className="text-gray-400 hover:text-primary transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
                     <SpeakerHigh size={14} weight="duotone" />
+                  </button>
+                  <button onClick={toggleMute}
+                    title={muted ? 'Activar voz' : 'Silenciar voz'}
+                    aria-pressed={muted}
+                    className={`transition-colors ${muted ? 'text-primary' : 'text-gray-400 hover:text-primary'}`}>
+                    {muted
+                      ? <SpeakerSimpleSlash size={14} weight="duotone" />
+                      : <SpeakerHigh size={14} weight="regular" />}
                   </button>
                 </div>
                 <p className="text-base font-semibold text-gray-800 leading-snug">{preguntaActual.pregunta}</p>
