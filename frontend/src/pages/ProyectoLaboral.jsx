@@ -1056,16 +1056,16 @@ function PilarMiPerfil({ perfil, extraData, onChange, onSavePerfil, saving, isPa
 
 const FEATURES_PREVIEW=[
   {label:'CV Optimizer',desc:'Analiza y mejora tu CV con IA',Icon:FileMagnifyingGlass,color:'violet'},
-  {label:'LinkedIn Optimo',desc:'Optimiza tu perfil para reclutadores',Icon:LinkedinLogo,color:'blue',beta:true},
+  {label:'LinkedIn Optimo',desc:'Optimiza tu perfil para reclutadores',Icon:LinkedinLogo,color:'blue'},
   {label:'CV vs Vacante',desc:'Compara tu CV con cualquier vacante',Icon:MagnifyingGlass,color:'teal'},
   {label:'Vacantes',desc:'Encuentra oportunidades personalizadas',Icon:Briefcase,color:'indigo'},
-  {label:'Entrevistas IA',desc:'Practica con entrevistas simuladas',Icon:MicrophoneStage,color:'rose',beta:true},
+  {label:'Entrevistas IA',desc:'Practica con entrevistas simuladas',Icon:MicrophoneStage,color:'rose'},
   {label:'Mis CVs',desc:'Gestiona todas tus versiones de CV',Icon:Folders,color:'amber'},
   {label:'Mis Vacantes',desc:'Guarda y organiza empleos de interés',Icon:BookmarkSimple,color:'green'},
   {label:'Pipeline',desc:'Haz seguimiento a tus postulaciones',Icon:Kanban,color:'purple'},
   {label:'Biblioteca',desc:'Recursos y guías de búsqueda laboral',Icon:Books,color:'slate'},
   {label:'Bienestar',desc:'Mindfulness y ejercicios para el proceso',Icon:Heart,color:'rose'},
-  {label:'Mentor Experto',desc:'Acceso a mentores de carrera',Icon:UsersThree,color:'orange',beta:true},
+  {label:'Mentor Experto',desc:'Acceso a mentores de carrera',Icon:UsersThree,color:'orange'},
   {label:'Dashboard',desc:'Vista centralizada de tu progreso',Icon:ChartLine,color:'violet'},
 ]
 const FC={violet:'bg-violet-50 border-violet-200 text-violet-700',blue:'bg-blue-50 border-blue-200 text-blue-700',teal:'bg-teal-50 border-teal-200 text-teal-700',indigo:'bg-indigo-50 border-indigo-200 text-indigo-700',rose:'bg-rose-50 border-rose-200 text-rose-700',amber:'bg-amber-50 border-amber-200 text-amber-700',green:'bg-emerald-50 border-emerald-200 text-emerald-700',purple:'bg-purple-50 border-purple-200 text-purple-700',slate:'bg-slate-100 border-slate-200 text-slate-600',orange:'bg-orange-50 border-orange-200 text-orange-700'}
@@ -1092,7 +1092,6 @@ function FeaturePreviewGrid() {
               <div className="flex items-center justify-between"><Icon size={22} weight="duotone"/><Lock size={14} weight="bold" className="text-slate-400"/></div>
               <p className="font-bold text-sm leading-snug">{f.label}</p>
               <p className="text-xs opacity-80 leading-snug">{f.desc}</p>
-              {f.beta&&<span className="absolute top-2 right-6 text-[8px] font-bold uppercase tracking-wider bg-white/60 rounded-full px-1.5 py-0.5">Beta</span>}
             </div>
           )
         })}

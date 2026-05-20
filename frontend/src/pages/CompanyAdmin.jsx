@@ -464,7 +464,7 @@ export default function CompanyAdmin() {
         <div className="max-w-7xl mx-auto px-6 lg:px-10 py-4 flex items-center justify-between gap-6">
           <div className="flex items-center gap-4">
             {tenant.logo_url ? (
-              <img src={tenant.logo_url} alt={tenant.name} className="h-8 md:h-9 object-contain" />
+              <img src={tenant.logo_url} alt={tenant.name} className="h-[48px] md:h-[54px] object-contain transition-all duration-300 hover:scale-105" />
             ) : (
               <div className="px-3 py-1.5 rounded-lg text-white text-sm font-bold" style={{ background: primary }}>
                 {tenant.name}

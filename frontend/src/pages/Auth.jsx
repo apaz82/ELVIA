@@ -71,9 +71,16 @@ export default function Auth() {
     }
 
     if (!user) return
-    if (onboardingPendiente) navigate('/bienvenida', { replace: true })
-    else navigate('/cv-optimizer', { replace: true })
-  }, [user, onboardingPendiente, navigate, isRecovering])
+    // Si hay un returnTo (ej. desde landing B2B), redirigir ahí después del login
+    const returnTo = searchParams.get('returnTo')
+    if (returnTo && returnTo.startsWith('/')) {
+      navigate(returnTo, { replace: true })
+    } else if (onboardingPendiente) {
+      navigate('/bienvenida', { replace: true })
+    } else {
+      navigate('/cv-optimizer', { replace: true })
+    }
+  }, [user, onboardingPendiente, navigate, isRecovering, searchParams])
 
   const cambiarModo = (nuevoModo) => {
     setModo(nuevoModo)

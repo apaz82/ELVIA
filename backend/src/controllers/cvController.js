@@ -7,8 +7,9 @@ const {
   extraerDatosInfografia, 
   corregirProyectoLaboral, 
   generarCarta, 
-  optimizarResumen: optimizarResumenService 
-} = require('../services/claudeService');
+  optimizarResumen: optimizarResumenService,
+  extractProfileFromCV,
+} = require('../services/deepseekService');
 const { generarPDF } = require('../services/pdfService');
 const { generarWord } = require('../services/wordService');
 const { incrementDailyCap } = require('../middleware/dailyCap');
@@ -362,14 +363,6 @@ const extractProfile = async (req, res, next) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'No se recibio ningun archivo' });
 
-    if (!process.env.ANTHROPIC_API_KEY) {
-      console.error('extractProfile: ANTHROPIC_API_KEY no configurada en Railway');
-      return res.status(500).json({ error: 'Servicio de IA no configurado. Contacta soporte.' });
-    }
-
-    const Anthropic = require('@anthropic-ai/sdk');
-    const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-
     let cvText;
     try {
       cvText = await parseCV(req.file.buffer, req.file.mimetype);
@@ -381,60 +374,8 @@ const extractProfile = async (req, res, next) => {
       return res.status(400).json({ error: 'No se pudo extraer texto del CV. Verifica que sea un PDF o Word valido.' });
     }
 
-    const fragmento = cvText.substring(0, 4000);
-
-    const response = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 1500,
-      messages: [{
-        role: 'user',
-        content: `Extract information from this resume/CV. Reply ONLY with valid JSON, no additional text. Use null or empty array when data is not found.
-
-CRITICAL DISTINCTION — read carefully:
-- "educacion" = academic degrees, diplomas, certifications from schools/universities. "titulo" is the NAME OF THE DEGREE (e.g. "Ingenieria Industrial", "Maestria en Finanzas", "Diplomado en Six Sigma"). NEVER put a job title or position in "titulo". A job title like "Auditor", "Gerente", "Analista" is NEVER an education entry.
-- "experiencias" = jobs/work positions. "cargo" is the job title (e.g. "Auditor Interno", "Gerente de Ventas").
-
-Rules:
-- "pais" field: full country name in Spanish (e.g. "Mexico", "Colombia", "Espana"). Infer from city, address, phone code, or any context clue.
-- "idiomas": CEFR level. "fluent/advanced" -> C1; "intermediate" -> B2; "basic" -> A2; "native/mother tongue" -> Nativo.
-- "educacion": max 4 entries. ONLY real academic institutions (universities, schools, certification bodies). "nivel" must be one of: "Preparatoria / Bachillerato", "Tecnico / Tecnologo", "Universidad / Licenciatura", "Especializacion", "Maestria", "Doctorado", "Certificacion Profesional".
-- IMPORTANT: Keep "resumen", "experiencias[].descripcion" and "habilidades" in the ORIGINAL LANGUAGE of the CV. Do NOT translate them.
-- "experiencias": last 4 jobs. Keep descriptions in original language.
-- "habilidades": up to 12 skills in original language of the CV.
-- "resumen": profile/summary section from the beginning of the CV in original language, or null if not present.
-- "cargo_actual": most recent job title in original language, or null.
-- "edad": integer or null.
-
-CV text:
-${fragmento}
-
-Return ONLY this JSON:
-{
-  "nombre1": "first name",
-  "nombre2": "second name or null",
-  "apellido1": "first surname",
-  "apellido2": "second surname or null",
-  "telefono1": "phone or null",
-  "ciudad": "city or null",
-  "pais": "country in Spanish or null",
-  "edad": null,
-  "cargo_actual": "most recent title (original language) or null",
-  "resumen": "profile summary (original language) or null",
-  "idiomas": [{ "idioma": "Ingles", "nivel": "B2" }],
-  "educacion": [{ "nivel": "Universidad / Licenciatura", "titulo": "Ingenieria Industrial Administrativa", "institucion": "Universidad de Celaya", "anio": "2010" }],
-  "experiencias": [{ "empresa": "...", "cargo": "...", "fecha_inicio": "...", "fecha_fin": "...", "descripcion": "..." }],
-  "habilidades": ["Excel", "Leadership", "Power BI"]
-}`,
-      }],
-    });
-
-    if (!response.content || !response.content[0]) {
-      return res.status(500).json({ error: 'Respuesta invalida de la IA. Intenta de nuevo.' });
-    }
-
-    let jsonText = response.content[0].text.trim();
-    jsonText = jsonText.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
-    const perfil = JSON.parse(jsonText);
+    // Extraer perfil usando DeepSeek (antes usaba Anthropic directo con claude-haiku-4-5-20251001)
+    const perfil = await extractProfileFromCV(cvText.substring(0, 4000));
 
     if (!perfil.nombre1) {
       return res.status(400).json({ error: 'No se encontro nombre en el CV. Verifica que sea un CV valido.' });
@@ -446,13 +387,12 @@ Return ONLY this JSON:
     if (!Array.isArray(perfil.experiencias)) perfil.experiencias = [];
     if (!Array.isArray(perfil.habilidades))  perfil.habilidades  = [];
 
-    // Invertir experiencias para que vayan de más reciente a más antigua (reverse-chronological)
+    // Invertir experiencias para que vayan de más reciente a más antigua
     if (perfil.experiencias.length > 0) {
       perfil.experiencias = perfil.experiencias.reverse();
     }
 
-    // Validacion de identidad: compara nombre/apellido extraido con el perfil registrado.
-    // Devuelve mismatch:true (no 400) para que el frontend gestione el banner de confirmacion.
+    // Validacion de identidad
     const db = req.supabase;
     const { data: registeredProfile } = await db
       .from('profiles')
@@ -473,10 +413,10 @@ Return ONLY this JSON:
       }
     }
 
-    // Guardar el CV original en cv_results para que aparezca en Mis CVs
+    // Guardar el CV original en cv_results
     const { data: savedCV } = await db.from('cv_results').insert({
       user_id: req.user.id,
-      tipo: 'optimize', // Forzar 'optimize' por compatibilidad con constraints de DB
+      tipo: 'optimize',
       contenido: cvText,
       metadata: { filename: req.file.originalname, extracted: true, subtipo: 'original' }
     }).select('id').single();
@@ -487,13 +427,6 @@ Return ONLY this JSON:
     console.error('extractProfile ERROR:', err.message, err.stack);
     if (err instanceof SyntaxError) {
       return res.status(400).json({ error: 'No se pudo procesar la informacion del CV. Intenta con otro archivo.' });
-    }
-    if (err.status === 401 || err.status === 403) {
-      console.error('extractProfile: Anthropic auth error - verificar ANTHROPIC_API_KEY');
-      return res.status(500).json({ error: 'Error de autenticacion con servicio de IA.' });
-    }
-    if (err.status === 429) {
-      return res.status(429).json({ error: 'Servicio de IA saturado. Intenta en unos segundos.' });
     }
     res.status(500).json({ error: 'Error al procesar el CV. Intenta de nuevo.' });
   }

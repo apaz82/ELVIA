@@ -159,7 +159,7 @@ export default function RegistroEmpresa() {
             </>
           )}
           <button
-            onClick={() => navigate('/auth')}
+            onClick={() => navigate('/auth?returnTo=/dashboard')}
             className="w-full py-3 rounded-xl text-white text-sm font-semibold transition-opacity hover:opacity-90"
             style={{ background: primary }}
           >
@@ -179,7 +179,7 @@ export default function RegistroEmpresa() {
         <div className="max-w-7xl mx-auto px-6 lg:px-10 py-4 flex items-center justify-between">
           <Link to={`/${sectorPath}/${slug}`} className="flex items-center gap-4">
             {tenant.logo_url ? (
-              <img src={tenant.logo_url} alt={tenant.name} className="h-8 md:h-10 object-contain" />
+              <img src={tenant.logo_url} alt={tenant.name} className="h-[72px] md:h-[96px] max-w-[360px] object-contain transition-all hover:scale-105" />
             ) : (
               <div
                 className="px-3 py-1.5 rounded-lg text-white text-sm font-bold tracking-tight"
@@ -319,7 +319,7 @@ export default function RegistroEmpresa() {
                   </div>
                   <button
                     type="button"
-                    onClick={() => navigate('/auth')}
+                    onClick={() => navigate('/auth?returnTo=/dashboard')}
                     className="w-full py-2.5 rounded-xl text-white text-sm font-semibold hover:opacity-90 transition-opacity"
                     style={{ background: primary }}
                   >

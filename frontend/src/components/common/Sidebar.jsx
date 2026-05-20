@@ -1,11 +1,11 @@
 // Sidebar de navegación — desktop fijo, móvil como drawer
 // Modo: normal (desbloqueado) o frosted-lock (onboarding pendiente)
-import { NavLink, Link, useNavigate } from 'react-router-dom'
+import { NavLink, Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import {
   FileMagnifyingGlass, MagnifyingGlass, Briefcase,
   Folders, BookmarkSimple, Kanban,
-  SignOut, X, Crown, House,
+  X, Crown, House,
   MicrophoneStage, Books, LinkedinLogo, UsersThree, Target, Heart,
   Lock, SpinnerGap, ChartBar
 } from '@phosphor-icons/react'
@@ -16,10 +16,10 @@ const INICIO = [
 
 const HERRAMIENTAS = [
   { to: '/cv-optimizer',    label: 'CV Optimizer',          Icon: FileMagnifyingGlass },
-  { to: '/linkedin-pro',     label: 'LinkedIn® Pro',          Icon: LinkedinLogo, beta: true },
+  { to: '/linkedin-pro',     label: 'LinkedIn® Pro',          Icon: LinkedinLogo },
   { to: '/cv-vs-job',       label: 'CV vs Vacante',         Icon: MagnifyingGlass },
   { to: '/jobs',            label: 'Vacantes',              Icon: Briefcase },
-  { to: '/entrevista',      label: 'Prepara tu Entrevista', Icon: MicrophoneStage, beta: true },
+  { to: '/entrevista',      label: 'Prepara tu Entrevista', Icon: MicrophoneStage },
 ]
 
 const MI_CARRERA = [
@@ -34,11 +34,11 @@ const RECURSOS = [
 ]
 
 const HABLEMOS = [
-  { to: '/expertos', label: 'Mentor Experto', Icon: UsersThree, beta: true },
+  { to: '/expertos', label: 'Mentor Experto', Icon: UsersThree },
 ]
 
 // Item normal activo
-function NavItem({ to, label, Icon, onClick, premium, beta }) {
+function NavItem({ to, label, Icon, onClick, premium }) {
   return (
     <NavLink
       to={to}
@@ -60,11 +60,6 @@ function NavItem({ to, label, Icon, onClick, premium, beta }) {
               Pro
             </span>
           )}
-          {beta && (
-            <span className="text-[9px] font-bold uppercase tracking-widest bg-blue-400/15 text-blue-500 border border-blue-300/60 rounded-full px-1.5 py-0.5">
-              Beta
-            </span>
-          )}
         </>
       )}
     </NavLink>
@@ -72,33 +67,23 @@ function NavItem({ to, label, Icon, onClick, premium, beta }) {
 }
 
 // Item bloqueado (durante onboarding)
-function LockedNavItem({ label, Icon, beta }) {
+function LockedNavItem({ label, Icon }) {
   return (
     <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-on-surface-variant/40 cursor-not-allowed select-none relative">
       <Icon size={19} weight="regular" className="opacity-40" />
       <span className="flex-1 opacity-40">{label}</span>
-      {beta && (
-        <span className="text-[9px] font-bold uppercase tracking-widest bg-slate-200 text-slate-400 border border-slate-200 rounded-full px-1.5 py-0.5 opacity-40">
-          Beta
-        </span>
-      )}
       <Lock size={12} weight="bold" className="text-slate-400/60 shrink-0" />
     </div>
   )
 }
 
 // Item bloqueado por progreso insuficiente (post-onboarding, progreso < 100%)
-function FeatureLockedNavItem({ label, Icon, beta }) {
+function FeatureLockedNavItem({ label, Icon }) {
   return (
     <div className="relative group">
       <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-on-surface-variant/40 cursor-not-allowed select-none">
         <Icon size={19} weight="regular" className="opacity-40" />
         <span className="flex-1 opacity-40">{label}</span>
-        {beta && (
-          <span className="text-[9px] font-bold uppercase tracking-widest bg-slate-200 text-slate-400 border border-slate-200 rounded-full px-1.5 py-0.5 opacity-40">
-            Beta
-          </span>
-        )}
         <Lock size={12} weight="bold" className="text-slate-400/60 shrink-0" />
       </div>
       {/* Tooltip — desktop solamente */}
@@ -185,17 +170,13 @@ function BienestarItem({ onClick, locked }) {
 }
 
 export default function Sidebar({ open, onClose }) {
-  const { user, logout, perfil, isAdmin, onboardingPendiente, featuresDesbloqueadas, jpLoaded } = useAuth()
-  const navigate = useNavigate()
+  const { user, perfil, isAdmin, onboardingPendiente, featuresDesbloqueadas, jpLoaded } = useAuth()
+
   const locked = !!onboardingPendiente
   // featureLocked: post-onboarding pero progreso < 100% (usar jpLoaded para evitar flash)
   const featureLocked = jpLoaded && !locked && !featuresDesbloqueadas
 
-  const handleLogout = async () => {
-    await logout()
-    onClose?.()
-    navigate('/')
-  }
+
 
   // Cuando está bloqueado, interceptar clicks en el overlay móvil
   const handleLockedNavClick = (e) => {
@@ -222,11 +203,11 @@ export default function Sidebar({ open, onClose }) {
       `}>
 
         {/* Logo */}
-        <div className="flex items-center justify-between px-5 py-4 h-24 border-b border-outline-variant/20 shrink-0">
+        <div className="flex justify-center items-center relative w-full px-5 py-4 h-24 border-b border-outline-variant/20 shrink-0">
           <Link to={locked ? '/proyecto-laboral' : '/'} onClick={onClose} className="flex items-center">
             <img src="/LOGOS/ELVIA_logo_fondo_transparente.png" alt="ELVIA" className="h-[4.5rem] w-auto object-contain" />
           </Link>
-          <button onClick={onClose} className="md:hidden p-1 rounded-lg text-on-surface-variant hover:bg-surface-container transition-colors">
+          <button onClick={onClose} className="absolute right-4 top-1/2 -translate-y-1/2 md:hidden text-on-surface-variant hover:bg-surface-container p-1 rounded-lg transition-colors">
             <X size={18} />
           </button>
         </div>
@@ -336,9 +317,9 @@ export default function Sidebar({ open, onClose }) {
             </p>
             <div className="space-y-0.5">
               {locked
-                ? <LockedNavItem label="Mentor Experto" Icon={UsersThree} beta />
+                ? <LockedNavItem label="Mentor Experto" Icon={UsersThree} />
                 : featureLocked
-                  ? <FeatureLockedNavItem label="Mentor Experto" Icon={UsersThree} beta />
+                  ? <FeatureLockedNavItem label="Mentor Experto" Icon={UsersThree} />
                   : HABLEMOS.map(item => <NavItem key={item.to} {...item} onClick={onClose} />)
               }
             </div>
@@ -346,18 +327,9 @@ export default function Sidebar({ open, onClose }) {
         </nav>
 
         {/* Footer del sidebar */}
-        {user && (
+        {user && isAdmin && !locked && (
           <div className="px-3 py-4 border-t border-outline-variant/20 space-y-1 shrink-0">
-            {isAdmin && !locked && (
-              <NavItem to="/admin" label="Admin Panel" Icon={Crown} onClick={onClose} />
-            )}
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm font-medium text-error hover:bg-error-container/40 transition-colors"
-            >
-              <SignOut size={19} />
-              <span>Cerrar sesión</span>
-            </button>
+            <NavItem to="/admin" label="Admin Panel" Icon={Crown} onClick={onClose} />
           </div>
         )}
 

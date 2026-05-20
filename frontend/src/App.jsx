@@ -62,7 +62,7 @@ const RUTAS_APP = [
   '/dashboard', '/cv-optimizer', '/cv-desde-cero', '/cv-vs-job', '/jobs', 
   '/mis-cvs', '/mis-vacantes', '/pipeline', '/perfil', '/mi-plan', 
   '/entrevista', '/biblioteca', '/linkedin-pro', '/onboarding', 
-  '/bienestar', '/proyecto-laboral', '/infografias', '/expertos'
+  '/bienestar', '/proyecto-laboral', '/infografias', '/expertos', '/mis-metricas'
 ]
 
 function PublicRoute({ children }) {
@@ -128,7 +128,7 @@ function OnboardingGuard({ children }) {
   }
 
   // Gating de herramientas: si intenta entrar a dashboard o herramientas y no están desbloqueadas
-  const RUTAS_GATED = ['/dashboard', '/cv-optimizer', '/cv-vs-job', '/jobs', '/mis-cvs', '/mis-vacantes', '/pipeline', '/entrevista', '/biblioteca', '/linkedin-pro']
+  const RUTAS_GATED = ['/dashboard', '/cv-optimizer', '/cv-vs-job', '/jobs', '/mis-cvs', '/mis-vacantes', '/pipeline', '/entrevista', '/biblioteca', '/linkedin-pro', '/mis-metricas']
   if (RUTAS_GATED.includes(path) && !featuresDesbloqueadas) {
     return <Navigate to="/proyecto-laboral" replace />
   }

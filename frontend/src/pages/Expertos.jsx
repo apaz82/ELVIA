@@ -196,14 +196,22 @@ export default function Expertos() {
             {/* Video */}
             <div className="relative hidden lg:block">
               <div className="absolute inset-0 bg-gradient-to-tr from-emerald-200/40 to-teal-100/40 blur-3xl rounded-3xl -z-10 scale-105" />
-              <div className="rounded-3xl overflow-hidden border border-slate-200 shadow-xl bg-black">
+              <div className="rounded-3xl overflow-hidden border border-slate-200 shadow-xl bg-black relative">
                 <video
                   src="/Optima video mentor 0.mp4"
                   autoPlay
                   muted
+                  loop
+                  playsInline
+                  webkit-playsinline="true"
                   className="w-full h-auto object-cover"
                   poster="/mentor_hero_human.png"
                 />
+                
+                {/* Brand Overlay */}
+                <div className="absolute top-4 left-4 bg-slate-900/60 backdrop-blur-md rounded-xl p-1.5 border border-white/10 flex items-center justify-center shadow-lg">
+                  <img src="/LOGOS/ELVIA_logo_fondo_transparente.png" alt="ELVIA" className="h-7 w-auto object-contain" />
+                </div>
               </div>
               {/* Floating badge */}
               <div className="absolute -bottom-4 -left-4 bg-white rounded-2xl shadow-lg border border-slate-200 px-4 py-3 flex items-center gap-3">

@@ -62,7 +62,7 @@ export default function Header({ onMenuToggle }) {
       <Link to="/" className="flex items-center gap-2 md:hidden">
         {isB2B && tenant.logo_url ? (
           <>
-            <img src={tenant.logo_url} alt={tenant.name} className="h-7 object-contain" />
+            <img src={tenant.logo_url} alt={tenant.name} className="h-[42px] object-contain transition-all duration-300 hover:scale-105" />
             <div className="h-4 w-px bg-white/30" />
             <img src="/LOGOS/ELVIA_logo_fondo_transparente.png" alt="ELVIA" className="h-4 opacity-80 object-contain" />
           </>
@@ -130,17 +130,17 @@ export default function Header({ onMenuToggle }) {
                     Mi Plan
                   </Link>
                 )}
-                <div className="h-px bg-outline-variant/20 mx-2 my-1" />
-                <button
-                  onClick={async () => { setDropdownOpen(false); await logout(); navigate('/') }}
-                  className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-error hover:bg-error-container/30 transition-colors"
-                >
-                  <SignOut size={16} />
-                  Cerrar sesión
-                </button>
               </div>
             )}
           </div>
+
+          <button
+            onClick={async () => { await logout(); navigate('/') }}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-white/20 hover:bg-white/10 text-white/90 hover:text-white transition-all text-sm shrink-0"
+          >
+            <SignOut size={16} />
+            <span>Cerrar sesión</span>
+          </button>
         </div>
       ) : (
         <div className="hidden md:flex items-center gap-2">

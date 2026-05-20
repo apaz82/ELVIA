@@ -7,16 +7,28 @@ import {
 } from '@phosphor-icons/react'
 import PlanBanner from '../components/common/PlanBanner'
 
-const ETAPAS_ORDEN = ['Descubierto', 'Aplicado', 'En proceso', 'En entrevistas', 'Ofertado']
+const ETAPAS_ORDEN = ['Descubierto', 'Apliqué', 'Pruebas/Assessment', 'En entrevistas', 'Ofertado']
 const ETAPA_PERDIDA = 'No avanzó'
 
 const ETAPA_COLORS = {
-  'Descubierto':     'bg-slate-400',
-  'Aplicado':        'bg-blue-400',
-  'En proceso':      'bg-violet-500',
-  'En entrevistas':  'bg-amber-500',
-  'Ofertado':        'bg-emerald-500',
-  [ETAPA_PERDIDA]:   'bg-red-400',
+  'Descubierto':        'bg-slate-400',
+  'Apliqué':           'bg-blue-400',
+  'Pruebas/Assessment': 'bg-violet-500',
+  'En entrevistas':     'bg-amber-500',
+  'Ofertado':           'bg-emerald-500',
+  [ETAPA_PERDIDA]:      'bg-red-400',
+}
+
+const parseJSON = (val) => {
+  if (!val) return {}
+  if (typeof val === 'string') {
+    try {
+      return JSON.parse(val)
+    } catch {
+      return {}
+    }
+  }
+  return val
 }
 
 function StatCard({ label, value, sub, color = 'text-gray-900', icon: Icon }) {
@@ -94,7 +106,10 @@ export default function MisMetricas() {
 
   // ── Match score trend (últimas 10 semanas) ────────────────────────────────
   const scoresConFecha = matches
-    .map(m => ({ score: m.metadata?.matchScore, fecha: new Date(m.created_at) }))
+    .map(m => {
+      const meta = parseJSON(m.metadata)
+      return { score: meta?.matchScore, fecha: new Date(m.created_at) }
+    })
     .filter(m => typeof m.score === 'number' && m.score > 0)
 
   // Agrupar por semana (últimas 8)
@@ -142,10 +157,11 @@ export default function MisMetricas() {
   // ── Días promedio entre etapas (aplicado → entrevista) ───────────────────
   let diasPromAplicadoEntrevista = null
   const diasList = jobs
-    .filter(j => j.etapas_fechas?.Aplicado && j.etapas_fechas?.['En entrevistas'])
+    .map(j => ({ ...j, etapas_fechas_parsed: parseJSON(j.etapas_fechas) }))
+    .filter(j => j.etapas_fechas_parsed?.['Apliqué'] && j.etapas_fechas_parsed?.['En entrevistas'])
     .map(j => {
-      const a = new Date(j.etapas_fechas.Aplicado).getTime()
-      const b = new Date(j.etapas_fechas['En entrevistas']).getTime()
+      const a = new Date(j.etapas_fechas_parsed['Apliqué']).getTime()
+      const b = new Date(j.etapas_fechas_parsed['En entrevistas']).getTime()
       return Math.round((b - a) / (24 * 60 * 60 * 1000))
     })
     .filter(d => d > 0)
@@ -231,7 +247,7 @@ export default function MisMetricas() {
               </div>
               {diasPromAplicadoEntrevista && (
                 <p className="text-xs text-gray-400 mt-4 border-t border-gray-50 pt-3">
-                  Tiempo promedio de <strong>Aplicado → Entrevista</strong>: {diasPromAplicadoEntrevista} días
+                  Tiempo promedio de <strong>Apliqué → Entrevista</strong>: {diasPromAplicadoEntrevista} días
                 </p>
               )}
             </div>
@@ -279,7 +295,7 @@ export default function MisMetricas() {
                 {ETAPAS_ORDEN.map((etapa, i) => {
                   const cnt = etapasCount[etapa] || 0
                   const pct = jobs.length > 0 ? Math.round((cnt / jobs.length) * 100) : 0
-                  const labels = ['Descubierto', 'Aplicado', 'En proceso', 'Entrevistas', 'Oferta']
+                  const labels = ['Descubierto', 'Apliqué', 'Assessment', 'Entrevistas', 'Oferta']
                   return (
                     <div key={etapa} className="flex flex-col items-center gap-1">
                       <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white text-xs font-bold ${ETAPA_COLORS[etapa] || 'bg-gray-300'}`}>

@@ -1,4 +1,4 @@
-const { generarPreguntasEntrevista, evaluarEntrevista } = require('../services/claudeService')
+const { generarPreguntasEntrevista, evaluarEntrevista } = require('../services/deepseekService')
 
 // POST /api/interview/preguntas
 const generarPreguntas = async (req, res, next) => {

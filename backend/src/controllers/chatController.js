@@ -1,4 +1,4 @@
-const { generateChatResponse } = require('../services/claudeService');
+const { generateChatResponse } = require('../services/deepseekService');
 
 const handleChat = async (req, res, next) => {
   try {

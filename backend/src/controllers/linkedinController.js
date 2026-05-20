@@ -1,4 +1,4 @@
-const { analizarLinkedin, extraerDatosLinkedin } = require('../services/claudeService')
+const { analizarLinkedin, extraerDatosLinkedin } = require('../services/deepseekService')
 const { extraerTextoPDF } = require('../utils/pdfParser')
 
 // POST /api/linkedin/analizar

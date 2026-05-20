@@ -723,8 +723,8 @@ export default function Landing() {
               {/* Chat Interface Glassmorphism */}
               <div className="relative bg-[#0A1A14]/90 backdrop-blur-xl border border-white/10 p-4 sm:p-6 rounded-[2rem] sm:rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
                 <div className="flex items-center gap-4 border-b border-white/10 pb-5 mb-5">
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-teal-400 to-emerald-600 p-[1.5px] shadow-lg overflow-hidden">
-                      <img src="/Avatar%20Optima.webp" alt="ELVIA" className="w-full h-full object-cover rounded-full" />
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-teal-400 to-emerald-600 p-[1.5px] shadow-lg overflow-hidden flex items-center justify-center">
+                      <img src="/LOGOS/ELVIA_logo_fondo_transparente.png" alt="ELVIA" className="w-full h-full object-contain p-1.5" />
                     </div>
                     <div>
                       <h4 className="text-white font-bold text-lg leading-none">ELVIA</h4>
@@ -1289,11 +1289,13 @@ export default function Landing() {
                 
                 <div className="relative inline-block">
                   <div className="absolute inset-0 bg-teal-400/20 blur-2xl rounded-full" />
-                  <img 
-                    src="/Avatar%20Optima.webp" 
-                    alt="ELVIA" 
-                    className="relative w-24 h-24 sm:w-28 sm:h-28 lg:w-32 lg:h-32 rounded-full border-2 border-white/10 shadow-2xl object-cover"
-                  />
+                  <div className="relative w-24 h-24 sm:w-28 sm:h-28 lg:w-32 lg:h-32 rounded-full border-2 border-white/10 shadow-2xl bg-[#0A3D2A] flex items-center justify-center">
+                    <img 
+                      src="/LOGOS/ELVIA_logo_fondo_transparente.png" 
+                      alt="ELVIA" 
+                      className="w-full h-full object-contain p-4"
+                    />
+                  </div>
                   <div className="absolute -bottom-2 -right-2 bg-teal-500 text-white p-2 rounded-xl shadow-lg">
                     <Lightning size={20} weight="fill" />
                   </div>

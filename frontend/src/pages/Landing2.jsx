@@ -565,8 +565,8 @@ export default function Landing() {
               {/* Chat Interface Glassmorphism */}
               <div className="relative bg-[#0A1A14]/90 backdrop-blur-xl border border-white/10 p-6 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
                 <div className="flex items-center gap-4 border-b border-white/10 pb-5 mb-5">
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-teal-400 to-emerald-600 p-[1.5px] shadow-lg overflow-hidden">
-                      <img src="/Avatar%20Optima.webp" alt="ELVIA" className="w-full h-full object-cover rounded-full" />
+                    <div className="w-12 h-12 rounded-full bg-[#0A3D2A] shadow-lg overflow-hidden flex items-center justify-center border border-teal-400/40">
+                      <img src="/LOGOS/ELVIA_logo_fondo_transparente.png" alt="ELVIA" className="w-full h-full object-contain p-1.5" />
                     </div>
                     <div>
                       <h4 className="text-white font-bold text-lg leading-none">ELVIA</h4>

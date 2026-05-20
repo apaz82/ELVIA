@@ -87,7 +87,7 @@ export default function LandingEmpresa() {
         <div className="max-w-7xl mx-auto px-6 lg:px-10 py-4 flex items-center justify-between gap-6">
           <div className="flex items-center gap-4">
             {tenant.logo_url ? (
-              <img src={tenant.logo_url} alt={tenant.name} className="h-8 md:h-10 object-contain" />
+              <img src={tenant.logo_url} alt={tenant.name} className="h-[108px] md:h-[144px] max-w-[450px] object-contain transition-all duration-300 hover:scale-105" />
             ) : (
               <div
                 className="px-3 py-1.5 rounded-lg text-white text-sm font-bold tracking-tight"
@@ -113,7 +113,7 @@ export default function LandingEmpresa() {
               Acceso HR
             </button>
             <button
-              onClick={() => navigate('/auth')}
+              onClick={() => navigate('/auth?returnTo=/dashboard')}
               className="hidden sm:inline-flex text-sm font-semibold text-gray-700 hover:text-gray-900 px-4 py-2"
             >
               Iniciar sesión
@@ -132,12 +132,18 @@ export default function LandingEmpresa() {
       {/* ════════════════════════════════════════════════════════════════ */}
       {/* HERO                                                              */}
       {/* ════════════════════════════════════════════════════════════════ */}
-      <section className="relative overflow-hidden">
+      <section className="relative overflow-hidden border-b border-slate-100">
+        {/* Subtle blueprint grid background */}
+        <div className="absolute inset-0 opacity-[0.02] pointer-events-none" style={{
+          backgroundImage: 'linear-gradient(rgba(0,0,0,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.1) 1px, transparent 1px)',
+          backgroundSize: '32px 32px'
+        }} />
+        
         {/* Gradient backdrop */}
         <div
-          className="absolute inset-0 opacity-[0.06]"
+          className="absolute inset-0 opacity-[0.08] pointer-events-none"
           style={{
-            background: `radial-gradient(ellipse at 20% 0%, ${primary} 0%, transparent 50%), radial-gradient(ellipse at 80% 100%, ${accent} 0%, transparent 50%)`,
+            background: `radial-gradient(ellipse at 20% 0%, ${primary} 0%, transparent 60%), radial-gradient(ellipse at 80% 100%, ${accent} 0%, transparent 60%)`,
           }}
         />
 
@@ -146,108 +152,119 @@ export default function LandingEmpresa() {
             {/* Texto */}
             <div className="lg:col-span-7">
               <div
-                className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest mb-6"
-                style={{ background: `${primary}10`, color: primary }}
+                className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full border border-slate-200/80 bg-slate-50/80 backdrop-blur-sm text-[11px] font-bold uppercase tracking-wider mb-6 shadow-sm"
               >
-                <PI.Sparkle size={12} weight="fill" />
-                Programa exclusivo · {tenant.name}
+                <span className="w-2.5 h-2.5 rounded-full animate-pulse" style={{ background: primary }} />
+                <span className="text-slate-600 font-semibold">Programa exclusivo · {tenant.name}</span>
               </div>
 
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-[1.05] tracking-tight text-gray-900 mb-6">
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-black leading-[1.05] tracking-tight text-slate-900 mb-6">
                 {heroTitle}
               </h1>
 
-              <p className="text-base md:text-lg text-gray-500 leading-relaxed mb-8 max-w-2xl">
+              <p className="text-base md:text-lg text-slate-500 leading-relaxed mb-8 max-w-2xl font-medium">
                 {heroSub}
               </p>
 
               <div className="flex flex-col sm:flex-row gap-3">
                 <button
                   onClick={() => navigate(`/${sectorPath}/${slug}/registro`)}
-                  className="inline-flex items-center justify-center gap-2 px-7 py-4 rounded-2xl text-white font-semibold text-sm shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5"
-                  style={{ background: primary, boxShadow: `0 10px 30px -10px ${primary}80` }}
+                  className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-2xl text-white font-bold text-sm shadow-md hover:shadow-lg transition-all hover:-translate-y-0.5"
+                  style={{ background: primary, boxShadow: `0 8px 30px -6px ${primary}60` }}
                 >
                   Activar mi cuenta
                   <PI.ArrowRight size={16} weight="bold" />
                 </button>
                 <button
-                  onClick={() => navigate('/auth')}
-                  className="inline-flex items-center justify-center gap-2 px-7 py-4 rounded-2xl bg-white border border-gray-200 text-gray-700 font-semibold text-sm hover:bg-gray-50 transition-colors"
+                  onClick={() => navigate('/auth?returnTo=/dashboard')}
+                  className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-2xl bg-white border border-slate-200 text-slate-700 font-bold text-sm hover:bg-slate-50 hover:border-slate-300 transition-all active:scale-95"
                 >
                   Ya tengo cuenta
                 </button>
               </div>
 
               {/* Confidencialidad badge */}
-              <div className="mt-8 inline-flex items-center gap-2.5 text-xs text-gray-500">
-                <PI.ShieldCheck size={16} className="text-emerald-500" weight="duotone" />
+              <div className="mt-8 inline-flex items-start gap-2.5 text-xs text-slate-500 max-w-xl">
+                <PI.ShieldCheck size={18} className="text-emerald-500 shrink-0 mt-0.5" weight="duotone" />
                 <span>
-                  <strong className="text-gray-700">Tu información es confidencial.</strong> {tenant.name} solo recibe métricas agregadas y anónimas del programa.
+                  <strong className="text-slate-700 font-bold">Tu información es confidencial.</strong> {tenant.name} solo recibe métricas agregadas y anónimas del programa.
                 </span>
+              </div>
+
+              {/* Stacked avatars + list count (social proof, similar to Image 2) */}
+              <div className="mt-10 flex flex-wrap items-center gap-4 border-t border-slate-100 pt-6">
+                <div className="flex -space-x-2.5">
+                  <div className="w-8 h-8 rounded-full border-2 border-white bg-blue-100 flex items-center justify-center text-[10px] font-bold text-blue-600 font-sans shadow-sm">JP</div>
+                  <div className="w-8 h-8 rounded-full border-2 border-white bg-indigo-100 flex items-center justify-center text-[10px] font-bold text-indigo-600 font-sans shadow-sm">AM</div>
+                  <div className="w-8 h-8 rounded-full border-2 border-white bg-emerald-100 flex items-center justify-center text-[10px] font-bold text-emerald-600 font-sans shadow-sm">CV</div>
+                  <div className="w-8 h-8 rounded-full border-2 border-white bg-amber-100 flex items-center justify-center text-[10px] font-bold text-amber-600 font-sans shadow-sm">MC</div>
+                </div>
+                <div className="flex flex-col">
+                  <div className="flex items-center gap-1.5">
+                    {[...Array(5)].map((_, i) => (
+                      <PI.Star key={i} size={14} weight="fill" className="text-amber-400" />
+                    ))}
+                    <span className="text-xs font-extrabold text-slate-800 ml-1">+100 registrados</span>
+                  </div>
+                  <span className="text-[11px] text-slate-400 font-medium">Colaboradores de {tenant.name} en transición activa</span>
+                </div>
               </div>
             </div>
 
-            {/* Visual */}
+            {/* Visual Capability Card (similar to Image 2 right card) */}
             <div className="lg:col-span-5">
               <div
-                className="aspect-[4/5] rounded-3xl border border-gray-100 shadow-xl bg-gradient-to-br from-white via-white to-gray-50 p-8 flex flex-col justify-between relative overflow-hidden"
+                className="rounded-3xl border border-slate-100 shadow-xl bg-white p-8 flex flex-col relative overflow-hidden"
               >
                 <div
-                  className="absolute -top-20 -right-20 w-64 h-64 rounded-full blur-3xl opacity-20"
+                  className="absolute -top-20 -right-20 w-64 h-64 rounded-full blur-3xl opacity-20 pointer-events-none"
                   style={{ background: primary }}
                 />
-                <div className="relative">
-                  <div className="flex items-center gap-3 mb-6">
-                    <div
-                      className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold"
-                      style={{ background: secondary }}
-                    >
-                      <PI.Briefcase size={20} weight="duotone" />
-                    </div>
-                    <div>
-                      <div className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Mi Dashboard</div>
-                      <div className="text-sm font-bold text-gray-900">Programa {tenant.name}</div>
-                    </div>
+                
+                {/* Card Header */}
+                <div className="relative mb-6">
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-50 border border-slate-100 text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">
+                    MÉTODO ELVIA®
                   </div>
+                  <h2 className="text-2xl font-black text-slate-900 leading-tight">Gestor de Carrera</h2>
+                  <p className="text-xs text-slate-400 font-semibold tracking-wide uppercase mt-0.5">De tu transición profesional</p>
+                  <p className="text-xs text-slate-500 mt-3 leading-relaxed">
+                    Un Gestor de Carrera es quien <strong className="text-slate-800 font-bold">planifica, ejecuta y controla</strong> su transición laboral. Aplicado a tu carrera, <strong className="text-slate-800 font-bold">TÚ lideras el proceso</strong>.
+                  </p>
+                </div>
 
-                  {/* Mini stats mockup */}
-                  <div className="grid grid-cols-2 gap-3 mb-6">
-                    {[
-                      { label: 'CVs creados', value: '3', icon: PI.FileText },
-                      { label: 'Vacantes guardadas', value: '12', icon: PI.BookmarkSimple },
-                      { label: 'Entrevistas', value: '5', icon: PI.ChatsCircle },
-                      { label: 'Match score', value: '87%', icon: PI.Target },
-                    ].map((s, i) => (
-                      <div key={i} className="bg-white border border-gray-100 rounded-xl p-3">
-                        <s.icon size={14} className="text-gray-400 mb-1" />
-                        <div className="text-lg font-bold text-gray-900">{s.value}</div>
-                        <div className="text-[10px] text-gray-500 leading-tight">{s.label}</div>
+                {/* 6-Capabilities Grid */}
+                <div className="grid grid-cols-2 gap-3 mb-6 relative">
+                  {[
+                    { title: 'Autodescubrimiento', desc: 'Conoce quién eres', icon: PI.MagnifyingGlass },
+                    { title: 'Fortalezas', desc: 'Sabe en qué eres bueno', icon: PI.ShieldCheck },
+                    { title: 'Oferta de valor', desc: 'Descubre tu propuesta', icon: PI.Target },
+                    { title: 'Herramientas', desc: 'Recursos optimizados', icon: PI.Lightning },
+                    { title: 'Seguimiento', desc: 'Control y visibilidad', icon: PI.ChartBar },
+                    { title: 'Tranquilidad', desc: 'Te guía en el proceso', icon: PI.HeartStraight },
+                  ].map((c, i) => {
+                    const Icon = c.icon
+                    return (
+                      <div key={i} className="bg-slate-50/50 border border-slate-100 hover:border-slate-200 hover:bg-white hover:shadow-sm rounded-2xl p-3 flex flex-col items-center text-center transition-all duration-300 group">
+                        <div className="w-9 h-9 rounded-xl flex items-center justify-center mb-2.5 transition-transform duration-300 group-hover:scale-110" style={{ background: `${primary}12`, color: primary }}>
+                          <Icon size={18} weight="duotone" />
+                        </div>
+                        <h4 className="text-xs font-bold text-slate-800 leading-tight mb-0.5">{c.title}</h4>
+                        <p className="text-[10px] text-slate-400 font-medium leading-tight">{c.desc}</p>
                       </div>
-                    ))}
-                  </div>
-
-                  <div className="text-xs text-gray-500 mb-2 font-semibold">Progreso del programa</div>
-                  <div className="h-2 bg-gray-100 rounded-full overflow-hidden mb-1">
-                    <div className="h-full rounded-full" style={{ width: '64%', background: primary }} />
-                  </div>
-                  <div className="text-[10px] text-gray-400">64% completado · 12 días restantes</div>
+                    )
+                  })}
                 </div>
 
-                {/* Footer del card */}
-                <div className="relative pt-6 border-t border-gray-100 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <PI.HeartStraight size={14} className="text-rose-400" weight="duotone" />
-                    <span className="text-[10px] text-gray-500">Bienestar activo</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <span
-                      className="px-2 py-0.5 rounded-md text-[10px] font-bold text-white"
-                      style={{ background: primary }}
-                    >
-                      EN CURSO
-                    </span>
-                  </div>
-                </div>
+                {/* Big CTA Button inside card */}
+                <button
+                  onClick={() => navigate(`/${sectorPath}/${slug}/registro`)}
+                  className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl text-white font-bold text-sm shadow-md hover:shadow-lg transition-all hover:-translate-y-0.5 active:scale-95 shrink-0"
+                  style={{ background: primary, boxShadow: `0 8px 24px -6px ${primary}60` }}
+                >
+                  Empezar gratis ahora
+                  <PI.ArrowRight size={14} weight="bold" />
+                </button>
               </div>
             </div>
           </div>
