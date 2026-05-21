@@ -23,6 +23,10 @@ OPTIMA-CV (ELVIA) is a dual-interface Human Resources & Career Optimization ecos
 11. **Legal Compliance & Cookies**: Dedicated Cookie Policy page and high-end consent banner with localStorage persistence.
 12. **Bulletproof Auth Recovery**: Implemented Turnstile bot protection, domain whitelisting (anti-phishing), and smart user detection (USER_NOT_FOUND) in recovery flow.
 13. **Security Complexity UX**: Enforced password complexity (Uppercase, Number, Special) with real-time visual indicators in reset page.
+14. **DeepSeek V3 Backend Migration**: Migrated core backend AI services (Chat, Resume Optimizer, Interview Simulator, CV vs Job Match, and CV Profile Extraction) from Anthropic Claude to DeepSeek V3 API, delivering ultra-stable and low-latency inference.
+15. **B2B Co-branding Scaling**: Increased the Telefónica logo representation by 50% across all user and admin-facing B2B pages (`LandingEmpresa`, `RegistroEmpresa`, `LoginHR`, `Header`, `CompanyAdmin`).
+16. **B2B Fresh Environment Isolation**: Automated script (`allowlist_mario.js`) to reset Supabase and pre-approve test accounts (e.g. `mario.bahamonde@telefonica.com`) under corporate tenants so they can test onboarding and welcome Wizards clean from scratch.
+17. **B2B HR Admin Elevation**: Elevated permissions (`setup_hr_admin.js`) for `hr.telefonica@elvia.demo` to `company_admin` to unlock the HR Admin analytics dashboard (/empresas/slug/hr).
 
 ### Crucial Directives
 - **Performance**: Always use `sessionStorage` caching (e.g., `vacante_prefill`, `entrevista_prefill`).
@@ -30,6 +34,4 @@ OPTIMA-CV (ELVIA) is a dual-interface Human Resources & Career Optimization ecos
 - **Identity Enforcement**: `extractProfile` prevents unauthorized scraping of 3rd party CVs by matching name/email.
 - **Shell Consistency**: **Windows PowerShell**. Use `;` for chain-commands.
 
-*Log automatically updated by Antigravity on 2026-05-03 16:35.*
-
-
+*Log automatically updated by Antigravity on 2026-05-20.*
