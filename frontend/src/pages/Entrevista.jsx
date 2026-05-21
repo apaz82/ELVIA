@@ -680,7 +680,51 @@ export default function Entrevista() {
                 )}
               </div>
 
-              {error && <p className="text-xs text-red-500">{error}</p>}
+              {error && (
+                error.includes('micrófono denegado') ? (
+                  <div className="bg-red-50 border border-red-200 rounded-2xl p-4 text-sm text-red-800 space-y-3 mt-3">
+                    <div className="flex items-start gap-3">
+                      <span className="text-xl shrink-0" role="img" aria-label="microphone">🎙️</span>
+                      <div className="space-y-1">
+                        <p className="font-bold text-red-900">Acceso al micrófono bloqueado</p>
+                        <p className="text-xs text-red-700 leading-relaxed">
+                          Para poder responder usando tu voz, tu navegador necesita permiso para acceder al micrófono. Sigue estos sencillos pasos:
+                        </p>
+                      </div>
+                    </div>
+                    <div className="bg-white/80 rounded-xl p-3 border border-red-100/50 space-y-2 text-xs text-red-800 leading-relaxed shadow-sm">
+                      <p className="flex gap-2">
+                        <strong className="text-red-950">Paso 1:</strong> 
+                        <span>Haz clic en el icono del <strong>candado (🔒)</strong> o del <strong>micrófono (🎙️)</strong> ubicado a la izquierda de la barra de direcciones de tu navegador.</span>
+                      </p>
+                      <p className="flex gap-2">
+                        <strong className="text-red-950">Paso 2:</strong> 
+                        <span>Busca la opción de <strong>Micrófono</strong> y cámbiala a <strong className="text-green-700">"Permitir" (Allow)</strong>.</span>
+                      </p>
+                      <p className="flex gap-2">
+                        <strong className="text-red-950">Paso 3:</strong> 
+                        <span>Haz clic en el botón de abajo para probar de nuevo o recarga la página.</span>
+                      </p>
+                    </div>
+                    <div className="flex gap-2 justify-end">
+                      <button onClick={async () => {
+                        setError('');
+                        try {
+                          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                          stream.getTracks().forEach(track => track.stop());
+                          toggleEscucha();
+                        } catch (err) {
+                          setError('Permiso de micrófono denegado. Actívalo en la configuración del navegador.');
+                        }
+                      }} className="text-xs font-bold text-white bg-red-600 hover:bg-red-700 px-4 py-2 rounded-xl transition-colors cursor-pointer shadow-md shadow-red-200">
+                        Probar de nuevo
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-xs text-red-500 font-medium">{error}</p>
+                )
+              )}
             </div>
           )}
 
