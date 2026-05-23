@@ -248,8 +248,10 @@ export default function CVvsJob() {
                         </svg>
                       </div>
                       <div>
-                        <h3 className="text-sm font-bold text-blue-900 leading-tight">Tienes CVs guardados</h3>
-                        <p className="text-xs text-blue-700 mt-0.5">Selecciona cuál deseas adaptar:</p>
+                        <h3 className="text-sm font-bold text-blue-900 leading-tight">Tu CV Inicial Optimizado</h3>
+                        <p className="text-xs text-blue-700 mt-0.5">
+                          Para medir la compatibilidad, utilizaremos tu CV inicial optimizado por nuestra IA:
+                        </p>
                       </div>
                     </div>
                     <button 
@@ -268,11 +270,13 @@ export default function CVvsJob() {
                         <button
                           key={cv.id}
                           onClick={() => { setSelectedCvId(cv.id); setCvDecision('perfil'); }}
-                          className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium border transition-all ${
-                            isSelected ? 'bg-blue-600 border-blue-600 text-white shadow-md shadow-blue-200' : 'bg-white border-gray-200 text-gray-600 hover:border-blue-300'
+                          className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs font-medium border transition-all ${
+                            isSelected 
+                              ? 'bg-blue-600 border-blue-600 text-white shadow-md shadow-blue-200' 
+                              : 'bg-white border-gray-200 text-gray-600 hover:border-blue-300 hover:bg-slate-50'
                           }`}
                         >
-                          <span className="uppercase">{lang}</span>
+                          <span className="font-bold">CV inicial optimizado ({lang.toUpperCase()})</span>
                           <span className="opacity-40">•</span>
                           <span>{fecha}</span>
                           {isSelected && <span className="ml-1">✓</span>}
