@@ -56,15 +56,15 @@ export default function HelpBadge({ id, className = '' }) {
         aria-label="Ayuda contextual"
         aria-expanded={isOpen}
         className={`
-          w-5 h-5 rounded-full flex items-center justify-center text-xs font-semibold
+          w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold
           transition-all duration-200 shadow-sm border focus:outline-none focus:ring-2 focus:ring-primary/20
           ${isOpen 
             ? 'bg-primary text-white border-primary shadow' 
-            : 'bg-white text-gray-400 hover:text-gray-600 border-gray-200/80 hover:bg-gray-50'
+            : 'bg-white text-gray-400 hover:text-gray-600 border-gray-300/80 hover:border-gray-400/50 hover:bg-gray-50'
           }
         `}
       >
-        <Icons.Question size={11} weight={isOpen ? 'bold' : 'bold'} />
+        <Icons.Question size={14} weight="bold" />
       </button>
 
       {/* Popover Flotante de Ayuda (Estilo Premium Apple Glassmorphism) */}
