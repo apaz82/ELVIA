@@ -105,8 +105,8 @@ export default function MisCVs() {
   if (!featuresDesbloqueadas) {
     return (
       <FeatureLocked
-        titulo="Mis CVs Guardados"
-        descripcion="Administra todas las versiones optimizadas de tu CV y descarga los formatos Harvard generados por nuestra IA."
+        titulo="Mis documentos guardados"
+        descripcion="Administra tus CVs optimizados, reportes ejecutivos e historial de compatibilidad."
         icono={<FilePdf size={44} weight="light" />}
       />
     )

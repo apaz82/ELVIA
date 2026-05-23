@@ -144,7 +144,7 @@ export default function JobActionPanel({
             ¡CV Adaptado con éxito!
           </div>
           <p className="text-xs text-blue-700 mb-4">
-            El CV ha sido guardado en tu sección de <strong>Mis CVs</strong>. También puedes descargarlo ahora:
+            El CV ha sido guardado en tu sección de <strong>Mis documentos</strong>. También puedes descargarlo ahora:
           </p>
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => descargarCV(resultadoMatch.id, 'pdf')} className="flex-1 text-xs">

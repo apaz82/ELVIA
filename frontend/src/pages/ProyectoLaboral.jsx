@@ -611,11 +611,11 @@ function PilarMiPerfil({ perfil, extraData, onChange, onSavePerfil, saving, isPa
                 <div className="flex items-center gap-1.5">
                   {isComplete ? (
                     <Link to="/mis-cvs" className="text-[11px] font-bold text-emerald-700 hover:text-emerald-800 flex items-center gap-1 transition-colors">
-                      <Folders size={14} weight="bold" /> Ver en MIS CVs
+                      <Folders size={14} weight="bold" /> Ver en mis documentos
                     </Link>
                   ) : (
                     <span className="text-[11px] font-bold text-slate-400 flex items-center gap-1 cursor-not-allowed">
-                      <Folders size={14} weight="bold" /> Ver en MIS CVs
+                      <Folders size={14} weight="bold" /> Ver en mis documentos
                     </span>
                   )}
                 </div>
@@ -638,7 +638,7 @@ function PilarMiPerfil({ perfil, extraData, onChange, onSavePerfil, saving, isPa
             {!isComplete && (
               <div className="mt-3 pt-3 border-t border-slate-200">
                 <p className="text-[10px] text-slate-500 font-medium leading-relaxed italic">
-                  Podrás ver esta CV en tu sección de MIS CVs cuando termines todo el proceso.
+                  Podrás ver este CV en tu sección de mis documentos cuando termines todo el proceso.
                 </p>
               </div>
             )}
@@ -1073,7 +1073,7 @@ const FEATURES_PREVIEW=[
   {label:'CV vs Vacante',desc:'Compara tu CV con cualquier vacante',Icon:MagnifyingGlass,color:'teal'},
   {label:'Vacantes',desc:'Encuentra oportunidades personalizadas',Icon:Briefcase,color:'indigo'},
   {label:'Entrevistas IA',desc:'Practica con entrevistas simuladas',Icon:MicrophoneStage,color:'rose'},
-  {label:'Mis CVs',desc:'Gestiona todas tus versiones de CV',Icon:Folders,color:'amber'},
+  {label:'Mis documentos',desc:'Gestiona tus CVs, reportes e infografías',Icon:Folders,color:'amber'},
   {label:'Mis Vacantes',desc:'Guarda y organiza empleos de interés',Icon:BookmarkSimple,color:'green'},
   {label:'Pipeline',desc:'Haz seguimiento a tus postulaciones',Icon:Kanban,color:'purple'},
   {label:'Biblioteca',desc:'Recursos y guías de búsqueda laboral',Icon:Books,color:'slate'},
@@ -2387,8 +2387,8 @@ export default function ProyectoLaboral() {
       const respData = await res.json()
       if (!res.ok) throw new Error(respData.error || 'Error al generar infografía')
       
-      // Navigate to the visual report (Fixing respData.data.id mismatch)
-      navigate(`/reporte-visual/${respData.id}`)
+      // Open visual report in a new tab so the user does not exit the platform
+      window.open(`/reporte-visual/${respData.id}`, '_blank')
     } catch(e) {
       alert("Error: " + e.message)
     } finally {

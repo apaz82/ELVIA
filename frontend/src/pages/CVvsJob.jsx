@@ -284,7 +284,7 @@ export default function CVvsJob() {
               ) : (
                 <div className="space-y-4">
                   {cvDecision === 'archivo' && cvsExistentes.length > 0 && (
-                    <button onClick={() => setCvDecision('perfil')} className="text-xs text-blue-600 hover:underline flex items-center gap-1">← Volver a mis CVs guardados</button>
+                    <button onClick={() => setCvDecision('perfil')} className="text-xs text-blue-600 hover:underline flex items-center gap-1">← Volver a mis documentos guardados</button>
                   )}
                   <FileUpload onFileSelect={(file) => { setCvArchivo(file); setCvDecision('archivo'); setSelectedCvId(null); }} archivoActual={cvArchivo} />
                 </div>

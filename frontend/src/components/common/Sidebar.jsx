@@ -23,7 +23,7 @@ const HERRAMIENTAS = [
 ]
 
 const MI_CARRERA = [
-  { to: '/mis-cvs',       label: 'Mis CVs',       Icon: Folders },
+  { to: '/mis-cvs',       label: 'Mis documentos',       Icon: Folders },
   { to: '/mis-vacantes',  label: 'Mis Vacantes',  Icon: BookmarkSimple },
   { to: '/pipeline',      label: 'Pipeline',      Icon: Kanban },
   { to: '/mis-metricas',  label: 'Mis Métricas',  Icon: ChartBar },

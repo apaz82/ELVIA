@@ -223,7 +223,7 @@ export default function CVOptimizer() {
             <h2 className="text-base font-semibold text-gray-900">Tus CVs optimizados</h2>
             <button onClick={() => navigate('/mis-cvs')}
               className="text-xs text-primary font-medium hover:underline">
-              Ver todos en Mis CVs →
+              Ver todos en Mis documentos →
             </button>
           </div>
           <div className="space-y-3">
@@ -496,7 +496,7 @@ export default function CVOptimizer() {
               <h3 className="text-lg font-bold text-gray-900 mb-2">¿Optimizar un nuevo CV?</h3>
               <p className="text-sm text-gray-600 leading-relaxed">
                 Al optimizar un nuevo CV, reemplazará el anterior del mismo idioma como tu versión activa.
-                No te preocupes — los podrás encontrar todos en <strong className="font-semibold text-gray-900">Mis CVs</strong> ordenados por fecha.
+                No te preocupes — los podrás encontrar todos en <strong className="font-semibold text-gray-900">Mis documentos</strong> ordenados por fecha.
               </p>
             </div>
             <div className="flex gap-3 px-6 py-4 bg-gray-50 border-t border-gray-100">
