@@ -8,6 +8,7 @@ import { api } from '../services/api'
 import Button from '../components/common/Button'
 import JobActionPanel from '../components/common/JobActionPanel'
 import FeatureLocked from '../components/common/FeatureLocked'
+import HelpBadge from '../components/common/HelpBadge'
 import { Briefcase } from '@phosphor-icons/react'
 
 const extraerNombre = (contenido) => {
@@ -305,7 +306,10 @@ export default function JobMatches() {
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Vacantes Similares</h1>
+        <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
+          Vacantes Similares
+          <HelpBadge id="jobs.main" />
+        </h1>
         <p className="mt-2 text-gray-600">Encuentra oportunidades y verifica tu compatibilidad antes de aplicar.</p>
       </div>
 

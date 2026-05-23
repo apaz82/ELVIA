@@ -10,6 +10,7 @@ import LanguageSelector from '../components/common/LanguageSelector'
 import EmailField from '../components/common/EmailField'
 import Button from '../components/common/Button'
 import FeatureLocked from '../components/common/FeatureLocked'
+import HelpBadge from '../components/common/HelpBadge'
 import { FileMagnifyingGlass } from '@phosphor-icons/react'
 
 const LABEL_IDIOMA = { es: 'Español', en: 'Inglés', pt: 'Portugués' }
@@ -208,7 +209,10 @@ export default function CVOptimizer() {
 
       {/* Encabezado */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">CV Optimizer</h1>
+        <h1 className="text-3xl font-bold text-gray-900 mb-2 flex items-center gap-2">
+          CV Optimizer
+          <HelpBadge id="cvoptimizer.main" />
+        </h1>
         <p className="text-gray-500">Sube tu CV y obtén una versión optimizada en formato Harvard. Sin inventar información.</p>
       </div>
 

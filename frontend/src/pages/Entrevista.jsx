@@ -10,6 +10,7 @@ import {
   ChatText, Trophy, Target, Spinner, Crown,
 } from '@phosphor-icons/react'
 import ProGate from '../components/common/ProGate'
+import HelpBadge from '../components/common/HelpBadge'
 
 const ENTREVISTADORES = [
   { value: 'HR',             label: 'HR / Recursos Humanos',  desc: 'Cultura, motivación y fit' },
@@ -432,6 +433,12 @@ export default function Entrevista() {
       {/* ── PASO 1: SETUP ────────────────────────────────────────────────── */}
       {paso === 'setup' && (
         <div className="space-y-5">
+          <div className="flex items-center gap-2 border-b border-gray-100 pb-3 mb-2 bg-white rounded-2xl p-5 border border-gray-200 shadow-sm">
+            <h2 className="text-base font-bold text-gray-800 flex items-center gap-2">
+              Configurar Simulación
+              <HelpBadge id="entrevista.setup" />
+            </h2>
+          </div>
 
           {/* Vacantes guardadas */}
           {vacantesGuardadas.length > 0 && (
@@ -551,6 +558,12 @@ export default function Entrevista() {
       {/* ── PASO 2: ENTREVISTA ────────────────────────────────────────────── */}
       {paso === 'entrevista' && preguntaActual && (
         <div className="space-y-5">
+          <div className="flex items-center gap-2 border-b border-gray-100 pb-3 mb-2 bg-white rounded-2xl p-5 border border-gray-200 shadow-sm">
+            <h2 className="text-base font-bold text-gray-800 flex items-center gap-2">
+              Sala de Entrevista
+              <HelpBadge id="entrevista.entrevista" />
+            </h2>
+          </div>
 
           {/* Progreso */}
           <div>
@@ -911,6 +924,12 @@ export default function Entrevista() {
       {/* ── PASO 3: FEEDBACK FINAL ────────────────────────────────────────── */}
       {paso === 'feedback' && evaluacion && (
         <div className="space-y-5">
+          <div className="flex items-center gap-2 border-b border-gray-100 pb-3 mb-2 bg-white rounded-2xl p-5 border border-gray-200 shadow-sm">
+            <h2 className="text-base font-bold text-gray-800 flex items-center gap-2">
+              Evaluación y Feedback
+              <HelpBadge id="entrevista.feedback" />
+            </h2>
+          </div>
 
           {/* Score */}
           <div className="card flex flex-col sm:flex-row items-center gap-6">

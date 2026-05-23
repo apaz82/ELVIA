@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext'
 import { supabase } from '../services/authService'
 import { descargarCV } from '../services/cvService'
 import FeatureLocked from '../components/common/FeatureLocked'
+import HelpBadge from '../components/common/HelpBadge'
 import { FilePdf } from '@phosphor-icons/react'
 
 const extraerNombre = (contenido) => {
@@ -253,7 +254,12 @@ export default function MisCVs() {
 
           {/* Tab 1: CV Optimizado */}
           {tab === 'optimizados' && (
-            cvsOptimizados.length === 0
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 border-b border-gray-100 pb-3 mb-2">
+                <h3 className="text-sm font-bold text-gray-800">CVs Optimizados</h3>
+                <HelpBadge id="miscvs.optimizados" />
+              </div>
+              {cvsOptimizados.length === 0
               ? <EmptyState mensaje="Aún no tienes documentos optimizados." cta="Optimizar mi CV ahora" ruta="/cv-optimizer" />
               : <div className="space-y-4">
                   {cvsOptimizados.map(item => (
@@ -287,11 +293,18 @@ export default function MisCVs() {
                     </div>
                   ))}
                 </div>
+              }
+            </div>
           )}
 
           {/* Tab 1.2: Reportes (Infografías) */}
           {tab === 'reportes' && (
-            cvsReportes.length === 0
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 border-b border-gray-100 pb-3 mb-2">
+                <h3 className="text-sm font-bold text-gray-800">Planes de Carrera / Infografías</h3>
+                <HelpBadge id="miscvs.reportes" />
+              </div>
+              {cvsReportes.length === 0
               ? <EmptyState mensaje="No has generado tu Plan de Carrera Ejecutivo." cta="Definir mi Proyecto" ruta="/proyecto-laboral" />
               : <div className="space-y-4">
                   {cvsReportes.map(item => (
@@ -321,11 +334,18 @@ export default function MisCVs() {
                     </div>
                   ))}
                 </div>
+              }
+            </div>
           )}
 
           {/* Tab 1.5: CV Original */}
           {tab === 'original' && (
-            cvsOriginal.length === 0
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 border-b border-gray-100 pb-3 mb-2">
+                <h3 className="text-sm font-bold text-gray-800">CV Iniciales (Originales)</h3>
+                <HelpBadge id="miscvs.original" />
+              </div>
+              {cvsOriginal.length === 0
               ? <EmptyState mensaje="Aún no has subido tu CV base." cta="Subir mi primer documento" ruta="/cv-optimizer" />
               : <div className="space-y-4">
                   {cvsOriginal.map(item => (
@@ -348,11 +368,18 @@ export default function MisCVs() {
                     </div>
                   ))}
                 </div>
+              }
+            </div>
           )}
 
           {/* Tab 2: Compatibilidades — ordenadas de mayor a menor */}
           {tab === 'compatibilidades' && (
-            checks.length === 0
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 border-b border-gray-100 pb-3 mb-2">
+                <h3 className="text-sm font-bold text-gray-800">Compatibilidad con Ofertas</h3>
+                <HelpBadge id="miscvs.compatibilidades" />
+              </div>
+              {checks.length === 0
               ? <EmptyState mensaje="Aún no has verificado compatibilidades." cta="Buscar vacantes →" ruta="/jobs" />
               : <>
                   {/* Filtros y acciones */}
@@ -482,11 +509,18 @@ export default function MisCVs() {
                     </div>
                   )}
                 </>
+              }
+            </div>
           )}
 
           {/* Tab 3: CV vs Vacante */}
           {tab === 'match' && (
-            cvsMatch.length === 0
+            <div className="space-y-6">
+              <div className="flex items-center gap-2 border-b border-gray-100 pb-3 mb-2">
+                <h3 className="text-sm font-bold text-gray-800">CV Adaptados a Vacante</h3>
+                <HelpBadge id="miscvs.match" />
+              </div>
+              {cvsMatch.length === 0
               ? <EmptyState mensaje="Aún no tienes adaptaciones personalizadas." cta="Nuevo CV vs Vacante" ruta="/cv-vs-job" />
               : <div className="space-y-6">
                   {[...cvsMatch].sort((a, b) => (b.metadata?.matchScore || 0) - (a.metadata?.matchScore || 0)).map(item => {
@@ -540,6 +574,8 @@ export default function MisCVs() {
                     )
                   })}
                 </div>
+              }
+            </div>
           )}
 
         </div>

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../services/authService'
+import HelpBadge from '../components/common/HelpBadge'
 
 // ─── Catálogos (mismo que Onboarding) ────────────────────────────────────────
 
@@ -333,9 +334,14 @@ export default function Perfil() {
         ))}
       </div>
 
-      {/* ── TAB: Datos personales ── */}
       {tab === 'personal' && (
         <div className="bg-white rounded-2xl border border-gray-200 p-6 space-y-5">
+          <div className="flex items-center justify-between border-b border-gray-100 pb-3 mb-2">
+            <h2 className="text-base font-bold text-gray-800 flex items-center gap-2">
+              Datos Personales
+              <HelpBadge id="perfil.personal" />
+            </h2>
+          </div>
 
           {/* Nombre y apellidos */}
           <div>
@@ -450,9 +456,14 @@ export default function Perfil() {
         </div>
       )}
 
-      {/* ── TAB: Compensación ── */}
       {tab === 'compensacion' && (
         <div className="bg-white rounded-2xl border border-gray-200 p-6 space-y-5">
+          <div className="flex items-center justify-between border-b border-gray-100 pb-3 mb-2">
+            <h2 className="text-base font-bold text-gray-800 flex items-center gap-2">
+              Compensación Deseada
+              <HelpBadge id="perfil.compensacion" />
+            </h2>
+          </div>
 
           <div>
             <label className="block text-xs font-semibold text-gray-500 mb-1.5">Salario bruto mensual</label>
@@ -587,9 +598,14 @@ export default function Perfil() {
         </div>
       )}
 
-      {/* ── TAB: Aspiraciones ── */}
       {tab === 'aspiraciones' && (
         <div className="bg-white rounded-2xl border border-gray-200 p-6 space-y-5">
+          <div className="flex items-center justify-between border-b border-gray-100 pb-3 mb-2">
+            <h2 className="text-base font-bold text-gray-800 flex items-center gap-2">
+              Aspiraciones Profesionales
+              <HelpBadge id="perfil.aspiraciones" />
+            </h2>
+          </div>
 
           {/* Cargo actual / objetivo / experiencia */}
           <div>
@@ -776,7 +792,12 @@ export default function Perfil() {
         <div className="space-y-5">
           {/* Plan y créditos */}
           <div className="bg-white rounded-2xl border border-gray-200 p-6">
-            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">Plan actual</h2>
+            <div className="flex items-center justify-between border-b border-gray-100 pb-3 mb-4">
+              <h2 className="text-base font-bold text-gray-800 flex items-center gap-2">
+                Mi Plan y Créditos
+                <HelpBadge id="perfil.plan" />
+              </h2>
+            </div>
             {(() => {
               const PLAN_LABELS = { free:'Gratuito', mensual:'Pro Mensual', trimestral:'Pro 3 Meses', semanal:'Pro Semanal' }
               const planLabel   = PLAN_LABELS[plan] || (plan ? String(plan) : 'Gratuito')

@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext'
 import { supabase } from '../services/authService'
 import PlanBanner from '../components/common/PlanBanner'
 import FeatureLocked from '../components/common/FeatureLocked'
+import HelpBadge from '../components/common/HelpBadge'
 import DetalleVacanteDrawer from '../components/common/DetalleVacanteDrawer'
 import { Kanban, FileText, Headphones, Trash } from '@phosphor-icons/react'
 import BarraEtapas, { ETAPAS, ETAPA_PERDIDA, colorEtapa, formatFechaCorta } from '../components/pipeline/BarraEtapas'
@@ -368,7 +369,10 @@ export default function Pipeline() {
       )}
       <div className="mb-6 flex items-start justify-between gap-3 flex-wrap">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Pipeline</h1>
+          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
+            Pipeline
+            <HelpBadge id="pipeline.main" />
+          </h1>
           <p className="mt-1 text-gray-500 text-sm">Seguimiento de tu búsqueda de empleo.</p>
         </div>
         <div className="flex gap-2">

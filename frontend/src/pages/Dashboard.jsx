@@ -10,6 +10,7 @@ import {
   Target, Ticket, Kanban
 } from '@phosphor-icons/react'
 import PlanBanner from '../components/common/PlanBanner'
+import HelpBadge from '../components/common/HelpBadge'
 
 // ─── Componente métrica ───────────────────────────────────────────────────────
 function MetricCard({ icon: Icon, iconColor, bgColor, label, value, sub, to, isEmpty, ctaLabel, trend }) {
@@ -178,8 +179,9 @@ export default function Dashboard() {
             <Sparkle size={14} weight="duotone" className="text-primary" />
             {saludo}
           </p>
-          <h1 className="text-3xl font-black text-on-surface leading-tight">
+          <h1 className="text-3xl font-black text-on-surface leading-tight flex items-center gap-2">
             Hola, {nombre} 👋
+            <HelpBadge id="dashboard.main" />
           </h1>
           <p className="text-sm text-on-surface-variant mt-1.5">
             Aquí tienes un resumen de tu actividad y recursos para potenciar tu búsqueda.

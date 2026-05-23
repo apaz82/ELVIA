@@ -8,6 +8,7 @@ import {
   Quotes, Sparkle, Brain, GraduationCap, Globe,
   ChartBar, SealCheck, Buildings, SuitcaseSimple
 } from '@phosphor-icons/react'
+import HelpBadge from '../components/common/HelpBadge'
 
 export default function ReporteLaboral() {
   const { id } = useParams()
@@ -115,7 +116,10 @@ export default function ReporteLaboral() {
             
             <div className="relative z-10 w-full flex justify-between items-end">
               <div>
-                <p className="text-purple-400 font-black uppercase tracking-[0.3em] text-xs mb-3">Infografía Ejecutiva</p>
+                <p className="text-purple-400 font-black uppercase tracking-[0.3em] text-xs mb-3 flex items-center gap-2">
+                  Infografía Ejecutiva
+                  <span className="no-print"><HelpBadge id="reporte.main" /></span>
+                </p>
                 <h1 className="text-5xl font-black text-white leading-none tracking-tighter uppercase mb-2">
                   {data?.nombreCandidato || 'EJECUTIVO'}
                 </h1>

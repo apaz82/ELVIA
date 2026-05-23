@@ -17,6 +17,7 @@ import {
   BookmarkSimple, Folders, UsersThree, Globe,
   UploadSimple, CheckFat, WarningCircle, X
 } from '@phosphor-icons/react'
+import HelpBadge from '../components/common/HelpBadge'
 
 /* ─── Design tokens (Plus Jakarta Sans via Google Fonts) ─── */
 const FONT_LINK = 'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap'
@@ -661,6 +662,10 @@ function PilarMiPerfil({ perfil, extraData, onChange, onSavePerfil, saving, isPa
       </div>
       {subTab==='datos'&&(
         <div className="space-y-5">
+          <div className="flex items-center gap-2 border-b border-slate-100 pb-3 mb-2">
+            <h3 className="text-sm font-black text-slate-800">Datos Personales del Proyecto</h3>
+            <HelpBadge id="proyecto.datos" />
+          </div>
           <div className="grid grid-cols-2 gap-3">
             {[
               { k: 'nombre1',   label: 'Primer nombre *',   isReadOnly: true },
@@ -716,6 +721,10 @@ function PilarMiPerfil({ perfil, extraData, onChange, onSavePerfil, saving, isPa
       )}
       {subTab==='comp'&&(
         <div className="space-y-6">
+          <div className="flex items-center gap-2 border-b border-slate-100 pb-3 mb-2">
+            <h3 className="text-sm font-black text-slate-800">Compensación del Proyecto</h3>
+            <HelpBadge id="proyecto.comp" />
+          </div>
           {/* País para prestaciones */}
           <div>
             <label className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1 block">País (para prestaciones)</label>
@@ -927,6 +936,10 @@ function PilarMiPerfil({ perfil, extraData, onChange, onSavePerfil, saving, isPa
       )}
       {subTab==='asp'&&(
         <div className="space-y-6">
+          <div className="flex items-center gap-2 border-b border-slate-100 pb-3 mb-2">
+            <h3 className="text-sm font-black text-slate-800">Aspiraciones del Proyecto</h3>
+            <HelpBadge id="proyecto.asp" />
+          </div>
           <div>
             <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Cargo objetivo</h3>
             <p className="text-xs text-slate-400 mb-2">¿Qué puesto estás buscando? (ej. Gerente de Marketing, Analista de Datos, CFO)</p>
@@ -1812,7 +1825,10 @@ function PilarOfertaDeValor({ data, onChange, onSave, justSaved }) {
         <div>
           <div className="flex items-center gap-2 mb-1">
             <Sparkle size={16} className="text-violet-600" weight="duotone"/>
-            <h3 className="font-bold text-slate-800">Descubre tu IKIGAI profesional</h3>
+            <h3 className="font-bold text-slate-800 flex items-center gap-2">
+              Descubre tu IKIGAI profesional
+              <HelpBadge id="proyecto.ikigai" />
+            </h3>
             <button
               onClick={function(){ setModalIkigai(true) }}
               className="ml-auto flex items-center gap-1 text-xs font-semibold text-violet-600 bg-violet-100 hover:bg-violet-200 px-3 py-1 rounded-full transition-colors cursor-pointer shrink-0"

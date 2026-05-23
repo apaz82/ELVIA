@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
 import FeatureLocked from '../components/common/FeatureLocked'
+import HelpBadge from '../components/common/HelpBadge'
 import { supabase } from '../services/authService'
 import {
   Heart, Wind, ChartBar, BookOpen, Play,
@@ -535,7 +536,10 @@ export default function Bienestar() {
               return <Icon size={20} weight="duotone" className="text-rose-500" />
             })()}
             <div>
-              <h2 className="font-black text-slate-800 text-base">{TABS.find(t => t.id === tab)?.label}</h2>
+              <h2 className="font-black text-slate-800 text-base flex items-center gap-2">
+                {TABS.find(t => t.id === tab)?.label}
+                <HelpBadge id={`bienestar.${tab}`} />
+              </h2>
               <p className="text-xs text-slate-500">
                 {tab === 'checkin'    && 'Registra cómo te sientes hoy y observa tu progreso emocional'}
                 {tab === 'respiracion'&& 'Tres técnicas clínicas para regular tu sistema nervioso'}

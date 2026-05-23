@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext'
 import { supabase } from '../services/authService'
 import { calcularProgreso } from '../utils/progresoLaboral'
 import toast from 'react-hot-toast'
+import HelpBadge from '../components/common/HelpBadge'
 import {
   LinkedinLogo, Sparkle, CheckCircle, WarningCircle,
   CaretDown, CaretUp, ArrowRight, Trophy, Star, LightbulbFilament,
@@ -603,8 +604,9 @@ export default function LinkedinOptima() {
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center gap-3">
                       <div className="w-1.5 h-6 bg-indigo-500 rounded-full shadow-[0_0_10px_rgba(99,102,241,0.5)]" />
-                      <label className="text-[11px] font-black text-slate-900 uppercase tracking-[0.2em] italic">
+                      <label className="text-[11px] font-black text-slate-900 uppercase tracking-[0.2em] italic flex items-center gap-2">
                         {sec.label}
+                        <HelpBadge id={`linkedin.${sec.id}`} />
                       </label>
                     </div>
                     <div className="bg-slate-50 px-3 py-1 rounded-full border border-slate-100">

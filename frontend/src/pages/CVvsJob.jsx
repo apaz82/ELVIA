@@ -10,6 +10,7 @@ import LanguageSelector from '../components/common/LanguageSelector'
 import EmailField from '../components/common/EmailField'
 import Button from '../components/common/Button'
 import FeatureLocked from '../components/common/FeatureLocked'
+import HelpBadge from '../components/common/HelpBadge'
 import { MagnifyingGlass, CaretDown } from '@phosphor-icons/react'
 
 export default function CVvsJob() {
@@ -203,7 +204,10 @@ export default function CVvsJob() {
     <div className="min-h-screen bg-slate-50 w-full py-8">
       <div className="max-w-4xl mx-auto px-4">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 tracking-tight">CV vs Vacante</h1>
+          <h1 className="text-3xl font-bold text-gray-900 tracking-tight flex items-center gap-2">
+            CV vs Vacante
+            <HelpBadge id="cvvsjob.main" />
+          </h1>
           <p className="mt-2 text-gray-600">
             Adapta tu CV a una vacante específica y descubre tu % de compatibilidad.
           </p>

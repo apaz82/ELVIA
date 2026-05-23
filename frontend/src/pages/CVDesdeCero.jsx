@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../services/authService'
 import { generarCVDesdeCero, extractarPerfilCV, descargarCV, optimizarResumenIA } from '../services/cvService'
+import HelpBadge from '../components/common/HelpBadge'
 import {
   Plus, X, ArrowLeft, ArrowRight, Question, Check,
   CheckFat, SpinnerGap, Warning, FileArrowDown, UploadSimple,
@@ -776,6 +777,10 @@ export default function CVDesdeCero() {
             {/* PASO 0: Datos personales */}
             {pasoActual === 0 && (
               <div className="space-y-5">
+                <div className="flex items-center gap-2 border-b border-slate-100 pb-3 mb-2">
+                  <h2 className="text-base font-bold text-slate-800">Datos Personales</h2>
+                  <HelpBadge id="cvdesdecero.datos" />
+                </div>
                 {/* Upload CV */}
                 <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-dashed border-blue-300 rounded-2xl p-5">
                   <input ref={fileRef} type="file" accept=".pdf,.doc,.docx"
@@ -894,6 +899,10 @@ export default function CVDesdeCero() {
             {/* PASO 1: Resumen */}
             {pasoActual === 1 && (
               <div className="space-y-6">
+                <div className="flex items-center gap-2 border-b border-slate-100 pb-3 mb-2">
+                  <h2 className="text-base font-bold text-slate-800">Resumen Profesional</h2>
+                  <HelpBadge id="cvdesdecero.resumen" />
+                </div>
                 
                 {/* CAJA 1: Borrador / Entrada */}
                 <div className={`transition-all duration-300 ${resumenBloqueado ? 'opacity-50 pointer-events-none scale-[0.98]' : ''}`}>
@@ -1008,6 +1017,10 @@ export default function CVDesdeCero() {
             {/* PASO 2: Experiencia */}
             {pasoActual === 2 && (
               <div className="space-y-4">
+                <div className="flex items-center gap-2 border-b border-slate-100 pb-3 mb-2">
+                  <h2 className="text-base font-bold text-slate-800">Experiencia Laboral</h2>
+                  <HelpBadge id="cvdesdecero.experiencia" />
+                </div>
                 {datos.experiencias.map((exp, i) => (
                   <div key={i} className="border border-slate-200 rounded-xl p-4 space-y-3">
                     <div className="flex justify-between items-center">
@@ -1050,6 +1063,10 @@ export default function CVDesdeCero() {
             {/* PASO 3: Educación */}
             {pasoActual === 3 && (
               <div className="space-y-4">
+                <div className="flex items-center gap-2 border-b border-slate-100 pb-3 mb-2">
+                  <h2 className="text-base font-bold text-slate-800">Educación</h2>
+                  <HelpBadge id="cvdesdecero.educacion" />
+                </div>
                 {datos.educacion.map((edu, i) => (
                   <div key={i} className="border border-slate-200 rounded-xl p-4 space-y-3">
                     <div className="flex justify-between items-center">
@@ -1083,6 +1100,10 @@ export default function CVDesdeCero() {
             {/* PASO 4: Habilidades */}
             {pasoActual === 4 && (
               <div className="space-y-4">
+                <div className="flex items-center gap-2 border-b border-slate-100 pb-3 mb-2">
+                  <h2 className="text-base font-bold text-slate-800">Habilidades</h2>
+                  <HelpBadge id="cvdesdecero.habilidades" />
+                </div>
                 <p className="text-sm text-slate-600">Selecciona o agrega tus habilidades principales</p>
                 <div className="flex flex-wrap gap-2">
                   {HABILIDADES_COMUNES.map(h => (
@@ -1130,6 +1151,10 @@ export default function CVDesdeCero() {
             {/* PASO 5: Idiomas */}
             {pasoActual === 5 && (
               <div className="space-y-4">
+                <div className="flex items-center gap-2 border-b border-slate-100 pb-3 mb-2">
+                  <h2 className="text-base font-bold text-slate-800">Idiomas</h2>
+                  <HelpBadge id="cvdesdecero.idiomas" />
+                </div>
                 <p className="text-sm text-slate-600">Idiomas que dominas</p>
                 <div className="space-y-2">
                   {IDIOMAS_LIST.map(idioma => (

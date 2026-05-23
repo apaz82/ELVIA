@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { BookOpen, MagnifyingGlass, Clock, Tag, X, ArrowRight, Lightbulb, Star, Images, ArrowSquareOut } from '@phosphor-icons/react'
 import { useAuth } from '../context/AuthContext'
 import FeatureLocked from '../components/common/FeatureLocked'
+import HelpBadge from '../components/common/HelpBadge'
 
 // ── Infografías ───────────────────────────────────────────────────────────────
 const INFOGRAFIAS = [
@@ -472,7 +473,10 @@ export default function Biblioteca() {
       {/* Header */}
       <div className="mb-8">
         <div className="flex items-center gap-2 mb-1">
-          <h1 className="text-2xl font-bold text-gray-900">Biblioteca</h1>
+          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+            Biblioteca
+            <HelpBadge id="biblioteca.main" />
+          </h1>
           <span className="text-xs font-semibold bg-primary/10 text-primary rounded-full px-2.5 py-0.5">
             {ARTICULOS.length} artículos
           </span>

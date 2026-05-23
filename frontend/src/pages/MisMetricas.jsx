@@ -6,6 +6,7 @@ import {
   ChartBar, Kanban, Target, TrendUp, CalendarCheck, ArrowRight
 } from '@phosphor-icons/react'
 import PlanBanner from '../components/common/PlanBanner'
+import HelpBadge from '../components/common/HelpBadge'
 
 const ETAPAS_ORDEN = ['Descubierto', 'Apliqué', 'Pruebas/Assessment', 'En entrevistas', 'Ofertado']
 const ETAPA_PERDIDA = 'No avanzó'
@@ -177,7 +178,10 @@ export default function MisMetricas() {
 
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-black text-gray-900">Mis Métricas</h1>
+        <h1 className="text-2xl font-black text-gray-900 flex items-center gap-2">
+          Mis Métricas
+          <HelpBadge id="metricas.main" />
+        </h1>
         <p className="text-sm text-gray-500 mt-1">
           Seguimiento de tu búsqueda activa — actualizado en tiempo real.
         </p>
