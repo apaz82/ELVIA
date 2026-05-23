@@ -461,7 +461,7 @@ const generarInfografiaProyecto = async (req, res, next) => {
     const db = req.supabase;
     const userId = req.user.id;
 
-    // Validar límite de 2 generaciones de infografías de autoconocimiento
+    // Validar límite de 10 generaciones de infografías de autoconocimiento
     const { data: existingInfografias, error: countError } = await db
       .from('cv_results')
       .select('id, metadata')
@@ -480,9 +480,9 @@ const generarInfografiaProyecto = async (req, res, next) => {
         }
       });
 
-      if (userInfografias.length >= 2) {
+      if (userInfografias.length >= 10) {
         return res.status(400).json({ 
-          error: 'Has alcanzado el límite máximo de 2 generaciones de tu Infografía de Autoconocimiento. Puedes ver y descargar tus infografías ya generadas en la sección "Mis documentos".' 
+          error: 'Has alcanzado el límite máximo de 10 generaciones de tu Infografía de Autoconocimiento. Puedes ver y descargar tus infografías ya generadas en la sección "Mis documentos".' 
         });
       }
     }
