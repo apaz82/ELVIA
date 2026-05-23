@@ -2823,7 +2823,7 @@ export default function ProyectoLaboral() {
                     <div className="absolute inset-0 bg-gradient-to-r from-violet-600 to-indigo-600 opacity-0 group-hover/btn:opacity-100 transition-opacity duration-300"/>
                     <div className="relative z-10 flex items-center justify-center gap-2 group-hover/btn:text-white transition-colors">
                       {generandoPdf ? <SpinnerGap size={18} className="animate-spin" /> : <Sparkle size={18} weight="fill" className="text-violet-600 group-hover/btn:text-white transition-colors" />}
-                      <span className="tracking-widest uppercase">{generandoPdf ? 'Calculando...' : 'Infografía Ejecutiva'}</span>
+                      <span className="tracking-widest uppercase">{generandoPdf ? 'Procesando...' : 'Infografía Ejecutiva'}</span>
                     </div>
                   </button>
                   <p className="text-[10px] text-center text-slate-500 font-bold uppercase tracking-widest mt-4">
