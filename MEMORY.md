@@ -30,7 +30,7 @@ OPTIMA-CV (ELVIA) is a dual-interface Human Resources & Career Optimization ecos
 18. **Visual Infographic Redesign**: Overhauled the Autoconocimiento Infographic (`ReporteLaboral.jsx`) using a sober Apple-style aesthetic, showcasing the user's authentic pitch, a 2x2 IKIGAI Grid with pastel accents, culture, schedule, and active resources.
 19. **Infographic Limits & Usability**: Enforced a 10-generation limit (optimized for demos) in `cvController.js` and updated the UI in `ProyectoLaboral.jsx` to open the visual report in a new tab (`_blank`) so the user never exits the platform.
 20. **Rebranding to 'Mis documentos'**: Renamed 'Mis CVs' to 'Mis documentos' globally across components (`Sidebar.jsx`, `JobActionPanel.jsx`) and views (`CVOptimizer.jsx`, `CVvsJob.jsx`, `MisCVs.jsx`) for complete branding consistency.
-21. **Executive UX Dashboard (Light Mode Apple Style)**: Redesigned the main dashboard (`Dashboard.jsx`) with a premium avatar header, dynamic help bell notifications dropdown, and an interactive SVG cubic Bezier performance wave chart with glassmorphism tooltips and meta guidelines.
+21. **Executive UX Dashboard V2 (B2B Premium & Wellbeing)**: Redesigned the main dashboard (`Dashboard.jsx`) to feature the B2B 'Status Autoconocimiento' at the top, hide IA credits, render a circular SVG Match gauge at 85%, and integrate a visual wellbeing support panel (mood calendar + weekly radar axes) with professional Phosphor icons.
 22. **CV History Sanitization**: Added strict database and client-side filters (excluding JSON patterns starting with '{') in `CVOptimizer.jsx` and `CVvsJob.jsx` to prevent career project infographics from cluttering the optimized Harvard resume history.
 
 ### Crucial Directives
