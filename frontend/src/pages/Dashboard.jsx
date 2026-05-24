@@ -1,4 +1,4 @@
-// Dashboard — Métricas ejecutivas de uso + visualización interactiva premium (Apple Style)
+// Dashboard — Centro de Control Ejecutivo B2B & Bienestar Emocional (ELVIA®)
 import { useEffect, useState, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
@@ -6,43 +6,60 @@ import { supabase } from '../services/authService'
 import { calcularProgreso, calcPerfilPts } from '../utils/progresoLaboral'
 import {
   FileMagnifyingGlass, MagnifyingGlass, Briefcase,
-  ChartLineUp, Coins, ArrowRight, Sparkle,
+  ChartLineUp, ArrowRight, Sparkle,
   Target, Ticket, Kanban, Bell, CheckCircle,
-  Clock, SuitcaseSimple, Info, ShieldCheck, ArrowUpRight,
-  ChartBar, Sparkle as SparkleFill
+  Clock, Smiley, SmileyMeh, SmileySad, SmileyAngry,
+  SmileyBlank, SmileyNervous, Heart, Info,
+  ShieldCheck, ArrowUpRight, TrendUp,
+  CalendarBlank, User
 } from '@phosphor-icons/react'
 import PlanBanner from '../components/common/PlanBanner'
 import HelpBadge from '../components/common/HelpBadge'
 
-// ─── Componente métrica ejecutiva ─────────────────────────────────────────────
+// ─── Constantes de Bienestar ──────────────────────────────────────────────────
+const EMOCIONES = {
+  confiado:   { label: 'Confiado',    bg: 'bg-emerald-50 border-emerald-200', text: 'text-emerald-600', Icon: Smiley },
+  motivado:   { label: 'Motivado',    bg: 'bg-blue-50 border-blue-200',       text: 'text-blue-600',    Icon: Smiley },
+  tranquilo:  { label: 'Tranquilo',   bg: 'bg-teal-50 border-teal-200',       text: 'text-teal-600',    Icon: SmileyBlank },
+  cansado:    { label: 'Cansado',     bg: 'bg-slate-50 border-slate-200',     text: 'text-slate-600',   Icon: SmileyMeh },
+  ansioso:    { label: 'Ansioso',     bg: 'bg-amber-50 border-amber-200',     text: 'text-amber-600',   Icon: SmileyNervous },
+  frustrado:  { label: 'Frustrado',   bg: 'bg-orange-50 border-orange-200',   text: 'text-orange-600',  Icon: SmileyAngry },
+  triste:     { label: 'Triste',      bg: 'bg-rose-50 border-rose-200',       text: 'text-rose-600',    Icon: SmileySad },
+}
+
+const RADAR_EJES = [
+  { id: 'energia',     label: 'Energía',     color: 'text-amber-600',  bar: 'bg-amber-500'  },
+  { id: 'confianza',   label: 'Confianza',   color: 'text-emerald-600',bar: 'bg-emerald-500'},
+  { id: 'enfoque',     label: 'Enfoque',     color: 'text-blue-600',   bar: 'bg-blue-500'   },
+  { id: 'ansiedad',    label: 'Ansiedad',    color: 'text-orange-600', bar: 'bg-orange-500' },
+  { id: 'resiliencia', label: 'Resiliencia', color: 'text-violet-600', bar: 'bg-violet-500' },
+]
+
+// ─── Componente Métrica de Actividad ──────────────────────────────────────────
 function MetricCard({ icon: Icon, iconBg, label, value, sub, to, isEmpty, ctaLabel, trend }) {
   const content = (
-    <div className="bg-white border border-slate-100 rounded-3xl p-6 flex flex-col gap-4 h-full transition-all duration-300 hover:shadow-[0_20px_50px_rgba(0,0,0,0.05)] hover:-translate-y-1 group">
-      <div className="flex justify-between items-start">
-        <div className={`w-11 h-11 rounded-2xl ${iconBg} flex items-center justify-center shrink-0 shadow-sm transition-transform group-hover:scale-110 duration-300`}>
-          <Icon size={22} weight="duotone" className="text-white" />
+    <div className="bg-white border border-slate-100/80 rounded-2xl p-5 flex flex-col justify-between h-full transition-all duration-300 hover:shadow-[0_12px_30px_rgba(0,0,0,0.03)] hover:-translate-y-0.5 group">
+      <div className="flex justify-between items-center mb-2">
+        <div className={`w-9 h-9 rounded-xl ${iconBg} flex items-center justify-center shrink-0`}>
+          <Icon size={18} weight="duotone" className="text-white" />
         </div>
         {trend && (
-          <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full flex items-center gap-0.5 ${
-            trend.dir === 'up' ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-500'
-          }`}>
-            {trend.dir === 'up' && '↑'} {trend.delta || 'Estable'}
+          <span className="text-[10px] font-black uppercase text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full flex items-center gap-0.5">
+            ↑ {trend.delta}
           </span>
         )}
       </div>
-      
       <div>
-        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">{label}</p>
-        <p className="text-4xl font-black text-slate-800 leading-none mt-1 tracking-tight">{value}</p>
-        {sub && <p className="text-xs text-slate-500 font-medium leading-relaxed mt-2">{sub}</p>}
+        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{label}</p>
+        <p className="text-2xl font-black text-slate-800 tracking-tight leading-none mt-1">{value}</p>
+        {sub && <p className="text-[10px] text-slate-400 font-semibold mt-1.5">{sub}</p>}
       </div>
-
       {to && (
-        <div className="mt-auto pt-2 border-t border-slate-50 flex items-center justify-between">
-          <span className="text-xs font-bold text-slate-600 group-hover:text-indigo-600 transition-colors">
-            {isEmpty && ctaLabel ? ctaLabel : 'Abrir herramienta'}
+        <div className="mt-3 pt-2 border-t border-slate-50 flex items-center justify-between">
+          <span className="text-[10px] font-bold text-slate-500 group-hover:text-indigo-600 transition-colors">
+            {isEmpty && ctaLabel ? ctaLabel : 'Abrir'}
           </span>
-          <ArrowRight size={14} weight="bold" className="text-slate-400 group-hover:translate-x-1 group-hover:text-indigo-600 transition-all" />
+          <ArrowRight size={12} weight="bold" className="text-slate-400 group-hover:translate-x-0.5 group-hover:text-indigo-600 transition-all" />
         </div>
       )}
     </div>
@@ -50,19 +67,8 @@ function MetricCard({ icon: Icon, iconBg, label, value, sub, to, isEmpty, ctaLab
   return to ? <Link to={to} className="block">{content}</Link> : <div>{content}</div>
 }
 
-// Datos demo en caso de que no haya análisis de vacantes
-const MOCK_CHART_DATA = [
-  { label: 'Lun', score: 60, title: 'Líder Técnico', company: 'Telefónica B2B', date: 'Lun' },
-  { label: 'Mar', score: 72, title: 'Analista BI', company: 'Global Tech', date: 'Mar' },
-  { label: 'Mié', score: 68, title: 'Gerente General', company: 'Future Corp', date: 'Mié' },
-  { label: 'Jue', score: 85, title: 'Especialista Scrum', company: 'Agile SA', date: 'Jue' },
-  { label: 'Vie', score: 80, title: 'Director de Operaciones', company: 'Enterprise Inc', date: 'Vie' },
-  { label: 'Sáb', score: 92, title: 'Gerente de Proyectos', company: 'Telefónica B2B', date: 'Sáb' },
-  { label: 'Dom', score: 88, title: 'Consultor SAP', company: 'Advisory Group', date: 'Dom' },
-]
-
 export default function Dashboard() {
-  const { user, perfil, creditosRestantes, LIMITE_PLAN, usageCount, isPaidPlan, trialExpired, trialDaysLeft, jpData } = useAuth()
+  const { user, perfil, jpData, isPaidPlan, trialExpired, trialDaysLeft, refreshUsage } = useAuth()
 
   const [metricas, setMetricas] = useState({
     cvsOptimizados: null,
@@ -71,20 +77,18 @@ export default function Dashboard() {
     matchTendencia: null,
     vacantesGuardadas: null,
   })
-  const [chartData, setChartData] = useState([])
   const [loadingMetricas, setLoadingMetricas] = useState(true)
   const [codigoRedimido, setCodigoRedimido]   = useState(null)
   const [proyectoPct, setProyectoPct]         = useState(null)
   const [pipelineStats, setPipelineStats]     = useState(null)
   const [showNotifications, setShowNotifications] = useState(false)
-  const [hoveredPoint, setHoveredPoint] = useState(null)
+  const [bienestar, setBienestar] = useState({ checkins: {}, radar: {} })
   const notifRef = useRef(null)
 
   const nombre = perfil?.nombre1
     ? `${perfil.nombre1}${perfil.apellido1 ? ' ' + perfil.apellido1 : ''}`
     : user?.email?.split('@')[0] || 'Ejecutivo'
 
-  // Iniciales del usuario para el avatar Apple
   const iniciales = perfil?.nombre1 
     ? `${perfil.nombre1.substring(0, 1)}${perfil.apellido1 ? perfil.apellido1.substring(0, 1) : ''}`.toUpperCase()
     : 'EJ'
@@ -95,6 +99,14 @@ export default function Dashboard() {
     if (h < 19) return 'Buenas tardes'
     return 'Buenas noches'
   })()
+
+  // Calcular ID de la semana actual
+  function getWeekId() {
+    const d = new Date()
+    const jan1 = new Date(d.getFullYear(), 0, 1)
+    return Math.ceil(((d - jan1) / 86400000 + jan1.getDay() + 1) / 7) + '_' + d.getFullYear()
+  }
+  const currentWeek = `semana_${getWeekId()}`
 
   // Cierre de dropdown al hacer clic fuera
   useEffect(() => {
@@ -111,7 +123,7 @@ export default function Dashboard() {
     if (!user?.id) return
     const cargarMetricas = async () => {
       setLoadingMetricas(true)
-      const [cvRes, jobsRes, codeRes] = await Promise.all([
+      const [cvRes, jobsRes, codeRes, profileRes] = await Promise.all([
         supabase.from('cv_results').select('tipo, metadata, created_at').eq('user_id', user.id),
         supabase.from('saved_jobs').select('estado'),
         supabase
@@ -121,10 +133,11 @@ export default function Dashboard() {
           .order('redeemed_at', { ascending: false })
           .limit(1)
           .maybeSingle(),
+        supabase.from('profiles').select('bienestar_data').eq('id', user.id).single()
       ])
 
       const cvs         = cvRes.data || []
-      const optimizados = cvs.filter(c => c.tipo === 'optimize').length
+      const optimizados = cvs.filter(c => c.tipo === 'optimize' && !c.contenido?.trim()?.startsWith('{')).length
       const matches     = cvs.filter(c => c.tipo === 'match')
       const matchScores = matches
         .map(c => c.metadata?.matchScore)
@@ -132,19 +145,6 @@ export default function Dashboard() {
       const promedio = matchScores.length
         ? Math.round(matchScores.reduce((a, b) => a + b, 0) / matchScores.length)
         : null
-
-      // Formatear datos de gráfico
-      const sortedMatches = [...matches]
-        .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
-        .slice(-7)
-        .map(c => ({
-          id: c.id,
-          date: new Date(c.created_at).toLocaleDateString('es-MX', { day: '2-digit', month: 'short' }),
-          score: c.metadata?.matchScore || 0,
-          title: c.metadata?.jobData?.title || 'Posición sin título',
-          company: c.metadata?.jobData?.company || 'Compañía',
-        }))
-      setChartData(sortedMatches)
 
       // Tendencia semanal
       const ahora = Date.now()
@@ -183,6 +183,11 @@ export default function Dashboard() {
         ofertas:      etapasCount['Ofertado'] || 0,
         perdidas:     etapasCount['No avanzó'] || 0,
       })
+
+      // Bienestar Data
+      if (profileRes.data?.bienestar_data) {
+        setBienestar(profileRes.data.bienestar_data)
+      }
 
       // Progreso proyecto
       setProyectoPct(calcularProgreso(jpData || {}, perfil || {}))
@@ -239,8 +244,8 @@ export default function Dashboard() {
   if (proyectoPct !== null && proyectoPct < 100) {
     notificaciones.push({
       id: 'proyecto',
-      title: 'Mi Proyecto Laboral',
-      desc: 'Tienes secciones pendientes para estructurar tu autoconocimiento.',
+      title: 'Autoconocimiento incompleto',
+      desc: 'Completa tus pilares estratégicos para habilitar todas las descargas.',
       to: '/proyecto-laboral',
       type: 'warning'
     })
@@ -248,64 +253,50 @@ export default function Dashboard() {
   if (metricas.cvsOptimizados === 0) {
     notificaciones.push({
       id: 'cv_opt',
-      title: 'Optimizar CV Harvard',
+      title: 'Optimiza tu CV',
       desc: 'Sube tu CV para adaptarlo automáticamente al estándar premium Harvard.',
       to: '/cv-optimizer',
       type: 'info'
     })
   }
-  if (metricas.cvsVsVacante === 0) {
-    notificaciones.push({
-      id: 'compatibilidad',
-      title: 'Analizar Vacante',
-      desc: 'Realiza tu primer análisis contra una oferta laboral y mide tu compatibilidad.',
-      to: '/cv-vs-job',
-      type: 'info'
-    })
-  }
-  // Notificación estática decorativa
   notificaciones.push({
     id: 'notif_welcome',
-    title: 'Ecosistema Activo',
-    desc: 'Tu suscripción corporativa Telefónica B2B está validada e ilimitada.',
+    title: 'Ecosistema corporativo',
+    desc: 'Tu cuenta de Telefónica B2B está validada con acceso ejecutivo.',
     to: '/mi-plan',
     type: 'success'
   })
 
-  // Configurar gráfico SVG
-  const activeChartData = chartData.length > 0 ? chartData : MOCK_CHART_DATA
-  const isDemoChart = chartData.length === 0
+  // Calcular check-ins reales de las últimas 2 semanas (14 días)
+  const ultimos14Dias = Array.from({ length: 14 }, (_, i) => {
+    const d = new Date()
+    d.setDate(d.getDate() - i)
+    const key = d.toISOString().slice(0, 10)
+    const label = i === 0 ? 'Hoy' : d.toLocaleDateString('es', { day: 'numeric', month: 'short' })
+    return { key, label, data: bienestar.checkins?.[key] || null }
+  }).reverse()
 
-  const points = activeChartData.map((d, i) => {
-    const n = activeChartData.length
-    const x = n > 1 ? 40 + (i / (n - 1)) * 420 : 250
-    const y = 160 - (d.score / 100) * 110
-    return { ...d, x, y }
-  })
+  // Calcular radar de la semana actual
+  const radarSemanal = bienestar.radar?.[currentWeek] || {}
+  const radarValores = RADAR_EJES.map(e => ({
+    ...e,
+    valor: radarSemanal[e.id] || 0 // Escala de 0 a 5
+  }))
+  const radarCompleto = radarValores.some(v => v.valor > 0)
 
-  // Genera curvas de Bezier cúbicas fluidas (Apple-like)
-  const getBezierPath = (pts) => {
-    if (pts.length === 0) return ''
-    let d = `M ${pts[0].x} ${pts[0].y}`
-    for (let i = 0; i < pts.length - 1; i++) {
-      const p0 = pts[i]
-      const p1 = pts[i + 1]
-      const cpX1 = p0.x + (p1.x - p0.x) / 2
-      const cpY1 = p0.y
-      const cpX2 = p0.x + (p1.x - p0.x) / 2
-      const cpY2 = p1.y
-      d += ` C ${cpX1} ${cpY1}, ${cpX2} ${cpY2}, ${p1.x} ${p1.y}`
-    }
-    return d
-  }
+  // Medidor circular SVG de Match (Circular Gauge)
+  const matchScore = metricas.matchPromedio !== null ? metricas.matchPromedio : 0
+  const isDemoGauge = metricas.matchPromedio === null
 
-  const linePath = getBezierPath(points)
-  const fillPath = points.length > 0 ? `${linePath} L ${points[points.length - 1].x} 160 L ${points[0].x} 160 Z` : ''
+  // Fórmulas para círculo de progreso
+  const radioGauge = 55
+  const circunferenciaGauge = 2 * Math.PI * radioGauge
+  const strokeOffset = circunferenciaGauge - (circunferenciaGauge * (isDemoGauge ? 85 : matchScore)) / 100
 
   const val = (v, suffix = '') => loadingMetricas ? '—' : `${v ?? 0}${suffix}`
 
   return (
-    <div className="max-w-[1100px] mx-auto px-4 sm:px-6 md:px-8 py-8 space-y-8 bg-slate-50/50 min-h-screen text-slate-700 animate-in fade-in duration-700">
+    <div className="max-w-[1000px] mx-auto px-4 sm:px-6 py-8 space-y-8 bg-slate-50/50 min-h-screen text-slate-700 font-sans leading-relaxed animate-in fade-in duration-700" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
       
       {/* ── Banners de Trial ── */}
       {!isPaidPlan && !trialExpired && trialDaysLeft <= 3 && (
@@ -323,69 +314,68 @@ export default function Dashboard() {
         />
       )}
 
-      {/* ── CABECERA APPLE PREMIUM ── */}
-      <header className="bg-white border border-slate-100 rounded-3xl p-6 sm:p-8 flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-[0_8px_30px_rgb(0,0,0,0.02)]">
-        <div className="flex gap-4 sm:gap-6 items-center">
-          {/* Avatar Premium */}
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-indigo-500 to-purple-600 text-white font-black text-xl flex items-center justify-center shadow-lg shadow-indigo-100 shrink-0">
+      {/* ── CABECERA APPLE PREMIUM B2B ── */}
+      <header className="bg-white border border-slate-100 rounded-3xl p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-6 shadow-[0_8px_30px_rgb(0,0,0,0.015)]">
+        <div className="flex gap-4 items-center">
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-indigo-600 to-purple-600 text-white font-black text-lg flex items-center justify-center shadow-lg shadow-indigo-100 shrink-0">
             {iniciales}
           </div>
           <div>
-            <p className="text-xs font-bold text-indigo-600 uppercase tracking-[0.2em] flex items-center gap-1.5">
-              <SparkleFill size={12} weight="fill" />
+            <p className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.25em] flex items-center gap-1">
+              <Sparkle size={10} weight="fill" />
               {saludo}
             </p>
-            <h1 className="text-2xl sm:text-3xl font-black text-slate-800 tracking-tight mt-1">
-              Hola, {nombre}
+            <h1 className="text-2xl font-black text-slate-800 tracking-tight mt-0.5">
+              {nombre}
               <span className="no-print inline-block align-middle ml-2"><HelpBadge id="dashboard.main" /></span>
             </h1>
-            <p className="text-xs sm:text-sm text-slate-400 mt-1 font-medium">
-              Ecosistema ejecutivo de desarrollo y optimización de carrera.
+            <p className="text-[11px] text-slate-400 font-bold tracking-wide uppercase mt-1 flex items-center gap-1.5">
+              <ShieldCheck size={14} className="text-emerald-500" weight="fill" /> Ecosistema de Carrera · Telefónica Corporativo
             </p>
           </div>
         </div>
 
-        {/* Acciones de Cabecera */}
-        <div className="flex items-center gap-3 shrink-0 self-end md:self-center">
+        {/* Acciones e Interacciones */}
+        <div className="flex items-center gap-3 shrink-0 self-end sm:self-center">
           
-          {/* Campana de Notificaciones Interactiva */}
+          {/* Campana de Notificaciones */}
           <div className="relative" ref={notifRef}>
             <button 
               onClick={() => setShowNotifications(!showNotifications)}
-              className={`w-11 h-11 rounded-xl border flex items-center justify-center transition-all ${
+              className={`w-10 h-10 rounded-xl border flex items-center justify-center transition-all cursor-pointer ${
                 showNotifications 
                   ? 'bg-indigo-50 border-indigo-200 text-indigo-600' 
                   : 'bg-white border-slate-100 text-slate-400 hover:text-slate-600 hover:border-slate-200'
               }`}
             >
-              <Bell size={20} weight={showNotifications ? 'fill' : 'duotone'} />
+              <Bell size={18} weight={showNotifications ? 'fill' : 'duotone'} />
               {notificaciones.length > 1 && (
-                <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-rose-500 border-2 border-white rounded-full animate-pulse" />
+                <span className="absolute top-1 right-1 w-2 h-2 bg-rose-500 border border-white rounded-full animate-pulse" />
               )}
             </button>
 
-            {/* Dropdown de Notificaciones */}
+            {/* Dropdown de Alertas */}
             {showNotifications && (
-              <div className="absolute right-0 mt-3 w-80 bg-white/95 backdrop-blur-md border border-slate-100 rounded-3xl shadow-xl shadow-slate-200/50 p-4 z-30 animate-in fade-in slide-in-from-top-4 duration-300">
-                <div className="flex justify-between items-center pb-3 border-b border-slate-50 mb-3">
-                  <h4 className="text-xs font-black text-slate-800 uppercase tracking-widest">Notificaciones ({notificaciones.length})</h4>
-                  <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full uppercase">Alertas</span>
+              <div className="absolute right-0 mt-3 w-80 bg-white/98 backdrop-blur-md border border-slate-100 rounded-2xl shadow-xl shadow-slate-200/50 p-4 z-30 animate-in fade-in slide-in-from-top-4 duration-200">
+                <div className="flex justify-between items-center pb-2.5 border-b border-slate-100 mb-2.5">
+                  <h4 className="text-[10px] font-black text-slate-800 uppercase tracking-widest">Sugerencias Ejecutivas</h4>
+                  <span className="text-[8px] font-black text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full uppercase">Foco</span>
                 </div>
-                <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
+                <div className="space-y-2.5 max-h-72 overflow-y-auto pr-1">
                   {notificaciones.map((n, i) => (
                     <Link 
                       key={n.id || i}
                       to={n.to} 
                       onClick={() => setShowNotifications(false)}
-                      className="block p-2.5 rounded-2xl hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-100/50"
+                      className="block p-2 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-all"
                     >
-                      <div className="flex gap-2">
-                        <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${
+                      <div className="flex gap-2.5">
+                        <div className={`w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 ${
                           n.type === 'warning' ? 'bg-amber-400' : n.type === 'success' ? 'bg-emerald-400' : 'bg-indigo-400'
                         }`} />
                         <div>
                           <p className="text-xs font-bold text-slate-800 leading-tight">{n.title}</p>
-                          <p className="text-[10px] text-slate-400 font-medium leading-relaxed mt-0.5">{n.desc}</p>
+                          <p className="text-[10px] text-slate-400 font-semibold mt-0.5">{n.desc}</p>
                         </div>
                       </div>
                     </Link>
@@ -396,315 +386,249 @@ export default function Dashboard() {
           </div>
 
           <Link to="/cv-optimizer"
-            className="flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold text-xs px-5 py-3 rounded-2xl transition-all shadow-md shadow-indigo-100 active:scale-95">
+            className="flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold text-xs px-5 py-3 rounded-2xl transition-all shadow-md shadow-indigo-50 active:scale-95">
             <FileMagnifyingGlass size={16} weight="duotone" />
             Optimizar CV
           </Link>
         </div>
       </header>
 
-      {/* ── MÉTRICAS (KPI GRID) ── */}
-      <section className="grid grid-cols-2 lg:grid-cols-4 gap-5">
-        <MetricCard
-          icon={FileMagnifyingGlass}
-          iconBg="bg-indigo-500 shadow-indigo-100"
-          label="CVs optimizados"
-          value={val(metricas.cvsOptimizados)}
-          sub={!loadingMetricas && (metricas.cvsOptimizados ?? 0) === 0 ? 'Sube tu CV para adaptarlo al formato' : 'análisis en formato Harvard'}
-          to="/cv-optimizer"
-          isEmpty={!loadingMetricas && (metricas.cvsOptimizados ?? 0) === 0}
-          ctaLabel="Optimiza tu primer CV"
-          trend={{ dir: 'up', delta: '+10%' }}
-        />
-        <MetricCard
-          icon={MagnifyingGlass}
-          iconBg="bg-blue-500 shadow-blue-100"
-          label="CVs vs Vacante"
-          value={val(metricas.cvsVsVacante)}
-          sub={!loadingMetricas && (metricas.cvsVsVacante ?? 0) === 0 ? 'Mide tu compatibilidad con vacantes' : 'análisis de compatibilidad'}
-          to="/cv-vs-job"
-          isEmpty={!loadingMetricas && (metricas.cvsVsVacante ?? 0) === 0}
-          ctaLabel="Analizar vacante"
-          trend={{ dir: 'up', delta: '+4%' }}
-        />
-        <MetricCard
-          icon={ChartLineUp}
-          iconBg="bg-purple-500 shadow-purple-100"
-          label="Match promedio"
-          value={metricas.matchPromedio !== null ? val(metricas.matchPromedio, '%') : loadingMetricas ? '—' : 'N/A'}
-          sub={metricas.matchPromedio !== null ? 'en tus análisis recientes' : 'sin análisis aún'}
-          trend={metricas.matchTendencia}
-        />
-        <MetricCard
-          icon={Briefcase}
-          iconBg="bg-rose-500 shadow-rose-100"
-          label="Vacantes guardadas"
-          value={val(metricas.vacantesGuardadas)}
-          sub={!loadingMetricas && (metricas.vacantesGuardadas ?? 0) === 0 ? 'Guarda empleos en tu pipeline' : 'vacantes registradas'}
-          to="/pipeline"
-          isEmpty={!loadingMetricas && (metricas.vacantesGuardadas ?? 0) === 0}
-          ctaLabel="Abrir Pipeline"
-          trend={{ dir: 'up', delta: '+2' }}
-        />
-      </section>
-
-      {/* ── CUPO & CRÉDITOS ── */}
-      <section className="bg-white border border-slate-100 rounded-3xl p-6 shadow-[0_8px_30px_rgb(0,0,0,0.01)] flex flex-col md:flex-row items-center justify-between gap-6">
-        <div className="flex gap-4 items-center w-full md:w-auto">
-          <div className="w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center shrink-0 shadow-sm">
-            <Coins size={22} weight="duotone" />
-          </div>
+      {/* ── 🌟 EL HERO: STATUS AUTOCONOCIMIENTO 🌟 ── */}
+      <section className="bg-white border border-slate-100 rounded-3xl p-6 sm:p-8 shadow-[0_8px_30px_rgb(0,0,0,0.015)] relative overflow-hidden flex flex-col justify-between">
+        <div className="absolute top-0 left-0 w-full h-[4px] bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500" />
+        
+        <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
           <div>
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Créditos de IA disponibles</p>
-            <div className="flex items-baseline gap-2 mt-1">
-              <span className={`text-3xl font-black tracking-tight ${creditosRestantes === 0 ? 'text-rose-500' : 'text-slate-800'}`}>
-                {creditosRestantes}
-              </span>
-              <span className="text-xs text-slate-400 font-bold">/ {LIMITE_PLAN} en tu plan activo · {usageCount} consumidos</span>
-            </div>
+            <p className="text-[10px] font-black uppercase text-indigo-600 tracking-[0.25em] flex items-center gap-1.5">
+              <Target size={14} weight="fill" /> Estatus Estratégico
+            </p>
+            <h2 className="text-xl sm:text-2xl font-black text-slate-800 tracking-tight mt-1">Status Autoconocimiento</h2>
+            <p className="text-xs text-slate-400 mt-1 font-medium">Este módulo consolida la claridad de tus metas y tu oferta de valor única en el mercado.</p>
           </div>
-        </div>
-
-        <div className="flex items-center gap-4 w-full md:w-auto shrink-0 justify-end">
-          <div className="flex-1 md:w-48 bg-slate-100 rounded-full h-3 overflow-hidden relative">
-            <div
-              className={`h-full rounded-full transition-all duration-1000 bg-gradient-to-r ${
-                creditosRestantes === 0 ? 'from-rose-500 to-rose-600' : 'from-indigo-500 to-purple-600'
-              }`}
-              style={{ width: `${(creditosRestantes / LIMITE_PLAN) * 100}%` }}
-            />
-          </div>
-          <Link to="/mi-plan"
-            className="text-xs font-bold text-slate-600 border border-slate-200 rounded-2xl px-5 py-2.5 hover:bg-slate-50 transition-colors whitespace-nowrap active:scale-95">
-            Administrar plan
+          <Link to="/proyecto-laboral" className="self-start sm:self-center shrink-0 flex items-center gap-1.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs px-5 py-3 rounded-2xl transition-all active:scale-95 shadow-sm">
+            {proyectoPct === 0 ? 'Iniciar' : 'Modificar Pilares'} <ArrowRight size={12} weight="bold" />
           </Link>
         </div>
+
+        {/* Barra de progreso estilo cristal templado */}
+        <div className="mt-6 bg-slate-50 border border-slate-100/50 p-5 rounded-2xl relative">
+          <div className="flex justify-between items-center mb-2.5">
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Grado de Autoconocimiento</span>
+            <span className="text-sm font-black text-indigo-600">{val(proyectoPct, '%')}</span>
+          </div>
+          <div className="w-full bg-slate-200/80 rounded-full h-3 overflow-hidden relative">
+            <div
+              className="h-full rounded-full transition-all duration-1000 bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-600"
+              style={{ width: `${proyectoPct ?? 0}%` }}
+            />
+          </div>
+          <p className="text-[10px] text-slate-400 font-semibold mt-2.5 italic leading-relaxed">
+            {proyectoPct === 100 ? '🎉 Autoconocimiento completado — Has estructurado tu oferta de valor y estás listo para postular con estrategia ejecutiva.' :
+             proyectoPct >= 70  ? 'Excelente avance de autoconocimiento. Revisa tus pilares para habilitar tu infografía.' :
+             proyectoPct >= 40  ? 'Buen progreso. Define tus bloques de horario y habilidades para avanzar.' :
+             'Define tus habilidades y aspiraciones para estructurar tu perfil estratégico.'}
+          </p>
+        </div>
+
+        {/* Grilla responsiva de los 5 Pilares */}
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3.5 mt-6 pt-5 border-t border-slate-100">
+          {pilares.map((p, i) => (
+            <div key={i} className={`flex items-center gap-2.5 p-3 rounded-2xl border transition-all ${
+              p.completed ? 'bg-slate-50/50 border-slate-100/60' : 'bg-white border-dashed border-slate-200'
+            }`}>
+              {p.completed ? (
+                <CheckCircle size={18} weight="fill" className="text-emerald-500 shrink-0" />
+              ) : (
+                <div className="w-4.5 h-4.5 rounded-full border-2 border-slate-200 shrink-0 flex items-center justify-center text-[9px] font-black text-slate-400">
+                  {p.pct}%
+                </div>
+              )}
+              <span className={`text-[11px] font-bold truncate ${p.completed ? 'text-slate-800' : 'text-slate-400'}`}>
+                {p.label}
+              </span>
+            </div>
+          ))}
+        </div>
       </section>
 
-      {/* ── CUADRO CENTRAL: GRÁFICO INTERACTIVO & PROYECTO ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-[1.3fr_1fr] gap-8">
+      {/* ── SECCIÓN CENTRAL A DOS COLUMNAS ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_1fr] gap-8">
         
-        {/* Gráfico de compatibilidad */}
-        <section className="bg-white border border-slate-100 rounded-3xl p-6 sm:p-7 shadow-[0_8px_30px_rgb(0,0,0,0.015)] relative flex flex-col justify-between min-h-[360px]">
+        {/* COLUMNA IZQUIERDA: RENDIMIENTO & METRICAS */}
+        <div className="space-y-8">
           
-          <div className="flex justify-between items-start gap-4">
+          {/* Rendimiento de Carrera (Circular Gauge) */}
+          <section className="bg-white border border-slate-100 rounded-3xl p-6 shadow-[0_8px_30px_rgb(0,0,0,0.01)] flex flex-col justify-between min-h-[300px]">
             <div>
-              <p className="text-[10px] font-black uppercase text-indigo-500 tracking-[0.2em] flex items-center gap-1">
-                <ChartBar size={14} /> Rendimiento de Búsqueda
+              <p className="text-[10px] font-black uppercase text-indigo-600 tracking-[0.25em] flex items-center gap-1.5">
+                <ChartLineUp size={14} weight="fill" /> Rendimiento de Carrera
               </p>
-              <h3 className="text-lg font-black text-slate-800 tracking-tight mt-1 flex items-center gap-1.5">
-                Historial de Match Promedio
-                {isDemoChart && (
-                  <span className="text-[8px] font-bold tracking-widest text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full uppercase">Ejemplo</span>
-                )}
-              </h3>
+              <h3 className="text-base font-black text-slate-800 tracking-tight mt-1">Historial de Match Promedio</h3>
+              <p className="text-[11px] text-slate-400 mt-1 font-medium">Compatibilidad de tu CV frente al mercado objetivo.</p>
             </div>
-            <div className="text-right">
-              <span className="text-2xl font-black text-slate-800 leading-none">{val(metricas.matchPromedio || 85, '%')}</span>
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">Nivel General</p>
-            </div>
-          </div>
 
-          {/* Canvas SVG interactivo */}
-          <div className="relative my-4 flex-1 flex items-center justify-center">
-            
-            {/* Tooltip personalizado flotante */}
-            {hoveredPoint && (
-              <div 
-                className="absolute bg-white/95 backdrop-blur-md border border-slate-200/60 p-3 rounded-2xl shadow-xl z-20 pointer-events-none transition-all duration-200 animate-in fade-in zoom-in-95 flex flex-col gap-0.5"
-                style={{ 
-                  left: `${(hoveredPoint.x / 500) * 100}%`, 
-                  top: `${(hoveredPoint.y / 200) * 100}%`,
-                  transform: 'translate(-50%, -115%)'
-                }}
-              >
-                <p className="text-[9px] font-black uppercase text-indigo-500 tracking-wider leading-none">{hoveredPoint.date}</p>
-                <p className="text-xs font-black text-slate-800 truncate max-w-[155px] mt-1">{hoveredPoint.title}</p>
-                <p className="text-[10px] text-slate-400 font-bold truncate max-w-[155px]">{hoveredPoint.company}</p>
-                <div className="flex items-center gap-1.5 mt-1.5 pt-1.5 border-t border-slate-100">
-                  <span className="text-sm font-black text-slate-800">{hoveredPoint.score}%</span>
-                  <span className="text-[9px] font-black text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full uppercase tracking-wider">Match</span>
-                </div>
-              </div>
-            )}
+            {/* Dial circular SVG Premium de Éxito */}
+            <div className="relative my-4 flex items-center justify-center">
+              
+              <svg viewBox="0 0 200 200" className="w-full h-full max-h-[160px] overflow-visible select-none">
+                <defs>
+                  <linearGradient id="indigoPurpleGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#4f46e5" />
+                    <stop offset="100%" stopColor="#8b5cf6" />
+                  </linearGradient>
+                </defs>
 
-            <svg viewBox="0 0 500 200" className="w-full h-full max-h-[220px] select-none overflow-visible">
-              <defs>
-                {/* Gradiente de Línea */}
-                <linearGradient id="lineGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" stopColor="#6366f1" />
-                  <stop offset="100%" stopColor="#a855f7" />
-                </linearGradient>
-                {/* Gradiente de Fondo */}
-                <linearGradient id="fillGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-                  <stop offset="0%" stopColor="#818cf8" stopOpacity="0.25" />
-                  <stop offset="100%" stopColor="#c084fc" stopOpacity="0.0" />
-                </linearGradient>
-              </defs>
+                {/* Círculo base de fondo */}
+                <circle cx="100" cy="100" r={radioGauge} fill="none" stroke="#f1f5f9" strokeWidth="10" />
 
-              {/* Guías de fondo */}
-              <line x1="30" y1="50" x2="470" y2="50" stroke="#f1f5f9" strokeWidth="1" />
-              <line x1="30" y1="105" x2="470" y2="105" stroke="#f1f5f9" strokeWidth="1" />
-              <line x1="30" y1="160" x2="470" y2="160" stroke="#f1f5f9" strokeWidth="1" />
+                {/* Anillo de Match Score */}
+                <circle 
+                  cx="100" 
+                  cy="100" 
+                  r={radioGauge} 
+                  fill="none" 
+                  stroke={isDemoGauge ? "#cbd5e1" : "url(#indigoPurpleGrad)"} 
+                  strokeWidth="10" 
+                  strokeDasharray={circunferenciaGauge}
+                  strokeDashoffset={strokeOffset}
+                  strokeLinecap="round" 
+                  transform="rotate(-90 100 100)"
+                  className="transition-all duration-1000 ease-out"
+                />
 
-              {/* Línea objetivo del 85% Match Target */}
-              <line x1="30" y1={160 - (85 / 100) * 110} x2="470" y2={160 - (85 / 100) * 110} stroke="#cbd5e1" strokeWidth="1" strokeDasharray="3 3" />
-              <text x="470" y={155 - (85 / 100) * 110} textAnchor="end" fill="#94a3b8" fontSize="8" fontWeight="bold" letterSpacing="1" className="uppercase">Meta 85%</text>
+                {/* Meta discontinua exterior de Target (85%) */}
+                <circle cx="100" cy="100" r="66" fill="none" stroke="#cbd5e1" strokeWidth="1" strokeDasharray="3 3" />
+                <text x="100" y="27" textAnchor="middle" fill="#94a3b8" fontSize="6.5" fontWeight="black" letterSpacing="1" className="uppercase">Target 85%</text>
 
-              {/* Relleno de área */}
-              {fillPath && <path d={fillPath} fill="url(#fillGrad)" />}
-
-              {/* Línea principal */}
-              {linePath && <path d={linePath} fill="none" stroke="url(#lineGrad)" strokeWidth="3.5" strokeLinecap="round" />}
-
-              {/* Nodos de datos interactivos */}
-              {points.map((pt, idx) => {
-                const isHovered = hoveredPoint?.id === pt.id || (isDemoChart && hoveredPoint?.label === pt.label)
-                return (
-                  <g key={pt.id || idx} className="cursor-pointer">
-                    {/* Anillo de pulso al pasar mouse */}
-                    {isHovered && (
-                      <circle cx={pt.x} cy={pt.y} r="10" fill="#6366f1" fillOpacity="0.2" className="animate-ping" />
-                    )}
-                    {/* Círculo base exterior */}
-                    <circle 
-                      cx={pt.x} 
-                      cy={pt.y} 
-                      r={isHovered ? "6" : "4.5"} 
-                      fill="#ffffff" 
-                      stroke={isHovered ? "#a855f7" : "#6366f1"} 
-                      strokeWidth={isHovered ? "3.5" : "2.5"}
-                      onMouseEnter={() => setHoveredPoint(pt)}
-                      onMouseLeave={() => setHoveredPoint(null)}
-                      className="transition-all duration-200"
-                    />
-                  </g>
-                )
-              })}
-
-              {/* Etiquetas del eje X */}
-              {points.map((pt, idx) => (
-                <text key={idx} x={pt.x} y="182" textAnchor="middle" fill="#94a3b8" fontSize="9" fontWeight="bold">
-                  {pt.label || pt.date}
+                {/* Texto Central */}
+                <text x="100" y="102" textAnchor="middle" fill="#1e293b" fontSize="24" fontWeight="900" letterSpacing="-1">
+                  {val(isDemoGauge ? 85 : matchScore, '%')}
                 </text>
-              ))}
-            </svg>
-          </div>
+                <text x="100" y="120" textAnchor="middle" fill="#94a3b8" fontSize="8" fontWeight="black" letterSpacing="1" className="uppercase">
+                  {isDemoGauge ? 'Simulado' : 'Match Promedio'}
+                </text>
+              </svg>
 
-          <div className="flex justify-between items-center text-[10px] text-slate-400 font-bold uppercase tracking-wider pt-3 border-t border-slate-50">
-            <span className="flex items-center gap-1"><Clock /> Últimos 7 análisis realizados</span>
-            <span>Estabilidad: 98.4%</span>
-          </div>
-        </section>
+              {/* Botón dinámico en el Gauge */}
+              {isDemoGauge && (
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center mt-12 bg-white px-2 py-0.5 border border-slate-100 rounded-full shadow-sm">
+                  <span className="text-[8px] font-black tracking-widest text-slate-400 uppercase">Sin análisis aún</span>
+                </div>
+              )}
+            </div>
 
-        {/* Estatus del Proyecto Laboral */}
+            <div className="flex justify-between items-center text-[10px] text-slate-400 font-bold uppercase tracking-wider pt-3 border-t border-slate-50">
+              <span className="flex items-center gap-1"><Clock /> Frecuencia de compatibilidad</span>
+              <Link to="/cv-vs-job" className="text-indigo-600 hover:text-indigo-700 font-black">
+                Medir Match →
+              </Link>
+            </div>
+          </section>
+
+          {/* Grilla Compacta de Actividad */}
+          <section className="grid grid-cols-2 gap-4">
+            <MetricCard
+              icon={FileMagnifyingGlass}
+              iconBg="bg-indigo-500"
+              label="CVs optimizados"
+              value={val(metricas.cvsOptimizados)}
+              sub={!loadingMetricas && (metricas.cvsOptimizados ?? 0) === 0 ? 'Sin optimizar' : 'estándar Harvard'}
+              to="/cv-optimizer"
+              isEmpty={!loadingMetricas && (metricas.cvsOptimizados ?? 0) === 0}
+              ctaLabel="Optimizar CV"
+            />
+            <MetricCard
+              icon={MagnifyingGlass}
+              iconBg="bg-blue-500"
+              label="CVs vs Vacante"
+              value={val(metricas.cvsVsVacante)}
+              sub={!loadingMetricas && (metricas.cvsVsVacante ?? 0) === 0 ? 'Sin medir' : 'coincidencias de vacantes'}
+              to="/cv-vs-job"
+              isEmpty={!loadingMetricas && (metricas.cvsVsVacante ?? 0) === 0}
+              ctaLabel="Medir Match"
+            />
+          </section>
+        </div>
+
+        {/* COLUMNA DERECHA: BIENESTAR EMOCIONAL (HERO BLOCK DE APOYO) */}
         <section className="bg-white border border-slate-100 rounded-3xl p-6 sm:p-7 shadow-[0_8px_30px_rgb(0,0,0,0.015)] flex flex-col justify-between">
           <div>
             <div className="flex justify-between items-center">
               <div>
-                <p className="text-[10px] font-black uppercase text-indigo-500 tracking-[0.2em] flex items-center gap-1">
-                  <Target size={14} /> Plan de Carrera
+                <p className="text-[10px] font-black uppercase text-indigo-600 tracking-[0.25em] flex items-center gap-1.5">
+                  <Heart size={14} weight="fill" className="text-rose-500 animate-pulse" /> Soporte Emocional
                 </p>
-                <h3 className="text-lg font-black text-slate-800 tracking-tight mt-1">Gerente de mi Búsqueda</h3>
+                <h3 className="text-lg font-black text-slate-800 tracking-tight mt-1">Bienestar de Búsqueda</h3>
+                <p className="text-xs text-slate-400 mt-1 font-medium">Monitorear tu salud mental influye directamente en tu confianza en entrevistas.</p>
               </div>
-              <Link to="/proyecto-laboral" className="text-xs font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 px-3.5 py-1.5 rounded-xl transition-all active:scale-95">
-                {proyectoPct === 0 ? 'Iniciar' : 'Revisar'}
+              <Link to="/bienestar" className="text-[10px] font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 px-3.5 py-1.5 rounded-xl transition-all active:scale-95">
+                Ver Bienestar
               </Link>
             </div>
 
-            {/* Barra de progreso elegante */}
-            <div className="mt-5 bg-slate-50 p-4 rounded-2xl border border-slate-100/50">
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-xs font-black text-slate-500 uppercase tracking-widest">Progreso de Estrategia</span>
-                <span className="text-sm font-black text-indigo-600">{val(proyectoPct, '%')}</span>
+            {/* Sub-Bloque 1: Micro-Calendario Cromático de las últimas 2 semanas (14 días) */}
+            <div className="mt-5 p-4 bg-slate-50 border border-slate-100/50 rounded-2xl">
+              <div className="flex justify-between items-center mb-3">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1"><CalendarBlank /> Estado de Ánimo Diario</span>
+                <Link to="/bienestar" className="text-[9px] font-bold text-indigo-600 hover:underline">Check-in diario</Link>
               </div>
-              <div className="w-full bg-slate-200 rounded-full h-3 overflow-hidden relative">
-                <div
-                  className={`h-full rounded-full transition-all duration-1000 bg-gradient-to-r from-indigo-500 to-purple-600`}
-                  style={{ width: `${proyectoPct ?? 0}%` }}
-                />
-              </div>
-              <p className="text-[10px] text-slate-400 font-semibold mt-2.5 italic">
-                {proyectoPct === 100 ? '🎉 Plan completo — listo para postular con ventaja ejecutiva.' :
-                 proyectoPct >= 70  ? 'Excelente avance. Afina los últimos pilares pendientes.' :
-                 proyectoPct >= 40  ? 'Vas por buen camino, completa tus bloques de horario.' :
-                 'Completa las secciones de autoconocimiento para desbloquear tu infografía.'}
-              </p>
-            </div>
-          </div>
-
-          {/* Desglose de los 5 pilares estratégicos */}
-          <div className="space-y-2 mt-4 pt-4 border-t border-slate-50">
-            <h4 className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3">Estatus de Pilares</h4>
-            <div className="grid grid-cols-2 gap-2">
-              {pilares.map((p, i) => (
-                <div key={i} className="flex items-center gap-2 bg-slate-50/50 border border-slate-100 p-2.5 rounded-2xl">
-                  {p.completed ? (
-                    <CheckCircle size={18} weight="fill" className="text-emerald-500 shrink-0" />
-                  ) : (
-                    <div className="w-4.5 h-4.5 rounded-full border-2 border-slate-200 shrink-0 flex items-center justify-center text-[9px] font-bold text-slate-400">
-                      {p.pct}%
+              
+              <div className="grid grid-cols-7 gap-2">
+                {ultimos14Dias.map((d, i) => {
+                  const em = d.data ? EMOCIONES[d.data.emocion] : null
+                  const Icon = em ? em.Icon : null
+                  return (
+                    <div key={d.key || i} className="flex flex-col items-center gap-1" title={em ? `Ánimo: ${em.label}` : 'Sin registro'}>
+                      <div className={`w-8 h-8 rounded-full border flex items-center justify-center transition-all ${
+                        em ? em.bg + ' ' + em.text + ' ' + em.bg.replace('bg-', 'border-').split(' ')[0] : 'bg-white border-dashed border-slate-200'
+                      }`}>
+                        {Icon ? <Icon size={14} weight="fill" /> : <span className="text-slate-300 text-xs">·</span>}
+                      </div>
+                      <span className="text-[8px] text-slate-400 font-bold uppercase">{d.label.slice(0, 3)}</span>
                     </div>
-                  )}
-                  <span className={`text-[11px] font-bold truncate ${p.completed ? 'text-slate-700' : 'text-slate-400'}`}>
-                    {p.label}
-                  </span>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Sub-Bloque 2: Radar de la Semana en Barras Horizontales */}
+            <div className="mt-5 p-4 bg-slate-50 border border-slate-100/50 rounded-2xl">
+              <div className="flex justify-between items-center mb-3">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1"><TrendUp /> Radar de Bienestar Semanal</span>
+                <Link to="/bienestar" className="text-[9px] font-bold text-indigo-600 hover:underline">Evaluar mi semana</Link>
+              </div>
+
+              <div className="space-y-3">
+                {radarValores.map(eje => (
+                  <div key={eje.id} className="flex items-center gap-3">
+                    <span className="text-[10px] font-bold text-slate-600 w-16 truncate leading-none">{eje.label}</span>
+                    <div className="flex-1 bg-slate-200 rounded-full h-2 overflow-hidden relative">
+                      <div 
+                        className={`h-full rounded-full transition-all duration-1000 ${eje.bar}`} 
+                        style={{ width: `${(eje.valor / 5) * 100}%` }}
+                      />
+                    </div>
+                    <span className={`text-[10px] font-black w-6 text-right leading-none ${eje.color}`}>{eje.valor}/5</span>
+                  </div>
+                ))}
+              </div>
+
+              {!radarCompleto && (
+                <div className="mt-4 pt-3 border-t border-slate-200/55 text-center">
+                  <p className="text-[9px] text-slate-400 font-semibold mb-2">Aún no has registrado tu radar emocional de esta semana.</p>
+                  <Link to="/bienestar" className="inline-block text-[9px] font-black text-indigo-600 bg-white border border-indigo-100 px-3 py-1 rounded-xl shadow-sm hover:bg-indigo-50 transition-colors">
+                    Iniciar Evaluación Semanal
+                  </Link>
                 </div>
-              ))}
+              )}
             </div>
           </div>
 
+          <p className="text-[9.5px] text-slate-400 text-center leading-relaxed mt-4 italic font-medium">
+            💡 Mantener equilibrada tu salud emocional reduce la ansiedad en entrevistas de forma comprobada.
+          </p>
         </section>
       </div>
-
-      {/* ── PRÓXIMA ACCIÓN (ACTION CENTER) ── */}
-      {!loadingMetricas && proyectoPct !== null && (() => {
-        let accion = null
-        if ((proyectoPct ?? 0) < 100) {
-          accion = { msg: 'Estructura tu plan de autoconocimiento en tu Proyecto Laboral para optimizar el match.', cta: 'Completar Plan', to: '/proyecto-laboral' }
-        } else if ((metricas.cvsVsVacante ?? 0) === 0) {
-          accion = { msg: 'Mide la compatibilidad de tu CV contra una vacante real y detecta brechas.', cta: 'Medir Match', to: '/cv-vs-job' }
-        } else if ((metricas.vacantesGuardadas ?? 0) === 0) {
-          accion = { msg: 'Guarda tu primer empleo en el Pipeline de postulaciones para monitorear tu avance.', cta: 'Rastrear Proceso', to: '/pipeline' }
-        } else if ((pipelineStats?.entrevistas ?? 0) > 0) {
-          accion = { msg: 'Tienes entrevistas programadas. Ensaya tus respuestas con nuestro simulador IA.', cta: 'Simular Entrevista', to: '/entrevista' }
-        }
-        if (!accion) return null
-        return (
-          <section className="bg-white border border-slate-100 rounded-3xl p-5 shadow-[0_8px_30px_rgb(0,0,0,0.01)] flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-3 w-full sm:w-auto">
-              <div className="w-10 h-10 rounded-2xl bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center shrink-0 shadow-sm">
-                <Target size={20} weight="duotone" />
-              </div>
-              <div>
-                <p className="text-[10px] font-black uppercase text-indigo-600 tracking-widest">Siguiente Paso Recomendado</p>
-                <p className="text-xs font-bold text-slate-800 mt-0.5">{accion.msg}</p>
-              </div>
-            </div>
-            <Link to={accion.to}
-              className="shrink-0 flex items-center gap-1.5 bg-slate-900 text-white font-bold text-xs px-5 py-3 rounded-2xl hover:bg-slate-800 transition-colors whitespace-nowrap active:scale-95 self-end sm:self-center">
-              {accion.cta} <ArrowUpRight size={13} weight="bold" />
-            </Link>
-          </section>
-        )
-      })()}
-
-      {/* ── CÓDIGO REDIMIDO ── */}
-      {codigoRedimido && (
-        <div className="flex items-center gap-3 bg-emerald-50 border border-emerald-100 rounded-3xl px-5 py-4 shadow-[0_8px_30px_rgb(0,0,0,0.005)]">
-          <div className="w-9 h-9 rounded-2xl bg-emerald-500/10 flex items-center justify-center shrink-0 text-emerald-600 border border-emerald-100">
-            <Ticket size={18} weight="duotone" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-xs font-bold text-emerald-700">
-              Código de Acceso <span className="font-mono font-black tracking-widest bg-emerald-100 px-1.5 py-0.5 rounded text-emerald-800">{codigoRedimido.access_codes?.code}</span> Canjeado
-            </p>
-            <p className="text-[10px] text-emerald-600 font-semibold mt-1">
-              Plan <span className="capitalize font-black">{codigoRedimido.plan_granted}</span> activo desde el {new Date(codigoRedimido.redeemed_at).toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' })}
-            </p>
-          </div>
-        </div>
-      )}
 
       {/* ── PIPELINE RESUMEN ── */}
       {pipelineStats && pipelineStats.total > 0 && (
