@@ -8,6 +8,7 @@
 - **Límite de Generación y Usabilidad**: Integración de un límite estricto de 10 generaciones en `cvController.js` para flujos de demostración, permitiendo descarga infinita de infografías existentes. Enlace directo `_blank` en `ProyectoLaboral.jsx` para abrir el reporte visual sin salir de la plataforma.
 - **Rebranding "Mis documentos"**: Se renombraron de manera coherente todas las referencias a "Mis CVs" por "Mis documentos" en el menú, panels de acción, vistas de optimización y listado.
 - **Dashboard Ejecutivo Premium (Opción B)**: Transformación radical de `Dashboard.jsx` con avatar Apple, campana de notificaciones con sugerencias dinámicas basadas en pilares, gráficos interactivos de ondas SVG (Cubic Bezier) con tooltip flotante de detalles y meta guía de 85%, y un desglose modular del Proyecto de Carrera con checks de pilares activos.
+- **Saneamiento del Historial (Bugfix)**: Filtrado estricto en la base de datos y en la lógica del cliente (`CVOptimizer.jsx`) para excluir filas JSON que comiencen con '{', garantizando que en el optimizador de CV solo se listen CVs estándar Harvard libres de distorsiones visuales.
 
 ### Archivos Clave Modificados
 - `backend/src/controllers/cvController.js` (Límites de generación)
