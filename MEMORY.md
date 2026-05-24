@@ -27,6 +27,10 @@ OPTIMA-CV (ELVIA) is a dual-interface Human Resources & Career Optimization ecos
 15. **B2B Co-branding Scaling**: Increased the Telefónica logo representation by 50% across all user and admin-facing B2B pages (`LandingEmpresa`, `RegistroEmpresa`, `LoginHR`, `Header`, `CompanyAdmin`).
 16. **B2B Fresh Environment Isolation**: Automated script (`allowlist_mario.js`) to reset Supabase and pre-approve test accounts (e.g. `mario.bahamonde@telefonica.com`) under corporate tenants so they can test onboarding and welcome Wizards clean from scratch.
 17. **B2B HR Admin Elevation**: Elevated permissions (`setup_hr_admin.js`) for `hr.telefonica@elvia.demo` to `company_admin` to unlock the HR Admin analytics dashboard (/empresas/slug/hr).
+18. **Visual Infographic Redesign**: Overhauled the Autoconocimiento Infographic (`ReporteLaboral.jsx`) using a sober Apple-style aesthetic, showcasing the user's authentic pitch, a 2x2 IKIGAI Grid with pastel accents, culture, schedule, and active resources.
+19. **Infographic Limits & Usability**: Enforced a 10-generation limit (optimized for demos) in `cvController.js` and updated the UI in `ProyectoLaboral.jsx` to open the visual report in a new tab (`_blank`) so the user never exits the platform.
+20. **Rebranding to 'Mis documentos'**: Renamed 'Mis CVs' to 'Mis documentos' globally across components (`Sidebar.jsx`, `JobActionPanel.jsx`) and views (`CVOptimizer.jsx`, `CVvsJob.jsx`, `MisCVs.jsx`) for complete branding consistency.
+21. **Executive UX Dashboard (Light Mode Apple Style)**: Redesigned the main dashboard (`Dashboard.jsx`) with a premium avatar header, dynamic help bell notifications dropdown, and an interactive SVG cubic Bezier performance wave chart with glassmorphism tooltips and meta guidelines.
 
 ### Crucial Directives
 - **Performance**: Always use `sessionStorage` caching (e.g., `vacante_prefill`, `entrevista_prefill`).
@@ -34,4 +38,4 @@ OPTIMA-CV (ELVIA) is a dual-interface Human Resources & Career Optimization ecos
 - **Identity Enforcement**: `extractProfile` prevents unauthorized scraping of 3rd party CVs by matching name/email.
 - **Shell Consistency**: **Windows PowerShell**. Use `;` for chain-commands.
 
-*Log automatically updated by Antigravity on 2026-05-20.*
+*Log automatically updated by Antigravity on 2026-05-24.*

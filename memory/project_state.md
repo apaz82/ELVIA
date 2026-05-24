@@ -1,7 +1,7 @@
 # OPTIMA-CV · Project State
 
-## Última Actualización: 2026-04-05 (Sesión 2)
-**Estado de Entrega**: Fase de Onboarding y Refinamiento UI/UX Finalizada (100%).
+## Última Actualización: 2026-05-24 (Sesión 3)
+**Estado de Entrega**: Fase de Onboarding, Límites B2B, Rebranding global de documentos y Dashboard Ejecutivo Finalizada (100%).
 
 ---
 
@@ -24,14 +24,15 @@
 
 ---
 
-## 2. Persistencia de CVs (`original` vs `optimize` vs `match`)
+## 2. Persistencia de CVs e Infografías (`original` vs `optimize` vs `match`)
 
 - **CV Original (Inicial)**:
   *   **Subida**: El endpoint `/api/cv/extract-profile` guarda el CV en `cv_results` con `tipo: original`.
   *   **Creación**: El generador desde cero guarda el resultado con `tipo: original`.
-  *   **Vista**: Se muestran en la pestaña "CV Inicial" de `MisCVs.jsx`.
+  *   **Vista**: Se muestran en la pestaña "CV Inicial" de `MisCVs.jsx` (Renombrado global a "Mis documentos").
 - **CV Optimizado**: Generado en la sección "Optimizar CV" (`tipo: optimize`).
 - **CV vs Vacante**: Resultado del ajuste a una vacante específica (`tipo: match`).
+- **Infografía de Autoconocimiento**: Generado en la sección "Proyecto Laboral" (`tipo: optimize` y `metadata.subtipo: infografia_proyecto`). Cuenta con un límite estricto de 10 generaciones en el backend.
 
 ---
 
