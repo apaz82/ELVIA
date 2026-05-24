@@ -97,7 +97,7 @@ export default function CVOptimizer() {
     )
   }
 
-  // Cargar CVs optimizados existentes del usuario
+  // Cargar CVs optimizados existentes del usuario (excluyendo infografías JSON)
   useEffect(() => {
     if (!user) return
     supabase
@@ -105,8 +105,15 @@ export default function CVOptimizer() {
       .select('id, contenido, metadata, created_at')
       .eq('user_id', user.id)
       .eq('tipo', 'optimize')
+      .not('contenido', 'like', '{%')
       .order('created_at', { ascending: false })
-      .then(({ data }) => setCvsExistentes(data || []))
+      .then(({ data }) => {
+        const filtrados = (data || []).filter(cv => {
+          if (cv.contenido && cv.contenido.trim().startsWith('{')) return false;
+          return true;
+        });
+        setCvsExistentes(filtrados);
+      })
   }, [user])
 
   const toggleInfografia = async () => {
@@ -186,14 +193,20 @@ export default function CVOptimizer() {
         await supabase.from('cv_results').delete().in('id', aEliminar)
       }
 
-      // Recargar lista de CVs existentes
+      // Recargar lista de CVs existentes (excluyendo infografías JSON)
       const { data: actualizados } = await supabase
         .from('cv_results')
         .select('id, contenido, metadata, created_at')
         .eq('user_id', user.id)
         .eq('tipo', 'optimize')
+        .not('contenido', 'like', '{%')
         .order('created_at', { ascending: false })
-      setCvsExistentes(actualizados || [])
+
+      const filtradosActualizados = (actualizados || []).filter(cv => {
+        if (cv.contenido && cv.contenido.trim().startsWith('{')) return false;
+        return true;
+      });
+      setCvsExistentes(filtradosActualizados)
       setResultadoOptimize(data)
       setTabActiva('cv')
       refreshUsage()
