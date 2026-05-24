@@ -52,12 +52,15 @@ export default function AiChatBot() {
   const { messages, inputVal, setInputVal, loading, sendMessage, mensajesUsuario, maxMensajes, limitAlcanzado } = useChat();
   const messagesEndRef = useRef(null);
 
-  // Auto-abrir en Dashboard (solo la primera vez que se monta en /dashboard)
+  // Auto-abrir en Dashboard solo la primera vez que el usuario ve el dashboard (ever)
   useEffect(() => {
-    if (location.pathname === '/dashboard') {
-      const timer = setTimeout(() => setIsOpen(true), 800)
-      return () => clearTimeout(timer)
-    }
+    if (location.pathname !== '/dashboard') return
+    if (localStorage.getItem('elvia_bot_greeted')) return
+    const timer = setTimeout(() => {
+      setIsOpen(true)
+      localStorage.setItem('elvia_bot_greeted', '1')
+    }, 1400)
+    return () => clearTimeout(timer)
   }, [])
 
   // Auto-scroll to bottom of chat

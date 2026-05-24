@@ -15,6 +15,7 @@ import {
 } from '@phosphor-icons/react'
 import PlanBanner from '../components/common/PlanBanner'
 import HelpBadge from '../components/common/HelpBadge'
+import { useTenant } from '../context/TenantContext'
 
 // ─── Constantes de Bienestar ──────────────────────────────────────────────────
 const EMOCIONES = {
@@ -69,6 +70,7 @@ function MetricCard({ icon: Icon, iconBg, label, value, sub, to, isEmpty, ctaLab
 
 export default function Dashboard() {
   const { user, perfil, jpData, isPaidPlan, trialExpired, trialDaysLeft, refreshUsage } = useAuth()
+  const { tenant, isB2B } = useTenant()
 
   const [metricas, setMetricas] = useState({
     cvsOptimizados: null,
@@ -259,13 +261,15 @@ export default function Dashboard() {
       type: 'info'
     })
   }
-  notificaciones.push({
-    id: 'notif_welcome',
-    title: 'Ecosistema corporativo',
-    desc: 'Tu cuenta de Telefónica B2B está validada con acceso ejecutivo.',
-    to: '/mi-plan',
-    type: 'success'
-  })
+  if (isB2B) {
+    notificaciones.push({
+      id: 'notif_welcome',
+      title: 'Ecosistema corporativo',
+      desc: `Tu cuenta de ${tenant.name} está validada con acceso ejecutivo.`,
+      to: '/mi-plan',
+      type: 'success'
+    })
+  }
 
   // Calcular check-ins reales de las últimas 2 semanas (14 días)
   const ultimos14Dias = Array.from({ length: 14 }, (_, i) => {
@@ -330,7 +334,7 @@ export default function Dashboard() {
               <span className="no-print inline-block align-middle ml-2"><HelpBadge id="dashboard.main" /></span>
             </h1>
             <p className="text-[11px] text-slate-400 font-bold tracking-wide uppercase mt-1 flex items-center gap-1.5">
-              <ShieldCheck size={14} className="text-emerald-500" weight="fill" /> Ecosistema de Carrera · Telefónica Corporativo
+              <ShieldCheck size={14} className="text-emerald-500" weight="fill" /> Ecosistema de Carrera · {isB2B ? `${tenant.name} Corporativo` : 'ELVIA® Pro'}
             </p>
           </div>
         </div>
