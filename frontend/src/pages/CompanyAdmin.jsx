@@ -10,6 +10,7 @@ import * as PI from '@phosphor-icons/react'
 import { toast } from 'react-hot-toast'
 import { useAuth } from '../context/AuthContext'
 import { useTenant, DEFAULT_TENANT } from '../context/TenantContext'
+import { useSectorLabels } from '../hooks/useSectorLabels'
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:3001'
 
@@ -37,6 +38,7 @@ function InviteModal({ onClose, onSubmit, primary }) {
   const [email, setEmail]   = useState('')
   const [nombre, setNombre] = useState('')
   const [loading, setLoading] = useState(false)
+  const L = useSectorLabels()
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -57,7 +59,7 @@ function InviteModal({ onClose, onSubmit, primary }) {
             <PI.PaperPlaneTilt size={20} weight="duotone" />
           </div>
           <div>
-            <h3 className="text-lg font-bold text-gray-900">Invitar colaborador</h3>
+            <h3 className="text-lg font-bold text-gray-900">{L.inviteMember}</h3>
             <p className="text-sm text-gray-500">Enviaremos un email con instrucciones para activar la cuenta.</p>
           </div>
         </div>
@@ -73,10 +75,10 @@ function InviteModal({ onClose, onSubmit, primary }) {
             />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-gray-700 mb-1.5">Email corporativo</label>
+            <label className="block text-xs font-semibold text-gray-700 mb-1.5">Email institucional</label>
             <input
               type="email" value={email} onChange={e => setEmail(e.target.value)} required
-              placeholder="maria@empresa.com"
+              placeholder={L.csvSampleEmail}
               className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2"
               style={{ '--tw-ring-color': `${primary}40` }}
             />
@@ -106,6 +108,7 @@ function CsvUploadModal({ onClose, onSubmit, primary, defaultCohort }) {
   const [errors, setErrors] = useState([])
   const [cohort, setCohort] = useState(defaultCohort || '')
   const [loading, setLoading] = useState(false)
+  const L = useSectorLabels()
 
   const handleFile = async (f) => {
     setFile(f)
@@ -167,7 +170,7 @@ function CsvUploadModal({ onClose, onSubmit, primary, defaultCohort }) {
   }
 
   const downloadTemplate = () => {
-    const csv = 'email,nombre,apellido,cohort,area,cargo_actual\nejemplo@empresa.com,Juan,Perez,telefonica-2026-05,Comercial,Account Manager\n'
+    const csv = `email,nombre,apellido,cohort,area,cargo_actual\n${L.csvSampleEmail},Juan,Perez,cohort-2026,Programa,${L.member}\n`
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -191,7 +194,7 @@ function CsvUploadModal({ onClose, onSubmit, primary, defaultCohort }) {
             <PI.UploadSimple size={20} weight="duotone" />
           </div>
           <div className="flex-1">
-            <h3 className="text-lg font-bold text-gray-900">Cargar lista de colaboradores aprobados</h3>
+            <h3 className="text-lg font-bold text-gray-900">{L.uploadListTitle}</h3>
             <p className="text-sm text-gray-500">Sube un CSV con los emails que tendrán acceso al programa.</p>
           </div>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-700"><PI.X size={20} /></button>
@@ -311,6 +314,7 @@ export default function CompanyAdmin() {
   const navigate = useNavigate()
   const { user, session, perfil, loading: authLoading, logout } = useAuth()
   const { tenant, cohort } = useTenant()
+  const L = useSectorLabels()
 
   const [tab, setTab]               = useState('resumen')
   const [company, setCompany]       = useState(null)
@@ -567,7 +571,7 @@ export default function CompanyAdmin() {
             { label: 'CV listo',           value: conCV,                                                  color: '#3B82F6' },
             { label: 'Analizan vacantes',  value: conMatch,                                               color: '#8B5CF6' },
             { label: 'En busqueda activa', value: enBusqueda,                                             color: '#F59E0B' },
-            { label: 'Empleo logrado',     value: empleados,                                              color: '#10B981' },
+            { label: L.successMetric,      value: empleados,                                              color: '#10B981' },
           ]
           const funnelMax = Math.max(1, ...funnelSteps.map(s => s.value))
 
@@ -578,17 +582,17 @@ export default function CompanyAdmin() {
                 Programa <span style={{ color: primary }}>{company?.name || tenant.name}</span>
               </h1>
               <p className="text-sm text-gray-500 mt-1">
-                Métricas agregadas anónimas del programa de transición profesional.
+                Métricas agregadas anónimas del programa de {L.programPurpose}.
                 No accedes a CVs, conversaciones, ni postulaciones individuales.
               </p>
             </div>
 
             {/* KPIs principales */}
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <KpiCard icon={PI.UsersThree} label="Colaboradores activos" value={activados}            sub={`de ${invitados} invitados`}        accent={primary} />
+              <KpiCard icon={PI.UsersThree} label={L.membersActiveLabel} value={activados}            sub={`de ${invitados} invitados`}        accent={primary} />
               <KpiCard icon={PI.TrendUp}    label="Tasa de adopción"      value={`${adopcion}%`}      sub="Activos / Invitados"               accent="#F59E0B" />
-              <KpiCard icon={PI.FileText}   label="CVs generados"         value={stats.cvOptimizerUse || 0} sub={`${conCV} colaboradores con CV`} accent="#8B5CF6" />
-              <KpiCard icon={PI.Confetti}   label="Empleo logrado"        value={empleados}           sub={empleados > 0 ? 'Felicidades 🎉' : 'En proceso'}      accent="#10B981" />
+              <KpiCard icon={PI.FileText}   label="CVs generados"         value={stats.cvOptimizerUse || 0} sub={`${conCV} ${L.members} con CV`} accent="#8B5CF6" />
+              <KpiCard icon={PI.Confetti}   label={L.successMetric}        value={empleados}           sub={empleados > 0 ? 'Felicidades 🎉' : L.successProcess}      accent="#10B981" />
             </div>
 
             {/* Funnel del programa */}
@@ -698,7 +702,7 @@ export default function CompanyAdmin() {
                   <div className="flex-1">
                     <h3 className="text-base font-bold text-gray-900">Outcomes del programa</h3>
                     <p className="text-xs text-gray-500">
-                      <strong className="text-emerald-700">{empleados} colaboradores</strong> reportaron empleo en empresas destino.
+                      <strong className="text-emerald-700">{empleados} {L.members}</strong> {L.successAchieved}.
                     </p>
                   </div>
                 </div>
@@ -733,8 +737,8 @@ export default function CompanyAdmin() {
               <div className="flex-1">
                 <h3 className="text-sm font-bold text-gray-900 mb-1">Tu rol como administrador del programa</h3>
                 <p className="text-sm text-gray-500 leading-relaxed">
-                  Como administrador, puedes invitar colaboradores, ver métricas de uso agregadas y exportar reportes.
-                  <strong className="text-gray-700"> No tienes acceso a los CVs, mensajes con el bot, ni postulaciones individuales</strong> — eso es estrictamente confidencial entre cada colaborador y ELVIA®.
+                  Como administrador, puedes invitar {L.members}, ver métricas de uso agregadas y exportar reportes.
+                  <strong className="text-gray-700"> No tienes acceso a los CVs, mensajes con el bot, ni postulaciones individuales</strong> — eso es estrictamente confidencial entre cada {L.member} y ELVIA®.
                 </p>
               </div>
             </div>
@@ -770,7 +774,7 @@ export default function CompanyAdmin() {
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">Personas del programa</h1>
                 <p className="text-sm text-gray-500 mt-1">
-                  Lista aprobada de colaboradores que pueden acceder al programa.
+                  Lista aprobada de {L.members} que pueden acceder al programa.
                   Solo personas en esta lista pueden activar cuenta.
                 </p>
               </div>
@@ -963,7 +967,7 @@ export default function CompanyAdmin() {
             </div>
 
             <div className="bg-white border border-gray-100 rounded-2xl p-6">
-              <h3 className="text-sm font-bold text-gray-900 mb-4">Datos de la empresa</h3>
+              <h3 className="text-sm font-bold text-gray-900 mb-4">{L.orgData}</h3>
               <dl className="grid sm:grid-cols-2 gap-y-3 gap-x-6 text-sm">
                 <div><dt className="text-gray-400 text-xs uppercase tracking-widest font-bold mb-0.5">Nombre</dt><dd className="text-gray-900 font-semibold">{company?.name || '—'}</dd></div>
                 <div><dt className="text-gray-400 text-xs uppercase tracking-widest font-bold mb-0.5">Slug</dt><dd className="text-gray-900 font-mono text-xs">/{company?.slug || '—'}</dd></div>
@@ -983,7 +987,7 @@ export default function CompanyAdmin() {
                 <li className="flex items-start gap-2"><PI.CheckCircle size={14} className="text-emerald-500 mt-0.5 shrink-0" weight="fill" /> Aislamiento estricto por tenant (RLS Postgres)</li>
                 <li className="flex items-start gap-2"><PI.CheckCircle size={14} className="text-emerald-500 mt-0.5 shrink-0" weight="fill" /> Cifrado en tránsito (TLS 1.3) y en reposo</li>
                 <li className="flex items-start gap-2"><PI.CheckCircle size={14} className="text-emerald-500 mt-0.5 shrink-0" weight="fill" /> Audit log de todas las acciones administrativas</li>
-                <li className="flex items-start gap-2"><PI.CheckCircle size={14} className="text-emerald-500 mt-0.5 shrink-0" weight="fill" /> Sin acceso a datos individuales de colaboradores</li>
+                <li className="flex items-start gap-2"><PI.CheckCircle size={14} className="text-emerald-500 mt-0.5 shrink-0" weight="fill" /> Sin acceso a datos individuales de {L.members}</li>
               </ul>
               <Link
                 to="/privacidad"
