@@ -489,7 +489,7 @@ export default function ReporteLaboral() {
             <img
               src="/LOGOS/ELVIA_logo_fondo_transparente.png"
               alt="ELVIA"
-              style={{ height: 28, objectFit: 'contain', filter: 'brightness(0) invert(1)' }}
+              style={{ height: 28, width: 'auto', objectFit: 'contain' }}
             />
             <span>01 / 01</span>
           </footer>
