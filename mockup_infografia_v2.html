@@ -1,0 +1,903 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mockup V2 · Executive Atlas — ELVIA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300;12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&family=Inter+Tight:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper:      #F5F1E6;
+    --paper-2:    #ECE7D6;
+    --ink:        #0E0D0A;
+    --ink-soft:   #2A2722;
+    --muted:      #6B675E;
+    --muted-2:    #9A968C;
+    --hairline:   #D6D1BF;
+    --hairline-2: #E5E1CF;
+
+    --navy:       #0F1B3D;
+    --navy-2:     #1A2952;
+
+    --marine:     #1E3A8A;
+    --marine-soft:#DCE3F2;
+    --saffron:    #D97706;
+    --saffron-soft:#FBE8C7;
+    --saffron-light:#F2B450;
+    --sage:       #365314;
+    --sage-soft:  #DBE4C9;
+    --plum:       #831843;
+    --plum-soft:  #F2D6E1;
+
+    --display: "Bricolage Grotesque", system-ui, sans-serif;
+    --body:    "Inter Tight", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --mono:    "JetBrains Mono", ui-monospace, Menlo, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    background: #D9D5C8;
+    color: var(--ink);
+    font-family: var(--body);
+    font-feature-settings: "ss01", "cv11", "tnum", "ss03";
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+  }
+  .stage {
+    min-height: 100vh;
+    padding: 48px 24px 96px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 36px;
+  }
+  .stage-title {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink);
+    max-width: 850px;
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  /* ────────────────────────────────────────────────────────── */
+  /*  SHEET  — Letter US (8.5 x 11) @ 100dpi                    */
+  /* ────────────────────────────────────────────────────────── */
+  .sheet {
+    width: 850px;
+    background: var(--paper);
+    box-shadow:
+      0 1px 0 rgba(0,0,0,0.04),
+      0 50px 100px -30px rgba(20,20,18,0.28),
+      0 8px 24px -8px rgba(20,20,18,0.10);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* ─── HEADER (estilo Kelsey: navy + avatar + ID + word cloud) ─── */
+  .hero {
+    position: relative;
+    background: linear-gradient(135deg, var(--navy) 0%, var(--navy-2) 100%);
+    color: white;
+    padding: 36px 44px 32px;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(900px 500px at 100% -20%, rgba(217,119,6,0.18), transparent 55%),
+      radial-gradient(700px 400px at -10% 120%, rgba(30,64,175,0.25), transparent 50%);
+    pointer-events: none;
+  }
+  .hero-grid {
+    position: relative;
+    display: grid;
+    grid-template-columns: 1.05fr 1fr;
+    gap: 32px;
+    align-items: center;
+  }
+
+  /* Avatar + identidad */
+  .hero-id {
+    display: grid;
+    grid-template-columns: 96px 1fr;
+    gap: 22px;
+    align-items: center;
+  }
+  .avatar {
+    width: 96px; height: 96px;
+    border-radius: 50%;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: 36px;
+    letter-spacing: -0.025em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 3px solid rgba(255,255,255,0.15);
+    box-shadow: 0 4px 24px rgba(0,0,0,0.35);
+  }
+  .id-block .kicker {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: var(--saffron-light);
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+  .id-block .name {
+    font-family: var(--display);
+    font-size: 36px;
+    font-weight: 700;
+    letter-spacing: -0.035em;
+    line-height: 0.95;
+    color: white;
+    margin: 0 0 6px;
+  }
+  .id-block .role {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.7);
+    font-weight: 500;
+    line-height: 1.7;
+  }
+  .id-block .role b { color: white; font-weight: 700; }
+
+  /* Word cloud DENTRO del header (estilo Kelsey, en cálidos) */
+  .hero-cloud {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 6px 12px;
+    font-family: var(--display);
+    line-height: 1.0;
+    letter-spacing: -0.03em;
+    justify-content: flex-end;
+    max-height: 130px;
+    overflow: hidden;
+  }
+  .hero-cloud .w  { line-height: 1.0; font-weight: 600; color: var(--saffron-light); }
+  .hero-cloud .w.xl { font-size: 32px; font-weight: 800; color: white; letter-spacing: -0.04em; }
+  .hero-cloud .w.lg { font-size: 22px; font-weight: 700; color: white; }
+  .hero-cloud .w.md { font-size: 16px; font-weight: 600; color: var(--saffron-light); }
+  .hero-cloud .w.sm { font-size: 12px; font-weight: 500; color: rgba(242,180,80,0.7); }
+
+  /* ─── SECTION header (sin §) ──────────────────────────────── */
+  .sec-label {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--muted-2);
+    font-weight: 600;
+  }
+  .sec-label b { color: var(--ink); font-weight: 700; }
+
+  /* ─── STATEMENT block ─────────────────────────────────────── */
+  .statement-block {
+    padding: 40px 44px 36px;
+    background: var(--paper);
+    border-bottom: 1px solid var(--hairline);
+    position: relative;
+    display: grid;
+    grid-template-columns: 80px 1fr;
+    gap: 0;
+    align-items: start;
+  }
+  .statement-block .big-q {
+    font-family: var(--display);
+    font-size: 140px;
+    font-weight: 400;
+    color: var(--saffron);
+    line-height: 0.7;
+    margin-top: 18px;
+    text-align: center;
+    letter-spacing: -0.06em;
+  }
+  .statement-block .body-col {
+    border-left: 2px solid var(--saffron);
+    padding-left: 22px;
+  }
+  .statement-block .label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--saffron);
+    font-weight: 700;
+    margin-bottom: 14px;
+  }
+  .statement-block .quote {
+    font-family: var(--display);
+    font-size: 26px;
+    line-height: 1.18;
+    letter-spacing: -0.022em;
+    font-weight: 500;
+    color: var(--ink);
+    max-width: 660px;
+    margin: 0;
+  }
+  .statement-block .quote em {
+    font-style: normal;
+    background: linear-gradient(transparent 65%, rgba(217,119,6,0.45) 65%);
+    padding: 0 3px;
+    font-weight: 700;
+  }
+
+  /* ─── STATS STRIP ─────────────────────────────────────────── */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    background: var(--paper);
+    border-bottom: 1px solid var(--hairline);
+  }
+  .stats .stat {
+    padding: 20px 24px;
+    border-right: 1px solid var(--hairline);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .stats .stat:last-child { border-right: 0; }
+  .stats .stat .v {
+    font-family: var(--display);
+    font-size: 40px;
+    font-weight: 700;
+    letter-spacing: -0.04em;
+    line-height: 1.0;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+  }
+  .stats .stat .v small {
+    font-size: 18px;
+    font-weight: 500;
+    color: var(--muted);
+    margin-left: 4px;
+  }
+  .stats .stat .k {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 0.20em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 600;
+  }
+  .stats .stat.color-marine .v { color: var(--marine); }
+  .stats .stat.color-saffron .v { color: var(--saffron); }
+  .stats .stat.color-sage .v { color: var(--sage); }
+  .stats .stat.color-plum .v { color: var(--plum); }
+
+  /* ─── IKIGAI VENN ──────────────────────────────────────────── */
+  .ikigai {
+    padding: 30px 44px;
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    gap: 32px;
+    border-bottom: 1px solid var(--hairline);
+    background: var(--paper);
+  }
+  .ikigai .label {
+    grid-column: 1 / -1;
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--muted-2);
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+  .ikigai .label b { color: var(--ink); font-weight: 700; }
+  .ikigai .venn-wrap { position: relative; }
+  .ikigai svg {
+    width: 100%; height: auto;
+    display: block;
+    mix-blend-mode: multiply;
+  }
+  .ikigai .venn-caption {
+    text-align: center;
+    margin-top: -6px;
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 600;
+  }
+  .ikigai .venn-caption b {
+    color: var(--ink);
+    font-family: var(--display);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0;
+    text-transform: none;
+    margin: 0 4px;
+  }
+  .ikigai .quadrants {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px 18px;
+  }
+  .ikigai .q { display: flex; flex-direction: column; gap: 4px; }
+  .ikigai .q .qhead { display: flex; align-items: baseline; gap: 8px; }
+  .ikigai .q .qnum {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 0.18em;
+    font-weight: 700;
+    color: white;
+    padding: 2px 5px;
+    border-radius: 2px;
+  }
+  .ikigai .q.q1 .qnum { background: var(--saffron); }
+  .ikigai .q.q2 .qnum { background: var(--marine); }
+  .ikigai .q.q3 .qnum { background: var(--sage); }
+  .ikigai .q.q4 .qnum { background: var(--plum); }
+  .ikigai .q .qlabel {
+    font-family: var(--display);
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    line-height: 1.1;
+  }
+  .ikigai .q.q1 .qlabel em { color: var(--saffron); font-style: normal; }
+  .ikigai .q.q2 .qlabel em { color: var(--marine); font-style: normal; }
+  .ikigai .q.q3 .qlabel em { color: var(--sage); font-style: normal; }
+  .ikigai .q.q4 .qlabel em { color: var(--plum); font-style: normal; }
+  .ikigai .q .qbody {
+    font-family: var(--body);
+    font-size: 10.5px;
+    line-height: 1.5;
+    color: var(--ink-soft);
+  }
+
+  /* ─── MERCADO (logos texto) ───────────────────────────────── */
+  .market {
+    padding: 28px 44px 26px;
+    border-bottom: 1px solid var(--hairline);
+    background: var(--paper-2);
+  }
+  .market .label {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--muted-2);
+    font-weight: 600;
+    margin-bottom: 16px;
+  }
+  .market .label b { color: var(--ink); font-weight: 700; }
+  .market .logos {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 28px;
+    font-family: var(--display);
+    font-size: 28px;
+    line-height: 1;
+    letter-spacing: -0.025em;
+  }
+  .market .logos .co { font-weight: 600; color: var(--ink); }
+  .market .logos .co.alt-1 { font-style: italic; font-weight: 500; color: var(--marine); }
+  .market .logos .co.alt-2 { font-weight: 700; letter-spacing: -0.045em; color: var(--saffron); }
+  .market .logos .co.alt-3 { font-weight: 500; color: var(--sage); }
+  .market .logos .co.alt-4 { font-weight: 600; letter-spacing: 0; color: var(--plum); }
+  .market .logos .x {
+    font-family: var(--mono);
+    font-size: 14px;
+    color: var(--muted-2);
+    transform: translateY(-3px);
+    font-weight: 400;
+  }
+
+  /* ─── REPERTORIO + HEATMAP + RESOURCES ────────────────────── */
+  .three {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    background: var(--paper);
+    border-bottom: 1px solid var(--hairline);
+  }
+  .repertorio {
+    padding: 28px 28px 28px 44px;
+    border-right: 1px solid var(--hairline);
+  }
+  .repertorio .label,
+  .rhythm .label,
+  .resources .label,
+  .culture .label {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--muted-2);
+    font-weight: 600;
+    margin-bottom: 14px;
+  }
+  .repertorio .label b,
+  .rhythm .label b,
+  .resources .label b,
+  .culture .label b { color: var(--ink); font-weight: 700; }
+
+  .rep-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 18px;
+  }
+  .rep-grid h5 {
+    margin: 0 0 8px;
+    font-family: var(--display);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  .rep-grid .col-hard h5  { color: var(--marine); }
+  .rep-grid .col-soft h5  { color: var(--saffron); }
+  .rep-grid .col-power h5 { color: var(--plum); }
+  .rep-grid h5 small {
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--muted-2);
+    margin-left: 6px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+  }
+  .rep-grid ul {
+    list-style: none;
+    margin: 0; padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .rep-grid li {
+    font-family: var(--body);
+    font-size: 9.5px;
+    line-height: 1.4;
+    color: var(--ink-soft);
+    padding: 1px 0;
+  }
+  .rep-grid li::before {
+    content: "·";
+    color: var(--muted-2);
+    margin-right: 6px;
+    font-weight: 700;
+  }
+
+  .right-stack {
+    padding: 28px 44px 28px 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  /* Heatmap */
+  .rhythm .heat {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 3px;
+  }
+  .rhythm .heat .col {
+    display: grid;
+    grid-template-rows: auto 1fr 1fr;
+    gap: 3px;
+  }
+  .rhythm .heat .col .day {
+    text-align: center;
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 0.18em;
+    color: var(--muted);
+    font-weight: 600;
+    margin-bottom: 2px;
+  }
+  .rhythm .heat .col .cell {
+    height: 26px;
+    background: var(--paper-2);
+    border-radius: 2px;
+  }
+  .rhythm .heat .col .cell.on { background: var(--marine); }
+  .rhythm .heat .col .cell.on.mid { background: rgba(30,58,138,0.55); }
+  .rhythm .heat .summary {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 12px;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+  }
+  .rhythm .heat .summary b {
+    color: var(--ink);
+    font-family: var(--display);
+    font-size: 14px;
+    font-weight: 700;
+    margin-right: 4px;
+  }
+
+  /* Resources con iconos curados SVG */
+  .resources .res-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .resources .res {
+    display: grid;
+    grid-template-columns: 22px 1fr;
+    gap: 10px;
+    align-items: center;
+    padding: 6px 0;
+    border-top: 1px dashed var(--hairline);
+  }
+  .resources .res:first-of-type { border-top: 0; padding-top: 0; }
+  .resources .res .ico {
+    width: 22px; height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--ink);
+  }
+  .resources .res .ico svg {
+    width: 18px; height: 18px;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 1.4;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .resources .res .name {
+    font-family: var(--body);
+    font-size: 10.5px;
+    line-height: 1.3;
+    color: var(--ink);
+  }
+
+  /* ─── CULTURA TAGS ─────────────────────────────────────────── */
+  .culture {
+    padding: 22px 44px 28px;
+    background: var(--paper);
+    border-bottom: 1px solid var(--hairline);
+  }
+  .culture .tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 8px;
+    font-family: var(--display);
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+  }
+  .culture .tag {
+    padding: 6px 14px;
+    border-radius: 999px;
+    line-height: 1.0;
+  }
+  .culture .tag.t1 { background: var(--saffron-soft); color: var(--saffron); }
+  .culture .tag.t2 { background: var(--marine-soft); color: var(--marine); }
+  .culture .tag.t3 { background: var(--sage-soft);   color: var(--sage); }
+  .culture .tag.t4 { background: var(--plum-soft);   color: var(--plum); }
+  .culture .tag::before { content: "# "; opacity: 0.5; font-weight: 400; }
+
+  /* ─── Footer minimal ──────────────────────────────────────── */
+  .footer {
+    padding: 14px 44px;
+    background: var(--ink);
+    color: var(--paper);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+  }
+  .footer .saff { color: var(--saffron); font-weight: 700; font-family: var(--display); font-size: 14px; letter-spacing: -0.01em; }
+</style>
+</head>
+<body>
+
+<div class="stage">
+  <div class="stage-title">
+    <span><b>MOCKUP V2.1</b> · Executive Atlas · header rediseñado</span>
+    <span>Datos reales · seed mario2</span>
+  </div>
+
+  <article class="sheet">
+
+    <!-- ═════════ HEADER estilo Kelsey ═════════ -->
+    <header class="hero">
+      <div class="hero-grid">
+        <div class="hero-id">
+          <div class="avatar">MB</div>
+          <div class="id-block">
+            <div class="kicker">Resumen autoconocimiento</div>
+            <h1 class="name">Mario Bahamonde</h1>
+            <div class="role">
+              <b>Director General</b> · Telecomunicaciones<br>
+              MBA · IE Business School · <b>18 años</b> de experiencia
+            </div>
+          </div>
+        </div>
+
+        <div class="hero-cloud">
+          <span class="w xl">LIDERAZGO</span>
+          <span class="w md">P&amp;L</span>
+          <span class="w lg">TRANSFORMACIÓN</span>
+          <span class="w sm">M&amp;A</span>
+          <span class="w md">ESTRATEGIA</span>
+          <span class="w xl">TELCO</span>
+          <span class="w sm">CRM</span>
+          <span class="w lg">+500 EQUIPO</span>
+          <span class="w md">LATAM</span>
+          <span class="w sm">CLOUD</span>
+          <span class="w md">OKR</span>
+          <span class="w lg">GOBIERNO</span>
+          <span class="w sm">REGULACIÓN</span>
+          <span class="w md">RESILIENCIA</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- ═════════ STATEMENT ═════════ -->
+    <section class="statement-block">
+      <div class="big-q">“</div>
+      <div class="body-col">
+        <div class="label">Mi oferta de valor</div>
+        <p class="quote">
+          Director General con <em>18 años</em> en telecomunicaciones, liderando operaciones de más de <em>USD 500M</em> y equipos de <em>+500 personas</em> en LATAM y España. Combino visión estratégica con capacidad de ejecución: tres transformaciones digitales exitosas y dos procesos M&amp;A integrados.
+        </p>
+      </div>
+    </section>
+
+    <!-- ═════════ STATS STRIP ═════════ -->
+    <section class="stats">
+      <div class="stat color-marine">
+        <div class="v">18<small>años</small></div>
+        <div class="k">Experiencia ejecutiva</div>
+      </div>
+      <div class="stat color-saffron">
+        <div class="v">500<small>M USD</small></div>
+        <div class="k">P&amp;L bajo gestión</div>
+      </div>
+      <div class="stat color-sage">
+        <div class="v">+500</div>
+        <div class="k">Personas lideradas</div>
+      </div>
+      <div class="stat color-plum">
+        <div class="v">3 · 2</div>
+        <div class="k">Transformaciones · M&amp;A</div>
+      </div>
+    </section>
+
+    <!-- ═════════ IKIGAI VENN ═════════ -->
+    <section class="ikigai">
+      <div class="label">Propósito · método <b>Ikigai</b></div>
+
+      <div class="venn-wrap">
+        <svg viewBox="0 0 320 320" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="120" cy="120" r="100" fill="#D97706" fill-opacity="0.55" />
+          <circle cx="200" cy="120" r="100" fill="#1E3A8A" fill-opacity="0.55" />
+          <circle cx="120" cy="200" r="100" fill="#365314" fill-opacity="0.55" />
+          <circle cx="200" cy="200" r="100" fill="#831843" fill-opacity="0.55" />
+
+          <text x="50"  y="50"  text-anchor="middle" fill="#D97706" font-family="Bricolage Grotesque" font-size="11" font-weight="700" letter-spacing="0.05em">AMAS</text>
+          <text x="270" y="50"  text-anchor="middle" fill="#1E3A8A" font-family="Bricolage Grotesque" font-size="11" font-weight="700" letter-spacing="0.05em">DESTACAS</text>
+          <text x="50"  y="290" text-anchor="middle" fill="#365314" font-family="Bricolage Grotesque" font-size="11" font-weight="700" letter-spacing="0.05em">NECESITA</text>
+          <text x="270" y="290" text-anchor="middle" fill="#831843" font-family="Bricolage Grotesque" font-size="11" font-weight="700" letter-spacing="0.05em">PAGARÁN</text>
+
+          <text x="160" y="158" text-anchor="middle" fill="#0E0D0A" font-family="Bricolage Grotesque" font-size="18" font-weight="800" letter-spacing="-0.02em">IKIGAI</text>
+          <text x="160" y="174" text-anchor="middle" fill="#0E0D0A" font-family="JetBrains Mono" font-size="7" font-weight="600" letter-spacing="0.18em">RAZÓN DE SER</text>
+        </svg>
+        <div class="venn-caption">4 vectores · 1 <b>propósito</b> · método japonés</div>
+      </div>
+
+      <div class="quadrants">
+        <div class="q q1">
+          <div class="qhead">
+            <span class="qnum">01</span>
+            <span class="qlabel">Lo que <em>amo</em> hacer</span>
+          </div>
+          <div class="qbody">Liderar organizaciones en momentos de transformación, cuando el equipo necesita claridad y energía. Me apasiona ver a personas crecer en sus carreras dentro de mis equipos.</div>
+        </div>
+        <div class="q q2">
+          <div class="qhead">
+            <span class="qnum">02</span>
+            <span class="qlabel">En lo que <em>destaco</em></span>
+          </div>
+          <div class="qbody">Diseñar e implementar estrategia en entornos regulados y cambiantes. Alinear equipos multidisciplinarios, comunicar con claridad y decidir con información incompleta.</div>
+        </div>
+        <div class="q q3">
+          <div class="qhead">
+            <span class="qnum">03</span>
+            <span class="qlabel">Lo que el mundo <em>necesita</em></span>
+          </div>
+          <div class="qbody">Directivos que entiendan la dimensión tecnológica y humana de la transformación digital. LATAM busca líderes que naveguen regulación, costos y aceleración tecnológica simultáneamente.</div>
+        </div>
+        <div class="q q4">
+          <div class="qhead">
+            <span class="qnum">04</span>
+            <span class="qlabel">Por lo que me <em>pagarían</em></span>
+          </div>
+          <div class="qbody">Telecomunicaciones, tecnología, infraestructura y fondos de private equity que adquieren compañías del sector y necesitan generación de valor post-inversión.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═════════ MERCADO ═════════ -->
+    <section class="market">
+      <div class="label">Compañías objetivo</div>
+      <div class="logos">
+        <span class="co">Movistar</span>
+        <span class="x">/</span>
+        <span class="co alt-1">Claro</span>
+        <span class="x">/</span>
+        <span class="co alt-2">AWS</span>
+        <span class="x">/</span>
+        <span class="co alt-3">Microsoft LATAM</span>
+        <span class="x">/</span>
+        <span class="co alt-4">Grupo Santander</span>
+      </div>
+    </section>
+
+    <!-- ═════════ REPERTORIO + HEATMAP + RESOURCES ═════════ -->
+    <section class="three">
+      <div class="repertorio">
+        <div class="label">Repertorio · competencias <b>seleccionadas</b></div>
+        <div class="rep-grid">
+          <div class="col-hard">
+            <h5>Hard <small>16</small></h5>
+            <ul>
+              <li>Gestión de P&amp;L</li>
+              <li>Transformación digital</li>
+              <li>Telecom B2B/B2C</li>
+              <li>Planificación estratégica</li>
+              <li>M&amp;A · due diligence</li>
+              <li>Regulación telco</li>
+              <li>OKRs · KPIs</li>
+              <li>Carteras de proyectos</li>
+              <li>Negociación enterprise</li>
+              <li>Forecasting financiero</li>
+              <li>Salesforce / SAP</li>
+              <li>AWS / Azure</li>
+              <li>Gobierno corporativo</li>
+              <li>Gestión proveedores</li>
+              <li>Lean Six Sigma</li>
+              <li>Reportes a Junta</li>
+            </ul>
+          </div>
+          <div class="col-soft">
+            <h5>Soft <small>19</small></h5>
+            <ul>
+              <li>Liderazgo ejecutivo</li>
+              <li>Comunicación estratégica</li>
+              <li>Pensamiento sistémico</li>
+              <li>Resiliencia</li>
+              <li>Gestión del cambio</li>
+              <li>Influencia sin autoridad</li>
+              <li>Empatía organizacional</li>
+              <li>Orientación a resultados</li>
+              <li>Escucha activa</li>
+              <li>Trabajo colaborativo</li>
+              <li>Adaptabilidad</li>
+              <li>Mentoría de equipos</li>
+              <li>Gestión de stakeholders</li>
+              <li>Decisiones bajo incertidumbre</li>
+              <li>Inteligencia emocional</li>
+              <li>Innovación aplicada</li>
+              <li>Networking estratégico</li>
+              <li>Visión largo plazo</li>
+              <li>Integridad &amp; ética</li>
+            </ul>
+          </div>
+          <div class="col-power">
+            <h5>Power <small>16</small></h5>
+            <ul>
+              <li>Equipos multiculturales +500</li>
+              <li>Transformación de UN en crisis</li>
+              <li>Go-to-market B2B enterprise</li>
+              <li>Alianzas internacionales</li>
+              <li>Cultura alto desempeño</li>
+              <li>Comunicación a inversores</li>
+              <li>Ágil a escala</li>
+              <li>Infraestructura crítica</li>
+              <li>Retención de talento directivo</li>
+              <li>Negociación regulada</li>
+              <li>Crisis reputacional</li>
+              <li>Integración post-M&amp;A</li>
+              <li>Expansión LATAM</li>
+              <li>Storytelling C-Suite</li>
+              <li>Tableros de gobierno</li>
+              <li>Optimización costos</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="right-stack">
+        <div class="rhythm">
+          <div class="label">Ritmo semanal</div>
+          <div class="heat">
+            <div class="col"><div class="day">L</div><div class="cell on"></div><div class="cell on mid"></div></div>
+            <div class="col"><div class="day">M</div><div class="cell on"></div><div class="cell on mid"></div></div>
+            <div class="col"><div class="day">M</div><div class="cell on mid"></div><div class="cell on"></div></div>
+            <div class="col"><div class="day">J</div><div class="cell on"></div><div class="cell on mid"></div></div>
+            <div class="col"><div class="day">V</div><div class="cell on mid"></div><div class="cell"></div></div>
+          </div>
+          <div class="summary">
+            <span><b>9</b> bloques</span>
+            <span><b>18 h</b> · semana</span>
+          </div>
+        </div>
+
+        <div class="resources">
+          <div class="label">Recursos activos</div>
+          <div class="res-list">
+            <div class="res">
+              <span class="ico">
+                <svg viewBox="0 0 24 24"><rect x="6" y="3" width="12" height="18" rx="1"/><circle cx="14.5" cy="12" r="0.7" fill="currentColor"/></svg>
+              </span>
+              <span class="name">Espacio privado sin interrupciones</span>
+            </div>
+            <div class="res">
+              <span class="ico">
+                <svg viewBox="0 0 24 24"><path d="M3 12c2 0 2-4 4-4s2 8 4 8 2-6 4-6 2 4 4 4"/></svg>
+              </span>
+              <span class="name">Fibra alta velocidad</span>
+            </div>
+            <div class="res">
+              <span class="ico">
+                <svg viewBox="0 0 24 24"><path d="M5 5h14v10H5z"/><path d="M3 17h18l-1 2H4z"/></svg>
+              </span>
+              <span class="name">Laptop corporativa actualizada</span>
+            </div>
+            <div class="res">
+              <span class="ico">
+                <svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="2"/><circle cx="18" cy="6" r="2"/><circle cx="6" cy="18" r="2"/><circle cx="18" cy="18" r="2"/><path d="M8 6h8M6 8v8M18 8v8M8 18h8"/></svg>
+              </span>
+              <span class="name">LinkedIn® Premium</span>
+            </div>
+            <div class="res">
+              <span class="ico">
+                <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M16 8l-2 6-6 2 2-6z" fill="currentColor" stroke="none"/></svg>
+              </span>
+              <span class="name">Coach ejecutivo de carrera</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═════════ CULTURA ═════════ -->
+    <section class="culture">
+      <div class="label">Cultura que busco</div>
+      <div class="tags">
+        <span class="tag t1">aprendizaje continuo</span>
+        <span class="tag t2">diversidad &amp; inclusión</span>
+        <span class="tag t3">innovación disruptiva</span>
+        <span class="tag t4">equipos alto desempeño</span>
+      </div>
+    </section>
+
+    <!-- ═════════ FOOTER minimal ═════════ -->
+    <footer class="footer">
+      <img src="/LOGOS/ELVIA_logo_fondo_transparente.png" alt="ELVIA" style="height:28px;object-fit:contain;filter:brightness(0) invert(1);">
+      <span>01 / 01</span>
+    </footer>
+
+  </article>
+
+</div>
+
+</body>
+</html>
