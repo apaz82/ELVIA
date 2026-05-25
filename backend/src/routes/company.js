@@ -5,6 +5,7 @@
 // ============================================================================
 
 const express = require('express')
+const crypto = require('crypto')
 const { createClient } = require('@supabase/supabase-js')
 const rateLimit = require('express-rate-limit')
 const auth = require('../middleware/auth')
@@ -12,7 +13,10 @@ const requireRole = require('../middleware/requireAdmin')
 const requireTenantContext = require('../middleware/requireTenantContext')
 const requireMFA = require('../middleware/requireMFA')
 const tenantQuery = require('../lib/tenantQuery')
+const logAudit = require('../lib/logAudit')
 const { sendInvitacionEmail } = require('../services/resendService')
+
+const ALLOWED_PLANS = ['free', 'pro', 'business', 'enterprise']
 
 const router = express.Router()
 
@@ -477,12 +481,17 @@ router.patch('/users/:id', auth, requireRole('company_admin'), requireTenantCont
     // Validar que el usuario pertenece a su empresa
     const { data: user, error: fetchErr } = await db
       .from('profiles')
-      .select('company_id')
+      .select('company_id, plan, suspended')
       .eq('id', id)
       .single()
 
     if (fetchErr || !user || user.company_id !== req.companyId) {
       return res.status(403).json({ error: 'No tienes acceso a este usuario' })
+    }
+
+    // Validar plan contra whitelist
+    if (plan !== undefined && !ALLOWED_PLANS.includes(plan)) {
+      return res.status(400).json({ error: 'Plan inválido', code: 'INVALID_PLAN' })
     }
 
     // Actualizar solo campos permitidos
@@ -504,6 +513,21 @@ router.patch('/users/:id', auth, requireRole('company_admin'), requireTenantCont
       return res.status(500).json({ error: 'Error al actualizar usuario' })
     }
 
+    // Audit log si cambió plan o suspended (acciones sensibles)
+    const auditChanges = {}
+    if (plan !== undefined && plan !== user.plan) auditChanges.plan = { from: user.plan, to: plan }
+    if (suspended !== undefined && suspended !== user.suspended) auditChanges.suspended = { from: user.suspended, to: suspended }
+    if (Object.keys(auditChanges).length > 0) {
+      logAudit(db, {
+        company_id: req.companyId,
+        user_id: req.user.id,
+        action: 'user_updated',
+        entity: 'profiles',
+        entity_id: id,
+        metadata: { target_user: id, changes: auditChanges },
+      }).catch(e => console.error('[Audit] user_updated:', e.message))
+    }
+
     res.json({ ok: true, user: updated })
   } catch (err) {
     console.error('Error updating company user:', err)
@@ -523,7 +547,7 @@ router.delete('/users/:id', auth, requireRole('company_admin'), requireTenantCon
     // Validar que el usuario pertenece a su empresa
     const { data: user, error: fetchErr } = await db
       .from('profiles')
-      .select('company_id')
+      .select('company_id, email_principal')
       .eq('id', id)
       .single()
 
@@ -531,15 +555,45 @@ router.delete('/users/:id', auth, requireRole('company_admin'), requireTenantCon
       return res.status(403).json({ error: 'No tienes acceso a este usuario' })
     }
 
-    // Borrar user de auth
-    const { error: authErr } = await db.auth.admin.deleteUser(id)
+    // Obtener email del auth user (más confiable que email_principal para GDPR hash)
+    const { data: authUser } = await db.auth.admin.getUserById(id)
+    const targetEmail = authUser?.user?.email || user.email_principal || ''
 
+    // 1. deletion_audit_log (GDPR — hash SHA256 del email)
+    const emailHash = crypto.createHash('sha256').update(targetEmail).digest('hex')
+    const emailDomain = targetEmail.split('@')[1] || null
+    await db.from('deletion_audit_log').insert({
+      deleted_user_id: id,
+      deleted_user_email_hash: emailHash,
+      deleted_user_email_domain: emailDomain,
+      admin_id: req.user.id,
+      admin_email: req.user.email || null,
+      status: 'pending',
+    }).catch(e => console.error('[deletion_audit_log] insert:', e.message))
+
+    // 2. Borrar user de auth (cascade a profile)
+    const { error: authErr } = await db.auth.admin.deleteUser(id)
     if (authErr) {
       console.error('Auth delete error:', authErr)
+      await db.from('deletion_audit_log').update({ status: 'failed' }).eq('deleted_user_id', id).catch(() => {})
       return res.status(500).json({ error: 'Error al borrar usuario' })
     }
 
-    // Profile se borra en cascada (FK on delete cascade)
+    // 3. Marcar deletion_audit_log como completed
+    await db.from('deletion_audit_log')
+      .update({ status: 'completed', completed_at: new Date().toISOString() })
+      .eq('deleted_user_id', id)
+      .catch(() => {})
+
+    // 4. tenant_audit_log (visibilidad para super_admin)
+    logAudit(db, {
+      company_id: req.companyId,
+      user_id: req.user.id,
+      action: 'user_removed',
+      entity: 'profiles',
+      entity_id: id,
+      metadata: { email_hash: emailHash, email_domain: emailDomain },
+    }).catch(e => console.error('[Audit] user_removed:', e.message))
 
     res.json({ ok: true })
   } catch (err) {
@@ -553,7 +607,7 @@ router.delete('/users/:id', auth, requireRole('company_admin'), requireTenantCon
 // GET /api/company/invitations
 // ─────────────────────────────────────────────────────────────────────────
 
-router.get('/invitations', auth, requireRole('company_admin'), requireMFA, async (req, res) => {
+router.get('/invitations', auth, requireRole('company_admin'), requireTenantContext, requireMFA, async (req, res) => {
   try {
     const { data: invitations, error } = await db
       .from('company_invitations')
@@ -579,7 +633,7 @@ router.get('/invitations', auth, requireRole('company_admin'), requireMFA, async
 // Body: { email, nombre }
 // ─────────────────────────────────────────────────────────────────────────
 
-router.post('/invitations', auth, requireRole('company_admin'), requireMFA, async (req, res) => {
+router.post('/invitations', auth, requireRole('company_admin'), requireTenantContext, requireMFA, async (req, res) => {
   try {
     const { email, nombre } = req.body
 
@@ -643,7 +697,7 @@ router.post('/invitations', auth, requireRole('company_admin'), requireMFA, asyn
 // GET /api/company/profile
 // ─────────────────────────────────────────────────────────────────────────
 
-router.get('/profile', auth, requireRole('company_admin'), requireMFA, async (req, res) => {
+router.get('/profile', auth, requireRole('company_admin'), requireTenantContext, requireMFA, async (req, res) => {
   try {
     const { data: company, error } = await db
       .from('companies')
@@ -668,7 +722,7 @@ router.get('/profile', auth, requireRole('company_admin'), requireMFA, async (re
 // PATCH /api/company/profile
 // ─────────────────────────────────────────────────────────────────────────
 
-router.patch('/profile', auth, requireRole('company_admin'), requireMFA, async (req, res) => {
+router.patch('/profile', auth, requireRole('company_admin'), requireTenantContext, requireMFA, async (req, res) => {
   try {
     const { name, country, contact_email, website } = req.body
     
@@ -701,7 +755,7 @@ router.patch('/profile', auth, requireRole('company_admin'), requireMFA, async (
 // DELETE /api/company/invitations/:id
 // ─────────────────────────────────────────────────────────────────────────
 
-router.delete('/invitations/:id', auth, requireRole('company_admin'), requireMFA, async (req, res) => {
+router.delete('/invitations/:id', auth, requireRole('company_admin'), requireTenantContext, requireMFA, async (req, res) => {
   try {
     const { id } = req.params
 
@@ -837,7 +891,7 @@ router.get('/costs', auth, requireRole('company_admin'), requireTenantContext, r
 // Body: { format: 'pdf', sendEmail: true, email?: 'alternate@email.com' }
 // ─────────────────────────────────────────────────────────────────────────
 
-router.post('/costs/export', auth, requireRole('company_admin'), requireMFA, async (req, res) => {
+router.post('/costs/export', auth, requireRole('company_admin'), requireTenantContext, requireMFA, async (req, res) => {
   try {
     const { sendEmail, email } = req.body
     const targetEmail = email || req.user.email
