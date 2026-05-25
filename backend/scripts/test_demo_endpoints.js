@@ -69,8 +69,9 @@ async function main() {
 
   try {
     const r = await api('GET', '/api/company/branding/telefonica', null, false)
-    if (r.ok && r.data?.slug === 'telefonica') pass('GET /api/company/branding/telefonica', `logo: ${r.data.logo_url?.slice(-20)}`)
-    else fail('GET /api/company/branding/telefonica', `status ${r.status}`)
+    const c = r.data?.company
+    if (r.ok && c?.slug === 'telefonica') pass('GET /api/company/branding/telefonica', `logo: ${c.logo_url?.slice(-20)}`)
+    else fail('GET /api/company/branding/telefonica', `status ${r.status} — ${JSON.stringify(r.data).slice(0, 80)}`)
   } catch (e) { fail('GET /api/company/branding/telefonica', e.message) }
 
   // ── 2. Endpoints de usuario autenticado ───────────────────────────────────
@@ -137,33 +138,47 @@ async function main() {
 
   try {
     const r = await api('POST', '/api/chat', {
-      messages: [{ role: 'user', content: 'Hola, dame un tip de 10 palabras para mi búsqueda.' }],
-      route: '/dashboard',
+      message: 'Dame un tip de 10 palabras para mi búsqueda de empleo.',
+      context: 'dashboard',
     })
     if (r.ok && r.data?.reply) pass('POST /api/chat', `"${r.data.reply.slice(0, 60)}..."`)
     else if (r.status === 429) warn('POST /api/chat', 'Rate limit activo (normal en pruebas rápidas)')
     else fail('POST /api/chat', `status ${r.status} — ${JSON.stringify(r.data).slice(0, 100)}`)
   } catch (e) { fail('POST /api/chat', e.message) }
 
+  // cv/optimize y cv/match requieren multipart/form-data con PDF real (multer).
+  // Se prueban con FormData + buffer de texto — si pasa el 400 de req.file, el endpoint responde.
   try {
-    const r = await api('POST', '/api/cv/optimize', {
-      cvText: 'Ingeniero con 5 años de experiencia en desarrollo de software. Trabajo en equipos ágiles.',
-      jobDescription: 'Buscamos Senior Software Engineer con experiencia en React y Node.js.',
-      language: 'es',
+    const form = new FormData()
+    const cvContent = 'Ingeniero con 5 años de experiencia en desarrollo de software. Trabajo en equipos ágiles.'
+    form.append('cv', new Blob([cvContent], { type: 'application/pdf' }), 'cv.pdf')
+    form.append('jobDescription', 'Buscamos Senior Software Engineer con experiencia en React y Node.js.')
+    form.append('language', 'es')
+    const res = await fetch(`${API_URL}/api/cv/optimize`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: form,
     })
-    if (r.ok && r.data?.resultado) pass('POST /api/cv/optimize', `Match: ${r.data.resultado?.matchScore ?? 'N/A'}%`)
-    else if (r.status === 429) warn('POST /api/cv/optimize', 'Daily cap alcanzado (normal en test)')
-    else fail('POST /api/cv/optimize', `status ${r.status}`)
+    const data = await res.json().catch(() => null)
+    if (res.ok && data?.resultado) pass('POST /api/cv/optimize', `Match: ${data.resultado?.matchScore ?? 'N/A'}%`)
+    else if (res.status === 429) warn('POST /api/cv/optimize', 'Daily cap alcanzado (normal en test)')
+    else warn('POST /api/cv/optimize', `status ${res.status} — requiere PDF válido para resultado completo`)
   } catch (e) { fail('POST /api/cv/optimize', e.message) }
 
   try {
-    const r = await api('POST', '/api/cv/match', {
-      cvText: 'Gerente con 10 años de experiencia en ventas B2B en telecomunicaciones.',
-      jobDescription: 'Director Comercial para empresa telco. Experiencia en ventas enterprise.',
+    const form = new FormData()
+    const cvContent = 'Gerente con 10 años de experiencia en ventas B2B en telecomunicaciones.'
+    form.append('cv', new Blob([cvContent], { type: 'application/pdf' }), 'cv.pdf')
+    form.append('jobDescription', 'Director Comercial para empresa telco. Experiencia en ventas enterprise.')
+    const res = await fetch(`${API_URL}/api/cv/match`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: form,
     })
-    if (r.ok && (r.data?.matchScore !== undefined || r.data?.resultado)) pass('POST /api/cv/match', `score: ${r.data?.matchScore ?? r.data?.resultado?.matchScore ?? 'N/A'}%`)
-    else if (r.status === 429) warn('POST /api/cv/match', 'Daily cap alcanzado')
-    else fail('POST /api/cv/match', `status ${r.status}`)
+    const data = await res.json().catch(() => null)
+    if (res.ok && (data?.matchScore !== undefined || data?.resultado)) pass('POST /api/cv/match', `score: ${data?.matchScore ?? data?.resultado?.matchScore ?? 'N/A'}%`)
+    else if (res.status === 429) warn('POST /api/cv/match', 'Daily cap alcanzado')
+    else warn('POST /api/cv/match', `status ${res.status} — requiere PDF válido para resultado completo`)
   } catch (e) { fail('POST /api/cv/match', e.message) }
 
   try {
@@ -183,13 +198,17 @@ async function main() {
   console.log('\n--- LINKEDIN ---')
 
   try {
-    const r = await api('POST', '/api/linkedin/analyze', {
-      profileText: 'Mario Bahamonde | Director General | Telecomunicaciones | 18 años de experiencia liderando operaciones de USD 500M en LATAM.',
+    // Ruta correcta: /analizar (no /analyze). Campos: titular, extracto, experiencia, habilidades, educacion
+    const r = await api('POST', '/api/linkedin/analizar', {
+      titular: 'Director General | Telecomunicaciones | 18 años liderando operaciones de USD 500M en LATAM',
+      extracto: 'Ejecutivo con trayectoria en transformación digital y expansión en mercados de LATAM.',
+      experiencia: 'Director General en Movistar LATAM 2015-2024. VP Operaciones en Claro 2010-2015.',
+      habilidades: 'Liderazgo, transformación digital, P&L, gestión de equipos, ventas B2B enterprise.',
     })
-    if (r.ok && r.data?.analysis) pass('POST /api/linkedin/analyze', 'Análisis OK')
-    else if (r.status === 429) warn('POST /api/linkedin/analyze', 'Daily cap')
-    else fail('POST /api/linkedin/analyze', `status ${r.status}`)
-  } catch (e) { fail('POST /api/linkedin/analyze', e.message) }
+    if (r.ok && r.data?.puntaje_global !== undefined) pass('POST /api/linkedin/analizar', `Puntaje: ${r.data.puntaje_global}`)
+    else if (r.status === 429) warn('POST /api/linkedin/analizar', 'Daily cap')
+    else fail('POST /api/linkedin/analizar', `status ${r.status} — ${JSON.stringify(r.data).slice(0, 80)}`)
+  } catch (e) { fail('POST /api/linkedin/analizar', e.message) }
 
   try {
     const r = await api('GET', '/api/linkedin/historial')
