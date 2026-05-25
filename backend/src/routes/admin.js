@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const crypto = require('crypto');
+const rateLimit = require('express-rate-limit');
 const { supabase, supabaseAdmin } = require('../lib/supabase');
 const Anthropic = require('@anthropic-ai/sdk');
 const { createOTP, validateOTP } = require('../services/otpService');
@@ -12,6 +13,13 @@ const requireRole = require('../middleware/requireAdmin');
 const auditAdmin = require('../middleware/auditAdmin');
 const logAudit = require('../lib/logAudit');
 const { sendHRWelcomeEmail } = require('../services/resendService');
+
+const tenantCreateLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 10,
+  keyGenerator: (req) => req.user?.id || req.ip,
+  handler: (req, res) => res.status(429).json({ error: 'Demasiadas creaciones de tenant. Intenta en una hora.' }),
+});
 
 // Auditar todas las acciones mutantes del panel admin (POST/PUT/PATCH/DELETE)
 router.use(auth, auditAdmin);
@@ -261,111 +269,6 @@ router.get('/companies', auth, requireRole('super_admin'), async (req, res) => {
 });
 
 /**
- * POST /api/admin/companies
- * Crea una nueva empresa B2B (solo super_admin)
- */
-router.post('/companies', auth, requireRole('super_admin'), async (req, res) => {
-  try {
-    const { name, email } = req.body;
-
-    if (!name || !email) {
-      return res.status(400).json({ error: 'Nombre y email son requeridos' });
-    }
-
-    const { data: company, error } = await supabaseAdmin
-      .from('companies')
-      .insert({
-        name,
-        email,
-        created_by: req.user.id,
-        is_active: true
-      })
-      .select()
-      .single();
-
-    if (error) throw error;
-
-    res.status(201).json({ company });
-  } catch (err) {
-    console.error('[Admin] Error creando empresa:', err.message);
-    res.status(500).json({ error: 'Error creando empresa' });
-  }
-});
-
-/**
- * POST /api/admin/companies/:id/admins
- * Asigna un company_admin a una empresa (crea user + profile)
- * Body: { nombre, email, apellido? }
- */
-router.post('/companies/:id/admins', auth, requireRole('super_admin'), async (req, res) => {
-  try {
-    const companyId = req.params.id;
-    const { nombre, email, apellido } = req.body;
-
-    if (!nombre || !email) {
-      return res.status(400).json({ error: 'Nombre y email son requeridos' });
-    }
-
-    // Verificar que la empresa existe
-    const { data: company, error: companyError } = await supabaseAdmin
-      .from('companies')
-      .select('id')
-      .eq('id', companyId)
-      .single();
-
-    if (companyError || !company) {
-      return res.status(404).json({ error: 'Empresa no encontrada' });
-    }
-
-    // Crear usuario en auth
-    const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
-      email,
-      password: crypto.randomBytes(16).toString('hex'), // contraseña temporal
-      email_confirm: true,
-      user_metadata: { nombre, apellido: apellido || '' }
-    });
-
-    if (authError) {
-      console.error('[Admin] Error creando user en auth:', authError.message);
-      return res.status(400).json({ error: 'Error creando usuario. ¿El email ya existe?' });
-    }
-
-    // Crear profile con role='company_admin'
-    const { data: profile, error: profileError } = await supabaseAdmin
-      .from('profiles')
-      .insert({
-        id: authUser.user.id,
-        email_principal: email,
-        nombre1: nombre,
-        apellido1: apellido || '',
-        role: 'company_admin',
-        company_id: companyId,
-        plan: 'business',
-        is_admin: false
-      })
-      .select()
-      .single();
-
-    if (profileError) {
-      console.error('[Admin] Error creando profile:', profileError.message);
-      // Limpiar el usuario de auth si falla el profile
-      await supabaseAdmin.auth.admin.deleteUser(authUser.user.id).catch(err =>
-        console.error('[Admin] Error deletando user fallido:', err)
-      );
-      return res.status(500).json({ error: 'Error creando perfil de administrador' });
-    }
-
-    // TODO: Enviar email de bienvenida con instrucciones de reset de password
-    console.log(`[Admin] Company admin ${email} asignado a empresa ${companyId}`);
-
-    res.status(201).json({ admin: profile });
-  } catch (err) {
-    console.error('[Admin] Error asignando company_admin:', err.message);
-    res.status(500).json({ error: 'Error asignando administrador' });
-  }
-});
-
-/**
  * PATCH /api/admin/companies/:id
  * Activa/desactiva una empresa (soft delete)
  * Body: { is_active: boolean }
@@ -421,7 +324,7 @@ router.get('/tenants/check-slug/:slug', auth, requireRole('super_admin'), async 
  *         welcome_message?, allowed_email_domain?, require_allowlist?,
  *         require_invite?, hr_nombre, hr_email, hr_apellido? }
  */
-router.post('/tenants', auth, requireRole('super_admin'), async (req, res) => {
+router.post('/tenants', auth, requireRole('super_admin'), tenantCreateLimiter, async (req, res) => {
   const {
     nombre, slug,
     sector = 'corporate', plan = 'professional', country = 'MX',

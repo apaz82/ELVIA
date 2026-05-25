@@ -10,6 +10,7 @@ const rateLimit = require('express-rate-limit')
 const auth = require('../middleware/auth')
 const requireRole = require('../middleware/requireAdmin')
 const requireTenantContext = require('../middleware/requireTenantContext')
+const requireMFA = require('../middleware/requireMFA')
 const tenantQuery = require('../lib/tenantQuery')
 const { sendInvitacionEmail } = require('../services/resendService')
 
@@ -99,7 +100,7 @@ router.get('/my-tenant', auth, async (req, res) => {
         primary_color, secondary_color, accent_color,
         hero_title, hero_subtitle, welcome_message,
         contact_email, support_email,
-        show_pricing, enabled_features
+        require_mfa, show_pricing, enabled_features
       `)
       .eq('id', profile.company_id)
       .eq('is_active', true)
@@ -373,7 +374,7 @@ router.post('/registration/:slug', registrationLimiter, async (req, res) => {
 // GET /api/company/users
 // ─────────────────────────────────────────────────────────────────────────
 
-router.get('/users', auth, requireRole('company_admin'), requireTenantContext, async (req, res) => {
+router.get('/users', auth, requireRole('company_admin'), requireTenantContext, requireMFA, async (req, res) => {
   try {
     const { data: users, error } = await db
       .from('profiles')
@@ -399,7 +400,7 @@ router.get('/users', auth, requireRole('company_admin'), requireTenantContext, a
 // Body: { email, nombre, apellido, password? }
 // ─────────────────────────────────────────────────────────────────────────
 
-router.post('/users', auth, requireRole('company_admin'), requireTenantContext, async (req, res) => {
+router.post('/users', auth, requireRole('company_admin'), requireTenantContext, requireMFA, async (req, res) => {
   try {
     const { email, nombre, apellido, password } = req.body
 
@@ -468,7 +469,7 @@ router.post('/users', auth, requireRole('company_admin'), requireTenantContext, 
 // Body: { nombre, apellido, plan, suspended }
 // ─────────────────────────────────────────────────────────────────────────
 
-router.patch('/users/:id', auth, requireRole('company_admin'), requireTenantContext, async (req, res) => {
+router.patch('/users/:id', auth, requireRole('company_admin'), requireTenantContext, requireMFA, async (req, res) => {
   try {
     const { id } = req.params
     const { nombre, apellido, plan, suspended } = req.body
@@ -515,7 +516,7 @@ router.patch('/users/:id', auth, requireRole('company_admin'), requireTenantCont
 // DELETE /api/company/users/:id
 // ─────────────────────────────────────────────────────────────────────────
 
-router.delete('/users/:id', auth, requireRole('company_admin'), requireTenantContext, async (req, res) => {
+router.delete('/users/:id', auth, requireRole('company_admin'), requireTenantContext, requireMFA, async (req, res) => {
   try {
     const { id } = req.params
 
@@ -552,7 +553,7 @@ router.delete('/users/:id', auth, requireRole('company_admin'), requireTenantCon
 // GET /api/company/invitations
 // ─────────────────────────────────────────────────────────────────────────
 
-router.get('/invitations', auth, requireRole('company_admin'), async (req, res) => {
+router.get('/invitations', auth, requireRole('company_admin'), requireMFA, async (req, res) => {
   try {
     const { data: invitations, error } = await db
       .from('company_invitations')
@@ -578,7 +579,7 @@ router.get('/invitations', auth, requireRole('company_admin'), async (req, res) 
 // Body: { email, nombre }
 // ─────────────────────────────────────────────────────────────────────────
 
-router.post('/invitations', auth, requireRole('company_admin'), async (req, res) => {
+router.post('/invitations', auth, requireRole('company_admin'), requireMFA, async (req, res) => {
   try {
     const { email, nombre } = req.body
 
@@ -642,7 +643,7 @@ router.post('/invitations', auth, requireRole('company_admin'), async (req, res)
 // GET /api/company/profile
 // ─────────────────────────────────────────────────────────────────────────
 
-router.get('/profile', auth, requireRole('company_admin'), async (req, res) => {
+router.get('/profile', auth, requireRole('company_admin'), requireMFA, async (req, res) => {
   try {
     const { data: company, error } = await db
       .from('companies')
@@ -667,7 +668,7 @@ router.get('/profile', auth, requireRole('company_admin'), async (req, res) => {
 // PATCH /api/company/profile
 // ─────────────────────────────────────────────────────────────────────────
 
-router.patch('/profile', auth, requireRole('company_admin'), async (req, res) => {
+router.patch('/profile', auth, requireRole('company_admin'), requireMFA, async (req, res) => {
   try {
     const { name, country, contact_email, website } = req.body
     
@@ -700,7 +701,7 @@ router.patch('/profile', auth, requireRole('company_admin'), async (req, res) =>
 // DELETE /api/company/invitations/:id
 // ─────────────────────────────────────────────────────────────────────────
 
-router.delete('/invitations/:id', auth, requireRole('company_admin'), async (req, res) => {
+router.delete('/invitations/:id', auth, requireRole('company_admin'), requireMFA, async (req, res) => {
   try {
     const { id } = req.params
 
@@ -737,7 +738,7 @@ router.delete('/invitations/:id', auth, requireRole('company_admin'), async (req
 // GET /api/company/dashboard
 // ─────────────────────────────────────────────────────────────────────────
 
-router.get('/dashboard', auth, requireRole('company_admin'), requireTenantContext, async (req, res) => {
+router.get('/dashboard', auth, requireRole('company_admin'), requireTenantContext, requireMFA, async (req, res) => {
   try {
     // 1. Total usuarios
     const { count: totalUsers } = await db
@@ -784,7 +785,7 @@ router.get('/dashboard', auth, requireRole('company_admin'), requireTenantContex
 // GET /api/company/costs
 // ─────────────────────────────────────────────────────────────────────────
 
-router.get('/costs', auth, requireRole('company_admin'), requireTenantContext, async (req, res) => {
+router.get('/costs', auth, requireRole('company_admin'), requireTenantContext, requireMFA, async (req, res) => {
   try {
     // 1. Obtener planes asignados a usuarios de la empresa
     const { data: plans, error: plansErr } = await db
@@ -836,7 +837,7 @@ router.get('/costs', auth, requireRole('company_admin'), requireTenantContext, a
 // Body: { format: 'pdf', sendEmail: true, email?: 'alternate@email.com' }
 // ─────────────────────────────────────────────────────────────────────────
 
-router.post('/costs/export', auth, requireRole('company_admin'), async (req, res) => {
+router.post('/costs/export', auth, requireRole('company_admin'), requireMFA, async (req, res) => {
   try {
     const { sendEmail, email } = req.body
     const targetEmail = email || req.user.email
@@ -875,7 +876,7 @@ router.post('/costs/export', auth, requireRole('company_admin'), async (req, res
 // GET /api/company/allowlist
 // ─────────────────────────────────────────────────────────────────────────
 
-router.get('/allowlist', auth, requireRole('company_admin'), requireTenantContext, async (req, res) => {
+router.get('/allowlist', auth, requireRole('company_admin'), requireTenantContext, requireMFA, async (req, res) => {
   if (!db) return res.status(503).json({ error: 'Servicio no disponible' })
   try {
     const { data, error } = await db
@@ -901,7 +902,7 @@ router.get('/allowlist', auth, requireRole('company_admin'), requireTenantContex
 // Body: { rows: [{ email, nombre?, apellido?, cohort?, area?, cargo_actual? }], cohort_default? }
 // ─────────────────────────────────────────────────────────────────────────
 
-router.post('/allowlist/bulk', auth, requireRole('company_admin'), requireTenantContext, async (req, res) => {
+router.post('/allowlist/bulk', auth, requireRole('company_admin'), requireTenantContext, requireMFA, async (req, res) => {
   if (!db) return res.status(503).json({ error: 'Servicio no disponible' })
   try {
     const { rows, cohort_default } = req.body || {}
@@ -965,7 +966,7 @@ router.post('/allowlist/bulk', auth, requireRole('company_admin'), requireTenant
 // PATCH /api/company/allowlist/:id  Body: { action: 'revoke' | 'unrevoke' }
 // ─────────────────────────────────────────────────────────────────────────
 
-router.patch('/allowlist/:id', auth, requireRole('company_admin'), requireTenantContext, async (req, res) => {
+router.patch('/allowlist/:id', auth, requireRole('company_admin'), requireTenantContext, requireMFA, async (req, res) => {
   if (!db) return res.status(503).json({ error: 'Servicio no disponible' })
   try {
     const { id } = req.params
@@ -1021,7 +1022,7 @@ router.patch('/allowlist/:id', auth, requireRole('company_admin'), requireTenant
 // DELETE /api/company/allowlist/:id
 // ─────────────────────────────────────────────────────────────────────────
 
-router.delete('/allowlist/:id', auth, requireRole('company_admin'), requireTenantContext, async (req, res) => {
+router.delete('/allowlist/:id', auth, requireRole('company_admin'), requireTenantContext, requireMFA, async (req, res) => {
   if (!db) return res.status(503).json({ error: 'Servicio no disponible' })
   try {
     const { id } = req.params

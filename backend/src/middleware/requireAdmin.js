@@ -36,6 +36,12 @@ const requireRole = (minRole = 'company_admin') => async (req, res, next) => {
         adminRole = userProfile.role;
         companyId = userProfile.company_id;
         finalProfile = userProfile;
+
+        // Verificar si el tenant exige MFA para que requireMFA pueda actuar
+        if (companyId) {
+          const { data: co } = await db.from('companies').select('require_mfa').eq('id', companyId).maybeSingle()
+          if (co?.require_mfa) req.companyRequiresMFA = true
+        }
       }
     }
 
