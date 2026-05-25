@@ -485,7 +485,7 @@ export default function ReporteLaboral() {
           )}
 
           {/* ── FOOTER ────────────────────────────────────────────────────────── */}
-          <footer style={{ padding: '14px 44px', background: C.ink, color: C.paper, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: MONO, fontSize: 9, letterSpacing: '0.22em', textTransform: 'uppercase' }}>
+          <footer style={{ padding: '14px 44px', background: '#E8E3D5', color: C.muted, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: MONO, fontSize: 9, letterSpacing: '0.22em', textTransform: 'uppercase', borderTop: `1px solid ${C.hairline}` }}>
             <img
               src="/LOGOS/ELVIA_logo_fondo_transparente.png"
               alt="ELVIA"
