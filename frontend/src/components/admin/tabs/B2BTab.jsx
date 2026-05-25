@@ -40,6 +40,7 @@ const INITIAL_DATA = {
   nombre: '', slug: '', sector: 'corporate', plan: 'professional', country: 'MX',
   logo_url: '', primary_color: '#0066FF', secondary_color: '#0D1B2A', accent_color: '#00D4FF',
   hero_title: '', welcome_message: '',
+  branding_mode: 'cobranded', show_program_badge: true, program_badge_text: '',
   allowed_email_domain: '', require_allowlist: false, require_invite: false,
   hr_nombre: '', hr_apellido: '', hr_email: '',
 }
@@ -246,6 +247,64 @@ const TenantWizard = ({ onClose, onSuccess, db, API_URL }) => {
         </div>
 
         <div>
+          <label className={labelCls}>Visibilidad de marca frente al candidato</label>
+          <div className="grid grid-cols-3 gap-2">
+            {[
+              { value: 'cobranded',   label: 'Co-brandeado',   desc: 'Logo cliente + ELVIA' },
+              { value: 'tenant_only', label: 'Solo cliente',   desc: 'ELVIA discreto en footer' },
+              { value: 'elvia_only',  label: 'Solo ELVIA',     desc: 'Cliente confidencial' },
+            ].map(opt => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => setData(prev => ({ ...prev, branding_mode: opt.value }))}
+                className={`p-3 rounded-2xl border text-left transition-all ${
+                  data.branding_mode === opt.value
+                    ? 'border-indigo-500 bg-indigo-500/10'
+                    : 'border-slate-800 bg-slate-950 hover:border-slate-700'
+                }`}
+              >
+                <p className="text-[10px] font-black uppercase tracking-widest text-white">{opt.label}</p>
+                <p className="text-[9px] text-slate-500 mt-1 leading-tight">{opt.desc}</p>
+              </button>
+            ))}
+          </div>
+          <p className="text-slate-600 text-[10px] mt-1.5 ml-1">
+            Outplacement confidencial (M&A, layoffs masivos): elige <strong>"Solo ELVIA"</strong> para que el candidato nunca vea la marca del sponsor.
+          </p>
+        </div>
+
+        <div className="bg-slate-950 border border-slate-800 rounded-2xl p-4 space-y-3">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex-1">
+              <p className="text-[10px] font-black text-white uppercase tracking-widest">Badge in-app "Programa X"</p>
+              <p className="text-[10px] text-slate-500 mt-0.5">Muestra un badge en el dashboard del candidato recordando el programa</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setData(prev => ({ ...prev, show_program_badge: !prev.show_program_badge }))}
+              className={`relative w-12 h-6 rounded-full transition-colors ${data.show_program_badge ? 'bg-indigo-500' : 'bg-slate-700'}`}
+            >
+              <div className={`absolute top-0.5 w-5 h-5 bg-white rounded-full transition-transform ${data.show_program_badge ? 'translate-x-6' : 'translate-x-0.5'}`} />
+            </button>
+          </div>
+
+          {data.show_program_badge && (
+            <div>
+              <label className="block text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1.5">Texto del badge (opcional)</label>
+              <input
+                type="text" value={data.program_badge_text} onChange={set('program_badge_text')}
+                className={`${inputCls} text-xs`}
+                placeholder={`Programa ${data.nombre || 'Telefónica'}`}
+              />
+              <p className="text-[9px] text-slate-600 mt-1 ml-1">
+                Déjalo vacío para usar "Programa {data.nombre || '{nombre}'}". Útil si necesitas confidencialidad: "Programa de Transición 2026".
+              </p>
+            </div>
+          )}
+        </div>
+
+        <div>
           <label className={labelCls}>Título del hero (landing pública)</label>
           <input type="text" value={data.hero_title} onChange={set('hero_title')}
             className={inputCls} placeholder="Programa de Outplacement 2026" />
@@ -255,7 +314,7 @@ const TenantWizard = ({ onClose, onSuccess, db, API_URL }) => {
           <label className={labelCls}>Mensaje de bienvenida (dashboard candidato)</label>
           <textarea value={data.welcome_message} onChange={set('welcome_message')}
             rows={3} className={`${inputCls} resize-none`}
-            placeholder="Bienvenido/a al programa de transición laboral de Telefónica..." />
+            placeholder="Bienvenido/a al programa de transición laboral..." />
         </div>
       </div>
     )

@@ -60,6 +60,7 @@ router.get('/registration/:slug', async (req, res) => {
         hero_title, hero_subtitle, hero_image_url, welcome_message,
         contact_email, support_email,
         allowed_email_domain, require_invite,
+        branding_mode, show_program_badge, program_badge_text,
         show_pricing, enabled_features
       `)
       .eq('slug', slug)
@@ -104,7 +105,9 @@ router.get('/my-tenant', auth, async (req, res) => {
         primary_color, secondary_color, accent_color,
         hero_title, hero_subtitle, welcome_message,
         contact_email, support_email,
-        require_mfa, show_pricing, enabled_features
+        require_mfa,
+        branding_mode, show_program_badge, program_badge_text,
+        show_pricing, enabled_features
       `)
       .eq('id', profile.company_id)
       .eq('is_active', true)
@@ -137,7 +140,8 @@ router.get('/branding/:slug', async (req, res) => {
         primary_color, secondary_color, accent_color,
         hero_title, hero_subtitle, hero_image_url, welcome_message,
         contact_email, support_email,
-        allowed_email_domain, require_invite, require_mfa,
+        allowed_email_domain, require_invite,
+        branding_mode, show_program_badge, program_badge_text,
         show_pricing, enabled_features
       `)
       .eq('slug', slug)

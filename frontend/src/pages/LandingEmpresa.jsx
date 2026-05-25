@@ -11,7 +11,7 @@ import { useTenant, DEFAULT_TENANT } from '../context/TenantContext'
 export default function LandingEmpresa() {
   const { slug } = useParams()
   const navigate = useNavigate()
-  const { tenant, loading, isUniversity, isCorporate } = useTenant()
+  const { tenant, loading, isUniversity, isCorporate, showTenantLogo, showElviaLogo, elviaProminent, showProgramBadge, programBadgeText } = useTenant()
 
   // Tenant no encontrado o aún no resuelto
   const tenantResuelto = tenant?.slug === slug
@@ -86,21 +86,28 @@ export default function LandingEmpresa() {
       <header className="sticky top-0 z-40 backdrop-blur-xl bg-white/80 border-b border-gray-100">
         <div className="max-w-7xl mx-auto px-6 lg:px-10 py-4 flex items-center justify-between gap-6">
           <div className="flex items-center gap-4">
-            {tenant.logo_url ? (
-              <img src={tenant.logo_url} alt={tenant.name} className="h-[108px] md:h-[144px] max-w-[450px] object-contain transition-all duration-300 hover:scale-105" />
+            {elviaProminent ? (
+              // Modo elvia_only o sin logo del tenant: ELVIA prominente
+              <img src="/LOGOS/ELVIA_logo_fondo_transparente.png" alt="ELVIA"
+                className="h-[60px] md:h-[80px] object-contain transition-all duration-300 hover:scale-105" />
             ) : (
-              <div
-                className="px-3 py-1.5 rounded-lg text-white text-sm font-bold tracking-tight"
-                style={{ background: primary }}
-              >
-                {tenant.name}
-              </div>
+              <>
+                {showTenantLogo && (
+                  <img src={tenant.logo_url} alt={tenant.name}
+                    className="h-[108px] md:h-[144px] max-w-[450px] object-contain transition-all duration-300 hover:scale-105" />
+                )}
+                {showElviaLogo && (
+                  <>
+                    <div className="h-6 w-px bg-gray-200" />
+                    <div className="flex items-center gap-1.5 text-xs text-gray-400 font-medium">
+                      <span>operado por</span>
+                      <img src="/LOGOS/ELVIA_logo_fondo_transparente.png" alt="ELVIA"
+                        className="h-4 md:h-5 object-contain opacity-80" />
+                    </div>
+                  </>
+                )}
+              </>
             )}
-            <div className="h-6 w-px bg-gray-200" />
-            <div className="flex items-center gap-1.5 text-xs text-gray-400 font-medium">
-              <span>operado por</span>
-              <img src="/LOGOS/ELVIA_logo_fondo_transparente.png" alt="ELVIA" className="h-4 md:h-5 object-contain opacity-80" />
-            </div>
           </div>
 
           <div className="flex items-center gap-3">
@@ -385,8 +392,7 @@ export default function LandingEmpresa() {
       <footer className="border-t border-gray-100 py-10">
         <div className="max-w-7xl mx-auto px-6 lg:px-10 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3 text-xs text-gray-400">
-            <span>Programa {tenant.name}</span>
-            <span>·</span>
+            {showProgramBadge && programBadgeText && <><span>{programBadgeText}</span><span>·</span></>}
             <span>operado por ELVIA®</span>
           </div>
           <div className="flex items-center gap-5 text-xs text-gray-400">

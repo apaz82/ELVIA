@@ -16,7 +16,7 @@ export default function LoginHR() {
   const { slug } = useParams()
   const navigate = useNavigate()
   const { login, logout, user, perfil, perfilCargado } = useAuth()
-  const { tenant, loading: tenantLoading, isUniversity } = useTenant()
+  const { tenant, loading: tenantLoading, isUniversity, showTenantLogo, showElviaLogo, elviaProminent } = useTenant()
   const L = useSectorLabels()
 
   const [email, setEmail]     = useState('')
@@ -181,18 +181,27 @@ export default function LoginHR() {
       <header className="border-b border-gray-100">
         <div className="max-w-7xl mx-auto px-6 lg:px-10 py-4 flex items-center justify-between">
           <Link to={`/${sectorPath}/${slug}`} className="flex items-center gap-4">
-            {tenant.logo_url ? (
-              <img src={tenant.logo_url} alt={tenant.name} className="h-[48px] md:h-[60px] max-w-[240px] object-contain transition-all hover:scale-105" />
+            {elviaProminent ? (
+              <img src="/LOGOS/ELVIA_logo_fondo_transparente.png" alt="ELVIA"
+                className="h-[36px] md:h-[44px] object-contain transition-all hover:scale-105" />
             ) : (
-              <div className="px-3 py-1.5 rounded-lg text-white text-sm font-bold tracking-tight" style={{ background: primary }}>
-                {tenant.name}
-              </div>
+              <>
+                {showTenantLogo && (
+                  <img src={tenant.logo_url} alt={tenant.name}
+                    className="h-[48px] md:h-[60px] max-w-[240px] object-contain transition-all hover:scale-105" />
+                )}
+                {showElviaLogo && (
+                  <>
+                    <div className="h-6 w-px bg-gray-200" />
+                    <div className="flex items-center gap-1.5 text-xs text-gray-400 font-medium">
+                      <span>operado por</span>
+                      <img src="/LOGOS/ELVIA_logo_fondo_transparente.png" alt="ELVIA"
+                        className="h-4 md:h-5 object-contain opacity-80" />
+                    </div>
+                  </>
+                )}
+              </>
             )}
-            <div className="h-6 w-px bg-gray-200" />
-            <div className="flex items-center gap-1.5 text-xs text-gray-400 font-medium">
-              <span>operado por</span>
-              <img src="/LOGOS/ELVIA_logo_fondo_transparente.png" alt="ELVIA" className="h-4 md:h-5 object-contain opacity-80" />
-            </div>
           </Link>
           <Link to={`/${sectorPath}/${slug}`} className="text-sm font-semibold text-gray-700 hover:text-gray-900">
             Soy colaborador →
