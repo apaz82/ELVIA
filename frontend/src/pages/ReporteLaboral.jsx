@@ -486,11 +486,23 @@ export default function ReporteLaboral() {
 
           {/* ── FOOTER ────────────────────────────────────────────────────────── */}
           <footer style={{ padding: '14px 44px', background: C.ink, color: C.paper, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: MONO, fontSize: 9, letterSpacing: '0.22em', textTransform: 'uppercase' }}>
-            <img
-              src="/LOGOS/ELVIA_logo_fondo_transparente.png"
-              alt="ELVIA"
-              style={{ height: 28, width: 'auto', objectFit: 'contain' }}
-            />
+            <svg viewBox="0 0 800 220" xmlns="http://www.w3.org/2000/svg" style={{ height: 32, width: 'auto' }} aria-label="ELVIA">
+              <defs>
+                <linearGradient id="ftSwoosh" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%"   stopColor="#00B8CC" stopOpacity="0"/>
+                  <stop offset="28%"  stopColor="#00C8DC" stopOpacity="0.6"/>
+                  <stop offset="62%"  stopColor="#00D8F0" stopOpacity="1"/>
+                  <stop offset="80%"  stopColor="#00C0D4" stopOpacity="0.55"/>
+                  <stop offset="100%" stopColor="#00B8CC" stopOpacity="0"/>
+                </linearGradient>
+                <filter id="ftGlow" x="-10%" y="-200%" width="120%" height="500%">
+                  <feGaussianBlur stdDeviation="5" result="blur"/>
+                  <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                </filter>
+              </defs>
+              <text x="400" y="152" fontFamily="'Orbitron','Exo 2','Arial Black',sans-serif" fontWeight="700" fontSize="112" letterSpacing="6" fill="white" textAnchor="middle">ELVIA</text>
+              <path d="M 235,164 C 340,150 480,144 595,157 C 640,162 690,159 740,154 L 740,161 C 690,167 640,170 595,165 C 480,154 340,162 235,173 Z" fill="url(#ftSwoosh)" filter="url(#ftGlow)"/>
+            </svg>
             <span>01 / 01</span>
           </footer>
 
