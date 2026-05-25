@@ -10,6 +10,8 @@ const { sendOTPEmail } = require('../services/resendService');
 const auth = require('../middleware/auth');
 const requireRole = require('../middleware/requireAdmin');
 const auditAdmin = require('../middleware/auditAdmin');
+const logAudit = require('../lib/logAudit');
+const { sendHRWelcomeEmail } = require('../services/resendService');
 
 // Auditar todas las acciones mutantes del panel admin (POST/PUT/PATCH/DELETE)
 router.use(auth, auditAdmin);
@@ -392,6 +394,161 @@ router.patch('/companies/:id', auth, requireRole('super_admin'), async (req, res
     res.status(500).json({ error: 'Error actualizando empresa' });
   }
 });
+
+/**
+ * GET /api/admin/tenants/check-slug/:slug
+ * Verifica si un slug está disponible para un nuevo tenant.
+ * Usado por el wizard de creación de tenants en tiempo real.
+ */
+router.get('/tenants/check-slug/:slug', auth, requireRole('super_admin'), async (req, res) => {
+  try {
+    const { slug } = req.params
+    if (!/^[a-z0-9-]{2,60}$/.test(slug)) {
+      return res.json({ available: false, reason: 'Solo letras minúsculas, números y guiones (2-60 chars)' })
+    }
+    const { data } = await supabaseAdmin.from('companies').select('id').eq('slug', slug).maybeSingle()
+    res.json({ available: !data, slug })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+/**
+ * POST /api/admin/tenants
+ * Wizard completo: crea empresa + HR admin en una sola llamada transaccional.
+ * Body: { nombre, slug, sector?, plan?, country?, logo_url?, primary_color?,
+ *         secondary_color?, accent_color?, hero_title?, hero_subtitle?,
+ *         welcome_message?, allowed_email_domain?, require_allowlist?,
+ *         require_invite?, hr_nombre, hr_email, hr_apellido? }
+ */
+router.post('/tenants', auth, requireRole('super_admin'), async (req, res) => {
+  const {
+    nombre, slug,
+    sector = 'corporate', plan = 'professional', country = 'MX',
+    logo_url, primary_color = '#0066FF', secondary_color = '#0D1B2A', accent_color = '#00D4FF',
+    hero_title, hero_subtitle, welcome_message,
+    allowed_email_domain, require_allowlist = false, require_invite = false,
+    hr_nombre, hr_email, hr_apellido = '',
+  } = req.body
+
+  if (!nombre || !slug || !hr_nombre || !hr_email) {
+    return res.status(400).json({ error: 'nombre, slug, hr_nombre y hr_email son requeridos' })
+  }
+  if (!/^[a-z0-9-]{2,60}$/.test(slug)) {
+    return res.status(400).json({ error: 'Slug inválido: solo letras minúsculas, números y guiones (2-60 chars)' })
+  }
+
+  const { data: existing } = await supabaseAdmin.from('companies').select('id').eq('slug', slug).maybeSingle()
+  if (existing) {
+    return res.status(409).json({ error: `El slug "${slug}" ya está en uso`, code: 'SLUG_CONFLICT' })
+  }
+
+  const tempPassword = crypto.randomBytes(8).toString('hex')
+  let company = null
+  let hrUserId = null
+
+  try {
+    // 1. Crear empresa
+    const { data: createdCompany, error: companyErr } = await supabaseAdmin
+      .from('companies')
+      .insert({
+        name: nombre, slug, sector, plan, country,
+        logo_url: logo_url || null,
+        primary_color, secondary_color, accent_color,
+        hero_title: hero_title || null,
+        hero_subtitle: hero_subtitle || null,
+        welcome_message: welcome_message || null,
+        allowed_email_domain: allowed_email_domain || null,
+        require_allowlist, require_invite,
+        is_active: true, is_template: false,
+        created_by: req.user.id,
+      })
+      .select()
+      .single()
+
+    if (companyErr) throw new Error(`Error creando empresa: ${companyErr.message}`)
+    company = createdCompany
+
+    // 2. Crear usuario auth para el HR admin
+    const { data: authUser, error: authErr } = await supabaseAdmin.auth.admin.createUser({
+      email: hr_email,
+      password: tempPassword,
+      email_confirm: true,
+      user_metadata: { nombre: hr_nombre, apellido: hr_apellido },
+    })
+
+    if (authErr) {
+      await supabaseAdmin.from('companies').delete().eq('id', company.id).catch(() => {})
+      throw new Error(`Error creando usuario HR: ${authErr.message}`)
+    }
+    hrUserId = authUser.user.id
+
+    // 3. Crear profile company_admin
+    const { error: profileErr } = await supabaseAdmin.from('profiles').insert({
+      id: hrUserId,
+      email_principal: hr_email,
+      nombre1: hr_nombre,
+      apellido1: hr_apellido,
+      role: 'company_admin',
+      company_id: company.id,
+      plan: 'business',
+      is_admin: false,
+    })
+
+    if (profileErr) {
+      await supabaseAdmin.auth.admin.deleteUser(hrUserId).catch(() => {})
+      await supabaseAdmin.from('companies').delete().eq('id', company.id).catch(() => {})
+      throw new Error(`Error creando perfil HR: ${profileErr.message}`)
+    }
+
+    // 4. Email de bienvenida (no bloqueante)
+    const frontendUrl = process.env.FRONTEND_URL || 'https://elvia.lat'
+    const hrUrl = `${frontendUrl}/empresas/${slug}/hr`
+    sendHRWelcomeEmail(hr_email, { hrNombre: hr_nombre, companyName: nombre, hrUrl, tempPassword })
+      .catch(e => console.error('[Admin/Tenants] Email HR no enviado:', e.message))
+
+    // 5. Audit log
+    await logAudit(supabaseAdmin, {
+      company_id: company.id,
+      user_id: req.user.id,
+      action: 'tenant_created',
+      entity: 'companies',
+      entity_id: company.id,
+      metadata: { slug, hr_email, sector, plan },
+    })
+
+    console.log(`[Admin] Tenant "${slug}" creado por ${req.user.id}. HR: ${hr_email}`)
+    res.status(201).json({ company, hr_email, hr_url: hrUrl })
+  } catch (err) {
+    console.error('[Admin/Tenants] Error:', err.message)
+    res.status(500).json({ error: err.message })
+  }
+})
+
+/**
+ * GET /api/admin/audit-log
+ * Lista acciones B2B registradas en tenant_audit_log.
+ * Query params: company_id (opcional), limit (default 50), offset (default 0)
+ */
+router.get('/audit-log', auth, requireRole('super_admin'), async (req, res) => {
+  try {
+    const { company_id, limit = 50, offset = 0 } = req.query
+    let query = supabaseAdmin
+      .from('tenant_audit_log')
+      .select('*, companies:company_id(name, slug)')
+      .order('created_at', { ascending: false })
+      .range(Number(offset), Number(offset) + Number(limit) - 1)
+
+    if (company_id) query = query.eq('company_id', company_id)
+
+    const { data, error } = await query
+    if (error) throw error
+    res.json({ logs: data || [] })
+  } catch (err) {
+    console.error('[Admin] Error leyendo audit log:', err.message)
+    res.status(500).json({ error: 'Error leyendo audit log' })
+  }
+})
 
 /**
  * POST /api/admin/knowledge/upload

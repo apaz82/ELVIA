@@ -9,6 +9,7 @@ import { useNavigate, useParams, Link } from 'react-router-dom'
 import * as PI from '@phosphor-icons/react'
 import { useAuth } from '../context/AuthContext'
 import { useTenant, DEFAULT_TENANT } from '../context/TenantContext'
+import { supabase } from '../services/authService'
 
 export default function LoginHR() {
   const { slug } = useParams()
@@ -21,6 +22,15 @@ export default function LoginHR() {
   const [showPwd, setShowPwd] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError]     = useState('')
+
+  // MFA state (solo activo cuando tenant.require_mfa = true)
+  const [mfaScreen, setMfaScreen]     = useState(null)  // null | 'enroll' | 'verify'
+  const [mfaFactorId, setMfaFactorId] = useState(null)
+  const [mfaChallengeId, setMfaChallengeId] = useState(null)
+  const [mfaTotpUri, setMfaTotpUri]   = useState(null)  // data URI para QR
+  const [mfaCode, setMfaCode]         = useState('')
+  const [mfaLoading, setMfaLoading]   = useState(false)
+  const [mfaError, setMfaError]       = useState('')
 
   const primary   = tenant.primary_color   || DEFAULT_TENANT.primary_color
   const secondary = tenant.secondary_color || DEFAULT_TENANT.secondary_color
@@ -67,11 +77,70 @@ export default function LoginHR() {
         setLoading(false)
         return
       }
-      // El useEffect anterior captura el redirect cuando perfil se carga
-      // pero si tarda mucho, dejamos el loading hasta entonces.
+
+      // Si el tenant requiere MFA, verificar el nivel de aseguramiento
+      if (tenant?.require_mfa) {
+        const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel()
+        if (aalData?.currentLevel === 'aal2') {
+          // Ya verificado — el useEffect manejará el redirect
+        } else if (aalData?.nextLevel === 'aal2') {
+          // Tiene factores enrollados pero no verificados en esta sesión
+          const { data: factors } = await supabase.auth.mfa.listFactors()
+          const verified = factors?.totp?.find(f => f.status === 'verified')
+          if (verified) {
+            const { data: ch } = await supabase.auth.mfa.challenge({ factorId: verified.id })
+            setMfaFactorId(verified.id)
+            setMfaChallengeId(ch?.id)
+            setMfaScreen('verify')
+            setLoading(false)
+            return
+          }
+        } else {
+          // Sin MFA enrollado — iniciar enrollment
+          const { data: enroll } = await supabase.auth.mfa.enroll({ factorType: 'totp' })
+          if (enroll) {
+            setMfaFactorId(enroll.id)
+            setMfaTotpUri(enroll.totp?.qr_code)
+            setMfaScreen('enroll')
+            setLoading(false)
+            return
+          }
+        }
+      }
+      // Sin MFA o ya aal2 — el useEffect maneja el redirect
     } catch {
       setError('Error inesperado. Intenta de nuevo.')
       setLoading(false)
+    }
+  }
+
+  const handleMfaVerify = async () => {
+    if (!mfaCode || mfaCode.length !== 6) return
+    setMfaError('')
+    setMfaLoading(true)
+    try {
+      if (mfaScreen === 'enroll') {
+        // Primer enroll: challengeAndVerify en un solo paso
+        const { error } = await supabase.auth.mfa.challengeAndVerify({
+          factorId: mfaFactorId,
+          code: mfaCode,
+        })
+        if (error) { setMfaError('Código incorrecto. Verifica tu app autenticadora.'); setMfaLoading(false); return }
+      } else {
+        // Verify con challenge ya existente
+        const { error } = await supabase.auth.mfa.verify({
+          factorId: mfaFactorId,
+          challengeId: mfaChallengeId,
+          code: mfaCode,
+        })
+        if (error) { setMfaError('Código incorrecto o expirado.'); setMfaLoading(false); return }
+      }
+      // MFA verificado — sesión upgrades a aal2; el useEffect manejará el redirect
+      setMfaScreen(null)
+    } catch {
+      setMfaError('Error al verificar. Intenta de nuevo.')
+    } finally {
+      setMfaLoading(false)
     }
   }
 
@@ -156,7 +225,91 @@ export default function LoginHR() {
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+            {/* ── MFA: Enrollment screen ── */}
+            {mfaScreen === 'enroll' && (
+              <div className="space-y-5">
+                <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-sm text-blue-800 flex items-start gap-2">
+                  <PI.ShieldCheck size={16} className="shrink-0 mt-0.5" style={{ color: primary }} />
+                  <span>Este programa requiere autenticación de dos factores. Escanea el código QR con Google Authenticator o Authy.</span>
+                </div>
+
+                {mfaTotpUri && (
+                  <div className="flex justify-center">
+                    <img src={mfaTotpUri} alt="QR MFA" className="w-44 h-44 rounded-xl border border-gray-200" />
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1.5">Código de 6 dígitos</label>
+                  <input
+                    type="text" inputMode="numeric" maxLength={6}
+                    value={mfaCode} onChange={e => setMfaCode(e.target.value.replace(/\D/g, ''))}
+                    placeholder="000000"
+                    className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm text-center font-mono tracking-[0.4em] focus:outline-none focus:ring-2"
+                    style={{ '--tw-ring-color': `${primary}40` }}
+                    autoComplete="one-time-code"
+                  />
+                </div>
+
+                {mfaError && (
+                  <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700 flex items-center gap-2">
+                    <PI.WarningCircle size={14} />
+                    <span>{mfaError}</span>
+                  </div>
+                )}
+
+                <button
+                  type="button" onClick={handleMfaVerify}
+                  disabled={mfaCode.length !== 6 || mfaLoading}
+                  className="w-full py-3.5 rounded-xl text-white font-semibold text-sm transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                  style={{ background: primary }}
+                >
+                  {mfaLoading ? <><PI.CircleNotch size={16} className="animate-spin" /> Verificando...</> : 'Activar autenticador →'}
+                </button>
+              </div>
+            )}
+
+            {/* ── MFA: Verify screen ── */}
+            {mfaScreen === 'verify' && (
+              <div className="space-y-5">
+                <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-sm text-blue-800 flex items-start gap-2">
+                  <PI.Lock size={16} className="shrink-0 mt-0.5" style={{ color: primary }} />
+                  <span>Ingresa el código de tu app autenticadora para acceder al panel HR.</span>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1.5">Código de verificación</label>
+                  <input
+                    type="text" inputMode="numeric" maxLength={6}
+                    value={mfaCode} onChange={e => setMfaCode(e.target.value.replace(/\D/g, ''))}
+                    placeholder="000000"
+                    className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm text-center font-mono tracking-[0.4em] focus:outline-none focus:ring-2"
+                    style={{ '--tw-ring-color': `${primary}40` }}
+                    autoComplete="one-time-code"
+                    autoFocus
+                  />
+                </div>
+
+                {mfaError && (
+                  <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700 flex items-center gap-2">
+                    <PI.WarningCircle size={14} />
+                    <span>{mfaError}</span>
+                  </div>
+                )}
+
+                <button
+                  type="button" onClick={handleMfaVerify}
+                  disabled={mfaCode.length !== 6 || mfaLoading}
+                  className="w-full py-3.5 rounded-xl text-white font-semibold text-sm transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                  style={{ background: primary }}
+                >
+                  {mfaLoading ? <><PI.CircleNotch size={16} className="animate-spin" /> Verificando...</> : 'Verificar código →'}
+                </button>
+              </div>
+            )}
+
+            {/* ── Login form (oculto durante MFA) ── */}
+            {!mfaScreen && <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-gray-700 mb-1.5">Correo HR</label>
                 <input
@@ -209,11 +362,13 @@ export default function LoginHR() {
                   </span>
                 )}
               </button>
-            </form>
+            </form>}
 
-            <p className="mt-6 text-center text-xs text-gray-400">
-              ¿Olvidaste tu contraseña? <Link to="/auth?forgot=1" className="font-semibold hover:underline" style={{ color: primary }}>Recuperar</Link>
-            </p>
+            {!mfaScreen && (
+              <p className="mt-6 text-center text-xs text-gray-400">
+                ¿Olvidaste tu contraseña? <Link to="/auth?forgot=1" className="font-semibold hover:underline" style={{ color: primary }}>Recuperar</Link>
+              </p>
+            )}
 
             <div className="mt-10 pt-6 border-t border-gray-100">
               <p className="text-[10px] text-gray-400 leading-relaxed text-center">
