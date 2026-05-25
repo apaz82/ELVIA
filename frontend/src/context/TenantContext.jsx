@@ -29,6 +29,9 @@ export const DEFAULT_TENANT = {
   welcome_message: null,
   contact_email: null,
   support_email: 'soporte@elvia.lat',
+  branding_mode: 'cobranded',     // cobranded | tenant_only | elvia_only
+  show_program_badge: false,       // B2C default: sin badge
+  program_badge_text: null,
   show_pricing: true,
   enabled_features: {
     cv_optimizer: true, cv_match: true, jobs: true, pipeline: true,
@@ -209,6 +212,16 @@ export function TenantProvider({ children }) {
     root.style.setProperty('--tenant-accent',    tenant.accent_color    || DEFAULT_TENANT.accent_color)
   }, [tenant])
 
+  // Branding mode derivado: controla qué logos ve el candidato
+  const brandingMode = tenant?.branding_mode || 'cobranded'
+  const showTenantLogo = brandingMode !== 'elvia_only' && Boolean(tenant?.logo_url)
+  const showElviaLogo  = brandingMode !== 'tenant_only' || !tenant?.logo_url
+  const elviaProminent = brandingMode === 'elvia_only' || !tenant?.logo_url
+
+  // Badge in-app para dashboard del candidato
+  const showProgramBadge = Boolean(tenant?.show_program_badge && tenant?.id && tenant.sector !== 'b2c')
+  const programBadgeText = tenant?.program_badge_text || (tenant?.name ? `Programa ${tenant.name}` : null)
+
   const value = useMemo(() => ({
     tenant,
     tenantRole,
@@ -219,7 +232,14 @@ export function TenantProvider({ children }) {
     isUniversity:    tenant?.sector === 'university',
     showPricing:     tenant?.show_pricing !== false,
     enabledFeatures: tenant?.enabled_features || DEFAULT_TENANT.enabled_features,
-  }), [tenant, tenantRole, cohort, loading])
+    // Branding visibility (Sprint 3c)
+    brandingMode,
+    showTenantLogo,
+    showElviaLogo,
+    elviaProminent,
+    showProgramBadge,
+    programBadgeText,
+  }), [tenant, tenantRole, cohort, loading, brandingMode, showTenantLogo, showElviaLogo, elviaProminent, showProgramBadge, programBadgeText])
 
   return (
     <TenantContext.Provider value={value}>

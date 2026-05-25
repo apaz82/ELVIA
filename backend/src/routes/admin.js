@@ -270,26 +270,70 @@ router.get('/companies', auth, requireRole('super_admin'), async (req, res) => {
 
 /**
  * PATCH /api/admin/companies/:id
- * Activa/desactiva una empresa (soft delete)
- * Body: { is_active: boolean }
+ * Actualiza branding, configuración o estado de una empresa.
+ * Solo se aceptan campos en la whitelist; todo lo demás se ignora.
+ * Body: cualquier subset de:
+ *   { is_active, name, sector, plan, country,
+ *     logo_url, logo_secondary, primary_color, secondary_color, accent_color,
+ *     hero_title, hero_subtitle, welcome_message,
+ *     branding_mode, show_program_badge, program_badge_text,
+ *     allowed_email_domain, require_allowlist, require_invite, require_mfa,
+ *     contact_email, support_email }
  */
+const COMPANY_PATCHABLE_FIELDS = [
+  'is_active', 'name', 'sector', 'plan', 'country',
+  'logo_url', 'logo_secondary',
+  'primary_color', 'secondary_color', 'accent_color',
+  'hero_title', 'hero_subtitle', 'welcome_message',
+  'branding_mode', 'show_program_badge', 'program_badge_text',
+  'allowed_email_domain', 'require_allowlist', 'require_invite', 'require_mfa',
+  'contact_email', 'support_email',
+];
+const ALLOWED_BRANDING_MODES = ['cobranded', 'tenant_only', 'elvia_only'];
+const ALLOWED_SECTORS = ['corporate', 'university', 'government'];
+
 router.patch('/companies/:id', auth, requireRole('super_admin'), async (req, res) => {
   try {
     const companyId = req.params.id;
-    const { is_active } = req.body;
+    const update = {};
 
-    if (typeof is_active !== 'boolean') {
-      return res.status(400).json({ error: 'is_active debe ser boolean' });
+    for (const key of COMPANY_PATCHABLE_FIELDS) {
+      if (req.body[key] !== undefined) update[key] = req.body[key];
+    }
+
+    if (Object.keys(update).length === 0) {
+      return res.status(400).json({ error: 'No hay campos válidos para actualizar' });
+    }
+
+    // Validaciones contra whitelist enum
+    if (update.branding_mode && !ALLOWED_BRANDING_MODES.includes(update.branding_mode)) {
+      return res.status(400).json({ error: 'branding_mode inválido', code: 'INVALID_BRANDING_MODE' });
+    }
+    if (update.sector && !ALLOWED_SECTORS.includes(update.sector)) {
+      return res.status(400).json({ error: 'sector inválido', code: 'INVALID_SECTOR' });
     }
 
     const { data: company, error } = await supabaseAdmin
       .from('companies')
-      .update({ is_active })
+      .update(update)
       .eq('id', companyId)
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error('[Admin] PATCH company:', error.message);
+      return res.status(500).json({ error: 'Error actualizando empresa' });
+    }
+
+    // Audit log
+    logAudit(supabaseAdmin, {
+      company_id: companyId,
+      user_id: req.user.id,
+      action: 'config_changed',
+      entity: 'companies',
+      entity_id: companyId,
+      metadata: { fields: Object.keys(update) },
+    }).catch(e => console.error('[Audit] config_changed:', e.message));
 
     res.json({ company });
   } catch (err) {
@@ -297,6 +341,87 @@ router.patch('/companies/:id', auth, requireRole('super_admin'), async (req, res
     res.status(500).json({ error: 'Error actualizando empresa' });
   }
 });
+
+/**
+ * POST /api/admin/companies/:id/logo
+ * Upload de logo del tenant a Supabase Storage bucket 'tenant-logos'.
+ * Multipart form-data con campo 'logo' (image/png, image/jpeg, image/webp, image/svg+xml).
+ * Max 2MB. Devuelve la URL pública resultante.
+ * Acepta query ?which=primary|secondary para distinguir logo principal vs alternativo.
+ */
+const multer = require('multer');
+const logoUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 2 * 1024 * 1024 }, // 2MB
+  fileFilter: (req, file, cb) => {
+    const ok = ['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml'].includes(file.mimetype);
+    cb(ok ? null : new Error('Formato no permitido: usa PNG, JPEG, WebP o SVG'), ok);
+  },
+});
+
+router.post('/companies/:id/logo',
+  auth, requireRole('super_admin'),
+  (req, res, next) => logoUpload.single('logo')(req, res, err => {
+    if (err) return res.status(400).json({ error: err.message, code: 'INVALID_UPLOAD' });
+    next();
+  }),
+  async (req, res) => {
+    try {
+      const companyId = req.params.id;
+      const which = req.query.which === 'secondary' ? 'secondary' : 'primary';
+
+      if (!req.file) return res.status(400).json({ error: 'No se recibió archivo (campo: logo)' });
+
+      // Validar que la empresa existe + obtener slug para el path
+      const { data: company, error: coErr } = await supabaseAdmin
+        .from('companies').select('slug').eq('id', companyId).single();
+      if (coErr || !company) return res.status(404).json({ error: 'Empresa no encontrada' });
+
+      // Path determinístico: tenant-logos/{slug}/logo_primary.{ext}
+      const ext = req.file.mimetype.split('/')[1].replace('svg+xml', 'svg');
+      const path = `${company.slug}/logo_${which}.${ext}`;
+
+      // Upload (upsert para reemplazar logo anterior)
+      const { error: upErr } = await supabaseAdmin.storage
+        .from('tenant-logos')
+        .upload(path, req.file.buffer, {
+          contentType: req.file.mimetype,
+          upsert: true,
+          cacheControl: '3600',
+        });
+
+      if (upErr) {
+        console.error('[Admin] Logo upload:', upErr.message);
+        return res.status(500).json({ error: 'Error subiendo logo: ' + upErr.message });
+      }
+
+      // URL pública (el bucket debe ser público)
+      const { data: pubData } = supabaseAdmin.storage.from('tenant-logos').getPublicUrl(path);
+      const logoUrl = pubData.publicUrl;
+
+      // Persistir URL en companies
+      const updateField = which === 'secondary' ? 'logo_secondary' : 'logo_url';
+      await supabaseAdmin
+        .from('companies')
+        .update({ [updateField]: logoUrl })
+        .eq('id', companyId);
+
+      logAudit(supabaseAdmin, {
+        company_id: companyId,
+        user_id: req.user.id,
+        action: 'config_changed',
+        entity: 'companies',
+        entity_id: companyId,
+        metadata: { logo_uploaded: which, path },
+      }).catch(e => console.error('[Audit] logo upload:', e.message));
+
+      res.json({ ok: true, [updateField]: logoUrl, path });
+    } catch (err) {
+      console.error('[Admin] Error en logo upload:', err.message);
+      res.status(500).json({ error: 'Error procesando logo' });
+    }
+  }
+);
 
 /**
  * GET /api/admin/tenants/check-slug/:slug
@@ -330,9 +455,14 @@ router.post('/tenants', auth, requireRole('super_admin'), tenantCreateLimiter, a
     sector = 'corporate', plan = 'professional', country = 'MX',
     logo_url, primary_color = '#0066FF', secondary_color = '#0D1B2A', accent_color = '#00D4FF',
     hero_title, hero_subtitle, welcome_message,
+    branding_mode = 'cobranded', show_program_badge = true, program_badge_text,
     allowed_email_domain, require_allowlist = false, require_invite = false,
     hr_nombre, hr_email, hr_apellido = '',
   } = req.body
+
+  if (!ALLOWED_BRANDING_MODES.includes(branding_mode)) {
+    return res.status(400).json({ error: 'branding_mode inválido', code: 'INVALID_BRANDING_MODE' })
+  }
 
   if (!nombre || !slug || !hr_nombre || !hr_email) {
     return res.status(400).json({ error: 'nombre, slug, hr_nombre y hr_email son requeridos' })
@@ -363,6 +493,9 @@ router.post('/tenants', auth, requireRole('super_admin'), tenantCreateLimiter, a
         hero_title: hero_title || null,
         hero_subtitle: hero_subtitle || null,
         welcome_message: welcome_message || null,
+        branding_mode,
+        show_program_badge,
+        program_badge_text: program_badge_text || null,
         allowed_email_domain: allowed_email_domain || null,
         require_allowlist, require_invite,
         is_active: true, is_template: false,

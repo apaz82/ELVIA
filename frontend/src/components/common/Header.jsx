@@ -14,7 +14,7 @@ const PLAN_CONFIG = {
 
 export default function Header({ onMenuToggle }) {
   const { user, perfil, logout } = useAuth()
-  const { tenant, isB2B } = useTenant()
+  const { tenant, isB2B, showTenantLogo, showElviaLogo, elviaProminent, showProgramBadge, programBadgeText } = useTenant()
   const navigate = useNavigate()
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const dropdownRef = useRef(null)
@@ -58,13 +58,19 @@ export default function Header({ onMenuToggle }) {
         <List size={22} />
       </button>
 
-      {/* Logo — solo en móvil; en B2B se muestra logo del tenant + ELVIA chiquito */}
+      {/* Logo — solo en móvil; respeta branding_mode del tenant */}
       <Link to="/" className="flex items-center gap-2 md:hidden">
-        {isB2B && tenant.logo_url ? (
+        {isB2B && !elviaProminent ? (
           <>
-            <img src={tenant.logo_url} alt={tenant.name} className="h-[42px] object-contain transition-all duration-300 hover:scale-105" />
-            <div className="h-4 w-px bg-white/30" />
-            <img src="/LOGOS/ELVIA_logo_fondo_transparente.png" alt="ELVIA" className="h-4 opacity-80 object-contain" />
+            {showTenantLogo && (
+              <img src={tenant.logo_url} alt={tenant.name} className="h-[42px] object-contain transition-all duration-300 hover:scale-105" />
+            )}
+            {showElviaLogo && (
+              <>
+                {showTenantLogo && <div className="h-4 w-px bg-white/30" />}
+                <img src="/LOGOS/ELVIA_logo_fondo_transparente.png" alt="ELVIA" className="h-4 opacity-80 object-contain" />
+              </>
+            )}
           </>
         ) : (
           <img src="/LOGOS/ELVIA_logo_fondo_transparente.png" alt="ELVIA" className="h-10 w-auto object-contain py-1" />
@@ -76,13 +82,13 @@ export default function Header({ onMenuToggle }) {
       {/* Info usuario — desktop */}
       {user ? (
         <div className="hidden md:flex items-center gap-3">
-          {/* Badge: B2B muestra "Programa {tenant}", B2C muestra plan freemium */}
-          {isB2B ? (
+          {/* Badge: B2B muestra "Programa {tenant}" si showProgramBadge=true; B2C muestra plan freemium */}
+          {isB2B && showProgramBadge ? (
             <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold border bg-white/15 text-white border-white/20 backdrop-blur-sm">
               <Crown size={13} weight="duotone" />
-              Programa {tenant.name}
+              {programBadgeText}
             </div>
-          ) : (
+          ) : isB2B ? null : (
             <Link
               to="/mi-plan"
               className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold border transition-all hover:opacity-90 hover:scale-105 ${planCfg.bg} ${planCfg.text} ${planCfg.border}`}
