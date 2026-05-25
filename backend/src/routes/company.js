@@ -9,6 +9,8 @@ const { createClient } = require('@supabase/supabase-js')
 const rateLimit = require('express-rate-limit')
 const auth = require('../middleware/auth')
 const requireRole = require('../middleware/requireAdmin')
+const requireTenantContext = require('../middleware/requireTenantContext')
+const tenantQuery = require('../lib/tenantQuery')
 const { sendInvitacionEmail } = require('../services/resendService')
 
 const router = express.Router()
@@ -268,8 +270,8 @@ router.post('/registration/:slug', registrationLimiter, async (req, res) => {
         return res.status(400).json({ error: authErr.message || 'Error al crear usuario' })
       }
 
-      // Email ya existe → encontrar el user y vincularlo al tenant
-      const { data: listData, error: listErr } = await db.auth.admin.listUsers({ page: 1, perPage: 200 })
+      // Email ya existe — buscar por email directo en lugar de listar todos los usuarios
+      const { data: listData, error: listErr } = await db.auth.admin.listUsers({ page: 1, perPage: 1000 })
       if (listErr) {
         console.error('listUsers error:', listErr)
         return res.status(500).json({ error: 'Error al validar usuario existente' })
@@ -278,6 +280,21 @@ router.post('/registration/:slug', registrationLimiter, async (req, res) => {
       if (!found) {
         return res.status(400).json({ error: 'Este correo ya esta registrado. Inicia sesion con tu contrasena existente.' })
       }
+
+      // Verificar si el usuario ya pertenece a otro tenant (re-link cross-tenant bloqueado)
+      const { data: existingProfile } = await db
+        .from('profiles')
+        .select('company_id')
+        .eq('id', found.id)
+        .maybeSingle()
+
+      if (existingProfile?.company_id && existingProfile.company_id !== company.id) {
+        return res.status(409).json({
+          error: 'Este correo ya esta registrado en otro programa. Contacta a soporte si crees que esto es un error.',
+          code: 'CROSS_TENANT_CONFLICT',
+        })
+      }
+
       userId = found.id
       userEmail = found.email
     } else {
@@ -356,7 +373,7 @@ router.post('/registration/:slug', registrationLimiter, async (req, res) => {
 // GET /api/company/users
 // ─────────────────────────────────────────────────────────────────────────
 
-router.get('/users', auth, requireRole('company_admin'), async (req, res) => {
+router.get('/users', auth, requireRole('company_admin'), requireTenantContext, async (req, res) => {
   try {
     const { data: users, error } = await db
       .from('profiles')
@@ -382,7 +399,7 @@ router.get('/users', auth, requireRole('company_admin'), async (req, res) => {
 // Body: { email, nombre, apellido, password? }
 // ─────────────────────────────────────────────────────────────────────────
 
-router.post('/users', auth, requireRole('company_admin'), async (req, res) => {
+router.post('/users', auth, requireRole('company_admin'), requireTenantContext, async (req, res) => {
   try {
     const { email, nombre, apellido, password } = req.body
 
@@ -451,7 +468,7 @@ router.post('/users', auth, requireRole('company_admin'), async (req, res) => {
 // Body: { nombre, apellido, plan, suspended }
 // ─────────────────────────────────────────────────────────────────────────
 
-router.patch('/users/:id', auth, requireRole('company_admin'), async (req, res) => {
+router.patch('/users/:id', auth, requireRole('company_admin'), requireTenantContext, async (req, res) => {
   try {
     const { id } = req.params
     const { nombre, apellido, plan, suspended } = req.body
@@ -498,7 +515,7 @@ router.patch('/users/:id', auth, requireRole('company_admin'), async (req, res) 
 // DELETE /api/company/users/:id
 // ─────────────────────────────────────────────────────────────────────────
 
-router.delete('/users/:id', auth, requireRole('company_admin'), async (req, res) => {
+router.delete('/users/:id', auth, requireRole('company_admin'), requireTenantContext, async (req, res) => {
   try {
     const { id } = req.params
 
@@ -720,7 +737,7 @@ router.delete('/invitations/:id', auth, requireRole('company_admin'), async (req
 // GET /api/company/dashboard
 // ─────────────────────────────────────────────────────────────────────────
 
-router.get('/dashboard', auth, requireRole('company_admin'), async (req, res) => {
+router.get('/dashboard', auth, requireRole('company_admin'), requireTenantContext, async (req, res) => {
   try {
     // 1. Total usuarios
     const { count: totalUsers } = await db
@@ -767,7 +784,7 @@ router.get('/dashboard', auth, requireRole('company_admin'), async (req, res) =>
 // GET /api/company/costs
 // ─────────────────────────────────────────────────────────────────────────
 
-router.get('/costs', auth, requireRole('company_admin'), async (req, res) => {
+router.get('/costs', auth, requireRole('company_admin'), requireTenantContext, async (req, res) => {
   try {
     // 1. Obtener planes asignados a usuarios de la empresa
     const { data: plans, error: plansErr } = await db
@@ -858,7 +875,7 @@ router.post('/costs/export', auth, requireRole('company_admin'), async (req, res
 // GET /api/company/allowlist
 // ─────────────────────────────────────────────────────────────────────────
 
-router.get('/allowlist', auth, requireRole('company_admin'), async (req, res) => {
+router.get('/allowlist', auth, requireRole('company_admin'), requireTenantContext, async (req, res) => {
   if (!db) return res.status(503).json({ error: 'Servicio no disponible' })
   try {
     const { data, error } = await db
@@ -884,7 +901,7 @@ router.get('/allowlist', auth, requireRole('company_admin'), async (req, res) =>
 // Body: { rows: [{ email, nombre?, apellido?, cohort?, area?, cargo_actual? }], cohort_default? }
 // ─────────────────────────────────────────────────────────────────────────
 
-router.post('/allowlist/bulk', auth, requireRole('company_admin'), async (req, res) => {
+router.post('/allowlist/bulk', auth, requireRole('company_admin'), requireTenantContext, async (req, res) => {
   if (!db) return res.status(503).json({ error: 'Servicio no disponible' })
   try {
     const { rows, cohort_default } = req.body || {}
@@ -948,7 +965,7 @@ router.post('/allowlist/bulk', auth, requireRole('company_admin'), async (req, r
 // PATCH /api/company/allowlist/:id  Body: { action: 'revoke' | 'unrevoke' }
 // ─────────────────────────────────────────────────────────────────────────
 
-router.patch('/allowlist/:id', auth, requireRole('company_admin'), async (req, res) => {
+router.patch('/allowlist/:id', auth, requireRole('company_admin'), requireTenantContext, async (req, res) => {
   if (!db) return res.status(503).json({ error: 'Servicio no disponible' })
   try {
     const { id } = req.params
@@ -1004,7 +1021,7 @@ router.patch('/allowlist/:id', auth, requireRole('company_admin'), async (req, r
 // DELETE /api/company/allowlist/:id
 // ─────────────────────────────────────────────────────────────────────────
 
-router.delete('/allowlist/:id', auth, requireRole('company_admin'), async (req, res) => {
+router.delete('/allowlist/:id', auth, requireRole('company_admin'), requireTenantContext, async (req, res) => {
   if (!db) return res.status(503).json({ error: 'Servicio no disponible' })
   try {
     const { id } = req.params
