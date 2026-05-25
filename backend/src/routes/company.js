@@ -132,7 +132,7 @@ router.get('/branding/:slug', async (req, res) => {
         primary_color, secondary_color, accent_color,
         hero_title, hero_subtitle, hero_image_url, welcome_message,
         contact_email, support_email,
-        allowed_email_domain, require_invite,
+        allowed_email_domain, require_invite, require_mfa,
         show_pricing, enabled_features
       `)
       .eq('slug', slug)
