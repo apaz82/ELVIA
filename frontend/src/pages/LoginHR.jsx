@@ -9,6 +9,7 @@ import { useNavigate, useParams, Link } from 'react-router-dom'
 import * as PI from '@phosphor-icons/react'
 import { useAuth } from '../context/AuthContext'
 import { useTenant, DEFAULT_TENANT } from '../context/TenantContext'
+import { useSectorLabels } from '../hooks/useSectorLabels'
 import { supabase } from '../services/authService'
 
 export default function LoginHR() {
@@ -16,6 +17,7 @@ export default function LoginHR() {
   const navigate = useNavigate()
   const { login, logout, user, perfil, perfilCargado } = useAuth()
   const { tenant, loading: tenantLoading, isUniversity } = useTenant()
+  const L = useSectorLabels()
 
   const [email, setEmail]     = useState('')
   const [password, setPassword] = useState('')
@@ -58,9 +60,9 @@ export default function LoginHR() {
   }, [user, perfil, perfilCargado, tenant, navigate, logout])
 
   useEffect(() => {
-    if (tenant?.name) document.title = `Panel HR · ${tenant.name} × ELVIA®`
+    if (tenant?.name) document.title = `${L.adminPanelTitle} · ${tenant.name} × ELVIA®`
     return () => { document.title = 'ELVIA®' }
-  }, [tenant?.name])
+  }, [tenant?.name, L.adminPanelTitle])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -208,20 +210,20 @@ export default function LoginHR() {
               style={{ background: `${primary}10`, color: primary }}
             >
               <PI.ShieldCheck size={12} weight="bold" />
-              Acceso restringido a HR
+              {L.adminAccessBadge}
             </div>
 
             <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2 leading-tight">
-              Panel HR<br />{tenant.name}
+              {L.adminPanelTitle}<br />{tenant.name}
             </h1>
             <p className="text-sm text-gray-500 mb-8">
-              Gestiona el programa, la cohorte y revisa métricas agregadas anónimas de tu equipo en transición.
+              Gestiona el programa, la cohorte y revisa métricas agregadas anónimas de {L.programSubject}.
             </p>
 
             {isLoggedAsUser && (
               <div className="mb-6 p-3 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-800 flex items-start gap-2">
                 <PI.WarningCircle size={16} className="shrink-0 mt-0.5" />
-                <span>Tu cuenta es de colaborador, no de HR. Ve a <Link to={`/${sectorPath}/${slug}`} className="underline font-semibold">tu panel</Link>.</span>
+                <span>Tu cuenta es de {L.member}, no del equipo del programa. Ve a <Link to={`/${sectorPath}/${slug}`} className="underline font-semibold">tu panel</Link>.</span>
               </div>
             )}
 
@@ -311,10 +313,10 @@ export default function LoginHR() {
             {/* ── Login form (oculto durante MFA) ── */}
             {!mfaScreen && <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1.5">Correo HR</label>
+                <label className="block text-xs font-semibold text-gray-700 mb-1.5">Correo institucional</label>
                 <input
                   type="email" value={email} onChange={e => setEmail(e.target.value)} required
-                  placeholder="hr@empresa.com"
+                  placeholder={L.contactEmailHint}
                   className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2"
                   style={{ '--tw-ring-color': `${primary}40` }}
                   autoComplete="email"
@@ -357,7 +359,7 @@ export default function LoginHR() {
                   </span>
                 ) : (
                   <span className="flex items-center justify-center gap-2">
-                    Acceder al Panel HR
+                    Acceder al {L.adminPanelTitle}
                     <PI.ArrowRight size={14} weight="bold" />
                   </span>
                 )}
@@ -372,7 +374,7 @@ export default function LoginHR() {
 
             <div className="mt-10 pt-6 border-t border-gray-100">
               <p className="text-[10px] text-gray-400 leading-relaxed text-center">
-                Si necesitas acceso de HR para este programa, contacta a{' '}
+                Si necesitas acceso para este programa, contacta a{' '}
                 <a href={`mailto:${tenant.support_email || 'soporte@elvia.lat'}`} className="font-semibold" style={{ color: primary }}>
                   {tenant.support_email || 'soporte@elvia.lat'}
                 </a>.
@@ -394,18 +396,18 @@ export default function LoginHR() {
                 Operación del programa
               </div>
               <h2 className="text-3xl md:text-4xl font-bold leading-tight mb-4">
-                Todo lo que necesitas para acompañar la transición de tu equipo.
+                Todo lo que necesitas para {L.programMission}.
               </h2>
               <p className="text-base opacity-80 leading-relaxed mb-10 max-w-lg">
-                Una plataforma diseñada para HR Directors de empresas grandes: visibilidad agregada, control de acceso y reportes ejecutivos. Sin ver datos individuales sensibles.
+                Una plataforma diseñada para {L.adminPersona}: visibilidad agregada, control de acceso y reportes institucionales. Sin ver datos individuales sensibles.
               </p>
 
               <div className="grid sm:grid-cols-2 gap-4">
                 {[
-                  { icon: PI.UsersThree,   title: 'Gestión de cohortes',   desc: 'Carga listas por CSV, agrupa por área o promoción, controla quién accede.' },
-                  { icon: PI.ChartLine,    title: 'Métricas anónimas',     desc: 'Adopción, engagement, funnel del programa. Nunca contenido individual.' },
-                  { icon: PI.ShieldCheck,  title: 'Confidencialidad total',desc: 'Tu equipo confía: nunca ves su CV, conversaciones ni postulaciones.' },
-                  { icon: PI.Export,       title: 'Reportes ejecutivos',   desc: 'Exporta PDFs y CSVs listos para presentar al comité de Personas.' },
+                  { icon: PI.UsersThree,   title: L.bullet1Title, desc: L.bullet1Desc },
+                  { icon: PI.ChartLine,    title: L.bullet2Title, desc: L.bullet2Desc },
+                  { icon: PI.ShieldCheck,  title: L.bullet3Title, desc: L.bullet3Desc },
+                  { icon: PI.Export,       title: L.bullet4Title, desc: L.bullet4Desc },
                 ].map((f, i) => (
                   <div key={i} className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4">
                     <f.icon size={20} weight="duotone" className="mb-2" style={{ color: primary }} />
