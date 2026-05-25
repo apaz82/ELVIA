@@ -346,7 +346,9 @@ router.post('/tenants', auth, requireRole('super_admin'), tenantCreateLimiter, a
     return res.status(409).json({ error: `El slug "${slug}" ya está en uso`, code: 'SLUG_CONFLICT' })
   }
 
-  const tempPassword = crypto.randomBytes(8).toString('hex')
+  // Password aleatoria fuerte (NO se envía al usuario; solo se usa para crear el auth.user;
+  // el HR setea su contraseña real vía recovery link en el email)
+  const initialPassword = crypto.randomBytes(32).toString('hex')
   let company = null
   let hrUserId = null
 
@@ -372,10 +374,10 @@ router.post('/tenants', auth, requireRole('super_admin'), tenantCreateLimiter, a
     if (companyErr) throw new Error(`Error creando empresa: ${companyErr.message}`)
     company = createdCompany
 
-    // 2. Crear usuario auth para el HR admin
+    // 2. Crear usuario auth para el HR admin (con password aleatoria descartable)
     const { data: authUser, error: authErr } = await supabaseAdmin.auth.admin.createUser({
       email: hr_email,
-      password: tempPassword,
+      password: initialPassword,
       email_confirm: true,
       user_metadata: { nombre: hr_nombre, apellido: hr_apellido },
     })
@@ -404,10 +406,21 @@ router.post('/tenants', auth, requireRole('super_admin'), tenantCreateLimiter, a
       throw new Error(`Error creando perfil HR: ${profileErr.message}`)
     }
 
-    // 4. Email de bienvenida (no bloqueante)
+    // 4. Generar recovery link de Supabase para que el HR setee su propia contraseña
     const frontendUrl = process.env.FRONTEND_URL || 'https://elvia.lat'
     const hrUrl = `${frontendUrl}/empresas/${slug}/hr`
-    sendHRWelcomeEmail(hr_email, { hrNombre: hr_nombre, companyName: nombre, hrUrl, tempPassword })
+    const { data: linkData, error: linkErr } = await supabaseAdmin.auth.admin.generateLink({
+      type: 'recovery',
+      email: hr_email,
+      options: { redirectTo: `${frontendUrl}/reset-password` },
+    })
+    if (linkErr) {
+      console.error('[Admin/Tenants] generateLink falló:', linkErr.message)
+    }
+    const setupLink = linkData?.properties?.action_link || `${frontendUrl}/reset-password`
+
+    // 5. Email de bienvenida (no bloqueante) — incluye magic link, NO la password
+    sendHRWelcomeEmail(hr_email, { hrNombre: hr_nombre, companyName: nombre, hrUrl, setupLink })
       .catch(e => console.error('[Admin/Tenants] Email HR no enviado:', e.message))
 
     // 5. Audit log

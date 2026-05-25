@@ -18,14 +18,19 @@ const requireMFA = (req, res, next) => {
     const payload = JSON.parse(
       Buffer.from(req.token.split('.')[1], 'base64url').toString()
     )
-    if (payload.aal === 'aal1') {
+    if (payload.aal !== 'aal2') {
       return res.status(403).json({
         error: 'Este programa requiere verificación de doble factor (MFA).',
         code: 'MFA_REQUIRED',
       })
     }
   } catch {
-    // Si no se puede decodificar el payload, dejamos pasar (no bloqueamos)
+    // Fail-closed: si no se puede decodificar el payload de un tenant que exige MFA,
+    // bloqueamos por seguridad. Mejor un falso positivo que un bypass silencioso.
+    return res.status(403).json({
+      error: 'No se pudo verificar el factor MFA. Intenta iniciar sesión de nuevo.',
+      code: 'MFA_VERIFICATION_FAILED',
+    })
   }
 
   next()

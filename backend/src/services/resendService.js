@@ -244,7 +244,7 @@ const sendInvitacionEmail = async (to, nombre, companyName, inviteUrl) => {
   });
 };
 
-const sendHRWelcomeEmail = async (to, { hrNombre, companyName, hrUrl, tempPassword }) => {
+const sendHRWelcomeEmail = async (to, { hrNombre, companyName, hrUrl, setupLink }) => {
   if (!resend) {
     console.warn('[Resend] sendHRWelcomeEmail — email deshabilitado (sin API key)')
     return
@@ -252,7 +252,7 @@ const sendHRWelcomeEmail = async (to, { hrNombre, companyName, hrUrl, tempPasswo
   const nombreSafe = escapeHtml(hrNombre || '')
   const companySafe = escapeHtml(companyName)
   const urlSafe = escapeHtml(hrUrl)
-  const pwSafe = escapeHtml(tempPassword)
+  const setupSafe = escapeHtml(setupLink)
 
   return resend.emails.send({
     from: FROM_EMAIL,
@@ -263,27 +263,27 @@ const sendHRWelcomeEmail = async (to, { hrNombre, companyName, hrUrl, tempPasswo
         <h2 style="color: #1e3a8a;">¡Hola${nombreSafe ? ` ${nombreSafe}` : ''}! 👋</h2>
         <p>Tu cuenta de administrador HR ha sido creada para <strong>${companySafe}</strong> en ELVIA.</p>
 
+        <p>Para activarla, configura tu contraseña haciendo clic en el botón de abajo. El enlace es de un solo uso y expira en 1 hora.</p>
+
+        <div style="text-align: center; margin: 32px 0;">
+          <a href="${setupSafe}"
+             style="background: #1e3a8a; color: #fff; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 16px;">
+            Configurar mi contraseña
+          </a>
+        </div>
+
         <div style="background: #f0f9ff; border-left: 4px solid #3b82f6; padding: 16px; margin: 20px 0;">
-          <p style="margin: 0 0 8px; font-size: 12px; text-transform: uppercase; color: #6b7280;">Tu portal HR:</p>
+          <p style="margin: 0 0 8px; font-size: 12px; text-transform: uppercase; color: #6b7280;">Tu portal HR (después de configurar):</p>
           <p style="margin: 0 0 16px;">
             <a href="${urlSafe}" style="color: #1e3a8a; font-weight: bold;">${urlSafe}</a>
           </p>
           <p style="margin: 0 0 4px; font-size: 12px; color: #6b7280;">Email de acceso:</p>
-          <p style="margin: 0 0 12px; font-weight: bold;">${escapeHtml(to)}</p>
-          <p style="margin: 0 0 4px; font-size: 12px; color: #6b7280;">Contraseña temporal:</p>
-          <p style="margin: 0; font-family: monospace; font-size: 18px; font-weight: bold; color: #1e3a8a; letter-spacing: 2px;">${pwSafe}</p>
+          <p style="margin: 0; font-weight: bold;">${escapeHtml(to)}</p>
         </div>
 
-        <p style="color: #dc2626; font-size: 13px;">
-          ⚠️ Por seguridad, cambia tu contraseña al iniciar sesión por primera vez.
+        <p style="color: #6b7280; font-size: 13px;">
+          Si no esperabas este email, ignóralo. El enlace expirará automáticamente.
         </p>
-
-        <div style="text-align: center; margin: 32px 0;">
-          <a href="${urlSafe}"
-             style="background: #1e3a8a; color: #fff; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 16px;">
-            Acceder al panel HR
-          </a>
-        </div>
 
         <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;" />
         <p style="font-size: 12px; color: #9ca3af;">© ${new Date().getFullYear()} ELVIA · Plataforma de Outplacement</p>
