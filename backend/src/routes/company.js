@@ -732,14 +732,14 @@ router.post('/invitations', auth, requireRole('company_admin'), requireTenantCon
       }], { onConflict: 'id' })
     }
 
-    // 4. Upsert allowlist como 'invited'
+    // 4. Upsert allowlist como 'pending' (consistente con carga por CSV)
     await db.from('company_allowlist').upsert([{
       company_id:  company.id,
       email:       emailLower,
       nombre:      nombre.trim(),
       apellido:    (apellido || '').trim(),
       cohort:      cohort || null,
-      status:      'invited',
+      status:      'pending',
     }], { onConflict: 'company_id,email' })
 
     // 5. Generar link de activación (recovery = set password por primera vez)
@@ -760,6 +760,7 @@ router.post('/invitations', auth, requireRole('company_admin'), requireTenantCon
       nombre:      nombre.trim(),
       invited_by:  req.user.id,
       status:      'pending',
+      expires_at:  new Date(Date.now() + 3_600_000).toISOString(),
     }], { onConflict: 'company_id,email' })
 
     // 7. Enviar email branded

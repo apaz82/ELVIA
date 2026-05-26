@@ -802,7 +802,7 @@ export default function CompanyAdmin() {
               {(() => {
                 const total      = allowlist.length
                 const activados  = allowlist.filter(a => a.status === 'activated').length
-                const pendientes = allowlist.filter(a => a.status === 'pending').length
+                const pendientes = allowlist.filter(a => a.status === 'pending' || a.status === 'invited').length
                 const revocados  = allowlist.filter(a => a.status === 'revoked').length
                 const adopcion   = total > 0 ? Math.round((activados / total) * 100) : 0
                 return (
@@ -945,7 +945,9 @@ export default function CompanyAdmin() {
                           <div className="text-sm font-semibold text-gray-900 truncate">{inv.email}</div>
                           <div className="text-xs text-gray-400">
                             {inv.nombre && <span>{inv.nombre} · </span>}
-                            Expira {new Date(inv.expires_at).toLocaleDateString('es', { day: '2-digit', month: 'short' })}
+                            {inv.expires_at
+                              ? `Expira ${new Date(inv.expires_at).toLocaleDateString('es', { day: '2-digit', month: 'short' })}`
+                              : `Enviada ${new Date(inv.created_at).toLocaleDateString('es', { day: '2-digit', month: 'short' })}`}
                           </div>
                         </div>
                       </div>

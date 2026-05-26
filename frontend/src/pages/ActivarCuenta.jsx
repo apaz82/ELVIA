@@ -44,6 +44,7 @@ export default function ActivarCuenta() {
   const [exito, setExito]             = useState(false)
   const [tokenValido, setTokenValido] = useState(false)
   const [tokenExpirado, setTokenExpirado] = useState(false)
+  const [candidateName, setCandidateName] = useState('')
   // Capturar el hash UNA vez al montar (no leer window.location.hash en render)
   const [initialHash] = useState(() => (typeof window !== 'undefined' ? window.location.hash : ''))
 
@@ -68,12 +69,20 @@ export default function ActivarCuenta() {
     }
 
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) setTokenValido(true)
+      if (session) {
+        setTokenValido(true)
+        const meta = session.user?.user_metadata || {}
+        const name = [meta.nombre1, meta.apellido1].filter(Boolean).join(' ').trim()
+        if (name) setCandidateName(name)
+      }
     })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'PASSWORD_RECOVERY' || (event === 'SIGNED_IN' && session)) {
         setTokenValido(true)
+        const meta = session?.user?.user_metadata || {}
+        const name = [meta.nombre1, meta.apellido1].filter(Boolean).join(' ').trim()
+        if (name) setCandidateName(name)
       }
     })
     return () => subscription.unsubscribe()
@@ -237,9 +246,13 @@ export default function ActivarCuenta() {
             >
               <LockKey size={28} style={{ color: primary }} weight="duotone" />
             </div>
-            <h1 className="text-2xl font-black text-gray-900 mb-1">Activa tu cuenta</h1>
+            <h1 className="text-2xl font-black text-gray-900 mb-1">
+              {candidateName ? `Hola, ${candidateName.split(' ')[0]}` : 'Activa tu cuenta'}
+            </h1>
             <p className="text-sm text-gray-500">
-              {tenant?.name ? `Programa ${tenant.name} · ` : ''}Crea tu contraseña para empezar
+              {candidateName
+                ? `Bienvenido${tenant?.name ? ` al programa ${tenant.name}` : ''}. Crea tu contraseña para empezar.`
+                : `${tenant?.name ? `Programa ${tenant.name} · ` : ''}Crea tu contraseña para empezar`}
             </p>
           </div>
 
