@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const crypto = require('crypto');
 const rateLimit = require('express-rate-limit');
+const multer = require('multer');
+const pdfParse = require('pdf-parse');
 const { supabase, supabaseAdmin } = require('../lib/supabase');
 const Anthropic = require('@anthropic-ai/sdk');
 const { createOTP, validateOTP } = require('../services/otpService');
@@ -349,7 +351,6 @@ router.patch('/companies/:id', auth, requireRole('super_admin'), async (req, res
  * Max 2MB. Devuelve la URL pública resultante.
  * Acepta query ?which=primary|secondary para distinguir logo principal vs alternativo.
  */
-const multer = require('multer');
 const logoUpload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 2 * 1024 * 1024 }, // 2MB
@@ -603,9 +604,7 @@ router.get('/audit-log', auth, requireRole('super_admin'), async (req, res) => {
  * POST /api/admin/knowledge/upload
  * Sube un documento (PDF o TXT) y lo procesa automáticamente a Supabase pgvector
  */
-const multer = require('multer');
 const upload = multer({ limits: { fileSize: 10 * 1024 * 1024 } }); // 10MB
-const pdfParse = require('pdf-parse');
 
 router.post('/knowledge/upload', auth, requireRole('super_admin'), upload.single('file'), async (req, res) => {
   console.log('[KnowledgeUpload] Inicio de proceso para archivo:', req.file?.originalname);
