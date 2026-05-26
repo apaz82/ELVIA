@@ -44,6 +44,8 @@ export default function ActivarCuenta() {
   const [exito, setExito]             = useState(false)
   const [tokenValido, setTokenValido] = useState(false)
   const [tokenExpirado, setTokenExpirado] = useState(false)
+  // Capturar el hash UNA vez al montar (no leer window.location.hash en render)
+  const [initialHash] = useState(() => (typeof window !== 'undefined' ? window.location.hash : ''))
 
   const sectorPath = isUniversity ? 'universidades' : 'empresas'
   const primary    = tenant?.primary_color || DEFAULT_TENANT.primary_color
@@ -60,8 +62,7 @@ export default function ActivarCuenta() {
   const pwdStrong = pwdScore === 4
 
   useEffect(() => {
-    const hash = window.location.hash
-    if (hash.includes('error_code=otp_expired') || hash.includes('error=access_denied')) {
+    if (initialHash.includes('error_code=otp_expired') || initialHash.includes('error=access_denied')) {
       setTokenExpirado(true)
       return
     }
@@ -76,7 +77,7 @@ export default function ActivarCuenta() {
       }
     })
     return () => subscription.unsubscribe()
-  }, [])
+  }, [initialHash])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -100,13 +101,8 @@ export default function ActivarCuenta() {
       return
     }
 
-    // CRÍTICO: limpiar estado de recovery ANTES de navegar para que el nuclear
-    // redirect de App.jsx no intercepte la navegación a /login.
-    if (setIsRecovering) setIsRecovering(false)
-    sessionStorage.removeItem('optima_recovery_mode')
-    sessionStorage.removeItem('optima_recovery_hash')
-
     // Notificar al backend para marcar la cuenta como activada
+    // (antes de signOut, mientras todavía tenemos el access_token de recovery)
     try {
       const { data: { session } } = await supabase.auth.getSession()
       if (session?.access_token) {
@@ -119,11 +115,17 @@ export default function ActivarCuenta() {
       console.warn('[activar] confirm-activation no crítico:', e.message)
     }
 
+    // CRÍTICO: cerrar sesión + limpiar estado de recovery.
+    // Esto rompe el cordón umbilical con AuthContext y garantiza que el siguiente
+    // paso (login manual) arranque desde cero, sin races ni perfiles stale.
+    if (setIsRecovering) setIsRecovering(false)
+    sessionStorage.removeItem('optima_recovery_mode')
+    sessionStorage.removeItem('optima_recovery_hash')
+    try { await supabase.auth.signOut() } catch { /* ignorar */ }
+
     setLoading(false)
     setExito(true)
-    // Redirigir a bienvenida (onboarding B2B) en lugar de /login para evitar
-    // que isCompanyAdmin con perfil aún cargando lleve al panel equivocado.
-    setTimeout(() => navigate('/bienvenida', { replace: true }), 2000)
+    // NO auto-redirect. El usuario hace clic explícito en el botón de éxito.
   }
 
   if (tenantLoading || authLoading) {
@@ -136,7 +138,7 @@ export default function ActivarCuenta() {
 
   // Si hay sesión activa pero NO hay token de recovery en el hash → cuenta ya activada
   // o es un admin que aterrizó aquí por error.
-  const hasRecoveryHash = window.location.hash.includes('type=recovery') || window.location.hash.includes('access_token')
+  const hasRecoveryHash = initialHash.includes('type=recovery') || initialHash.includes('access_token')
   if (user && !tokenValido && !hasRecoveryHash && !exito) {
     const destino = isCompanyAdmin
       ? '/empresa-admin'
@@ -192,11 +194,19 @@ export default function ActivarCuenta() {
     return (
       <div className="min-h-screen bg-white flex flex-col items-center justify-center px-6">
         <div className="max-w-sm text-center">
-          <CheckCircle size={56} className="mx-auto mb-4" style={{ color: primary }} weight="duotone" />
+          <CheckCircle size={64} className="mx-auto mb-5" style={{ color: primary }} weight="duotone" />
           <h1 className="text-2xl font-bold text-gray-900 mb-2">¡Cuenta activada!</h1>
-          <p className="text-sm text-gray-500">
-            Tu cuenta está lista. Redirigiendo al inicio de sesión…
+          <p className="text-sm text-gray-500 mb-8 leading-relaxed">
+            Tu contraseña quedó configurada correctamente. Ahora inicia sesión
+            con tu correo y la contraseña que acabas de crear.
           </p>
+          <button
+            onClick={() => navigate(`/${sectorPath}/${slug}/login?activated=1`, { replace: true })}
+            className="w-full py-3.5 text-sm font-bold text-white rounded-xl shadow-sm hover:opacity-90 active:scale-[0.98] transition-all"
+            style={{ backgroundColor: primary }}
+          >
+            Iniciar sesión
+          </button>
         </div>
       </div>
     )

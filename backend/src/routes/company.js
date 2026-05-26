@@ -654,6 +654,35 @@ router.post('/invitations', auth, requireRole('company_admin'), requireTenantCon
 
     if (compErr || !company) return res.status(500).json({ error: 'Error al obtener datos de la empresa' })
 
+    // 1.5 Pre-flight: bloquear reinvitar cuentas ya activadas
+    const { data: existingAllow } = await db
+      .from('company_allowlist')
+      .select('status, activated_at')
+      .eq('company_id', company.id)
+      .eq('email',      emailLower)
+      .maybeSingle()
+
+    if (existingAllow?.status === 'activated') {
+      return res.status(409).json({
+        error: 'Esta cuenta ya está activada. El usuario puede iniciar sesión directamente.',
+        code:  'ALREADY_ACTIVATED',
+      })
+    }
+
+    // 1.6 Pre-flight: bloquear invitar a admins (defensa contra degradación accidental)
+    const { data: existingProfile } = await db
+      .from('profiles')
+      .select('id, role, email_principal')
+      .eq('email_principal', emailLower)
+      .maybeSingle()
+
+    if (existingProfile && ['super_admin', 'company_admin'].includes(existingProfile.role)) {
+      return res.status(409).json({
+        error: 'Este email pertenece a un administrador y no puede ser invitado como candidato.',
+        code:  'IS_ADMIN',
+      })
+    }
+
     const FRONT = process.env.FRONTEND_URL || 'https://elvia.lat'
     const sectorPath = company.sector === 'university' ? 'universidades' : 'empresas'
     const activarUrl = `${FRONT}/${sectorPath}/${company.slug}/activar`
@@ -1178,10 +1207,10 @@ router.post('/confirm-activation', auth, async (req, res) => {
     const userId = req.user.id
     const userEmail = req.user.email
 
-    // Obtener company_id del perfil
+    // Obtener company_id + role del perfil
     const { data: profile } = await db
       .from('profiles')
-      .select('company_id, email_principal')
+      .select('company_id, email_principal, role')
       .eq('id', userId)
       .maybeSingle()
 
@@ -1189,19 +1218,34 @@ router.post('/confirm-activation', auth, async (req, res) => {
     const email     = (profile?.email_principal || userEmail || '').toLowerCase()
 
     if (!companyId) {
-      // No tiene empresa — nada que confirmar, responder ok igual
       return res.json({ ok: true, skipped: true })
     }
 
-    // Marcar allowlist como activada
+    // Defensa: el usuario debe estar en el allowlist de SU propia empresa
+    // (previene que un user manipule confirm-activation para otra tenant)
+    const { data: allowEntry } = await db
+      .from('company_allowlist')
+      .select('id, status, company_id')
+      .eq('company_id', companyId)
+      .eq('email',       email)
+      .maybeSingle()
+
+    if (!allowEntry) {
+      return res.status(403).json({ error: 'No estás autorizado en esta empresa' })
+    }
+
+    if (allowEntry.status === 'revoked') {
+      return res.status(403).json({ error: 'Tu acceso ha sido revocado' })
+    }
+
+    // Marcar allowlist como activada (idempotente)
     await db.from('company_allowlist')
       .update({
         status:            'activated',
         activated_at:      new Date().toISOString(),
         activated_user_id: userId,
       })
-      .eq('company_id', companyId)
-      .eq('email',       email)
+      .eq('id', allowEntry.id)
 
     // Marcar invitación como aceptada
     await db.from('company_invitations')

@@ -2,17 +2,19 @@
 // Ruta: /empresas/:slug/login  y  /universidades/:slug/login
 // Sin opción de registro — las cuentas son creadas por el Admin HR
 import { useState, useEffect } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { supabase } from '../services/authService'
 import { useTenant, DEFAULT_TENANT } from '../context/TenantContext'
 import { useAuth } from '../context/AuthContext'
-import { Eye, EyeSlash, Warning, ArrowRight, Info } from '@phosphor-icons/react'
+import { Eye, EyeSlash, Warning, ArrowRight, Info, CheckCircle } from '@phosphor-icons/react'
 
 export default function LoginEmpresa() {
   const { slug }     = useParams()
   const navigate     = useNavigate()
+  const [searchParams] = useSearchParams()
+  const justActivated = searchParams.get('activated') === '1'
   const { tenant, loading: tenantLoading, isUniversity } = useTenant()
-  const { user, loading: authLoading, onboardingPendiente, featuresDesbloqueadas, isCompanyAdmin } = useAuth()
+  const { user, loading: authLoading, onboardingPendiente, featuresDesbloqueadas, isCompanyAdmin, perfilCargado } = useAuth()
 
   const [email, setEmail]       = useState('')
   const [password, setPassword] = useState('')
@@ -24,10 +26,13 @@ export default function LoginEmpresa() {
   const primary    = tenant?.primary_color || DEFAULT_TENANT.primary_color
   const logo       = tenant?.logo_url || null
 
-  // Si ya tiene sesión activa, redirigir al destino correcto
+  // Si ya tiene sesión activa, redirigir al destino correcto.
+  // CRÍTICO: esperar perfilCargado antes de evaluar isCompanyAdmin para evitar
+  // flicker cuando el perfil está cargando y role es null transitoriamente.
   useEffect(() => {
     if (authLoading || tenantLoading) return
     if (!user) return
+    if (!perfilCargado) return
 
     if (isCompanyAdmin) {
       navigate('/empresa-admin', { replace: true })
@@ -38,7 +43,7 @@ export default function LoginEmpresa() {
     } else {
       navigate('/dashboard', { replace: true })
     }
-  }, [user, authLoading, tenantLoading, isCompanyAdmin, onboardingPendiente, featuresDesbloqueadas, navigate])
+  }, [user, authLoading, tenantLoading, perfilCargado, isCompanyAdmin, onboardingPendiente, featuresDesbloqueadas, navigate])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -101,6 +106,21 @@ export default function LoginEmpresa() {
                 : 'Ingresa con tu cuenta ELVIA®'}
             </p>
           </div>
+
+          {justActivated && (
+            <div
+              className="mb-5 flex items-start gap-2.5 p-3.5 rounded-xl border"
+              style={{
+                backgroundColor: `color-mix(in srgb, ${primary} 8%, white)`,
+                borderColor:     `color-mix(in srgb, ${primary} 25%, transparent)`,
+              }}
+            >
+              <CheckCircle size={20} weight="fill" style={{ color: primary }} className="shrink-0 mt-0.5" />
+              <p className="text-sm font-medium text-gray-700">
+                Tu cuenta quedó activada. Ingresa con tu correo y la contraseña que acabas de crear.
+              </p>
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Email */}
