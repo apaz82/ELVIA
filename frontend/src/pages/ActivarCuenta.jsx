@@ -121,7 +121,9 @@ export default function ActivarCuenta() {
 
     setLoading(false)
     setExito(true)
-    setTimeout(() => navigate(`/${sectorPath}/${slug}/login`, { replace: true }), 2000)
+    // Redirigir a bienvenida (onboarding B2B) en lugar de /login para evitar
+    // que isCompanyAdmin con perfil aún cargando lleve al panel equivocado.
+    setTimeout(() => navigate('/bienvenida', { replace: true }), 2000)
   }
 
   if (tenantLoading || authLoading) {

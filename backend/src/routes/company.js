@@ -659,18 +659,34 @@ router.post('/invitations', auth, requireRole('company_admin'), requireTenantCon
     const activarUrl = `${FRONT}/${sectorPath}/${company.slug}/activar`
     const loginUrl   = `${FRONT}/${sectorPath}/${company.slug}/login`
 
-    // 2. Crear usuario en auth si no existe; si existe, no falla (idempotente)
+    // 2. Crear usuario en auth; si ya existe, recuperar su ID para actualizar perfil
     const randomPwd = crypto.randomBytes(24).toString('base64url')
-    const { data: authData } = await db.auth.admin.createUser({
+    const { data: authData, error: createErr } = await db.auth.admin.createUser({
       email:         emailLower,
       password:      randomPwd,
       email_confirm: true,
       user_metadata: { nombre1: nombre.trim(), apellido1: (apellido || '').trim(), company_id: company.id },
     })
-    // Si ya existía, createUser devuelve error pero el usuario sigue en auth
-    const authUserId = authData?.user?.id
 
-    // 3. Upsert perfil con datos completos
+    let authUserId = authData?.user?.id
+
+    // Si el usuario ya existía en auth, buscar su ID por email
+    if (!authUserId && createErr) {
+      const { data: listData } = await db.auth.admin.listUsers({ page: 1, perPage: 1000 })
+      const existing = (listData?.users || []).find(u => (u.email || '').toLowerCase() === emailLower)
+      if (existing) {
+        authUserId = existing.id
+        // Forzar reset de contraseña para que el link de activación funcione
+        await db.auth.admin.updateUserById(authUserId, {
+          password:      randomPwd,
+          email_confirm: true,
+          user_metadata: { nombre1: nombre.trim(), apellido1: (apellido || '').trim(), company_id: company.id },
+        })
+      }
+    }
+
+    // 3. Upsert perfil con datos completos — SIEMPRE incluye role:'user' para corregir
+    //    cualquier rol anterior (ej. si el email fue usado antes como company_admin en tests)
     if (authUserId) {
       await db.from('profiles').upsert([{
         id:              authUserId,
