@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../services/authService'
 import { useTenant, DEFAULT_TENANT } from '../context/TenantContext'
+import { useAuth } from '../context/AuthContext'
 import { CheckCircle, LockKey, Eye, EyeSlash, Warning, ShieldCheck } from '@phosphor-icons/react'
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:3001'
@@ -33,6 +34,7 @@ export default function ActivarCuenta() {
   const { slug } = useParams()
   const navigate  = useNavigate()
   const { tenant, loading: tenantLoading, isUniversity } = useTenant()
+  const { setIsRecovering, user, loading: authLoading, isCompanyAdmin, onboardingPendiente, featuresDesbloqueadas } = useAuth()
 
   const [password, setPassword]       = useState('')
   const [confirmar, setConfirmar]     = useState('')
@@ -98,6 +100,12 @@ export default function ActivarCuenta() {
       return
     }
 
+    // CRÍTICO: limpiar estado de recovery ANTES de navegar para que el nuclear
+    // redirect de App.jsx no intercepte la navegación a /login.
+    if (setIsRecovering) setIsRecovering(false)
+    sessionStorage.removeItem('optima_recovery_mode')
+    sessionStorage.removeItem('optima_recovery_hash')
+
     // Notificar al backend para marcar la cuenta como activada
     try {
       const { data: { session } } = await supabase.auth.getSession()
@@ -113,13 +121,44 @@ export default function ActivarCuenta() {
 
     setLoading(false)
     setExito(true)
-    setTimeout(() => navigate(`/${sectorPath}/${slug}/login`), 3500)
+    setTimeout(() => navigate(`/${sectorPath}/${slug}/login`, { replace: true }), 2000)
   }
 
-  if (tenantLoading) {
+  if (tenantLoading || authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white">
         <div className="w-8 h-8 border-2 border-gray-200 border-t-gray-600 rounded-full animate-spin" />
+      </div>
+    )
+  }
+
+  // Si hay sesión activa pero NO hay token de recovery en el hash → cuenta ya activada
+  // o es un admin que aterrizó aquí por error.
+  const hasRecoveryHash = window.location.hash.includes('type=recovery') || window.location.hash.includes('access_token')
+  if (user && !tokenValido && !hasRecoveryHash && !exito) {
+    const destino = isCompanyAdmin
+      ? '/empresa-admin'
+      : onboardingPendiente
+        ? '/bienvenida'
+        : featuresDesbloqueadas
+          ? '/dashboard'
+          : '/proyecto-laboral'
+    return (
+      <div className="min-h-screen bg-white flex flex-col items-center justify-center px-6">
+        <div className="max-w-sm text-center">
+          <CheckCircle size={52} className="mx-auto mb-4" style={{ color: primary }} weight="duotone" />
+          <h1 className="text-xl font-bold text-gray-900 mb-2">Tu cuenta ya está activa</h1>
+          <p className="text-sm text-gray-500 mb-6">
+            Ya tienes una sesión iniciada. Puedes ir directo a tu panel.
+          </p>
+          <button
+            onClick={() => navigate(destino)}
+            className="px-6 py-2.5 text-white text-sm font-semibold rounded-xl hover:opacity-90 transition-opacity"
+            style={{ backgroundColor: primary }}
+          >
+            Ir a mi panel
+          </button>
+        </div>
       </div>
     )
   }
