@@ -292,10 +292,80 @@ const sendHRWelcomeEmail = async (to, { hrNombre, companyName, hrUrl, setupLink 
   })
 }
 
+/**
+ * Email de activación para candidatos B2B invitados por HR Admin.
+ * Incluye colores del tenant para branding consistente.
+ */
+const sendCandidatoInviteEmail = async (to, { nombre, apellido, companyName, primaryColor, activarUrl, hrUrl }) => {
+  if (!resend) {
+    console.warn('[Resend] sendCandidatoInviteEmail — email deshabilitado (sin API key)')
+    return
+  }
+  const nombreSafe   = escapeHtml((nombre || '').trim())
+  const companySafe  = escapeHtml(companyName)
+  const color        = escapeHtml(primaryColor || '#14B8A6')
+  const activarSafe  = escapeHtml(activarUrl)
+  const hrSafe       = escapeHtml(hrUrl || '')
+
+  return resend.emails.send({
+    from: FROM_EMAIL,
+    to,
+    subject: `Activa tu acceso al programa ${companySafe} en ELVIA®`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; line-height: 1.6; color: #1e293b;">
+
+        <div style="text-align: center; padding: 32px 0 16px;">
+          <img src="https://elvia.lat/LOGOS/ELVIA_logo_fondo_transparente.png" alt="ELVIA" style="height: 36px; width: auto;" />
+        </div>
+
+        <div style="background: ${color}; height: 4px; border-radius: 2px; margin-bottom: 32px;"></div>
+
+        <h2 style="color: #0f172a; margin: 0 0 8px;">
+          Hola${nombreSafe ? ` ${nombreSafe}` : ''}${apellido ? ` ${escapeHtml(apellido)}` : ''} 👋
+        </h2>
+        <p style="color: #475569; margin: 0 0 24px;">
+          <strong>${companySafe}</strong> te ha dado acceso a <strong>ELVIA®</strong>,
+          tu plataforma personal de acompañamiento en transición profesional.
+        </p>
+
+        <p style="color: #475569; margin: 0 0 8px;">
+          Para empezar, activa tu cuenta creando una contraseña. El enlace es de un solo uso y válido por <strong>1 hora</strong>.
+        </p>
+
+        <div style="text-align: center; margin: 32px 0;">
+          <a href="${activarSafe}"
+             style="display: inline-block; background: ${color}; color: #ffffff; padding: 14px 40px;
+                    border-radius: 10px; text-decoration: none; font-weight: bold; font-size: 16px;">
+            Activar mi cuenta
+          </a>
+        </div>
+
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 20px; margin: 24px 0;">
+          <p style="margin: 0 0 4px; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: #94a3b8;">
+            ¿Ya activaste tu cuenta? Inicia sesión aquí:
+          </p>
+          <a href="${hrSafe}" style="color: ${color}; font-weight: bold; word-break: break-all;">${hrSafe}</a>
+        </div>
+
+        <p style="font-size: 13px; color: #64748b;">
+          Si no esperabas este email o tienes dudas, contáctanos en
+          <a href="mailto:soporte@elvia.lat" style="color: ${color};">soporte@elvia.lat</a>.
+        </p>
+
+        <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 32px 0 16px;" />
+        <p style="font-size: 11px; color: #94a3b8; text-align: center; margin: 0;">
+          © ${new Date().getFullYear()} ELVIA® · Plataforma de Outplacement y Empleabilidad
+        </p>
+      </div>
+    `,
+  })
+}
+
 module.exports = {
   sendCVEmail,
   sendOTPEmail,
   sendWelcomeWaitlistEmail,
   sendInvitacionEmail,
   sendHRWelcomeEmail,
+  sendCandidatoInviteEmail,
 };

@@ -14,7 +14,7 @@ const requireTenantContext = require('../middleware/requireTenantContext')
 const requireMFA = require('../middleware/requireMFA')
 const tenantQuery = require('../lib/tenantQuery')
 const logAudit = require('../lib/logAudit')
-const { sendInvitacionEmail } = require('../services/resendService')
+const { sendInvitacionEmail, sendCandidatoInviteEmail } = require('../services/resendService')
 
 const ALLOWED_PLANS = ['free', 'pro', 'business', 'enterprise']
 
@@ -639,59 +639,103 @@ router.get('/invitations', auth, requireRole('company_admin'), requireTenantCont
 
 router.post('/invitations', auth, requireRole('company_admin'), requireTenantContext, requireMFA, async (req, res) => {
   try {
-    const { email, nombre } = req.body
+    const { email, nombre, apellido, telefono, pais, cohort } = req.body
+    const emailLower = (email || '').trim().toLowerCase()
 
-    if (!email) {
-      return res.status(400).json({ error: 'Email requerido' })
-    }
+    if (!emailLower) return res.status(400).json({ error: 'Email requerido' })
+    if (!nombre)     return res.status(400).json({ error: 'Nombre requerido' })
 
-    // 1. Crear invitación en DB
-    const { data: invitation, error: invErr } = await db
-      .from('company_invitations')
-      .insert([
-        {
-          company_id: req.companyId,
-          email,
-          nombre: nombre || '',
-          invited_by: req.user.id,
-        },
-      ])
-      .select()
-      .single()
-
-    if (invErr) {
-      console.error('Invitation create error:', invErr)
-      return res.status(500).json({ error: 'Error al crear invitación' })
-    }
-
-    // 2. Obtener nombre de empresa y datos para el email
+    // 1. Obtener datos de la empresa (nombre, slug, colores)
     const { data: company, error: compErr } = await db
       .from('companies')
-      .select('name, slug')
+      .select('id, name, slug, primary_color, sector')
       .eq('id', req.companyId)
       .single()
 
-    if (compErr || !company) {
-      console.error('Error fetching company for email:', compErr)
-      return res.status(500).json({ error: 'Error al obtener datos de la empresa' })
-    }
+    if (compErr || !company) return res.status(500).json({ error: 'Error al obtener datos de la empresa' })
 
-    // 3. Enviar email de invitación directamente via servicio (sin self-call HTTP)
-    const inviteUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/admin-login?invite=${invitation.id}&slug=${company.slug}`
+    const FRONT = process.env.FRONTEND_URL || 'https://elvia.lat'
+    const sectorPath = company.sector === 'university' ? 'universidades' : 'empresas'
+    const activarUrl = `${FRONT}/${sectorPath}/${company.slug}/activar`
+    const loginUrl   = `${FRONT}/${sectorPath}/${company.slug}/login`
 
-    try {
-      await sendInvitacionEmail(email, nombre, company.name, inviteUrl)
-    } catch (err) {
-      console.warn('Email de invitación falló, pero la invitación fue creada:', err.message)
-    }
-
-    res.json({
-      ok: true,
-      invitation,
-      message: `Invitación enviada a ${email}`,
+    // 2. Crear usuario en auth si no existe; si existe, no falla (idempotente)
+    const randomPwd = crypto.randomBytes(24).toString('base64url')
+    const { data: authData } = await db.auth.admin.createUser({
+      email:         emailLower,
+      password:      randomPwd,
+      email_confirm: true,
+      user_metadata: { nombre1: nombre.trim(), apellido1: (apellido || '').trim(), company_id: company.id },
     })
+    // Si ya existía, createUser devuelve error pero el usuario sigue en auth
+    const authUserId = authData?.user?.id
+
+    // 3. Upsert perfil con datos completos
+    if (authUserId) {
+      await db.from('profiles').upsert([{
+        id:              authUserId,
+        email_principal: emailLower,
+        nombre1:         nombre.trim(),
+        apellido1:       (apellido || '').trim(),
+        nombre:          `${nombre.trim()} ${(apellido || '').trim()}`.trim(),
+        telefono1:       telefono || null,
+        pais:            pais     || null,
+        company_id:      company.id,
+        cohort:          cohort   || null,
+        role:            'user',
+        plan:            'pro',
+      }], { onConflict: 'id' })
+    }
+
+    // 4. Upsert allowlist como 'invited'
+    await db.from('company_allowlist').upsert([{
+      company_id:  company.id,
+      email:       emailLower,
+      nombre:      nombre.trim(),
+      apellido:    (apellido || '').trim(),
+      cohort:      cohort || null,
+      status:      'invited',
+    }], { onConflict: 'company_id,email' })
+
+    // 5. Generar link de activación (recovery = set password por primera vez)
+    const { data: linkData, error: linkErr } = await db.auth.admin.generateLink({
+      type:    'recovery',
+      email:   emailLower,
+      options: { redirectTo: activarUrl },
+    })
+    if (linkErr) {
+      console.error('[invite] generateLink error:', linkErr)
+      return res.status(500).json({ error: 'No se pudo generar el link de activación' })
+    }
+
+    // 6. Registrar en company_invitations para trazabilidad
+    await db.from('company_invitations').upsert([{
+      company_id:  company.id,
+      email:       emailLower,
+      nombre:      nombre.trim(),
+      invited_by:  req.user.id,
+      status:      'pending',
+    }], { onConflict: 'company_id,email' })
+
+    // 7. Enviar email branded
+    try {
+      await sendCandidatoInviteEmail(emailLower, {
+        nombre,
+        apellido:    apellido || '',
+        companyName: company.name,
+        primaryColor: company.primary_color,
+        activarUrl:  linkData.properties?.action_link || activarUrl,
+        hrUrl:       loginUrl,
+      })
+    } catch (mailErr) {
+      console.warn('[invite] Email falló (usuario creado igual):', mailErr.message)
+    }
+
+    logAudit(req.user.id, company.id, 'user_invited', { email: emailLower, nombre })
+
+    res.json({ ok: true, message: `Invitación enviada a ${emailLower}` })
   } catch (err) {
-    console.error('Error creating invitation:', err)
+    console.error('[invite] Error:', err)
     res.status(500).json({ error: 'Error al crear invitación' })
   }
 })
@@ -1103,6 +1147,58 @@ router.delete('/allowlist/:id', auth, requireRole('company_admin'), requireTenan
   } catch (err) {
     console.error('Error deleting allowlist:', err)
     res.status(500).json({ error: 'Error al borrar' })
+  }
+})
+
+// ─────────────────────────────────────────────────────────────────────────
+// Público (candidato recién activado): confirmar activación de cuenta
+// POST /api/company/confirm-activation
+// Requiere: auth (el usuario ya tiene sesión tras setear su contraseña)
+// Marca company_allowlist como 'activated' y company_invitations como 'accepted'
+// ─────────────────────────────────────────────────────────────────────────
+
+router.post('/confirm-activation', auth, async (req, res) => {
+  try {
+    const userId = req.user.id
+    const userEmail = req.user.email
+
+    // Obtener company_id del perfil
+    const { data: profile } = await db
+      .from('profiles')
+      .select('company_id, email_principal')
+      .eq('id', userId)
+      .maybeSingle()
+
+    const companyId = profile?.company_id
+    const email     = (profile?.email_principal || userEmail || '').toLowerCase()
+
+    if (!companyId) {
+      // No tiene empresa — nada que confirmar, responder ok igual
+      return res.json({ ok: true, skipped: true })
+    }
+
+    // Marcar allowlist como activada
+    await db.from('company_allowlist')
+      .update({
+        status:            'activated',
+        activated_at:      new Date().toISOString(),
+        activated_user_id: userId,
+      })
+      .eq('company_id', companyId)
+      .eq('email',       email)
+
+    // Marcar invitación como aceptada
+    await db.from('company_invitations')
+      .update({ status: 'accepted' })
+      .eq('company_id', companyId)
+      .eq('email',       email)
+
+    logAudit(userId, companyId, 'account_activated', { email })
+
+    res.json({ ok: true })
+  } catch (err) {
+    console.error('[confirm-activation] Error:', err)
+    res.status(500).json({ error: 'Error al confirmar activación' })
   }
 })
 

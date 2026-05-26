@@ -120,13 +120,13 @@ export default function LandingEmpresa() {
               Acceso HR
             </button>
             <button
-              onClick={() => navigate('/auth?returnTo=/dashboard')}
+              onClick={() => navigate(`/${sectorPath}/${slug}/login`)}
               className="hidden sm:inline-flex text-sm font-semibold text-gray-700 hover:text-gray-900 px-4 py-2"
             >
               Iniciar sesión
             </button>
             <button
-              onClick={() => navigate(`/${sectorPath}/${slug}/registro`)}
+              onClick={() => navigate(`/${sectorPath}/${slug}/activar`)}
               className="text-sm font-semibold text-white px-5 py-2.5 rounded-xl shadow-sm hover:opacity-90 transition-opacity"
               style={{ background: primary }}
             >
@@ -175,7 +175,7 @@ export default function LandingEmpresa() {
 
               <div className="flex flex-col sm:flex-row gap-3">
                 <button
-                  onClick={() => navigate(`/${sectorPath}/${slug}/registro`)}
+                  onClick={() => navigate(`/${sectorPath}/${slug}/activar`)}
                   className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-2xl text-white font-bold text-sm shadow-md hover:shadow-lg transition-all hover:-translate-y-0.5"
                   style={{ background: primary, boxShadow: `0 8px 30px -6px ${primary}60` }}
                 >
@@ -183,7 +183,7 @@ export default function LandingEmpresa() {
                   <PI.ArrowRight size={16} weight="bold" />
                 </button>
                 <button
-                  onClick={() => navigate('/auth?returnTo=/dashboard')}
+                  onClick={() => navigate(`/${sectorPath}/${slug}/login`)}
                   className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-2xl bg-white border border-slate-200 text-slate-700 font-bold text-sm hover:bg-slate-50 hover:border-slate-300 transition-all active:scale-95"
                 >
                   Ya tengo cuenta
@@ -265,11 +265,11 @@ export default function LandingEmpresa() {
 
                 {/* Big CTA Button inside card */}
                 <button
-                  onClick={() => navigate(`/${sectorPath}/${slug}/registro`)}
+                  onClick={() => navigate(`/${sectorPath}/${slug}/activar`)}
                   className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl text-white font-bold text-sm shadow-md hover:shadow-lg transition-all hover:-translate-y-0.5 active:scale-95 shrink-0"
                   style={{ background: primary, boxShadow: `0 8px 24px -6px ${primary}60` }}
                 >
-                  Empezar gratis ahora
+                  Activar mi cuenta
                   <PI.ArrowRight size={14} weight="bold" />
                 </button>
               </div>
@@ -376,11 +376,11 @@ export default function LandingEmpresa() {
             Activa tu cuenta del programa {tenant.name} × ELVIA y empieza a construir tu próxima oportunidad profesional.
           </p>
           <button
-            onClick={() => navigate(`/${sectorPath}/${slug}/registro`)}
+            onClick={() => navigate(`/${sectorPath}/${slug}/activar`)}
             className="inline-flex items-center justify-center gap-2 px-9 py-4 rounded-2xl text-white font-semibold text-sm shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5"
             style={{ background: primary, boxShadow: `0 10px 30px -10px ${primary}80` }}
           >
-            Activar mi cuenta gratis
+            Activar mi cuenta
             <PI.ArrowRight size={16} weight="bold" />
           </button>
         </div>

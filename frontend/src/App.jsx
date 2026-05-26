@@ -40,6 +40,8 @@ const Cookies            = lazy(() => import('./pages/Cookies'))
 const LandingEmpresa     = lazy(() => import('./pages/LandingEmpresa'))
 const RegistroEmpresa    = lazy(() => import('./pages/RegistroEmpresa'))
 const LoginHR            = lazy(() => import('./pages/LoginHR'))
+const LoginEmpresa       = lazy(() => import('./pages/LoginEmpresa'))
+const ActivarCuenta      = lazy(() => import('./pages/ActivarCuenta'))
 const CompanyAdmin       = lazy(() => import('./pages/CompanyAdmin'))
 
 function PageLoader() {
@@ -194,7 +196,9 @@ export default function App() {
   // forzamos la navegación a la ruta dedicada.
   useEffect(() => {
     const isRecoveryMode = sessionStorage.getItem('optima_recovery_mode') === 'true' || isRecovering || location.hash.includes('type=recovery')
-    if (isRecoveryMode && !location.pathname.startsWith('/reset-password')) {
+    // /activar pages handle their own recovery tokens (B2B activation flow)
+    const isActivacionPath = location.pathname.toLowerCase().endsWith('/activar')
+    if (isRecoveryMode && !location.pathname.startsWith('/reset-password') && !isActivacionPath) {
       const savedHash = sessionStorage.getItem('optima_recovery_hash') || ''
       navigate('/reset-password' + (location.hash || savedHash), { replace: true })
     }
@@ -229,9 +233,13 @@ export default function App() {
       <Route path="/empresas/:slug"             element={<LandingEmpresa />} />
       <Route path="/empresas/:slug/registro"    element={<RegistroEmpresa />} />
       <Route path="/empresas/:slug/hr"          element={<LoginHR />} />
+      <Route path="/empresas/:slug/login"       element={<LoginEmpresa />} />
+      <Route path="/empresas/:slug/activar"     element={<ActivarCuenta />} />
       <Route path="/universidades/:slug"          element={<LandingEmpresa />} />
       <Route path="/universidades/:slug/registro" element={<RegistroEmpresa />} />
       <Route path="/universidades/:slug/hr"       element={<LoginHR />} />
+      <Route path="/universidades/:slug/login"    element={<LoginEmpresa />} />
+      <Route path="/universidades/:slug/activar"  element={<ActivarCuenta />} />
 
       {/* Panel del HR Director / Gestor de programa B2B */}
       <Route path="/empresa-admin" element={<PrivateRoute><CompanyAdmin /></PrivateRoute>} />
