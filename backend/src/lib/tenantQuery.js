@@ -1,19 +1,40 @@
 // tenantQuery — helper para queries siempre filtradas por company_id.
 // Evita el patrón propenso a errores de olvidar .eq('company_id', companyId).
 //
-// Uso:
-//   const q = tenantQuery(db, req.companyId)
-//   const { data } = await q('profiles').select('id, email_principal').order('created_at')
-//   const { data } = await q('cv_results').select('*').eq('user_id', userId)
+// API:
+//   const tq = tenantQuery(db, req.companyId)
 //
-// Retorna un builder de Supabase con company_id ya aplicado.
-// Para tablas SIN company_id (companies, company_invitations), usar db directamente.
+//   // SELECT / UPDATE / DELETE (filtro auto-aplicado)
+//   await tq('profiles').select('id, email_principal')
+//   await tq('cv_results').delete().eq('user_id', userId)
+//
+//   // INSERT / UPSERT (company_id auto-inyectado en rows)
+//   await tq.insert('cv_results', { user_id, contenido, tipo })
+//   await tq.upsert('company_allowlist', { email, nombre, status }, { onConflict: 'company_id,email' })
+//
+// Para tablas SIN company_id (companies, auth.users), usar db directamente.
 
-const tenantQuery = (db, companyId) => (table) => {
+const tenantQuery = (db, companyId) => {
   if (!companyId) {
-    throw new Error(`tenantQuery: companyId es requerido para tabla "${table}"`)
+    throw new Error('tenantQuery: companyId es requerido')
   }
-  return db.from(table).eq('company_id', companyId)
+
+  const builder = (table) => db.from(table).eq('company_id', companyId)
+
+  // INSERT/UPSERT: inyectar company_id en cada row.
+  builder.insert = (table, rows) => {
+    const arr = Array.isArray(rows) ? rows : [rows]
+    const stamped = arr.map(r => ({ ...r, company_id: companyId }))
+    return db.from(table).insert(stamped)
+  }
+
+  builder.upsert = (table, rows, opts) => {
+    const arr = Array.isArray(rows) ? rows : [rows]
+    const stamped = arr.map(r => ({ ...r, company_id: companyId }))
+    return db.from(table).upsert(stamped, opts)
+  }
+
+  return builder
 }
 
 module.exports = tenantQuery

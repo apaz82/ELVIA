@@ -279,38 +279,19 @@ router.post('/registration/:slug', registrationLimiter, async (req, res) => {
         return res.status(400).json({ error: authErr.message || 'Error al crear usuario' })
       }
 
-      // Email ya existe — buscar por email directo en lugar de listar todos los usuarios
-      const { data: listData, error: listErr } = await db.auth.admin.listUsers({ page: 1, perPage: 1000 })
-      if (listErr) {
-        console.error('listUsers error:', listErr)
-        return res.status(500).json({ error: 'Error al validar usuario existente' })
-      }
-      const found = (listData?.users || []).find(u => (u.email || '').toLowerCase() === email.toLowerCase())
-      if (!found) {
-        return res.status(400).json({ error: 'Este correo ya esta registrado. Inicia sesion con tu contrasena existente.' })
-      }
-
-      // Verificar si el usuario ya pertenece a otro tenant (re-link cross-tenant bloqueado)
-      const { data: existingProfile } = await db
-        .from('profiles')
-        .select('company_id')
-        .eq('id', found.id)
-        .maybeSingle()
-
-      if (existingProfile?.company_id && existingProfile.company_id !== company.id) {
-        return res.status(409).json({
-          error: 'Este correo ya esta registrado en otro programa. Contacta a soporte si crees que esto es un error.',
-          code: 'CROSS_TENANT_CONFLICT',
-        })
-      }
-
-      userId = found.id
-      userEmail = found.email
-    } else {
-      userId = authUser.user.id
-      userEmail = authUser.user.email
-      createdNow = true
+      // SECURITY (Audit P0): Si el email ya existe, NUNCA hacemos re-link silencioso.
+      // El registro abierto no puede vincular cuentas ajenas a un tenant sin prueba
+      // de control del email. El usuario debe usar el flujo invite-only (HR genera
+      // link de activación con token Supabase recovery → prueba control del inbox).
+      return res.status(409).json({
+        error: 'Este correo ya está registrado. Si pertenece a este programa, inicia sesión. Si no, contacta a tu administrador HR para que te envíe una invitación.',
+        code:  'EMAIL_EXISTS',
+      })
     }
+
+    userId = authUser.user.id
+    userEmail = authUser.user.email
+    createdNow = true
 
     // 3. Upsert profile vinculado al tenant. Esto cubre tanto user nuevo
     //    como user existente que se esta vinculando por primera vez.
@@ -323,6 +304,9 @@ router.post('/registration/:slug', registrationLimiter, async (req, res) => {
       company_id: company.id,
       role: 'user',
       plan: 'pro',
+      // Consentimiento explícito al completar registro (audit P1)
+      pii_consent_at:      new Date().toISOString(),
+      pii_consent_version: '2026-05-26-v1',
     }
     if (allowlistRow?.cohort) profileData.cohort = allowlistRow.cohort
 
@@ -672,7 +656,7 @@ router.post('/invitations', auth, requireRole('company_admin'), requireTenantCon
     // 1.6 Pre-flight: bloquear invitar a admins (defensa contra degradación accidental)
     const { data: existingProfile } = await db
       .from('profiles')
-      .select('id, role, email_principal')
+      .select('id, role, email_principal, company_id')
       .eq('email_principal', emailLower)
       .maybeSingle()
 
@@ -680,6 +664,15 @@ router.post('/invitations', auth, requireRole('company_admin'), requireTenantCon
       return res.status(409).json({
         error: 'Este email pertenece a un administrador y no puede ser invitado como candidato.',
         code:  'IS_ADMIN',
+      })
+    }
+
+    // 1.7 Pre-flight: bloquear cross-tenant — si el email ya está vinculado a OTRO programa,
+    //     no permitimos secuestrarlo ni degradar su cuenta. Soporte debe resolver manualmente.
+    if (existingProfile?.company_id && existingProfile.company_id !== company.id) {
+      return res.status(409).json({
+        error: 'Este correo ya está registrado en otro programa. Contacta a soporte para resolverlo.',
+        code:  'CROSS_TENANT_CONFLICT',
       })
     }
 
@@ -1253,6 +1246,14 @@ router.post('/confirm-activation', auth, async (req, res) => {
       .update({ status: 'accepted' })
       .eq('company_id', companyId)
       .eq('email',       email)
+
+    // Registrar consentimiento PII explícito al activar (audit P1)
+    await db.from('profiles')
+      .update({
+        pii_consent_at:      new Date().toISOString(),
+        pii_consent_version: '2026-05-26-v1',
+      })
+      .eq('id', userId)
 
     logAudit(userId, companyId, 'account_activated', { email })
 

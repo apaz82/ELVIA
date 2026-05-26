@@ -47,16 +47,6 @@ export default function JobMatches() {
   const [mostrarSelector, setMostrarSelector] = useState(false)
   const selectorRef = useRef(null)
 
-  if (!featuresDesbloqueadas) {
-    return (
-      <FeatureLocked
-        titulo="Vacantes Recomendadas"
-        descripcion="Accede a las mejores oportunidades laborales filtradas por nuestra IA según tu perfil único."
-        icono={<Briefcase size={44} weight="light" />}
-      />
-    )
-  }
-
   // Cerrar dropdown al hacer click fuera
   useEffect(() => {
     const handleClickFuera = (e) => {
@@ -301,6 +291,16 @@ export default function JobMatches() {
       texto: `${vacante.title}\n${vacante.company || ''}\n${vacante.location || ''}\n\n${vacante.snippet || ''}`,
     }))
     navigate('/cv-vs-job')
+  }
+
+  if (!featuresDesbloqueadas) {
+    return (
+      <FeatureLocked
+        titulo="Vacantes Recomendadas"
+        descripcion="Accede a las mejores oportunidades laborales filtradas por nuestra IA según tu perfil único."
+        icono={<Briefcase size={44} weight="light" />}
+      />
+    )
   }
 
   return (
