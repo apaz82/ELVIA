@@ -25,7 +25,7 @@ const checkPassword = (pwd) => ({
 })
 
 export default function Auth() {
-  const { user, login, register, onboardingPendiente, isRecovering } = useAuth()
+  const { user, login, register, logout, onboardingPendiente, isRecovering, isCompanyAdmin, perfil } = useAuth()
   const navigate = useNavigate()
   const turnstileRef = useRef(null)
 
@@ -55,13 +55,13 @@ export default function Auth() {
   // Estados de pantallas de confirmación
   const [verificando, setVerificando]     = useState(false) // post-registro
   const [resetEnviado, setResetEnviado]   = useState(false) // post-forgot
+  // loginSuccess: true solo cuando el usuario hizo login DESDE ESTE FORMULARIO.
+  // Si ya había sesión activa al llegar a /auth, se muestra banner sin auto-redirect.
+  const [loginSuccess, setLoginSuccess]   = useState(false)
 
-  // Redirigir si ya está autenticado
+  // Redirigir solo después de un login/registro explícito en este formulario
   useEffect(() => {
     const isRecoveryMode = sessionStorage.getItem('optima_recovery_mode') === 'true' || isRecovering || window.location.hash.includes('type=recovery')
-    // ── GESTIÓN DE RECUPERACIÓN (ALTA PRIORIDAD) ──
-    // Si el usuario aterrizó aquí (ej. /auth?forgot=1) pero está en recuperación,
-    // forzamos la ida a /reset-password
     if (isRecoveryMode) {
       if (!window.location.pathname.startsWith('/reset-password')) {
         const savedHash = sessionStorage.getItem('optima_recovery_hash') || ''
@@ -70,8 +70,12 @@ export default function Auth() {
       return
     }
 
-    if (!user) return
-    // Si hay un returnTo (ej. desde landing B2B), redirigir ahí después del login
+    if (!user || !loginSuccess) return
+
+    if (isCompanyAdmin) {
+      navigate('/empresa-admin', { replace: true })
+      return
+    }
     const returnTo = searchParams.get('returnTo')
     if (returnTo && returnTo.startsWith('/')) {
       navigate(returnTo, { replace: true })
@@ -80,7 +84,7 @@ export default function Auth() {
     } else {
       navigate('/cv-optimizer', { replace: true })
     }
-  }, [user, onboardingPendiente, navigate, isRecovering, searchParams])
+  }, [user, loginSuccess, isCompanyAdmin, onboardingPendiente, navigate, isRecovering, searchParams])
 
   const cambiarModo = (nuevoModo) => {
     setModo(nuevoModo)
@@ -111,6 +115,7 @@ export default function Auth() {
       if (modo === 'login') {
         const { error } = await login(email, password)
         if (error) setError(traducirError(error.message))
+        else setLoginSuccess(true)
       } else {
         // Validaciones de registro
         if (!nombre.trim())    { setError('El nombre es requerido.'); setLoading(false); return }
@@ -233,6 +238,43 @@ export default function Auth() {
               className="text-teal-600 font-semibold text-sm hover:underline"
             >
               ← Volver al inicio de sesión
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // ── Sesión activa (usuario llegó a /auth ya logueado, sin hacer login aquí) ──
+  if (user && !loginSuccess && !verificando && !resetEnviado) {
+    const destino = isCompanyAdmin ? '/empresa-admin' : (onboardingPendiente ? '/bienvenida' : '/cv-optimizer')
+    const emailActivo = perfil?.email_principal || user.email || ''
+    const handleContinuar = () => navigate(destino, { replace: true })
+    const handleCerrar = async () => { await logout(); setLoginSuccess(false) }
+
+    return (
+      <div className="min-h-[80vh] flex items-center justify-center px-4 py-10">
+        <div className="w-full max-w-md">
+          <div className="bg-white rounded-2xl border border-gray-200 p-8 shadow-sm text-center">
+            <div className="w-14 h-14 bg-teal-50 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-7 h-7 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+            </div>
+            <h2 className="text-xl font-bold text-gray-900 mb-1">Ya tienes sesión activa</h2>
+            <p className="text-sm text-gray-500 mb-1">Conectado como:</p>
+            <p className="text-sm font-semibold text-gray-800 mb-6 truncate">{emailActivo}</p>
+            <button
+              onClick={handleContinuar}
+              className="w-full py-2.5 px-6 bg-teal-600 hover:bg-teal-700 text-white font-semibold rounded-xl transition-all mb-3"
+            >
+              Continuar con esta cuenta
+            </button>
+            <button
+              onClick={handleCerrar}
+              className="w-full py-2.5 px-6 border border-gray-200 hover:border-gray-300 text-gray-600 hover:text-gray-900 font-medium rounded-xl transition-all text-sm"
+            >
+              Cerrar sesión y cambiar de cuenta
             </button>
           </div>
         </div>

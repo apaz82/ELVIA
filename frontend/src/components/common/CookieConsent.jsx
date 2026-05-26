@@ -1,15 +1,12 @@
 import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
 import { Cookie, X } from '@phosphor-icons/react'
 
 export default function CookieConsent() {
   const [isVisible, setIsVisible] = useState(false)
 
   useEffect(() => {
-    // Verificar si ya se aceptaron las cookies
     const consent = localStorage.getItem('elvia_cookie_consent')
     if (!consent) {
-      // Pequeño delay para que no aparezca de golpe
       const timer = setTimeout(() => setIsVisible(true), 1500)
       return () => clearTimeout(timer)
     }
@@ -32,20 +29,26 @@ export default function CookieConsent() {
       <div className="max-w-7xl mx-auto">
         <div className="bg-slate-900 border border-slate-700 shadow-2xl rounded-2xl p-4 md:p-6 flex flex-col md:flex-row items-center justify-between gap-6 backdrop-blur-xl bg-opacity-95">
           <div className="flex items-start gap-4 flex-1">
-            <div className="bg-amber-500/10 p-3 rounded-xl hidden sm:block">
-              <Cookie size={24} className="text-amber-500" weight="duotone" />
+            <div className="p-3 rounded-xl hidden sm:block" style={{ backgroundColor: 'color-mix(in srgb, var(--tenant-primary) 15%, transparent)' }}>
+              <Cookie size={24} style={{ color: 'var(--tenant-primary)' }} weight="duotone" />
             </div>
             <div className="space-y-1">
               <h3 className="text-white font-bold flex items-center gap-2">
-                <Cookie size={20} className="text-amber-500 sm:hidden" weight="duotone" />
+                <Cookie size={20} className="sm:hidden" style={{ color: 'var(--tenant-primary)' }} weight="duotone" />
                 Usamos cookies
               </h3>
               <p className="text-slate-400 text-sm leading-relaxed max-w-3xl">
-                Utilizamos cookies propias y de terceros (como Google Analytics y Meta Pixel) para entender cómo usas nuestro sitio y mejorar tu experiencia profesional. 
+                Utilizamos cookies propias y de terceros (como Google Analytics y Meta Pixel) para entender cómo usas nuestro sitio y mejorar tu experiencia profesional.
                 Al hacer clic en "Aceptar", consientes su uso. Puedes leer más en nuestra{' '}
-                <Link to="/cookies" className="text-amber-500 hover:text-amber-400 underline underline-offset-4 font-medium">
+                <a
+                  href="/cookies"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline underline-offset-4 font-medium hover:opacity-80 transition-opacity"
+                  style={{ color: 'var(--tenant-primary)' }}
+                >
                   Política de Cookies
-                </Link>.
+                </a>.
               </p>
             </div>
           </div>
@@ -59,13 +62,14 @@ export default function CookieConsent() {
             </button>
             <button
               onClick={handleAccept}
-              className="flex-1 md:flex-none px-8 py-2.5 text-sm font-bold text-white bg-amber-600 hover:bg-amber-500 rounded-xl shadow-lg shadow-amber-600/20 transition-all transform hover:scale-[1.02] active:scale-[0.98]"
+              className="flex-1 md:flex-none px-8 py-2.5 text-sm font-bold text-white rounded-xl shadow-lg transition-all transform hover:scale-[1.02] active:scale-[0.98] hover:opacity-90"
+              style={{ backgroundColor: 'var(--tenant-primary)' }}
             >
               Aceptar
             </button>
           </div>
 
-          <button 
+          <button
             onClick={() => setIsVisible(false)}
             className="absolute top-3 right-3 text-slate-500 hover:text-white transition-colors"
           >

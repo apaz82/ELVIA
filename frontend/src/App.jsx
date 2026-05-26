@@ -54,8 +54,10 @@ function PageLoader() {
 const RUTAS_FULL = ['/', '/waitlist', '/inicio', '/auth', '/bienvenida', '/admin', '/empresa-admin', '/privacidad', '/cookies', '/reset-password', '/pricing']
 // Rutas excluidas del guard de onboarding (no redirigen a /bienvenida aunque haya onboarding pendiente)
 const RUTAS_SIN_GUARD = ['/', '/waitlist', '/inicio', '/auth', '/bienvenida', '/admin', '/empresa-admin', '/privacidad', '/cookies', '/reset-password', '/pricing', '/proyecto-laboral', '/cv-desde-cero', '/linkedin-pro']
-// Rutas públicas (solo para usuarios NO autenticados)
-const RUTAS_PUBLICAS = ['/', '/waitlist', '/auth', '/privacidad', '/cookies', '/reset-password', '/pricing']
+// Rutas públicas (solo para usuarios NO autenticados).
+// /auth se excluye para que Auth.jsx maneje su propio redirect (evita que PublicRoute
+// intercepte la página antes de renderizar el banner de "sesión activa").
+const RUTAS_PUBLICAS = ['/', '/waitlist', '/privacidad', '/cookies', '/reset-password', '/pricing']
 
 // Rutas internas de la APP (si NO es una de estas, usamos FullLayout para el Catch-All)
 const RUTAS_APP = [
