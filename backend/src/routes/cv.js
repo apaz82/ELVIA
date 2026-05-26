@@ -14,12 +14,11 @@ const { limiterOptimize, limiterMatch, limiterResumen } = require('../middleware
 const { optimize, matchToJob, download, extractProfile, generarInfografia, generarInfografiaProyecto, generarCartaPresentacion, optimizarResumen } = require('../controllers/cvController')
 const { generarCV } = require('../controllers/cvGenerarController')
 
-// Optimización de CV — orden de middlewares: validaciones de usuario PRIMERO,
-// hard cap global del sistema AL FINAL (solo bumpea contador si todo lo demás pasó)
-router.post('/optimize', auth, planContext, limiterOptimize, checkCvOptimizeLimit, dailyCap, upload.single('cv'), optimize);
+// Optimización de CV — dailyCap va DESPUÉS de upload para no consumir slot con archivos inválidos
+router.post('/optimize', auth, planContext, limiterOptimize, checkCvOptimizeLimit, upload.single('cv'), dailyCap, optimize);
 
-// CV vs Vacante — mismo orden: usuario → rate → plan → dailyCap
-router.post('/match', auth, planContext, limiterMatch, checkCvMatchLimit, dailyCap, upload.single('cv'), matchToJob);
+// CV vs Vacante — mismo orden: usuario → rate → plan → upload → dailyCap
+router.post('/match', auth, planContext, limiterMatch, checkCvMatchLimit, upload.single('cv'), dailyCap, matchToJob);
 
 // Descarga del resultado — no consume crédito, pero respeta watermark según plan
 router.get('/download/:id', auth, planContext, download);

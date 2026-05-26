@@ -681,36 +681,35 @@ router.post('/invitations', auth, requireRole('company_admin'), requireTenantCon
     const activarUrl = `${FRONT}/${sectorPath}/${company.slug}/activar`
     const loginUrl   = `${FRONT}/${sectorPath}/${company.slug}/login`
 
-    // 2. Crear usuario en auth; si ya existe, recuperar su ID para actualizar perfil
-    const randomPwd = crypto.randomBytes(24).toString('base64url')
+    // 2. Crear usuario en auth; si ya existe, recuperar su ID sin tocar su contraseña ni rol
     const { data: authData, error: createErr } = await db.auth.admin.createUser({
       email:         emailLower,
-      password:      randomPwd,
+      password:      crypto.randomBytes(24).toString('base64url'),
       email_confirm: true,
       user_metadata: { nombre1: nombre.trim(), apellido1: (apellido || '').trim(), company_id: company.id },
     })
 
     let authUserId = authData?.user?.id
+    let isNewUser  = !!authUserId
 
-    // Si el usuario ya existía en auth, buscar su ID por email
+    // Si el usuario ya existía en auth, recuperar su ID sin resetear contraseña ni metadatos
     if (!authUserId && createErr) {
       const { data: listData } = await db.auth.admin.listUsers({ page: 1, perPage: 1000 })
       const existing = (listData?.users || []).find(u => (u.email || '').toLowerCase() === emailLower)
       if (existing) {
         authUserId = existing.id
-        // Forzar reset de contraseña para que el link de activación funcione
-        await db.auth.admin.updateUserById(authUserId, {
-          password:      randomPwd,
-          email_confirm: true,
-          user_metadata: { nombre1: nombre.trim(), apellido1: (apellido || '').trim(), company_id: company.id },
-        })
+        // Solo inyectar company_id si el usuario aún no pertenece a un tenant
+        if (!existing.user_metadata?.company_id) {
+          await db.auth.admin.updateUserById(authUserId, {
+            user_metadata: { ...existing.user_metadata, company_id: company.id },
+          })
+        }
       }
     }
 
-    // 3. Upsert perfil con datos completos — SIEMPRE incluye role:'user' para corregir
-    //    cualquier rol anterior (ej. si el email fue usado antes como company_admin en tests)
+    // 3. Upsert perfil — para usuarios existentes NO sobreescribir role ni plan
     if (authUserId) {
-      await db.from('profiles').upsert([{
+      const profileData = {
         id:              authUserId,
         email_principal: emailLower,
         nombre1:         nombre.trim(),
@@ -720,9 +719,12 @@ router.post('/invitations', auth, requireRole('company_admin'), requireTenantCon
         pais:            pais     || null,
         company_id:      company.id,
         cohort:          cohort   || null,
-        role:            'user',
-        plan:            'pro',
-      }], { onConflict: 'id' })
+      }
+      if (isNewUser) {
+        profileData.role = 'user'
+        profileData.plan = 'pro'
+      }
+      await db.from('profiles').upsert([profileData], { onConflict: 'id' })
     }
 
     // 4. Upsert allowlist como 'pending' (consistente con carga por CSV)
@@ -770,7 +772,7 @@ router.post('/invitations', auth, requireRole('company_admin'), requireTenantCon
       console.warn('[invite] Email falló (usuario creado igual):', mailErr.message)
     }
 
-    logAudit(req.user.id, company.id, 'user_invited', { email: emailLower, nombre })
+    logAudit(db, { company_id: company.id, user_id: req.user.id, action: 'user_invited', entity: 'profiles', entity_id: authUserId, metadata: { email: emailLower, nombre } })
 
     res.json({ ok: true, message: `Invitación enviada a ${emailLower}` })
   } catch (err) {
@@ -1255,7 +1257,7 @@ router.post('/confirm-activation', auth, async (req, res) => {
       })
       .eq('id', userId)
 
-    logAudit(userId, companyId, 'account_activated', { email })
+    logAudit(db, { company_id: companyId, user_id: userId, action: 'account_activated', entity: 'profiles', entity_id: userId, metadata: { email } })
 
     res.json({ ok: true })
   } catch (err) {
