@@ -14,7 +14,7 @@ const requireTenantContext = require('../middleware/requireTenantContext')
 const requireMFA = require('../middleware/requireMFA')
 const tenantQuery = require('../lib/tenantQuery')
 const logAudit = require('../lib/logAudit')
-const { sendInvitacionEmail, sendCandidatoInviteEmail } = require('../services/resendService')
+const { sendInvitacionEmail, sendCandidatoInviteEmail, sendBienvenidaActivacionEmail } = require('../services/resendService')
 
 const ALLOWED_PLANS = ['free', 'pro', 'business', 'enterprise']
 
@@ -623,7 +623,7 @@ router.get('/invitations', auth, requireRole('company_admin'), requireTenantCont
 
 router.post('/invitations', auth, requireRole('company_admin'), requireTenantContext, requireMFA, async (req, res) => {
   try {
-    const { email, nombre, apellido, telefono, pais, cohort } = req.body
+    const { email, nombre, apellido, telefono, pais, cohort, license_days } = req.body
     const emailLower = (email || '').trim().toLowerCase()
 
     if (!emailLower) return res.status(400).json({ error: 'Email requerido' })
@@ -729,12 +729,13 @@ router.post('/invitations', auth, requireRole('company_admin'), requireTenantCon
 
     // 4. Upsert allowlist como 'pending' (consistente con carga por CSV)
     await db.from('company_allowlist').upsert([{
-      company_id:  company.id,
-      email:       emailLower,
-      nombre:      nombre.trim(),
-      apellido:    (apellido || '').trim(),
-      cohort:      cohort || null,
-      status:      'pending',
+      company_id:   company.id,
+      email:        emailLower,
+      nombre:       nombre.trim(),
+      apellido:     (apellido || '').trim(),
+      cohort:       cohort || null,
+      status:       'pending',
+      license_days: Number.isInteger(Number(license_days)) && Number(license_days) > 0 ? Number(license_days) : 90,
     }], { onConflict: 'company_id,email' })
 
     // 5. Generar link de activación (recovery = set password por primera vez)
@@ -1024,7 +1025,7 @@ router.get('/allowlist', auth, requireRole('company_admin'), requireTenantContex
   try {
     const { data, error } = await db
       .from('company_allowlist')
-      .select('id, email, nombre, apellido, cohort, area, cargo_actual, status, added_at, activated_at, activated_user_id, revoked_at')
+      .select('id, email, nombre, apellido, cohort, area, cargo_actual, status, added_at, activated_at, activated_user_id, revoked_at, license_days, license_expires_at')
       .eq('company_id', req.companyId)
       .order('added_at', { ascending: false })
 
@@ -1221,7 +1222,7 @@ router.post('/confirm-activation', auth, async (req, res) => {
     // (previene que un user manipule confirm-activation para otra tenant)
     const { data: allowEntry } = await db
       .from('company_allowlist')
-      .select('id, status, company_id')
+      .select('id, status, company_id, nombre, apellido, license_days')
       .eq('company_id', companyId)
       .eq('email',       email)
       .maybeSingle()
@@ -1234,12 +1235,18 @@ router.post('/confirm-activation', auth, async (req, res) => {
       return res.status(403).json({ error: 'Tu acceso ha sido revocado' })
     }
 
+    // Calcular expiración de licencia
+    const activatedAt      = new Date()
+    const licenseDays      = allowEntry.license_days || 90
+    const licenseExpiresAt = new Date(activatedAt.getTime() + licenseDays * 24 * 3600 * 1000)
+
     // Marcar allowlist como activada (idempotente)
     await db.from('company_allowlist')
       .update({
-        status:            'activated',
-        activated_at:      new Date().toISOString(),
-        activated_user_id: userId,
+        status:              'activated',
+        activated_at:        activatedAt.toISOString(),
+        activated_user_id:   userId,
+        license_expires_at:  licenseExpiresAt.toISOString(),
       })
       .eq('id', allowEntry.id)
 
@@ -1249,13 +1256,41 @@ router.post('/confirm-activation', auth, async (req, res) => {
       .eq('company_id', companyId)
       .eq('email',       email)
 
-    // Registrar consentimiento PII explícito al activar (audit P1)
+    // Registrar consentimiento PII + expiración de plan en perfil
     await db.from('profiles')
       .update({
-        pii_consent_at:      new Date().toISOString(),
+        pii_consent_at:      activatedAt.toISOString(),
         pii_consent_version: '2026-05-26-v1',
+        plan_expires_at:     licenseExpiresAt.toISOString(),
       })
       .eq('id', userId)
+
+    // Email de bienvenida branded
+    try {
+      const { data: co } = await db
+        .from('companies')
+        .select('name, primary_color, slug, sector')
+        .eq('id', companyId)
+        .maybeSingle()
+
+      if (co) {
+        const FRONT     = process.env.FRONTEND_URL || 'https://elvia.lat'
+        const sectorPath = co.sector === 'university' ? 'universidades' : 'empresas'
+        const loginUrl  = `${FRONT}/${sectorPath}/${co.slug}/login`
+
+        await sendBienvenidaActivacionEmail(email, {
+          nombre:           allowEntry.nombre || '',
+          apellido:         allowEntry.apellido || '',
+          companyName:      co.name,
+          primaryColor:     co.primary_color,
+          loginUrl,
+          activatedAt,
+          licenseExpiresAt,
+        })
+      }
+    } catch (mailErr) {
+      console.warn('[confirm-activation] Email bienvenida falló (activación OK igual):', mailErr.message)
+    }
 
     logAudit(db, { company_id: companyId, user_id: userId, action: 'account_activated', entity: 'profiles', entity_id: userId, metadata: { email } })
 

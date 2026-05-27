@@ -35,17 +35,18 @@ function KpiCard({ icon: Icon, label, value, sub, accent }) {
 
 // ── Invite Modal ────────────────────────────────────────────────────────
 function InviteModal({ onClose, onSubmit, primary }) {
-  const [email,    setEmail]    = useState('')
-  const [nombre,   setNombre]   = useState('')
-  const [apellido, setApellido] = useState('')
-  const [loading, setLoading]   = useState(false)
+  const [email,        setEmail]       = useState('')
+  const [nombre,       setNombre]      = useState('')
+  const [apellido,     setApellido]    = useState('')
+  const [licenseDays,  setLicenseDays] = useState('90')
+  const [loading, setLoading]          = useState(false)
   const L = useSectorLabels()
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!email) return
     setLoading(true)
-    await onSubmit(email.trim(), nombre.trim(), apellido.trim())
+    await onSubmit(email.trim(), nombre.trim(), apellido.trim(), parseInt(licenseDays, 10) || 90)
     setLoading(false)
   }
 
@@ -94,6 +95,18 @@ function InviteModal({ onClose, onSubmit, primary }) {
               className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2"
               style={{ '--tw-ring-color': `${primary}40` }}
             />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-gray-700 mb-1.5">Días de licencia</label>
+            <div className="flex items-center gap-2">
+              <input
+                type="number" value={licenseDays} onChange={e => setLicenseDays(e.target.value)}
+                min="1" max="730"
+                className="w-24 border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2"
+                style={{ '--tw-ring-color': `${primary}40` }}
+              />
+              <span className="text-xs text-gray-400">días calendario desde la activación</span>
+            </div>
           </div>
           <div className="flex gap-3 pt-2">
             <button type="button" onClick={onClose}
@@ -438,7 +451,7 @@ export default function CompanyAdmin() {
   }
 
   // ── Invitation handler ──
-  const handleInvite = async (email, nombre, apellido) => {
+  const handleInvite = async (email, nombre, apellido, license_days) => {
     if (!session?.access_token) return
     try {
       const res = await fetch(`${API}/api/company/invitations`, {
@@ -447,7 +460,7 @@ export default function CompanyAdmin() {
           Authorization: `Bearer ${session.access_token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email, nombre, apellido }),
+        body: JSON.stringify({ email, nombre, apellido, license_days }),
       })
       const data = await res.json().catch(() => ({}))
       if (res.ok) {
@@ -998,6 +1011,7 @@ export default function CompanyAdmin() {
                         <th className="px-6 py-3 text-xs font-bold uppercase tracking-widest text-gray-500">Estado</th>
                         <th className="px-6 py-3 text-xs font-bold uppercase tracking-widest text-gray-500">Invitado</th>
                         <th className="px-6 py-3 text-xs font-bold uppercase tracking-widest text-gray-500">Activado</th>
+                        <th className="px-6 py-3 text-xs font-bold uppercase tracking-widest text-gray-500">Vence</th>
                         <th className="px-6 py-3 text-xs font-bold uppercase tracking-widest text-gray-500 text-right">Acción</th>
                       </tr>
                     </thead>
@@ -1032,6 +1046,21 @@ export default function CompanyAdmin() {
                             <td className="px-6 py-4 text-xs text-gray-500">{invDate}</td>
                             <td className="px-6 py-4 text-xs text-gray-500">
                               {a.status === 'activated' ? <span className="text-emerald-600 font-semibold">{actDate}</span> : '—'}
+                            </td>
+                            <td className="px-6 py-4 text-xs">
+                              {a.license_expires_at
+                                ? (() => {
+                                    const exp = new Date(a.license_expires_at)
+                                    const soon = exp - new Date() < 14 * 24 * 3600 * 1000
+                                    const expired = exp < new Date()
+                                    return (
+                                      <span className={expired ? 'text-red-500 font-bold' : soon ? 'text-amber-600 font-semibold' : 'text-gray-500'}>
+                                        {exp.toLocaleDateString('es', { day: '2-digit', month: 'short', year: '2-digit' })}
+                                        {expired && ' ⚠️'}
+                                      </span>
+                                    )
+                                  })()
+                                : <span className="text-gray-300">—</span>}
                             </td>
                             <td className="px-6 py-4 text-right">
                               <button
