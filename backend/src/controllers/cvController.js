@@ -1,13 +1,14 @@
 // Orquesta los servicios para cada endpoint de CV
 const { parseCV } = require('../utils/cvParser');
 const { detectLanguage } = require('../utils/languageDetector');
-const { 
-  optimizeCV, 
-  matchCVtoJob, 
-  extraerDatosInfografia, 
-  corregirProyectoLaboral, 
-  generarCarta, 
+const {
+  optimizeCV,
+  matchCVtoJob,
+  extraerDatosInfografia,
+  corregirProyectoLaboral,
+  generarCarta,
   optimizarResumen: optimizarResumenService,
+  optimizarDescripcionExp,
   extractProfileFromCV,
 } = require('../services/deepseekService');
 const { generarPDF } = require('../services/pdfService');
@@ -596,13 +597,36 @@ const optimizarResumenController = async (req, res, next) => {
   }
 };
 
-module.exports = { 
-  optimize, 
-  matchToJob, 
-  download, 
-  extractProfile, 
-  generarInfografia, 
-  generarInfografiaProyecto, 
+const optimizarExpController = async (req, res) => {
+  const { texto, cargo, empresa, idioma } = req.body;
+  if (!texto) return res.status(400).json({ error: 'Falta el texto a optimizar' });
+
+  try {
+    const optimizado = await optimizarDescripcionExp({ texto, cargo, empresa, idioma: idioma || 'es' });
+    const exito = !!optimizado && optimizado !== texto;
+    return res.json({
+      optimizado: optimizado || texto,
+      exito,
+      mensaje: exito ? 'Optimizado con éxito' : 'Usando descripción original',
+    });
+  } catch (err) {
+    console.error('[Controller] optimizarExpController:', err.message);
+    return res.json({
+      optimizado: texto,
+      exito: false,
+      mensaje: 'Servicio de IA temporalmente indisponible',
+    });
+  }
+};
+
+module.exports = {
+  optimize,
+  matchToJob,
+  download,
+  extractProfile,
+  generarInfografia,
+  generarInfografiaProyecto,
   generarCartaPresentacion,
-  optimizarResumen: optimizarResumenController
+  optimizarResumen: optimizarResumenController,
+  optimizarExp: optimizarExpController,
 };

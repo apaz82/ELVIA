@@ -11,7 +11,7 @@ const requireActiveTrial    = require('../middleware/requireActiveTrial');
 const { dailyCap }          = require('../middleware/dailyCap');
 const upload                = require('../middleware/upload');
 const { limiterOptimize, limiterMatch, limiterResumen } = require('../middleware/rateLimiter');
-const { optimize, matchToJob, download, extractProfile, generarInfografia, generarInfografiaProyecto, generarCartaPresentacion, optimizarResumen } = require('../controllers/cvController')
+const { optimize, matchToJob, download, extractProfile, generarInfografia, generarInfografiaProyecto, generarCartaPresentacion, optimizarResumen, optimizarExp } = require('../controllers/cvController')
 const { generarCV } = require('../controllers/cvGenerarController')
 
 // Optimización de CV — dailyCap va DESPUÉS de upload para no consumir slot con archivos inválidos
@@ -40,5 +40,8 @@ router.post('/carta', auth, dailyCap, limiterMatch, generarCartaPresentacion);
 
 // Optimiza el resumen profesional (tono humano, ortografía, estructura)
 router.post('/optimizar-resumen', auth, limiterResumen, optimizarResumen);
+
+// Optimiza descripción de una experiencia laboral (STAR + verbos de acción)
+router.post('/optimizar-experiencia', auth, limiterResumen, optimizarExp);
 
 module.exports = router;

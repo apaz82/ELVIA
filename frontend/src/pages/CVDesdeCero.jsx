@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../services/authService'
-import { generarCVDesdeCero, extractarPerfilCV, descargarCV, optimizarResumenIA } from '../services/cvService'
+import { generarCVDesdeCero, extractarPerfilCV, descargarCV, optimizarResumenIA, optimizarExpIA } from '../services/cvService'
 import HelpBadge from '../components/common/HelpBadge'
 import {
   Plus, X, ArrowLeft, ArrowRight, Question, Check,
@@ -287,6 +287,8 @@ export default function CVDesdeCero() {
   const [resumenBloqueado, setResumenBloqueado] = useState(false)
   const [cvIdioma, setCvIdioma] = useState('es')         // idioma detectado del CV subido
   const [alertaIdioma, setAlertaIdioma] = useState(false) // modal confirm idioma antes de generar
+  const [expSugeridas, setExpSugeridas]   = useState({})  // { [i]: string } sugerencia por exp
+  const [expOptimizando, setExpOptimizando] = useState({}) // { [i]: boolean } loading por exp
 
   // 1. Verificar si ya tiene CV al cargar
   useEffect(() => {
@@ -560,6 +562,31 @@ export default function CVDesdeCero() {
     } finally {
       setOptimizandoResumen(false)
     }
+  }
+
+  const handleOptimizarExp = async (i) => {
+    const exp = datos.experiencias[i]
+    if (!exp?.descripcion || exp.descripcion.length < 10) return
+    setExpOptimizando(prev => ({ ...prev, [i]: true }))
+    try {
+      const res = await optimizarExpIA(exp.descripcion, exp.cargo, exp.empresa, cvIdioma || 'es')
+      if (res.optimizado) {
+        setExpSugeridas(prev => ({ ...prev, [i]: res.optimizado }))
+      }
+    } catch (err) {
+      setError(`No pudimos optimizar la experiencia: ${err.message}`)
+    } finally {
+      setExpOptimizando(prev => ({ ...prev, [i]: false }))
+    }
+  }
+
+  const aplicarSugerenciaExp = (i) => {
+    upExp(i, 'descripcion', expSugeridas[i])
+    setExpSugeridas(prev => { const n = { ...prev }; delete n[i]; return n })
+  }
+
+  const rechazarSugerenciaExp = (i) => {
+    setExpSugeridas(prev => { const n = { ...prev }; delete n[i]; return n })
   }
 
   // Compara dos textos y pone en negrita las palabras nuevas
@@ -1077,8 +1104,62 @@ export default function CVDesdeCero() {
                       <input placeholder="Fecha fin (ej: Present)" value={exp.fecha_fin} onChange={e => upExp(i, 'fecha_fin', e.target.value)}
                         className="border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400/50" />
                     </div>
+                    {/* Descripción + botón de mejora */}
                     <textarea placeholder="Descripción y logros (en el idioma del CV)..." value={exp.descripcion} onChange={e => upExp(i, 'descripcion', e.target.value)}
                       rows={3} className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400/50 resize-none" />
+
+                    <div className="flex items-center justify-between">
+                      <button
+                        onClick={() => handleOptimizarExp(i)}
+                        disabled={expOptimizando[i] || !exp.descripcion || exp.descripcion.length < 10 || !!expSugeridas[i]}
+                        className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-xl transition-all ${expOptimizando[i] ? 'bg-slate-100 text-slate-400' : 'bg-white text-indigo-600 hover:bg-indigo-50 border border-indigo-100'} disabled:opacity-40`}
+                      >
+                        {expOptimizando[i] ? <SpinnerGap size={14} className="animate-spin" /> : <MagicWand size={14} weight="bold" />}
+                        {expOptimizando[i] ? 'Analizando...' : 'Mejorar con IA'}
+                      </button>
+                      <span className={`text-[10px] ${exp.descripcion.length >= 600 ? 'text-amber-500 font-bold' : 'text-slate-400'}`}>{exp.descripcion.length} chars</span>
+                    </div>
+
+                    {/* Panel de sugerencia */}
+                    {expSugeridas[i] && (
+                      <div className="p-4 bg-indigo-50/40 border-2 border-dashed border-indigo-200 rounded-xl space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-1.5">
+                            <MagicWand size={15} weight="fill" className="text-indigo-600" />
+                            <span className="text-xs font-black text-indigo-900 uppercase tracking-wider">Sugerencia IA (editable)</span>
+                          </div>
+                          <button onClick={() => rechazarSugerenciaExp(i)} className="text-slate-400 hover:text-slate-600"><X size={16} /></button>
+                        </div>
+
+                        {/* Diff visual */}
+                        <div className="p-2.5 bg-white/70 rounded-lg text-xs leading-relaxed text-slate-600 border border-indigo-50">
+                          <p className="font-bold text-[10px] text-indigo-400 uppercase mb-1">Palabras nuevas en negrita:</p>
+                          {renderDiff(exp.descripcion, expSugeridas[i])}
+                        </div>
+
+                        <textarea
+                          value={expSugeridas[i]}
+                          onChange={e => setExpSugeridas(prev => ({ ...prev, [i]: e.target.value }))}
+                          rows={3}
+                          className="w-full bg-white border border-indigo-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400/30 resize-none"
+                        />
+
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => aplicarSugerenciaExp(i)}
+                            className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold py-2 rounded-xl flex items-center justify-center gap-1.5 transition-colors"
+                          >
+                            <CheckFat size={14} weight="fill" /> Aplicar
+                          </button>
+                          <button
+                            onClick={() => rechazarSugerenciaExp(i)}
+                            className="px-5 bg-white border border-slate-200 text-slate-500 text-xs font-bold py-2 rounded-xl hover:bg-slate-50 transition-colors"
+                          >
+                            Ignorar
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))}
                 <button onClick={addExp} className="w-full border-2 border-dashed border-blue-300 text-blue-600 font-bold py-2.5 rounded-xl hover:bg-blue-50 flex items-center justify-center gap-2 text-sm cursor-pointer">

@@ -443,6 +443,47 @@ REGLAS:
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
+// optimizarDescripcionExp — Mejora la descripción de una experiencia laboral
+// con verbos de acción, formato STAR y sugerencias de métricas
+// ─────────────────────────────────────────────────────────────────────────────
+const optimizarDescripcionExp = async ({ texto, cargo, empresa, idioma = 'es' }) => {
+  if (!texto || texto.trim().length < 10) return texto;
+  if (!deepseek) return texto;
+
+  const lang = idioma === 'en' ? 'English' : idioma === 'pt' ? 'português' : 'español';
+  const contexto = [cargo && `Cargo: ${cargo}`, empresa && `Empresa: ${empresa}`].filter(Boolean).join(' | ');
+
+  try {
+    const response = await deepseek.chat.completions.create({
+      model: MODELO_DS,
+      max_tokens: 600,
+      temperature: 0.3,
+      messages: [
+        { role: 'system', content: `Eres un Senior Career Coach experto en redacción de logros profesionales formato Harvard/Google para el mercado LATAM 2026.
+Tu tarea es mejorar la descripción de una experiencia laboral.
+
+REGLAS ESTRICTAS:
+1. VERBOS DE ACCIÓN: Inicia cada logro con un verbo fuerte (Lideré, Implementé, Optimicé, Reduje, Gestioné, Desarrollé, Incrementé, Coordiné...).
+2. MÉTRICAS: Si el texto original tiene números, mantenlos. Si no, agrega placeholders entre corchetes como [X%], [N personas], [$X], [X meses] donde tendrían sentido.
+3. FORMATO STAR implícito: Acción + Contexto + Resultado cuantificado.
+4. LONGITUD: Máximo 3-4 líneas compactas. Sé preciso y ejecutivo.
+5. FIDELIDAD: No inventes empresas, cargos ni logros que no estén en el texto original.
+6. IDIOMA: Responde ÚNICAMENTE en ${lang}. No traduzcas si el texto original está en otro idioma.
+7. Responde SOLO con el texto mejorado. Sin comillas, sin explicaciones, sin prefijos.` },
+        { role: 'user', content: `${contexto ? `Contexto: ${contexto}\n` : ''}Mejora esta descripción de experiencia laboral:\n"${texto}"` }
+      ],
+    });
+
+    const result = response.choices[0].message.content.trim().replace(/^["'«]+|["'»]+$/g, '').trim();
+    console.log('[DeepSeek] Descripcion experiencia optimizada.');
+    return result;
+  } catch (error) {
+    console.error('[DeepSeek] Error en optimizarDescripcionExp:', error.message);
+    return texto;
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
 // generarCarta — Migrado desde claudeService
 // ─────────────────────────────────────────────────────────────────────────────
 const ETIQUETA_IDIOMA = { es: 'español', en: 'English', pt: 'português' };
@@ -929,6 +970,7 @@ module.exports = {
   extractProfileFromCV,
   // Migrados desde claudeService:
   optimizarResumen,
+  optimizarDescripcionExp,
   generarCarta,
   evaluarEntrevista,
   optimizeCV,
