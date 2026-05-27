@@ -517,8 +517,8 @@ function PilarMiPerfil({ perfil, extraData, onChange, onSavePerfil, saving, isPa
 
   return (
     <div className="space-y-6">
-      {/* ── Upload CV para pre-llenar ── */}
-      <div className={`p-4 rounded-2xl border-2 border-dashed transition-colors ${cvDatos ? 'bg-green-50 border-green-300' : 'bg-indigo-50 border-indigo-200'}`}>
+      {/* Sección upload CV: movida al tab Optimizador de CV — preservada para rollback (quitar false &&) */}
+      {false && <div className={`p-4 rounded-2xl border-2 border-dashed transition-colors ${cvDatos ? 'bg-green-50 border-green-300' : 'bg-indigo-50 border-indigo-200'}`}>
         <div className="flex items-center justify-between gap-3">
           <div>
             <p className="text-sm font-bold text-slate-700">¿Tienes un CV? Súbelo y llenamos el formulario por ti</p>
@@ -648,7 +648,7 @@ function PilarMiPerfil({ perfil, extraData, onChange, onSavePerfil, saving, isPa
             <p className="text-sm text-slate-700 font-semibold">⚠️ Sin CV inicial no llegarás al 100% de esta sección y no podrás usar todas las funcionalidades del Gerente de Proyecto.</p>
           </div>
         )}
-      </div>
+      </div>}
       <div className="flex gap-2 border-b border-slate-200">
         {TABS.map(t=>(
           <button key={t.id} onClick={()=>setSubTab(t.id)}
@@ -1226,20 +1226,36 @@ function DashboardResumen({ data, pct, onSelect, perfil, activePilar }) {
             const isLocked = !isCore && !isUnlocked
             const isActive = activePilar === p.id
 
-            const tooltipMsg = p.id==='documentos'
-              ? (pp===100 ? '¡CV Inicial generado!' : 'Genera tu CV cuando estés listo — cuanto más completo tu perfil, mejor resultado')
-              : (pp===100 ? '¡Sección completa!' : 'Te falta '+(100-pp)+'% para terminar')
+            const pilarIndex = PILARES.findIndex(function(pl){ return pl.id === p.id })
+            const prevPilar  = pilarIndex > 0 ? PILARES[pilarIndex - 1] : null
+            const prevPct    = prevPilar ? (porPilar[prevPilar.id] || 0) : 100
+            const isLocked   = pilarIndex > 0 && prevPct < 100 && pp === 0
+
+            const tooltipMsg = isLocked
+              ? ('Completa ' + prevPilar.label + ' primero (' + prevPct + '% completado)')
+              : p.id==='documentos'
+                ? (pp===100 ? '¡CV Inicial generado!' : 'Genera tu CV cuando estés listo — cuanto más completo tu perfil, mejor resultado')
+                : (pp===100 ? '¡Sección completa!' : 'Te falta '+(100-pp)+'% para terminar')
 
             return (
-              <button key={p.id} onClick={function(){ onSelect(p.id) }}
+              <button key={p.id} onClick={function(){ if(!isLocked) onSelect(p.id) }}
                 title={tooltipMsg}
                 className={'group relative flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-all text-center '
-                  + (isActive
+                  + (isLocked
+                    ? 'border-slate-200 bg-slate-50 cursor-not-allowed opacity-50'
+                    : isActive
                     ? 'cursor-pointer shadow-md border-current ' + c.soft
                     : 'cursor-pointer hover:shadow-md border-transparent hover:border-current ' + c.soft)}
               >
+                {/* Candado */}
+                {isLocked && (
+                  <div className="absolute top-2 right-2">
+                    <Lock size={12} weight="fill" className="text-slate-400"/>
+                  </div>
+                )}
+
                 {/* Badge ★ Oferta de Valor */}
-                {p.id==='oferta' && (
+                {p.id==='oferta' && !isLocked && (
                   <div className="absolute -top-2 left-1/2 -translate-x-1/2 z-10">
                     <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-rose-500 text-white shadow-sm whitespace-nowrap">★ Clave para tu CV</span>
                   </div>
@@ -1247,28 +1263,28 @@ function DashboardResumen({ data, pct, onSelect, perfil, activePilar }) {
 
                 {/* Tooltip */}
                 <div className="absolute -top-10 left-1/2 -translate-x-1/2 z-20 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-150">
-                  <div className="bg-slate-800 text-white text-[10px] font-semibold px-2.5 py-1.5 rounded-lg whitespace-nowrap shadow-lg max-w-[180px] text-center leading-snug">
+                  <div className="bg-slate-800 text-white text-[10px] font-semibold px-2.5 py-1.5 rounded-lg whitespace-nowrap shadow-lg max-w-[200px] text-center leading-snug">
                     {tooltipMsg}
                   </div>
                   <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800"/>
                 </div>
 
                 {/* Icono */}
-                <div className={'w-10 h-10 rounded-xl flex items-center justify-center ' + c.badge}>
-                  <Icon size={18} weight="duotone" className={c.icon} />
+                <div className={'w-10 h-10 rounded-xl flex items-center justify-center ' + (isLocked ? 'bg-slate-200' : c.badge)}>
+                  <Icon size={18} weight="duotone" className={isLocked ? 'text-slate-400' : c.icon} />
                 </div>
 
                 {/* Label */}
-                <p className="text-[11px] font-bold leading-tight text-slate-700" style={{wordBreak:'break-word'}}>
+                <p className={'text-[11px] font-bold leading-tight ' + (isLocked ? 'text-slate-400' : 'text-slate-700')} style={{wordBreak:'break-word'}}>
                   {p.label}
                 </p>
 
                 {/* Barra de progreso */}
                 <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
-                  <div className={'h-full rounded-full transition-all duration-500 ' + c.bar} style={{width:pp+'%'}} />
+                  <div className={'h-full rounded-full transition-all duration-500 ' + (isLocked ? 'bg-slate-300' : c.bar)} style={{width:pp+'%'}} />
                 </div>
 
-                <span className={'text-xs font-black ' + c.icon}>{pp}%</span>
+                <span className={'text-xs font-black ' + (isLocked ? 'text-slate-400' : c.icon)}>{pp}%</span>
               </button>
             )
           })}
@@ -2362,7 +2378,11 @@ export default function ProyectoLaboral() {
   function handleSelectPilar(id) {
     if (id!==pilarId) {
       const faltantes = pilarIncompletos(pilarId, data)
-      if (faltantes.length>0) { setModalOfertaIncompleta({items:faltantes, nextPilar:id}); return }
+      if (faltantes.length>0) {
+        const pilarLabel = PILARES.find(function(p){ return p.id===pilarId })?.label || pilarId
+        setModalOfertaIncompleta({items:faltantes, nextPilar:id, pilarLabel})
+        return
+      }
     }
     setPilarId(id)
     setTimeout(function(){ pilarCardRef.current&&pilarCardRef.current.scrollIntoView({behavior:'smooth',block:'start'}) },50)
@@ -2901,7 +2921,7 @@ export default function ProyectoLaboral() {
         )}
       </div>
 
-      {/* ── Modal: navegación con oferta incompleta ── */}
+      {/* ── Modal: navegación con sección incompleta ── */}
       {modalOfertaIncompleta && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4"
@@ -2913,7 +2933,7 @@ export default function ProyectoLaboral() {
               <WarningCircle size={24} className="text-white" weight="fill"/>
               <div>
                 <h2 className="text-white font-bold text-base leading-tight">Sección incompleta</h2>
-                <p className="text-rose-100 text-xs mt-0.5">Mi oferta de valor tiene campos sin completar</p>
+                <p className="text-rose-100 text-xs mt-0.5">{modalOfertaIncompleta.pilarLabel} tiene campos sin completar</p>
               </div>
             </div>
             <div className="px-6 py-5">
