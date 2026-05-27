@@ -102,11 +102,12 @@ const optimize = async (req, res, next) => {
         user_id: req.user.id,
         tipo: 'optimize',
         contenido: resultado.optimizedCV,
-        metadata: { 
-          changes: resultado.changes, 
-          recommendations: resultado.recommendations, 
+        metadata: {
+          changes: resultado.changes,
+          recommendations: resultado.recommendations,
+          weakBullets: resultado.weakBullets || [],
           language,
-          subtipo: 'optimizacion_ia' 
+          subtipo: 'optimizacion_ia'
         },
       })
       .select('id')
@@ -127,6 +128,7 @@ const optimize = async (req, res, next) => {
       optimizedCV: resultado.optimizedCV,
       changes: resultado.changes,
       recommendations: resultado.recommendations,
+      weakBullets: resultado.weakBullets || [],
       language,
       usageCount: nuevoUsageCount,
       cv_optimizer_count: nuevoOptimizerCount,

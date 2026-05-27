@@ -405,6 +405,7 @@ export default function CVOptimizer() {
               { key: 'cv',              label: 'CV Optimizado' },
               { key: 'cambios',         label: `Cambios (${resultadoOptimize.changes?.length || 0})` },
               { key: 'recomendaciones', label: `Recomendaciones (${resultadoOptimize.recommendations?.length || 0})` },
+              ...(resultadoOptimize.weakBullets?.length > 0 ? [{ key: 'bullets', label: `Bullets mejorados (${resultadoOptimize.weakBullets.length})` }] : []),
               { key: 'checklist',       label: 'Checklist ATS' },
             ].map((tab) => (
               <button key={tab.key} onClick={() => setTabActiva(tab.key)}
@@ -438,6 +439,28 @@ export default function CVOptimizer() {
                 </li>
               ))}
             </ul>
+          )}
+          {!vistaInfografia && tabActiva === 'bullets' && (
+            <div className="space-y-4">
+              <p className="text-xs text-gray-400">Los 3 bullets más débiles de tu CV original y cómo los mejoró ELVIA®.</p>
+              {resultadoOptimize.weakBullets?.map((b, i) => (
+                <div key={i} className="rounded-xl border border-gray-100 overflow-hidden">
+                  <div className="flex items-start gap-3 px-4 py-3 bg-red-50">
+                    <span className="text-xs font-black text-red-400 uppercase tracking-widest mt-0.5 shrink-0">Antes</span>
+                    <p className="text-sm text-gray-700 leading-relaxed">{b.antes}</p>
+                  </div>
+                  {b.problema && (
+                    <div className="px-4 py-2 bg-amber-50 border-t border-amber-100">
+                      <p className="text-xs text-amber-700"><span className="font-bold">Problema:</span> {b.problema}</p>
+                    </div>
+                  )}
+                  <div className="flex items-start gap-3 px-4 py-3 bg-emerald-50 border-t border-emerald-100">
+                    <span className="text-xs font-black text-emerald-600 uppercase tracking-widest mt-0.5 shrink-0">Después</span>
+                    <p className="text-sm text-gray-800 font-medium leading-relaxed">{b.despues}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
           )}
           {!vistaInfografia && tabActiva === 'checklist' && (() => {
             const texto = resultadoOptimize.optimizedCV || ''

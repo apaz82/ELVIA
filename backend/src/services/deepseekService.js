@@ -676,10 +676,24 @@ const parsearRespuestaOptimize = (text) => {
   const cvMatch = text.match(/<CV>([\s\S]*?)<\/CV>/);
   const cambiosMatch = text.match(/<CAMBIOS>([\s\S]*?)<\/CAMBIOS>/);
   const recMatch = text.match(/<RECOMENDACIONES>([\s\S]*?)<\/RECOMENDACIONES>/);
+  const bulletsMatch = text.match(/<BULLETS>([\s\S]*?)<\/BULLETS>/);
+
+  let weakBullets = [];
+  if (bulletsMatch) {
+    const blocks = bulletsMatch[1].trim().split(/\n{2,}/).filter(Boolean);
+    weakBullets = blocks.map(block => {
+      const antes    = (block.match(/^ANTES:\s*(.+)/m)    || [])[1]?.trim() || '';
+      const despues  = (block.match(/^DESPU[EÉ]S:\s*(.+)/m) || [])[1]?.trim() || '';
+      const problema = (block.match(/^PROBLEMA:\s*(.+)/m)  || [])[1]?.trim() || '';
+      return { antes, despues, problema };
+    }).filter(b => b.antes && b.despues);
+  }
+
   return {
     optimizedCV: cvMatch ? cvMatch[1].trim() : text.trim(),
     changes: cambiosMatch ? cambiosMatch[1].trim().split('\n').map(l => l.replace(/^[-•]\s*/, '').trim()).filter(Boolean) : [],
     recommendations: recMatch ? recMatch[1].trim().split('\n').map(l => l.replace(/^[-•]\s*/, '').trim()).filter(Boolean) : [],
+    weakBullets,
   };
 };
 
@@ -840,7 +854,20 @@ Responde usando exactamente estos delimitadores (sin texto fuera de ellos):
 <RECOMENDACIONES>
 - recomendación adicional 1 (en ${idioma})
 - recomendación adicional 2 (en ${idioma})
-</RECOMENDACIONES>`;
+</RECOMENDACIONES>
+<BULLETS>
+ANTES: [bullet original más débil del CV]
+DESPUÉS: [versión mejorada con verbo de acción y foco en resultado, en ${idioma}]
+PROBLEMA: [1 oración: por qué era débil]
+
+ANTES: [segundo bullet débil]
+DESPUÉS: [versión mejorada, en ${idioma}]
+PROBLEMA: [1 oración]
+
+ANTES: [tercer bullet débil]
+DESPUÉS: [versión mejorada, en ${idioma}]
+PROBLEMA: [1 oración]
+</BULLETS>`;
 
   if (!deepseek) throw new Error('[DeepSeek] DEEPSEEK_API_KEY no configurada');
 
