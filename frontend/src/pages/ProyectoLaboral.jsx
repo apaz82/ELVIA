@@ -5,7 +5,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../services/authService'
 import { extractarPerfilCV, descargarCV } from '../services/cvService'
-import { RECURSOS_DEFAULT as RECURSOS_DEFAULT_BASE, calcPerfilPts, calcularProgreso as calcProgreso } from '../utils/progresoLaboral'
+import { RECURSOS_DEFAULT as RECURSOS_DEFAULT_BASE, calcPerfilPts, calcularProgreso as calcProgreso, calcularPorPilar } from '../utils/progresoLaboral'
 import {
   Brain, CalendarCheck, Toolbox, FileText,
   Heart, CheckSquare, Square,
@@ -230,49 +230,7 @@ const DOCS_LIST = [
 // calcPerfilPts y calcularProgreso importados desde utils/progresoLaboral.js
 const calcularProgreso = calcProgreso
 
-function calcularPorPilar(data, perfil) {
-  const perfilPts = calcPerfilPts(perfil, data)
 
-  const auto = (data&&data.autoconocimiento) ? data.autoconocimiento : {}
-  const perf = (data&&data.perfil) ? data.perfil : {}
-  let autoPts = 0
-
-  // 1. Hard Skills - 8 pts
-  if (Array.isArray(auto.hard_skills) && auto.hard_skills.length >= 2) autoPts += 8
-
-  // 2. Power/Soft Skills (soft_skills) - 7 pts
-  if (Array.isArray(auto.soft_skills) && auto.soft_skills.length >= 2) autoPts += 7
-
-  // 4. Compañías - 5 pts
-  if (Array.isArray(auto.top5empresas) && auto.top5empresas.filter(function(e){return e && String(e).trim()}).length >= 1) autoPts += 5
-
-
-  const bloques = (data&&data.semana&&data.semana.bloques) ? data.semana.bloques : {}
-  const bN = Object.values(bloques).filter(Boolean).length
-  let semanaPts = 0
-  if (bN>=3) semanaPts=20; else if (bN>=1) semanaPts=10;
-
-  const rawRec2 = data&&data.recursos ? (Array.isArray(data.recursos) ? data.recursos : (data.recursos.recursos||null)) : null
-  const rec = (rawRec2&&rawRec2.length>0) ? rawRec2 : RECURSOS_DEFAULT
-  const nRecActivos = rec.filter(function(r){return r.tengo===true}).length
-  let recPts = (nRecActivos >= 2) ? 20 : (nRecActivos * 10)
-
-  // Oferta: 5 ítems × 4 pts = 20 · mismo umbral que progresoLaboral.js
-  const oferta = (data&&data.oferta) ? data.oferta : {}
-  let ofertaPts = 0
-  if (String(oferta.oferta_valor||'').trim().length>=20) ofertaPts+=4
-  const IKIGAI_KEYS_PP = ['ikigai_amas','ikigai_bueno','ikigai_necesita','ikigai_pagar']
-  IKIGAI_KEYS_PP.forEach(function(k){ if (String(oferta[k]||'').trim().length>=50) ofertaPts+=4 })
-
-  return {
-    perfil:           Math.round((perfilPts/20)*100),
-    autoconocimiento: Math.round((Math.min(autoPts,20)/20)*100),
-    documentos:       (data && data.optimizer && data.optimizer.cv_generado) ? 100 : 0,
-    semana:           Math.round((semanaPts/20)*100),
-    recursos:         Math.round((recPts/20)*100),
-    oferta:           Math.round((Math.min(ofertaPts,20)/20)*100),
-  }
-}
 
 const sanitizarTexto = (txt) => {
   if (!txt) return ''
@@ -355,6 +313,12 @@ function PilarMiPerfil({ perfil, extraData, onChange, onSavePerfil, saving, isPa
     bono_frecuencia:'',bono_pct:'',bono_num_salarios:'',
     bono_monto:'',variable_monto:'',prestaciones_otros:'',
     idiomas: [],
+    fondo_ahorro_monto: '',
+    bonos_extra: [],
+    expectativa_salarial_monto: '',
+    expectativa_prestaciones: '',
+    area_otro: '',
+    industria_otro: '',
   })
   const lpRef          = useRef(lp)
   const onSavePerfilRef = useRef(onSavePerfil)
@@ -397,12 +361,28 @@ function PilarMiPerfil({ perfil, extraData, onChange, onSavePerfil, saving, isPa
       bono_num_salarios:perfil.bono_num_salarios||'',
       bono_monto:perfil.bono_monto||'',variable_monto:perfil.variable_monto||'',
       prestaciones_otros:perfil.prestaciones_otros||'',
+      fondo_ahorro_monto: d?.fondo_ahorro_monto || '',
+      bonos_extra: d?.bonos_extra || [],
+      expectativa_salarial_monto: d?.expectativa_salarial_monto || '',
+      expectativa_prestaciones: d?.expectativa_prestaciones || '',
+      area_otro: d?.area_otro || '',
+      industria_otro: d?.industria_otro || '',
     })
     setTimeout(() => { lpLoaded.current = true }, 100)
   },[perfil, userId])
 
   const onSavePerfilLocal = async (p) => {
     await onSavePerfil(p)
+    // También guardar de forma síncrona en el estado del padre al hacer clic en guardar principal
+    onChange({
+      ...d,
+      fondo_ahorro_monto: p.fondo_ahorro_monto,
+      bonos_extra: p.bonos_extra,
+      expectativa_salarial_monto: p.expectativa_salarial_monto,
+      expectativa_prestaciones: p.expectativa_prestaciones,
+      area_otro: p.area_otro,
+      industria_otro: p.industria_otro,
+    })
     setJustSaved(true)
     setTimeout(() => setJustSaved(false), 3000)
     if (subTab === 'datos') setSubTab('comp')
@@ -413,7 +393,19 @@ function PilarMiPerfil({ perfil, extraData, onChange, onSavePerfil, saving, isPa
   useEffect(() => {
     if (!lpLoaded.current) return
     if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current)
-    autoSaveTimer.current = setTimeout(() => { onSavePerfil(lp) }, 1500)
+    autoSaveTimer.current = setTimeout(() => {
+      onSavePerfil(lp)
+      // Propagar al parent en debounce
+      onChange({
+        ...d,
+        fondo_ahorro_monto: lp.fondo_ahorro_monto,
+        bonos_extra: lp.bonos_extra,
+        expectativa_salarial_monto: lp.expectativa_salarial_monto,
+        expectativa_prestaciones: lp.expectativa_prestaciones,
+        area_otro: lp.area_otro,
+        industria_otro: lp.industria_otro,
+      })
+    }, 1500)
     // No cancelar el timer en el cleanup del debounce — solo al montar/desmontar
   }, [lp]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -426,6 +418,15 @@ function PilarMiPerfil({ perfil, extraData, onChange, onSavePerfil, saving, isPa
           // Guardar en sessionStorage de forma síncrona para carga instantánea al volver
           if (userId) sessionStorage.setItem(`perfil_lp_${userId}`, JSON.stringify(lpRef.current))
           onSavePerfilRef.current(lpRef.current)
+          onChange({
+            ...d,
+            fondo_ahorro_monto: lpRef.current.fondo_ahorro_monto,
+            bonos_extra: lpRef.current.bonos_extra,
+            expectativa_salarial_monto: lpRef.current.expectativa_salarial_monto,
+            expectativa_prestaciones: lpRef.current.expectativa_prestaciones,
+            area_otro: lpRef.current.area_otro,
+            industria_otro: lpRef.current.industria_otro,
+          })
         }
       }
     }
@@ -838,9 +839,9 @@ function PilarMiPerfil({ perfil, extraData, onChange, onSavePerfil, saving, isPa
                                 <div className="mt-1">
                                   <label className="block text-[10px] text-slate-500 mb-0.5">Monto mensual ({lp.moneda||'$'})</label>
                                   <input type="text" inputMode="decimal"
-                                    value={d.fondo_ahorro_monto||''}
-                                    onChange={e=>up('fondo_ahorro_monto', soloNumericos(e.target.value, lp.moneda))}
-                                    onBlur={()=>up('fondo_ahorro_monto', formatearMonto(d.fondo_ahorro_monto||'', lp.moneda))}
+                                    value={lp.fondo_ahorro_monto||''}
+                                    onChange={e=>setLP(f=>({...f,fondo_ahorro_monto: soloNumericos(e.target.value, lp.moneda)}))}
+                                    onBlur={()=>setLP(f=>({...f,fondo_ahorro_monto: formatearMonto(lp.fondo_ahorro_monto||'', lp.moneda)}))}
                                     placeholder={MONEDAS_US.includes(lp.moneda)?'2,000':'2.000'}
                                     className="w-full border border-slate-200 rounded-md px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400"/>
                                 </div>
@@ -861,7 +862,7 @@ function PilarMiPerfil({ perfil, extraData, onChange, onSavePerfil, saving, isPa
           {/* Bonos / Variables — múltiples */}
           {(()=>{
             const salarioNum = parseMonto(lp.salario_monto, lp.moneda)
-            const bonosExtra = Array.isArray(d.bonos_extra) ? d.bonos_extra : []
+            const bonosExtra = Array.isArray(lp.bonos_extra) ? lp.bonos_extra : []
 
             const calcBonoMonto = function(b) {
               const mult={'Mensual':1,'Trimestral':3,'Semestral':6,'Anual':12}[b.frecuencia]||1
@@ -875,20 +876,20 @@ function PilarMiPerfil({ perfil, extraData, onChange, onSavePerfil, saving, isPa
               const fmtCalc = calc !== null ? formatearMonto(String(Math.round(calc)), lp.moneda) : null
               const upField = isMain
                 ? function(key,val){ setLP(function(f){ return {...f,['bono_'+key]:val} }) }
-                : function(key,val){ up('bonos_extra', bonosExtra.map(function(b,i){ return i===idx?{...b,[key]:val}:b })) }
+                : function(key,val){ setLP(function(f){ return {...f, bonos_extra: f.bonos_extra.map(function(b,i){ return i===idx?{...b,[key]:val}:b }) } }) }
               const resetTipo = isMain
                 ? function(t){ setLP(function(f){ return {...f,bono_tipo:t,bono_esquema:'',bono_pct:'',bono_num_salarios:'',bono_monto:''} }) }
-                : function(t){ up('bonos_extra', bonosExtra.map(function(b,i){ return i===idx?{...b,tipo:t,esquema:'',frecuencia:'',pct:'',num_salarios:'',monto:'',variable_monto:''}:b })) }
+                : function(t){ setLP(function(f){ return {...f, bonos_extra: f.bonos_extra.map(function(b,i){ return i===idx?{...b,tipo:t,esquema:'',frecuencia:'',pct:'',num_salarios:'',monto:'',variable_monto:''}:b }) } }) }
               const resetEsq = isMain
                 ? function(e){ setLP(function(f){ return {...f,bono_esquema:e,bono_pct:'',bono_num_salarios:'',bono_monto:''} }) }
-                : function(e){ up('bonos_extra', bonosExtra.map(function(b,i){ return i===idx?{...b,esquema:e,pct:'',num_salarios:'',monto:''}:b })) }
+                : function(e){ setLP(function(f){ return {...f, bonos_extra: f.bonos_extra.map(function(b,i){ return i===idx?{...b,esquema:e,pct:'',num_salarios:'',monto:''}:b }) } }) }
 
               return (
                 <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
                   {!isMain&&(
                     <div className="flex justify-between items-center">
                       <span className="text-xs font-bold text-slate-600">Bono / Variable {idx+2}</span>
-                      <button onClick={function(){ up('bonos_extra', bonosExtra.filter(function(_,i){ return i!==idx })) }}
+                      <button onClick={function(){ setLP(function(f){ return {...f, bonos_extra: f.bonos_extra.filter(function(_,i){ return i!==idx })} }) }}
                         className="text-xs text-red-500 hover:text-red-700 cursor-pointer">✕ Eliminar</button>
                     </div>
                   )}
@@ -998,7 +999,7 @@ function PilarMiPerfil({ perfil, extraData, onChange, onSavePerfil, saving, isPa
                   )
                 })}
                 {(lp.bono_activo||bonosExtra.length>0)&&(
-                  <button onClick={function(){ up('bonos_extra', [...bonosExtra, {tipo:'',esquema:'',frecuencia:'',pct:'',num_salarios:'',monto:'',variable_monto:''}]) }}
+                  <button onClick={function(){ setLP(function(f){ return {...f, bonos_extra: [...(f.bonos_extra||[]), {tipo:'',esquema:'',frecuencia:'',pct:'',num_salarios:'',monto:'',variable_monto:''}]} }) }}
                     className="mt-2 w-full text-xs font-semibold py-2 rounded-lg border border-dashed border-indigo-300 text-indigo-600 hover:bg-indigo-50 transition-colors cursor-pointer">
                     + Otro Bono / Variable
                   </button>
@@ -1036,9 +1037,9 @@ function PilarMiPerfil({ perfil, extraData, onChange, onSavePerfil, saving, isPa
                     {MONEDAS_LIST.find(function(m){ return m.code===lp.moneda })?.symbol||'$'}
                   </span>
                   <input type="text"
-                    value={d.expectativa_salarial_monto||''}
-                    onChange={function(e){ up('expectativa_salarial_monto', soloNumericos(e.target.value, lp.moneda)) }}
-                    onBlur={function(){ up('expectativa_salarial_monto', formatearMonto(d.expectativa_salarial_monto||'', lp.moneda)) }}
+                    value={lp.expectativa_salarial_monto||''}
+                    onChange={function(e){ setLP(function(f){ return {...f, expectativa_salarial_monto: soloNumericos(e.target.value, f.moneda)} }) }}
+                    onBlur={function(){ setLP(function(f){ return {...f, expectativa_salarial_monto: formatearMonto(lp.expectativa_salarial_monto||'', f.moneda)} }) }}
                     placeholder={MONEDAS_US.includes(lp.moneda)?'70,000':'70.000'}
                     className="w-full border border-blue-200 rounded-xl pl-7 pr-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300/40 bg-white"/>
                 </div>
@@ -1048,10 +1049,10 @@ function PilarMiPerfil({ perfil, extraData, onChange, onSavePerfil, saving, isPa
               <label className="text-xs font-bold text-blue-600 uppercase tracking-widest mb-2 block">Expectativa de prestaciones</label>
               <div className="flex flex-col gap-2">
                 {['Prestaciones superiores','Prestaciones similares','Abierto a prestaciones inferiores'].map(function(opt){
-                  const sel = d.expectativa_prestaciones === opt
+                  const sel = lp.expectativa_prestaciones === opt
                   return (
                     <label key={opt} className={'flex items-center gap-2.5 p-3 rounded-lg border cursor-pointer transition-colors text-sm ' + (sel ? 'bg-blue-100 border-blue-400 text-blue-800 font-medium' : 'border-blue-100 bg-white text-slate-600 hover:border-blue-300')}>
-                      <input type="radio" name="expectativa_prestaciones" checked={sel} onChange={function(){ up('expectativa_prestaciones', opt) }} className="accent-blue-600 shrink-0"/>
+                      <input type="radio" name="expectativa_prestaciones" checked={sel} onChange={function(){ setLP(function(f){ return {...f, expectativa_prestaciones: opt} }) }} className="accent-blue-600 shrink-0"/>
                       {opt}
                     </label>
                   )
@@ -1070,12 +1071,12 @@ function PilarMiPerfil({ perfil, extraData, onChange, onSavePerfil, saving, isPa
             const valesDes = lp.prestaciones.includes('Vales de despensa') ? parseMonto(lp.prestaciones_detalle['Vales de despensa']||'', lp.moneda) : 0
             const valesGas = lp.prestaciones.includes('Vales de gasolina') ? parseMonto(lp.prestaciones_detalle['Vales de gasolina']||'', lp.moneda) : 0
             const valesOtr = lp.prestaciones.includes('Otros vales') ? parseMonto(lp.prestaciones_detalle['Otros vales']||'', lp.moneda) : 0
-            const fondoMonto = parseMonto(d.fondo_ahorro_monto||'', lp.moneda)
+            const fondoMonto = parseMonto(lp.fondo_ahorro_monto||'', lp.moneda)
             const carAl = lp.prestaciones.includes('Car allowance') ? parseMonto(lp.prestaciones_detalle['Car allowance']||'', lp.moneda) : 0
             const ptu = lp.prestaciones.includes('PTU') ? parseMonto(lp.prestaciones_detalle['PTU']||'', lp.moneda) : 0
             const aguinaldoCalc = diasAg > 0 ? Math.round(salarioNum/30*diasAg) : 0
             const primaCalc = primaPct > 0 ? Math.round(salarioNum/30*diasVac*(primaPct/100)) : 0
-            const bonosExtra = Array.isArray(d.bonos_extra) ? d.bonos_extra : []
+            const bonosExtra = Array.isArray(lp.bonos_extra) ? lp.bonos_extra : []
             const todosB = [...(lp.bono_activo?[{tipo:lp.bono_tipo,esquema:lp.bono_esquema,frecuencia:lp.bono_frecuencia,pct:lp.bono_pct,num_salarios:lp.bono_num_salarios,monto:lp.bono_monto,variable_monto:lp.variable_monto}]:[]), ...bonosExtra]
             const bonosAnual = todosB.reduce(function(sum, b){
               if (b.tipo==='Variable mensual') return sum + parseMonto(b.variable_monto||'', lp.moneda)*12
@@ -1134,7 +1135,7 @@ function PilarMiPerfil({ perfil, extraData, onChange, onSavePerfil, saving, isPa
           </div>
           <div>
             <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Nivel de cargo objetivo</h3>
-            <div className="flex flex-wrap gap-2">{NIVELES_CARGO.map(n=>{const sel=Array.isArray(d.niveles_cargo)&&d.niveles_cargo.includes(n);return iBtn(sel,n,()=>toggleNC(n))})}</div>
+                        <div className="flex flex-wrap gap-2">{NIVELES_CARGO.map(n=>{const sel=Array.isArray(d.niveles_cargo)&&d.niveles_cargo.includes(n);return iBtn(sel,n,()=>toggleNC(n))})}</div>
             {Array.isArray(d.niveles_cargo)&&d.niveles_cargo.length>0&&(()=>{
               const sel=d.niveles_cargo
               const s=sel.some(n=>/c-?level/i.test(n))?{label:'C-Level / VP',color:'bg-purple-100 text-purple-700'}
@@ -1148,7 +1149,7 @@ function PilarMiPerfil({ perfil, extraData, onChange, onSavePerfil, saving, isPa
           <div><h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Área funcional objetivo</h3>
             <div className="flex flex-wrap gap-2">{AREAS_FUNC.map(a=>{const sel=Array.isArray(d.areas)&&d.areas.includes(a);return iBtn(sel,a,()=>toggleArea(a))})}</div>
             {Array.isArray(d.areas)&&d.areas.includes('Otro')&&(
-              <input value={d.area_otro||''} onChange={e=>up('area_otro',e.target.value)} placeholder="Especifica el área..."
+              <input value={lp.area_otro||''} onChange={e=>setLP(f=>({...f, area_otro: e.target.value}))} placeholder="Especifica el área..."
                 className="mt-3 w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400/40"/>)}</div>
           <div><h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Industrias de interés</h3>
             <div className="flex flex-wrap gap-2">{[...INDUSTRIAS_LATAM,'Otro'].map(ind=>{const sel=Array.isArray(d.industrias_deseadas)&&d.industrias_deseadas.includes(ind);return(
@@ -1157,10 +1158,10 @@ function PilarMiPerfil({ perfil, extraData, onChange, onSavePerfil, saving, isPa
             )})}</div>
             {Array.isArray(d.industrias_deseadas)&&d.industrias_deseadas.includes('Otro')&&(
               <div className="mt-3 flex gap-2">
-                <input value={d.industria_otro||''} onChange={e=>up('industria_otro',e.target.value)} placeholder="Especifica la industria..."
+                <input value={lp.industria_otro||''} onChange={e=>setLP(f=>({...f, industria_otro: e.target.value}))} placeholder="Especifica la industria..."
                   className="flex-1 border border-slate-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400/40"/>
-                <button onClick={()=>{const val=(d.industria_otro||'').trim();if(val){const arr=Array.isArray(d.industrias_deseadas)?d.industrias_deseadas:[]; onChange({ ...d, industrias_deseadas: [...arr.filter(x=>x!=='Otro'), val], industria_otro: '' })}}}
-                  disabled={!d.industria_otro||!d.industria_otro.trim()}
+                <button onClick={()=>{const val=(lp.industria_otro||'').trim();if(val){const arr=Array.isArray(d.industrias_deseadas)?d.industrias_deseadas:[]; onChange({ ...d, industrias_deseadas: [...arr.filter(x=>x!=='Otro'), val] }); setLP(f=>({...f, industria_otro: '' }))}}}
+                  disabled={!lp.industria_otro||!lp.industria_otro.trim()}
                   className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-sm transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">+</button>
               </div>
             )}</div>
@@ -2559,6 +2560,7 @@ export default function ProyectoLaboral() {
   const [saved,setSaved]     = useState(false)
   const [justSaved, setJustSaved] = useState(null)  // pilar que acaba de guardarse
   const [modalOfertaIncompleta, setModalOfertaIncompleta] = useState(null) // null | { items, nextPilar }
+  const [modalSeccionDesbloqueda, setModalSeccionDesbloqueda] = useState(null) // null | { nextPilarLabel, currentPilarLabel }
 
   function ofertaIncompletos(oferta) {
     const o = oferta || {}
@@ -2787,6 +2789,11 @@ export default function ProyectoLaboral() {
     setSaving(true)
     const nombreCompleto = [lp.nombre1,lp.nombre2,lp.apellido1,lp.apellido2].map(s=>(s||'').trim()).filter(Boolean).join(' ')
     const salario_esperado = lp.salario_monto ? `${lp.salario_monto} ${lp.moneda||'MXN'}` : ''
+    
+    // Check old progress of "perfil" before save
+    const oldPorPilar = calcularPorPilar(data, perfil)
+    const wasComplete = oldPorPilar.perfil === 100
+
     const { error } = await supabase.from('profiles').update({
       nombre1: lp.nombre1?.trim()||null,
       nombre2: lp.nombre2?.trim()||null,
@@ -2815,8 +2822,38 @@ export default function ProyectoLaboral() {
       prestaciones_otros: lp.prestaciones_otros||null,
     }).eq('id',user.id)
     setSaving(false)
-    if (!error) { setSaved(true); setTimeout(()=>setSaved(false),2500); await refreshPerfil() }
-  },[user, refreshPerfil])
+    if (!error) { 
+      setSaved(true); 
+      setTimeout(()=>setSaved(false),2500); 
+      await refreshPerfil()
+
+      // -- CHECK FOR AUTO-ADVANCE COMPLETION --
+      const updatedPerfil = {
+        ...perfil,
+        ...lp,
+        salario_esperado,
+        prestaciones: lp.prestaciones||[]
+      }
+      const pData = data || {}
+      const porPilarNew = calcularPorPilar(pData, updatedPerfil)
+      
+      if (porPilarNew.perfil === 100 && !wasComplete) {
+        const currentIdx = PILARES.findIndex(p => p.id === 'perfil')
+        const nextPilar = PILARES[currentIdx + 1]
+        if (nextPilar) {
+          const nextPilarPct = porPilarNew[nextPilar.id] || 0
+          if (nextPilarPct < 100) {
+            setPilarId(nextPilar.id)
+            window.scrollTo({ top: 0, behavior: 'smooth' })
+            setModalSeccionDesbloqueda({
+              currentPilarLabel: 'Mi Perfil',
+              nextPilarLabel: nextPilar.label
+            })
+          }
+        }
+      }
+    }
+  },[user, refreshPerfil, data, perfil])
 
   const updatePilar = useCallback(function(key,val){
     const nd = Object.assign({},data,{[key]:val})
@@ -2829,7 +2866,29 @@ export default function ProyectoLaboral() {
     saveData(data)
     if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current)
     saveTimeoutRef.current = setTimeout(function(){ setJustSaved(null) }, 2000)
-  },[data, saveData])
+
+    // Check old progress of this pilar
+    const oldPorPilar = calcularPorPilar(data, perfil)
+    const wasComplete = oldPorPilar[pilarId] === 100
+
+    // Check if it is now complete
+    const porPilarNew = calcularPorPilar(data, perfil)
+    if (porPilarNew[pilarId] === 100 && !wasComplete) {
+      const currentIdx = PILARES.findIndex(p => p.id === pilarId)
+      const nextPilar = PILARES[currentIdx + 1]
+      if (nextPilar) {
+        const nextPilarPct = porPilarNew[nextPilar.id] || 0
+        if (nextPilarPct < 100) {
+          setPilarId(nextPilar.id)
+          window.scrollTo({ top: 0, behavior: 'smooth' })
+          setModalSeccionDesbloqueda({
+            currentPilarLabel: PILARES[currentIdx].label,
+            nextPilarLabel: nextPilar.label
+          })
+        }
+      }
+    }
+  },[data, saveData, perfil])
 
   const pct      = calcularProgreso(data, perfil)
   const porPilar = calcularPorPilar(data, perfil)
@@ -3188,6 +3247,45 @@ export default function ProyectoLaboral() {
                   Salir de todas formas
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal: Sección Desbloqueada con Éxito ── */}
+      {modalSeccionDesbloqueda && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{backgroundColor:'rgba(15,10,40,0.55)', backdropFilter:'blur(4px)'}}
+        >
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="px-6 py-6 bg-gradient-to-r from-amber-500 via-purple-600 to-indigo-600 rounded-t-3xl flex items-center gap-3 relative">
+              {/* Estrellas decorativas de fondo */}
+              <div className="absolute top-2 right-4 text-white opacity-20">
+                <Sparkle size={32} weight="fill" />
+              </div>
+              <div className="w-12 h-12 rounded-2xl bg-white/20 border border-white/30 flex items-center justify-center shrink-0">
+                <Trophy size={24} className="text-white" weight="fill"/>
+              </div>
+              <div>
+                <h2 className="text-white font-black text-lg leading-tight">¡Sección Completada!</h2>
+                <p className="text-amber-100 text-xs mt-0.5">Has terminado con éxito {modalSeccionDesbloqueda.currentPilarLabel}</p>
+              </div>
+            </div>
+            <div className="px-6 py-6 text-center">
+              <div className="w-16 h-16 rounded-full bg-indigo-50 border border-indigo-100 flex items-center justify-center mx-auto mb-4">
+                <Sparkle size={32} weight="duotone" className="text-indigo-600 animate-pulse"/>
+              </div>
+              <h3 className="text-slate-800 font-extrabold text-base mb-2">¡Siguiente sección desbloqueada!</h3>
+              <p className="text-sm text-slate-500 mb-6 leading-relaxed">
+                Has completado todos los requisitos de esta sección. Ahora se ha desbloqueado <span className="font-bold text-slate-800">{modalSeccionDesbloqueda.nextPilarLabel}</span>. Completa este módulo para continuar construyendo tu estrategia ejecutiva.
+              </p>
+              <button
+                onClick={function(){ setModalSeccionDesbloqueda(null) }}
+                className="w-full py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-sm transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-indigo-100 cursor-pointer"
+              >
+                Llenar esta sección
+              </button>
             </div>
           </div>
         </div>

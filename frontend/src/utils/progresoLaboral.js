@@ -67,3 +67,46 @@ export function calcularProgreso(data, perfil) {
 
   return Math.min(core, 100)
 }
+
+export function calcularPorPilar(data, perfil) {
+  const perfilPts = calcPerfilPts(perfil, data)
+
+  const auto = (data && data.autoconocimiento) ? data.autoconocimiento : {}
+  let autoPts = 0
+
+  // 1. Hard Skills - 8 pts
+  if (Array.isArray(auto.hard_skills) && auto.hard_skills.length >= 2) autoPts += 8
+
+  // 2. Power/Soft Skills (soft_skills) - 7 pts
+  if (Array.isArray(auto.soft_skills) && auto.soft_skills.length >= 2) autoPts += 7
+
+  // 4. Compañías - 5 pts
+  if (Array.isArray(auto.top5empresas) && auto.top5empresas.filter(function(e){return e && String(e).trim()}).length >= 1) autoPts += 5
+
+  const bloques = (data && data.semana && data.semana.bloques) ? data.semana.bloques : {}
+  const bN = Object.values(bloques).filter(Boolean).length
+  let semanaPts = 0
+  if (bN >= 3) semanaPts = 20; else if (bN >= 1) semanaPts = 10;
+
+  const rawRec2 = data && data.recursos ? (Array.isArray(data.recursos) ? data.recursos : (data.recursos.recursos || null)) : null
+  const rec = (rawRec2 && rawRec2.length > 0) ? rawRec2 : RECURSOS_DEFAULT
+  const nRecActivos = rec.filter(function(r){return r.tengo === true}).length
+  let recPts = (nRecActivos >= 2) ? 20 : (nRecActivos * 10)
+
+  // Oferta: 5 ítems × 4 pts = 20
+  const oferta = (data && data.oferta) ? data.oferta : {}
+  let ofertaPts = 0
+  if (String(oferta.oferta_valor || '').trim().length >= 20) ofertaPts += 4
+  const IKIGAI_KEYS_PP = ['ikigai_amas', 'ikigai_bueno', 'ikigai_necesita', 'ikigai_pagar']
+  IKIGAI_KEYS_PP.forEach(function(k){ if (String(oferta[k] || '').trim().length >= 50) ofertaPts += 4 })
+
+  return {
+    perfil:           Math.round((perfilPts / 20) * 100),
+    autoconocimiento: Math.round((Math.min(autoPts, 20) / 20) * 100),
+    documentos:       (data && data.optimizer && data.optimizer.cv_generado) ? 100 : 0,
+    semana:           Math.round((semanaPts / 20) * 100),
+    recursos:         Math.round((recPts / 20) * 100),
+    oferta:           Math.round((Math.min(ofertaPts, 20) / 20) * 100),
+  }
+}
+

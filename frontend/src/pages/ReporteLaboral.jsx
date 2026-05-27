@@ -141,15 +141,23 @@ export default function ReporteLaboral() {
     const perfilInfo = jsp.perfil || {}
     const nombre     = data?.nombreCandidato || `${perfilInfo.nombre1 || ''} ${perfilInfo.apellido1 || ''}`.trim() || 'ELVIA'
 
-    // Aplicar clase para forzar altura fija en PDF
+    // Aplicar clase para formatear el reporte en modo PDF
     reporteRef.current.classList.add('is-generating-pdf')
 
     const opt = {
       margin:      0,
       filename:    `Infografia_Ejecutiva_${nombre.replace(/\s+/g, '_')}.pdf`,
       image:       { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true, letterRendering: true },
+      html2canvas: { 
+        scale: 2, 
+        useCORS: true, 
+        letterRendering: true,
+        scrollY: 0,
+        scrollX: 0,
+        windowWidth: 816, // Viewport virtual Carta de 816px de ancho
+      },
       jsPDF:       { unit: 'in', format: 'letter', orientation: 'portrait' },
+      pagebreak:   { mode: ['css', 'legacy'] }
     }
     html2pdf().from(reporteRef.current).set(opt).save().then(() => {
       reporteRef.current.classList.remove('is-generating-pdf')
@@ -277,13 +285,37 @@ export default function ReporteLaboral() {
   return (
     <div style={{ background: '#D9D5C8', minHeight: '100vh', paddingBottom: 96 }}>
 
-      {/* Estilo dinámico autoinyectado para forzar altura fija estricta de 11 pulgadas en el PDF */}
+      {/* Estilo dinámico autoinyectado para maquetación premium de 2 páginas en PDF */}
       <style>{`
-        .is-generating-pdf {
+        /* En PDF, cada sección principal se congela exactamente en 11 pulgadas Carta */
+        .is-generating-pdf .pdf-page {
           height: 11in !important;
           max-height: 11in !important;
           box-sizing: border-box !important;
           overflow: hidden !important;
+          display: flex !important;
+          flex-direction: column !important;
+          background: #F5F1E6 !important;
+        }
+
+        /* Salto de página para el compilador de PDF */
+        .is-generating-pdf .pdf-page-break {
+          page-break-before: always !important;
+          break-before: page !important;
+        }
+
+        /* Ocultar elementos marcados como no imprimibles en el PDF */
+        .is-generating-pdf .no-print {
+          display: none !important;
+        }
+
+        /* Footer de la página 1: Solo visible en la exportación PDF */
+        .pdf-only-footer {
+          display: none !important;
+        }
+        .is-generating-pdf .pdf-only-footer {
+          display: flex !important;
+          margin-top: auto !important;
         }
       `}</style>
 
@@ -311,14 +343,16 @@ export default function ReporteLaboral() {
           ref={reporteRef}
           style={{ width: '8.5in', background: C.paper, boxShadow: '0 50px 100px -30px rgba(20,20,18,0.28), 0 8px 24px -8px rgba(20,20,18,0.10)', display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}
         >
+          {/* ── PAGINA 1: Identidad y Propósito Estratégico ── */}
+          <div className="pdf-page">
 
-          {/* ── HEADER — navy + avatar + word cloud ───────────────────────────── */}
-          <header style={{ position: 'relative', background: `linear-gradient(135deg, ${C.navy} 0%, ${C.navy2} 100%)`, color: 'white', padding: '24px 36px 20px', overflow: 'hidden' }}>
-            <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(900px 500px at 100% -20%, rgba(217,119,6,0.18), transparent 55%), radial-gradient(700px 400px at -10% 120%, rgba(30,64,175,0.25), transparent 50%)', pointerEvents: 'none' }} />
-            <div style={{ position: 'relative', display: 'grid', gridTemplateColumns: '1.05fr 1fr', gap: 24, alignItems: 'center' }}>
+            {/* ── HEADER — navy + avatar + word cloud ───────────────────────────── */}
+            <header style={{ position: 'relative', backgroundColor: C.navy, backgroundImage: `linear-gradient(135deg, ${C.navy} 0%, ${C.navy2} 100%)`, color: 'white', padding: '24px 36px 20px', overflow: 'hidden' }}>
+              <div className="no-print" style={{ position: 'absolute', inset: 0, background: 'radial-gradient(900px 500px at 100% -20%, rgba(217,119,6,0.18), transparent 55%), radial-gradient(700px 400px at -10% 120%, rgba(30,64,175,0.25), transparent 50%)', pointerEvents: 'none' }} />
+              <div style={{ position: 'relative', display: 'grid', gridTemplateColumns: '1.05fr 1fr', gap: 24, alignItems: 'center' }}>
 
-              {/* Identity: avatar + name + role */}
-              <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr', gap: 16, alignItems: 'center' }}>
+                {/* Identity: avatar + name + role */}
+                <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr', gap: 16, alignItems: 'center' }}>
                 <div style={{ width: 80, height: 80, borderRadius: '50%', background: C.paper, color: C.ink, fontFamily: DISPLAY, fontWeight: 700, fontSize: 30, letterSpacing: '-0.025em', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '3px solid rgba(255,255,255,0.15)', boxShadow: '0 4px 24px rgba(0,0,0,0.35)', flexShrink: 0 }}>
                   {initials}
                 </div>
@@ -415,6 +449,21 @@ export default function ReporteLaboral() {
               ))}
             </div>
           </section>
+
+          {/* Page 1 Footer (PDF-only) */}
+          <footer className="pdf-only-footer" style={{ marginTop: 'auto', padding: '8px 36px', background: '#E8E3D5', color: C.muted, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: MONO, fontSize: 8, letterSpacing: '0.22em', textTransform: 'uppercase', borderTop: `1px solid ${C.hairline}` }}>
+            <img
+              src="/LOGOS/ELVIA_logo_fondo_transparente.png"
+              alt="ELVIA"
+              style={{ height: 28, width: 'auto', objectFit: 'contain' }}
+            />
+            <span>01 / 02</span>
+          </footer>
+
+        </div> {/* fin de pdf-page 1 */}
+
+        {/* ── PAGINA 2: Ejecución y Alineación Operativa ── */}
+        <div className="pdf-page pdf-page-break">
 
           {/* ── MERCADO — typographic company logos ───────────────────────────── */}
           {targetEmpresas.length > 0 && (
@@ -523,17 +572,19 @@ export default function ReporteLaboral() {
           )}
 
           {/* ── FOOTER ────────────────────────────────────────────────────────── */}
-          <footer style={{ padding: '8px 36px', background: '#E8E3D5', color: C.muted, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: MONO, fontSize: 8, letterSpacing: '0.22em', textTransform: 'uppercase', borderTop: `1px solid ${C.hairline}` }}>
+          <footer style={{ marginTop: 'auto', padding: '8px 36px', background: '#E8E3D5', color: C.muted, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: MONO, fontSize: 8, letterSpacing: '0.22em', textTransform: 'uppercase', borderTop: `1px solid ${C.hairline}` }}>
             <img
               src="/LOGOS/ELVIA_logo_fondo_transparente.png"
               alt="ELVIA"
               style={{ height: 28, width: 'auto', objectFit: 'contain' }}
             />
-            <span>01 / 01</span>
+            <span>02 / 02</span>
           </footer>
 
-        </div>
+        </div> {/* fin de pdf-page 2 */}
+
       </div>
+    </div>
     </div>
   )
 }

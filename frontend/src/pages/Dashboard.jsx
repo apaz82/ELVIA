@@ -3,7 +3,7 @@ import { useEffect, useState, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../services/authService'
-import { calcularProgreso, calcPerfilPts } from '../utils/progresoLaboral'
+import { calcularProgreso, calcPerfilPts, calcularPorPilar } from '../utils/progresoLaboral'
 import {
   FileMagnifyingGlass, MagnifyingGlass, Briefcase,
   ChartLineUp, ArrowRight, Sparkle,
@@ -209,35 +209,15 @@ export default function Dashboard() {
 
   // Desglose del proyecto de carrera (Pilares)
   const jp = jpData || {}
-  const perfilPts = calcPerfilPts(perfil, jp)
-  
-  const auto = jp.autoconocimiento || {}
-  let autoPts = 0
-  if (Array.isArray(auto.hard_skills) && auto.hard_skills.length >= 2) autoPts += 8
-  if (Array.isArray(auto.soft_skills) && auto.soft_skills.length >= 2) autoPts += 7
-  if (Array.isArray(auto.top5empresas) && auto.top5empresas.filter(e => e && String(e).trim()).length >= 1) autoPts += 5
-
-  const bloques = jp.semana?.bloques || {}
-  const bN = Object.values(bloques).filter(Boolean).length
-  const semanaPts = bN >= 3 ? 20 : bN >= 1 ? 10 : 0
-
-  const rawRec = jp.recursos ? (Array.isArray(jp.recursos) ? jp.recursos : (jp.recursos.recursos || null)) : null
-  const rec = (rawRec && rawRec.length > 0) ? rawRec : []
-  const nActivos = rec.filter(r => r.tengo === true).length
-  const recursosPts = nActivos >= 2 ? 20 : nActivos * 10
-
-  const oferta = jp.oferta || {}
-  let ofertaPts = 0
-  if (String(oferta.oferta_valor || '').trim().length >= 20) ofertaPts += 4
-  const IKIGAI_KEYS = ['ikigai_amas', 'ikigai_bueno', 'ikigai_necesita', 'ikigai_pagar']
-  IKIGAI_KEYS.forEach(k => { if (String(oferta[k] || '').trim().length >= 50) ofertaPts += 4 })
+  const porPilar = calcularPorPilar(jp, perfil)
 
   const pilares = [
-    { label: 'Mi Perfil', pct: Math.round((perfilPts / 20) * 100), completed: perfilPts >= 20 },
-    { label: 'Autoconocimiento', pct: Math.round((autoPts / 20) * 100), completed: autoPts >= 20 },
-    { label: 'Oferta de Valor', pct: Math.round((ofertaPts / 20) * 100), completed: ofertaPts >= 20 },
-    { label: 'Semana Laboral', pct: Math.round((semanaPts / 20) * 100), completed: semanaPts >= 20 },
-    { label: 'Recursos Activos', pct: Math.round((recursosPts / 20) * 100), completed: recursosPts >= 20 },
+    { label: 'Mi Perfil',           pct: porPilar.perfil,           completed: porPilar.perfil >= 100 },
+    { label: 'Competencias',         pct: porPilar.autoconocimiento, completed: porPilar.autoconocimiento >= 100 },
+    { label: 'Mi oferta de valor',   pct: porPilar.oferta,           completed: porPilar.oferta >= 100 },
+    { label: 'Horario semanal',      pct: porPilar.semana,           completed: porPilar.semana >= 100 },
+    { label: 'Gastos',               pct: porPilar.recursos,         completed: porPilar.recursos >= 100 },
+    { label: 'Optimizador de CV',    pct: porPilar.documentos,       completed: porPilar.documentos >= 100 },
   ]
 
   // Notificaciones dinámicas basadas en progreso del usuario
@@ -433,8 +413,8 @@ export default function Dashboard() {
           </p>
         </div>
 
-        {/* Grilla responsiva de los 5 Pilares */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3.5 mt-6 pt-5 border-t border-slate-100">
+        {/* Grilla responsiva de los 6 Pilares */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3.5 mt-6 pt-5 border-t border-slate-100">
           {pilares.map((p, i) => (
             <div key={i} className={`flex items-center gap-2.5 p-3 rounded-2xl border transition-all ${
               p.completed ? 'bg-slate-50/50 border-slate-100/60' : 'bg-white border-dashed border-slate-200'
