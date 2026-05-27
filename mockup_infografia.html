@@ -1,0 +1,748 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mockup — Infografía Mi Oferta de Valor · ELVIA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600;9..144,700&family=Inter+Tight:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper:      #FAFAF7;
+    --paper-2:    #F2F1EB;
+    --ink:        #0A0A0A;
+    --ink-soft:   #2A2A26;
+    --muted:      #6B6B66;
+    --muted-2:    #9B9B94;
+    --hairline:   #D9D7CE;
+    --hairline-2: #ECEAE0;
+    --accent:     #1F2A4D;
+    --accent-soft:#E7EAF2;
+    --serif:  "Fraunces", "Times New Roman", serif;
+    --sans:   "Inter Tight", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --mono:   "JetBrains Mono", ui-monospace, Menlo, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    background: #E8E6DC;
+    color: var(--ink);
+    font-family: var(--sans);
+    font-feature-settings: "ss01", "cv11", "tnum";
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+  }
+  .stage {
+    min-height: 100vh;
+    padding: 48px 24px 96px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 48px;
+  }
+  .stage-title {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+    max-width: 850px;
+    width: 100%;
+  }
+  .stage-title b { color: var(--ink); font-weight: 600; }
+
+  /* ───────────────────────────────────────────────────────────── */
+  /*  SHEET — formato Letter US (8.5 x 11 in) @ 100dpi             */
+  /* ───────────────────────────────────────────────────────────── */
+  .sheet {
+    width: 850px;
+    min-height: 1100px;
+    background: var(--paper);
+    box-shadow:
+      0 1px 0 rgba(0,0,0,0.04),
+      0 40px 90px -30px rgba(20,20,18,0.25),
+      0 8px 24px -8px rgba(20,20,18,0.10);
+    position: relative;
+    padding: 56px 64px 48px;
+    display: flex;
+    flex-direction: column;
+    gap: 36px;
+  }
+
+  /* Subtle paper texture — radial noise */
+  .sheet::before {
+    content: "";
+    position: absolute; inset: 0;
+    pointer-events: none;
+    background:
+      radial-gradient(800px 600px at 10% -5%, rgba(31,42,77,0.04), transparent 60%),
+      radial-gradient(900px 700px at 100% 100%, rgba(180,120,40,0.025), transparent 65%);
+    z-index: 0;
+  }
+  .sheet > * { position: relative; z-index: 1; }
+
+  /* ─── Top bar ───────────────────────────────────────────────── */
+  .top-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    border-bottom: 1px solid var(--hairline);
+    padding-bottom: 18px;
+  }
+  .monogram {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .monogram .mark {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: 28px;
+    letter-spacing: -0.02em;
+    line-height: 1;
+    color: var(--ink);
+    border: 1px solid var(--ink);
+    padding: 8px 10px 6px;
+    border-radius: 2px;
+  }
+  .who {
+    display: flex; flex-direction: column; gap: 2px;
+  }
+  .who .name {
+    font-family: var(--serif);
+    font-size: 22px;
+    font-weight: 500;
+    letter-spacing: -0.015em;
+    line-height: 1;
+  }
+  .who .role {
+    font-family: var(--sans);
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    color: var(--muted);
+    font-weight: 400;
+  }
+  .top-meta {
+    text-align: right;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+  .top-meta b { color: var(--ink); font-weight: 600; }
+
+  /* ─── Section header (editorial) ────────────────────────────── */
+  .sec {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+  .sec-head {
+    display: flex;
+    align-items: baseline;
+    gap: 18px;
+  }
+  .sec-num {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    color: var(--accent);
+  }
+  .sec-title {
+    font-family: var(--serif);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--ink);
+    letter-spacing: 0;
+  }
+  .sec-rule {
+    flex: 1;
+    height: 1px;
+    background: var(--hairline);
+    transform: translateY(-3px);
+  }
+  .sec-kicker {
+    font-family: var(--mono);
+    font-size: 9px;
+    font-weight: 500;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--muted-2);
+  }
+
+  /* ─── §01 Statement (HÉROE) ─────────────────────────────────── */
+  .statement {
+    font-family: var(--serif);
+    font-optical-sizing: auto;
+    font-size: 38px;
+    line-height: 1.12;
+    letter-spacing: -0.022em;
+    font-weight: 400;
+    color: var(--ink);
+    max-width: 720px;
+  }
+  .statement .open-q,
+  .statement .close-q {
+    font-family: var(--serif);
+    font-weight: 300;
+    color: var(--accent);
+  }
+  .statement em {
+    font-style: italic;
+    font-weight: 500;
+  }
+  .statement .lead-asterisk {
+    font-family: var(--serif);
+    color: var(--accent);
+    font-weight: 500;
+    font-size: 0.9em;
+    vertical-align: 0.05em;
+  }
+  .culture-strip {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding-top: 14px;
+  }
+  .culture-strip .dot {
+    width: 4px; height: 4px;
+    background: var(--accent);
+    border-radius: 50%;
+  }
+  .culture-strip b {
+    color: var(--ink);
+    font-weight: 500;
+  }
+
+  /* ─── §02 IKIGAI (matriz 2x2) ──────────────────────────────── */
+  .ikigai {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto auto;
+    border-top: 1px solid var(--hairline);
+    border-left: 1px solid var(--hairline);
+  }
+  .ikigai .cell {
+    padding: 22px 24px 26px;
+    border-right: 1px solid var(--hairline);
+    border-bottom: 1px solid var(--hairline);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    background: var(--paper);
+  }
+  .ikigai .cell-head {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+  }
+  .ikigai .cell-num {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    color: var(--accent);
+    font-weight: 600;
+  }
+  .ikigai .cell-label {
+    font-family: var(--serif);
+    font-size: 18px;
+    line-height: 1.1;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    color: var(--ink);
+  }
+  .ikigai .cell-label em {
+    font-style: italic;
+    font-weight: 400;
+    color: var(--accent);
+  }
+  .ikigai .cell-body {
+    font-family: var(--sans);
+    font-size: 11.5px;
+    line-height: 1.55;
+    color: var(--ink-soft);
+    font-weight: 400;
+  }
+
+  /* ─── §03 Talento (3 columnas, numeradas, mono) ────────────── */
+  .talent {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 28px;
+  }
+  .talent .col h4 {
+    margin: 0 0 12px;
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--muted-2);
+    font-weight: 500;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--hairline-2);
+  }
+  .talent ol {
+    list-style: none;
+    margin: 0; padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .talent li {
+    display: grid;
+    grid-template-columns: 26px 1fr;
+    align-items: baseline;
+    font-family: var(--sans);
+    font-size: 10.5px;
+    line-height: 1.4;
+    color: var(--ink-soft);
+    padding: 2px 0;
+  }
+  .talent li span.n {
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--muted-2);
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ─── §04 Mercado & Ritmo ────────────────────────────────── */
+  .market {
+    display: grid;
+    grid-template-columns: 1.3fr 1fr;
+    gap: 32px;
+    align-items: start;
+  }
+  .market .block h4 {
+    margin: 0 0 10px;
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--muted-2);
+    font-weight: 500;
+  }
+  .companies {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px 8px;
+    font-family: var(--serif);
+    font-size: 18px;
+    letter-spacing: -0.01em;
+    line-height: 1.2;
+  }
+  .companies .sep {
+    color: var(--muted-2);
+    font-family: var(--sans);
+    font-weight: 300;
+    font-size: 13px;
+    transform: translateY(-1px);
+  }
+  .companies .co {
+    color: var(--ink);
+    font-weight: 500;
+  }
+
+  /* Weekly rhythm */
+  .rhythm {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 10px;
+    padding-top: 4px;
+  }
+  .rhythm .day {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+  }
+  .rhythm .day .label {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted-2);
+    text-align: center;
+  }
+  .rhythm .day .slot {
+    height: 18px;
+    background: var(--paper-2);
+    border: 1px solid var(--hairline-2);
+  }
+  .rhythm .day .slot.on {
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+  .rhythm-meta {
+    display: flex;
+    justify-content: space-between;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.06em;
+    padding-top: 8px;
+    border-top: 1px solid var(--hairline-2);
+    margin-top: 12px;
+  }
+  .rhythm-meta b { color: var(--ink); font-weight: 600; }
+
+  /* Resources */
+  .resources {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 0;
+    border-top: 1px solid var(--hairline);
+    padding-top: 18px;
+    margin-top: 4px;
+  }
+  .resources h4 {
+    grid-column: 1 / -1;
+    margin: 0 0 12px;
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--muted-2);
+    font-weight: 500;
+  }
+  .resources .item {
+    padding: 0 12px;
+    border-right: 1px solid var(--hairline-2);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .resources .item:first-of-type { padding-left: 0; }
+  .resources .item:last-of-type { border-right: 0; padding-right: 0; }
+  .resources .item .ix {
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--accent);
+    letter-spacing: 0.14em;
+    font-weight: 600;
+  }
+  .resources .item .name {
+    font-family: var(--sans);
+    font-size: 10.5px;
+    line-height: 1.35;
+    color: var(--ink);
+  }
+
+  /* ─── Footer ───────────────────────────────────────────────── */
+  .footer {
+    margin-top: auto;
+    padding-top: 18px;
+    border-top: 1px solid var(--hairline);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .footer b { color: var(--ink); font-weight: 600; }
+
+  /* ─── Comparison label between mockups ────────────────────── */
+  .label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink);
+    text-align: center;
+    margin-bottom: -36px;
+    background: #E8E6DC;
+    padding: 6px 14px;
+    border: 1px solid var(--hairline);
+    border-radius: 999px;
+    align-self: center;
+  }
+</style>
+</head>
+<body>
+
+<div class="stage">
+
+  <div class="stage-title">
+    <b>MOCKUP · Infografía "Mi Oferta de Valor"</b> &nbsp;·&nbsp; Editorial Statement · estilo Apple Annual Report &nbsp;·&nbsp; datos reales del seed mario2
+  </div>
+
+  <span class="label">Concept · Editorial Statement</span>
+
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <!--  SHEET LETTER 8.5 x 11                                       -->
+  <!-- ════════════════════════════════════════════════════════════ -->
+  <article class="sheet">
+
+    <!-- TOP BAR -->
+    <header class="top-bar">
+      <div class="monogram">
+        <div class="mark">MB</div>
+        <div class="who">
+          <div class="name">Mario Bahamonde</div>
+          <div class="role">Director General · Telecomunicaciones</div>
+        </div>
+      </div>
+      <div class="top-meta">
+        <div>Plan estratégico de carrera</div>
+        <div><b>ELVIA®</b> &nbsp;·&nbsp; MMXXVI &nbsp;·&nbsp; <b>CONF.</b></div>
+      </div>
+    </header>
+
+    <!-- ───── §01 STATEMENT ───── -->
+    <section class="sec">
+      <div class="sec-head">
+        <span class="sec-num">§ 01</span>
+        <span class="sec-title">Statement</span>
+        <div class="sec-rule"></div>
+        <span class="sec-kicker">Mi oferta de valor</span>
+      </div>
+
+      <p class="statement">
+        <span class="open-q">“</span>Director General con <em>18 años</em> de experiencia en el sector de telecomunicaciones, liderando operaciones de más de <em>USD 500M</em> en ingresos anuales y equipos de más de <em>500 personas</em> en LATAM y España. Combino visión estratégica con capacidad de ejecución, habiendo liderado tres transformaciones digitales exitosas y la integración de dos procesos de M&amp;A.<span class="close-q">”</span>
+      </p>
+
+      <div class="culture-strip">
+        <span>Cultura objetivo</span>
+        <span class="dot"></span>
+        <span><b>Aprendizaje continuo</b></span>
+        <span class="dot"></span>
+        <span><b>Diversidad &amp; inclusión</b></span>
+        <span class="dot"></span>
+        <span><b>Innovación disruptiva</b></span>
+        <span class="dot"></span>
+        <span><b>Equipos de alto desempeño</b></span>
+      </div>
+    </section>
+
+    <!-- ───── §02 IKIGAI ───── -->
+    <section class="sec">
+      <div class="sec-head">
+        <span class="sec-num">§ 02</span>
+        <span class="sec-title">Propósito · método Ikigai</span>
+        <div class="sec-rule"></div>
+        <span class="sec-kicker">Cuatro vectores</span>
+      </div>
+
+      <div class="ikigai">
+        <div class="cell">
+          <div class="cell-head">
+            <span class="cell-num">01</span>
+            <span class="cell-label">Lo que <em>amo</em> hacer</span>
+          </div>
+          <div class="cell-body">
+            Liderar organizaciones en momentos de transformación, cuando el equipo necesita claridad de dirección y energía para afrontar cambios difíciles. Me apasiona ver a personas crecer en sus carreras dentro de los equipos que dirijo.
+          </div>
+        </div>
+
+        <div class="cell">
+          <div class="cell-head">
+            <span class="cell-num">02</span>
+            <span class="cell-label">En lo que <em>destaco</em></span>
+          </div>
+          <div class="cell-body">
+            Diseño e implementación de estrategias en entornos regulados y cambiantes. Particularmente efectivo para alinear equipos multidisciplinarios, comunicar con claridad en todos los niveles, y tomar decisiones complejas con información incompleta.
+          </div>
+        </div>
+
+        <div class="cell">
+          <div class="cell-head">
+            <span class="cell-num">03</span>
+            <span class="cell-label">Lo que el mundo <em>necesita</em></span>
+          </div>
+          <div class="cell-body">
+            Directivos que entiendan la dimensión tecnológica y humana de la transformación digital. LATAM busca líderes que naveguen complejidad regulatoria, presión de costos y aceleración tecnológica simultáneamente.
+          </div>
+        </div>
+
+        <div class="cell">
+          <div class="cell-head">
+            <span class="cell-num">04</span>
+            <span class="cell-label">Por lo que me <em>pagarían</em></span>
+          </div>
+          <div class="cell-body">
+            Organizaciones de telecomunicaciones, tecnología e infraestructura que buscan crecer o transformarse. También fondos de private equity con compañías en el sector que necesitan directivos con capacidad de generación de valor post-inversión.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ───── §03 TALENTO ───── -->
+    <section class="sec">
+      <div class="sec-head">
+        <span class="sec-num">§ 03</span>
+        <span class="sec-title">Repertorio</span>
+        <div class="sec-rule"></div>
+        <span class="sec-kicker">16 · 19 · 16 competencias</span>
+      </div>
+
+      <div class="talent">
+        <div class="col">
+          <h4>Hard skills</h4>
+          <ol>
+            <li><span class="n">01</span><span>Gestión de P&amp;L</span></li>
+            <li><span class="n">02</span><span>Transformación digital</span></li>
+            <li><span class="n">03</span><span>Telecomunicaciones B2B/B2C</span></li>
+            <li><span class="n">04</span><span>Planificación estratégica</span></li>
+            <li><span class="n">05</span><span>M&amp;A y due diligence</span></li>
+            <li><span class="n">06</span><span>Regulación sector telco</span></li>
+            <li><span class="n">07</span><span>OKRs y KPIs ejecutivos</span></li>
+            <li><span class="n">08</span><span>Gestión de carteras de proyectos</span></li>
+            <li><span class="n">09</span><span>Negociación de contratos enterprise</span></li>
+            <li><span class="n">10</span><span>Análisis financiero y forecasting</span></li>
+            <li><span class="n">11</span><span>CRM Salesforce / SAP</span></li>
+            <li><span class="n">12</span><span>Cloud computing (AWS / Azure)</span></li>
+            <li><span class="n">13</span><span>Gobierno corporativo</span></li>
+            <li><span class="n">14</span><span>Gestión de proveedores</span></li>
+            <li><span class="n">15</span><span>Lean Six Sigma</span></li>
+            <li><span class="n">16</span><span>Reportes a Junta Directiva</span></li>
+          </ol>
+        </div>
+
+        <div class="col">
+          <h4>Soft skills</h4>
+          <ol>
+            <li><span class="n">01</span><span>Liderazgo ejecutivo</span></li>
+            <li><span class="n">02</span><span>Comunicación estratégica</span></li>
+            <li><span class="n">03</span><span>Pensamiento sistémico</span></li>
+            <li><span class="n">04</span><span>Resiliencia bajo presión</span></li>
+            <li><span class="n">05</span><span>Gestión del cambio</span></li>
+            <li><span class="n">06</span><span>Influencia sin autoridad</span></li>
+            <li><span class="n">07</span><span>Empatía organizacional</span></li>
+            <li><span class="n">08</span><span>Orientación a resultados</span></li>
+            <li><span class="n">09</span><span>Escucha activa</span></li>
+            <li><span class="n">10</span><span>Trabajo colaborativo</span></li>
+            <li><span class="n">11</span><span>Adaptabilidad</span></li>
+            <li><span class="n">12</span><span>Mentoría de equipos</span></li>
+            <li><span class="n">13</span><span>Gestión de stakeholders</span></li>
+            <li><span class="n">14</span><span>Decisiones bajo incertidumbre</span></li>
+            <li><span class="n">15</span><span>Inteligencia emocional</span></li>
+            <li><span class="n">16</span><span>Innovación aplicada</span></li>
+            <li><span class="n">17</span><span>Networking estratégico</span></li>
+            <li><span class="n">18</span><span>Visión a largo plazo</span></li>
+            <li><span class="n">19</span><span>Integridad y ética profesional</span></li>
+          </ol>
+        </div>
+
+        <div class="col">
+          <h4>Power skills</h4>
+          <ol>
+            <li><span class="n">01</span><span>Liderazgo de equipos multiculturales (+500)</span></li>
+            <li><span class="n">02</span><span>Transformación de UN en crisis</span></li>
+            <li><span class="n">03</span><span>Go-to-market B2B enterprise</span></li>
+            <li><span class="n">04</span><span>Alianzas estratégicas internacionales</span></li>
+            <li><span class="n">05</span><span>Cultura de alto desempeño</span></li>
+            <li><span class="n">06</span><span>Comunicación ante inversores y medios</span></li>
+            <li><span class="n">07</span><span>Metodologías ágiles a escala</span></li>
+            <li><span class="n">08</span><span>Proyectos de infraestructura crítica</span></li>
+            <li><span class="n">09</span><span>Retención de talento directivo</span></li>
+            <li><span class="n">10</span><span>Negociación en entornos regulados</span></li>
+            <li><span class="n">11</span><span>Gestión de crisis reputacional</span></li>
+            <li><span class="n">12</span><span>Integración post-fusión y adquisición</span></li>
+            <li><span class="n">13</span><span>Expansión a nuevos mercados LATAM</span></li>
+            <li><span class="n">14</span><span>Storytelling ejecutivo para C-Suite</span></li>
+            <li><span class="n">15</span><span>Construcción de tableros de gobierno</span></li>
+            <li><span class="n">16</span><span>Optimización de costos a gran escala</span></li>
+          </ol>
+        </div>
+      </div>
+    </section>
+
+    <!-- ───── §04 MERCADO & RITMO ───── -->
+    <section class="sec">
+      <div class="sec-head">
+        <span class="sec-num">§ 04</span>
+        <span class="sec-title">Mercado &amp; ritmo</span>
+        <div class="sec-rule"></div>
+        <span class="sec-kicker">Compañías objetivo · semana</span>
+      </div>
+
+      <div class="market">
+        <div class="block">
+          <h4>Compañías objetivo</h4>
+          <div class="companies">
+            <span class="co">Movistar</span>
+            <span class="sep">/</span>
+            <span class="co">Claro</span>
+            <span class="sep">/</span>
+            <span class="co">Amazon Web Services</span>
+            <span class="sep">/</span>
+            <span class="co">Microsoft LATAM</span>
+            <span class="sep">/</span>
+            <span class="co">Grupo Santander</span>
+          </div>
+        </div>
+
+        <div class="block">
+          <h4>Ritmo de búsqueda</h4>
+          <div class="rhythm">
+            <div class="day">
+              <span class="label">L</span>
+              <div class="slot on"></div>
+              <div class="slot on"></div>
+            </div>
+            <div class="day">
+              <span class="label">M</span>
+              <div class="slot on"></div>
+              <div class="slot on"></div>
+            </div>
+            <div class="day">
+              <span class="label">M</span>
+              <div class="slot on"></div>
+              <div class="slot on"></div>
+            </div>
+            <div class="day">
+              <span class="label">J</span>
+              <div class="slot on"></div>
+              <div class="slot on"></div>
+            </div>
+            <div class="day">
+              <span class="label">V</span>
+              <div class="slot on"></div>
+              <div class="slot"></div>
+            </div>
+          </div>
+          <div class="rhythm-meta">
+            <span><b>9</b> bloques activos</span>
+            <span><b>18 h</b> · semana</span>
+          </div>
+        </div>
+
+        <div class="resources">
+          <h4>Recursos activos</h4>
+          <div class="item"><span class="ix">01</span><span class="name">Espacio de trabajo privado y sin interrupciones</span></div>
+          <div class="item"><span class="ix">02</span><span class="name">Conexión a internet de alta velocidad (fibra)</span></div>
+          <div class="item"><span class="ix">03</span><span class="name">Laptop corporativa actualizada</span></div>
+          <div class="item"><span class="ix">04</span><span class="name">Acceso a LinkedIn Premium</span></div>
+          <div class="item"><span class="ix">05</span><span class="name">Coach ejecutivo de carrera</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ───── FOOTER ───── -->
+    <footer class="footer">
+      <span>ELVIA® · plan estratégico de carrera</span>
+      <span><b>Confidential</b> · No. de folio &nbsp;<b>2026·05·MB·002</b></span>
+      <span>01 / 01</span>
+    </footer>
+
+  </article>
+
+</div>
+
+</body>
+</html>

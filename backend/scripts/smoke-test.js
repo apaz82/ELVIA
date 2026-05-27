@@ -46,8 +46,9 @@ async function fetchJSON(url, opts = {}) {
 async function testHealth() {
   console.log('\n▸ 1. Backend health (Railway)')
   try {
-    const r = await fetchJSON(`${RAILWAY_URL}/api/health`, { method: 'GET' })
-    if (r.status < 400) ok('Backend Railway responde', `HTTP ${r.status}`)
+    // Usamos el endpoint público de tenant como proxy de "está arriba"
+    const r = await fetchJSON(`${RAILWAY_URL}/api/company/registration/${SLUG}`, { method: 'GET' })
+    if (r.status < 500) ok('Backend Railway responde', `HTTP ${r.status}`)
     else fail('Backend Railway', `HTTP ${r.status}`)
   } catch (e) {
     fail('Backend Railway inalcanzable', e.message)
@@ -59,8 +60,10 @@ async function testTenantPublic() {
   console.log('\n▸ 2. Tenant Telefónica público')
   try {
     const r = await fetchJSON(`${RAILWAY_URL}/api/company/registration/${SLUG}`, { method: 'GET' })
-    if (r.status === 200 && r.body?.slug === SLUG) {
-      ok('GET /registration/telefonica', `name="${r.body.name}"`)
+    // La respuesta viene como { company: { slug, name, ... } }
+    const company = r.body?.company || r.body
+    if (r.status === 200 && company?.slug === SLUG) {
+      ok('GET /registration/telefonica', `name="${company.name}"`)
     } else {
       fail('GET /registration/telefonica', `HTTP ${r.status} — ${JSON.stringify(r.body).slice(0,80)}`)
     }

@@ -23,7 +23,9 @@
 | 1 | Crear `CVHarvardPreview.jsx` (componente presentacional puro) | ✅ Completado | `bd9cf7f` |
 | 2 | Añadir paso 7 "Vista Previa" en wizard CVDesdeCero | ✅ Completado | `bd9cf7f` |
 | 3 | Pantalla selección en `/cv-desde-cero` (2 cards: upload/desde cero) | ✅ Completado | `90922db` |
-| 3b | Reestructurar pilares: renombrar (Competencias/Gastos/Optimizador de CV), nuevos weights, PilarOptimizadorCV, botón Mis Documentos gated al 100% | 🔄 En curso | — |
+| 3b | Reestructurar pilares: renombrar (Competencias/Gastos/Optimizador de CV), nuevos weights, PilarOptimizadorCV, botón Mis Documentos gated al 100% | ✅ Completado | `25e8672` |
+| 3c | Sequential lock progresivo + quitar upload CV de Mi Perfil + fix modal hardcoded | ✅ Completado | `c682ed8` |
+| fix | Fix build: declaración duplicada `isLocked` en grid de pilares | ✅ Completado | `0899929` |
 | 4 | Path A: upload → extractProfile → optimización por sección → wizard pre-llenado | ⏸️ Pendiente | — |
 | 5 | Versionado en MisCVs (badge CV Inicial / CV Modificada fecha) | ⏸️ Pendiente | — |
 | 6 | Puntaje visible (inicial+final en Path A, solo final en Path B) | ⏸️ Pendiente | — |
@@ -79,6 +81,44 @@ O manualmente:
 **Plan:** Nuevo tab dentro de la sección Autoconocimiento (ProyectoLaboral.jsx) con UI de selección: "Subir mi CV" / "Empezar de cero". Path B reutiliza `/cv-desde-cero`. Path A queda con loader "próximamente" hasta Fase 4.
 
 **Rollback:** `git revert <hash>` — el tab nuevo desaparece, los demás tabs intactos.
+
+---
+
+## Fase 3b — Reestructurar pilares
+
+**Commit**: `25e8672`
+
+**Qué cambia:**
+- `PILARES` array: 6 pilares en nuevo orden con nuevos labels e ícono
+  - `perfil` → "Mi Perfil" (20pts, indigo)
+  - `autoconocimiento` → "Competencias" (20pts, violet)
+  - `recursos` → "Gastos" (10pts, blue)
+  - `semana` → "Horario semanal" (10pts, teal)
+  - `oferta` → "Mi oferta de valor" (30pts, rose) — badge ★ Clave para tu CV
+  - `documentos` → "Optimizador de CV" (10pts, amber)
+- `progresoLaboral.js`: pesos rebalanceados; Oferta 5 ítems × 6pts = 30, Semana 10, Gastos 10, Optimizer 10pts si `data.optimizer.cv_generado === true`
+- `calcularPorPilar()`: `documentos` = `data.optimizer.cv_generado ? 100 : 0`
+- `PilarOptimizadorCV` component nuevo (reemplaza `PilarDocumentos`)
+- Botón transversal "Mis Documentos": habilitado solo al 100% global, enlaza a `/mis-cvs`
+- Subtítulos de pilar y hero legend actualizados
+
+**Rollback:** `git revert 25e8672`
+
+---
+
+## Fase 3c — Sequential lock + Modal fix + CV de Mi Perfil
+
+**Commit**: `c682ed8`
+
+**Qué cambia:**
+- **Sequential lock** en grid de pilares: `isLocked = pilarIndex > 0 && prevPct < 100 && pp === 0`
+  - Pilares con `pp > 0` (ya iniciados) siguen accesibles aunque el anterior no esté al 100%
+  - Tooltip dinámico: "Completa [pilar anterior] primero (X% completado)"
+  - Ícono candado en cards bloqueadas
+- **CV upload quitado de Mi Perfil**: sección envuelta en `{false && <div...>}` para preservar código de rollback
+- **Modal pilar incompleto fix**: `handleSelectPilar` ahora guarda `pilarLabel` en el estado modal; el texto ya no está hardcodeado a "Mi oferta de valor"
+
+**Rollback:** `git revert c682ed8` — o quitar `false &&` de la sección CV en Mi Perfil para restaurarla sin revertir el commit completo.
 
 ---
 
