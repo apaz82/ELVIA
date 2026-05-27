@@ -1065,6 +1065,7 @@ router.post('/allowlist/bulk', auth, requireRole('company_admin'), requireTenant
       const email = String(r.email || '').trim().toLowerCase()
       if (!email) { errors.push({ row: i + 1, error: 'email vacio' }); return }
       if (!emailRegex.test(email)) { errors.push({ row: i + 1, error: 'email invalido: ' + email }); return }
+      const rawDays = parseInt(r.license_days, 10)
       cleaned.push({
         company_id:   req.companyId,
         email,
@@ -1073,6 +1074,7 @@ router.post('/allowlist/bulk', auth, requireRole('company_admin'), requireTenant
         cohort:       (r.cohort || cohort_default || '').trim() || null,
         area:         (r.area || '').trim() || null,
         cargo_actual: (r.cargo_actual || '').trim() || null,
+        license_days: Number.isInteger(rawDays) && rawDays > 0 ? rawDays : 90,
         status:       'pending',
         added_by:     req.user.id,
       })

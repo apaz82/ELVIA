@@ -157,6 +157,7 @@ function CsvUploadModal({ onClose, onSubmit, primary, defaultCohort }) {
         cohort:       headers.indexOf('cohort'),
         area:         headers.indexOf('area'),
         cargo_actual: headers.findIndex(h => h === 'cargoactual' || h === 'cargo'),
+        license_days: headers.findIndex(h => h === 'licensedays' || h === 'diaslicencia' || h === 'dias' || h === 'licencia' || h === 'license_days' || h === 'dias_licencia'),
       }
 
       if (idx.email === -1) {
@@ -177,6 +178,7 @@ function CsvUploadModal({ onClose, onSubmit, primary, defaultCohort }) {
         if (seen.has(email)) { errs.push({ row: i + 1, error: 'duplicado en archivo: ' + email }); continue }
         seen.add(email)
 
+        const rawDays = idx.license_days !== -1 ? parseInt(cols[idx.license_days], 10) : NaN
         parsed.push({
           email,
           nombre:       idx.nombre   !== -1 ? cols[idx.nombre]   : '',
@@ -184,6 +186,7 @@ function CsvUploadModal({ onClose, onSubmit, primary, defaultCohort }) {
           cohort:       idx.cohort   !== -1 ? cols[idx.cohort]   : '',
           area:         idx.area     !== -1 ? cols[idx.area]     : '',
           cargo_actual: idx.cargo_actual !== -1 ? cols[idx.cargo_actual] : '',
+          license_days: !isNaN(rawDays) && rawDays > 0 ? rawDays : 90,
         })
       }
 
@@ -195,7 +198,7 @@ function CsvUploadModal({ onClose, onSubmit, primary, defaultCohort }) {
   }
 
   const downloadTemplate = () => {
-    const csv = `email,nombre,apellido,cohort,area,cargo_actual\n${L.csvSampleEmail},Juan,Perez,cohort-2026,Programa,${L.member}\n`
+    const csv = `email,nombre,apellido,cohort,area,cargo_actual,dias_licencia\n${L.csvSampleEmail},Juan,Perez,cohort-2026,Programa,${L.member},90\n`
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -232,7 +235,7 @@ function CsvUploadModal({ onClose, onSubmit, primary, defaultCohort }) {
             <div className="bg-gray-50 border border-gray-100 rounded-xl p-4 flex items-start gap-3">
               <PI.Info size={18} className="text-gray-400 mt-0.5 shrink-0" weight="duotone" />
               <div className="flex-1 text-sm text-gray-600 leading-relaxed">
-                Columnas requeridas: <code className="px-1 bg-white rounded">email</code>. Opcionales: <code className="px-1 bg-white rounded">nombre, apellido, cohort, area, cargo_actual</code>.
+                Columnas requeridas: <code className="px-1 bg-white rounded">email</code>. Opcionales: <code className="px-1 bg-white rounded">nombre, apellido, cohort, area, cargo_actual, dias_licencia</code> (días de acceso; default 90).
                 <button onClick={downloadTemplate} className="font-semibold ml-2 hover:underline" style={{ color: primary }}>
                   Descargar plantilla
                 </button>
@@ -298,6 +301,7 @@ function CsvUploadModal({ onClose, onSubmit, primary, defaultCohort }) {
                         <th className="px-3 py-2 text-left font-bold text-gray-500 uppercase tracking-widest">Nombre</th>
                         <th className="px-3 py-2 text-left font-bold text-gray-500 uppercase tracking-widest">Cohort</th>
                         <th className="px-3 py-2 text-left font-bold text-gray-500 uppercase tracking-widest">Area</th>
+                        <th className="px-3 py-2 text-right font-bold text-gray-500 uppercase tracking-widest">Días</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-50">
@@ -307,6 +311,7 @@ function CsvUploadModal({ onClose, onSubmit, primary, defaultCohort }) {
                           <td className="px-3 py-2">{r.nombre} {r.apellido}</td>
                           <td className="px-3 py-2 text-gray-500">{r.cohort || cohort || '—'}</td>
                           <td className="px-3 py-2 text-gray-500">{r.area || '—'}</td>
+                          <td className="px-3 py-2 text-right text-gray-700 font-medium">{r.license_days}</td>
                         </tr>
                       ))}
                     </tbody>
