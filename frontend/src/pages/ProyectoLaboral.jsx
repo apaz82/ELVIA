@@ -2135,7 +2135,7 @@ function PilarOfertaDeValor({ data, onChange, onSave, justSaved, contexto }) {
         <div className="flex items-center justify-between gap-3 mb-3">
           {iaDraft && (
             <span className="inline-flex items-center gap-1.5 text-[10px] font-bold text-violet-700 bg-violet-100 border border-violet-200 px-2.5 py-1 rounded-full">
-              <Sparkle size={10} weight="fill"/> Borrador IA — edítalo a tu gusto
+              <Sparkle size={10} weight="fill"/> Borrador generado por ELVIA® — edítalo a tu gusto
             </span>
           )}
           <button
@@ -2150,7 +2150,7 @@ function PilarOfertaDeValor({ data, onChange, onSave, justSaved, contexto }) {
             {iaLoading ? (
               <><span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin"/> Generando…</>
             ) : (
-              <><Sparkle size={14} weight="fill"/> Generar borrador con IA</>
+              <><Sparkle size={14} weight="fill"/> Generar borrador con ELVIA®</>
             )}
           </button>
         </div>
