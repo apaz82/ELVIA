@@ -330,31 +330,38 @@ export default function CVDesdeCero() {
       if (!user) return
       const CACHE_KEY = `cv_draft_${user.id}`
 
+      // Cuando el usuario viene del Pilar Optimizador con un modo explícito ('scratch' o 'upload'),
+      // saltamos el shortcut de sessionStorage. La BD es la fuente de verdad: si hay cv_borrador
+      // se carga, si no, se pre-llena desde el perfil y el Gerente. Esto evita que un cache stale
+      // (ej. después de borrar datos en BD) bloquee el pre-llenado.
+      const ignorarCache = !!modoForzado
+
       // 1. Carga desde sessionStorage (Solo si tiene datos reales para evitar pisar el perfil con vacíos)
-      const cached = sessionStorage.getItem(CACHE_KEY)
-      if (cached) {
-        try {
-          const b = JSON.parse(cached)
-          // Solo usar caché si tiene al menos un nombre o si el paso es avanzado
-          if (b?.datos && (b.datos.nombre || b.paso_actual > 0)) {
-            setDatos(b.datos)
-            setPasoActual(b.paso_actual || 0)
-            setModoSeleccion(false)
-            setInicializando(false)
-            return
-          }
-        } catch { /* ignorar error de parseo */ }
+      if (!ignorarCache) {
+        const cached = sessionStorage.getItem(CACHE_KEY)
+        if (cached) {
+          try {
+            const b = JSON.parse(cached)
+            // Solo usar caché si tiene al menos un nombre o si el paso es avanzado
+            if (b?.datos && (b.datos.nombre || b.paso_actual > 0)) {
+              setDatos(b.datos)
+              setPasoActual(b.paso_actual || 0)
+              setModoSeleccion(false)
+              setInicializando(false)
+              return
+            }
+          } catch { /* ignorar error de parseo */ }
+        }
       }
 
       // 1.5. Si el modo viene forzado desde el Pilar Optimizador de CV
       //   - 'scratch' → salta la pantalla de selección y entra al wizard directo
       //   - 'upload'  → mantiene la pantalla de selección (pantalla 0 obligatoria de upload)
-      // El comportamiento sin modo (link directo a /cv-desde-cero) sigue mostrando las 2 cards legacy.
       if (modoForzado === 'scratch') {
         setModoSeleccion(false)
       }
 
-      // 2. Sin caché: fetch desde Supabase
+      // 2. Fetch desde Supabase (fuente de verdad)
       try {
         setInicializando(true)
         const { data: p } = await supabase.from('profiles').select('*').eq('id', user.id).maybeSingle()
@@ -382,6 +389,10 @@ export default function CVDesdeCero() {
           ].filter((v, i, a) => a.indexOf(v) === i)
 
           const idiomasPerfil = Array.isArray(p.idiomas) ? p.idiomas : []
+
+          // Cache local stale: si no hay borrador en BD, el sessionStorage estaría desincronizado.
+          // Lo limpiamos para que el próximo unmount no re-escriba datos viejos.
+          sessionStorage.removeItem(CACHE_KEY)
 
           setDatos({
             ...ESTADO_EMPTY,
