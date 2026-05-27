@@ -326,17 +326,28 @@ export default function CVDesdeCero() {
   useEffect(() => { userRef.current  = user },       [user])
 
   // ── Pre-llenado desde Perfil + Gerente de Proyecto ──────────────────────────
-  // - Identidad (nombre, email, etc.) → profiles
+  // Fuentes (todas dentro de profiles.job_search_profile excepto las marcadas como profile-top-level):
+  // - Identidad (nombre, email, etc.) → profiles (top-level)
+  // - Cargo objetivo → jsp.perfil.niveles_cargo (array; tomamos el primero como referencia)
   // - Resumen profesional → jsp.oferta.oferta_valor (Mi Oferta de Valor)
   // - Habilidades → jsp.autoconocimiento.hard_skills + soft_skills (Hard + Power Skills, sin duplicados)
-  // - Idiomas → profiles.idiomas (estructura [{idioma, nivel}])
+  // - Idiomas → jsp.perfil.idiomas (Perfilador del Gerente, NO profiles.idiomas top-level)
   const prefillFromGerente = (p, jsp) => {
     const auto = jsp?.autoconocimiento || {}
     const oferta = jsp?.oferta || {}
+    const perfilGerente = jsp?.perfil || {}
     const habGerente = [
       ...(Array.isArray(auto.hard_skills) ? auto.hard_skills : []),
       ...(Array.isArray(auto.soft_skills) ? auto.soft_skills : []),
     ].filter((v, i, a) => a.indexOf(v) === i)
+
+    // Cargo objetivo: primer nivel jerárquico del Perfilador (ej: "Gerente", "Director", "C-Level")
+    const cargoFromPerfilador = Array.isArray(perfilGerente.niveles_cargo) && perfilGerente.niveles_cargo.length > 0
+      ? perfilGerente.niveles_cargo[0]
+      : ''
+
+    // Idiomas: viven en jsp.perfil.idiomas (Perfilador del Gerente)
+    const idiomasGerente = Array.isArray(perfilGerente.idiomas) ? perfilGerente.idiomas : []
 
     return {
       ...ESTADO_EMPTY,
@@ -349,10 +360,10 @@ export default function CVDesdeCero() {
       telefono:      p?.telefono1 || jsp?.telefono1 || '',
       ciudad:        p?.ciudad   || jsp?.ciudad   || '',
       pais:          p?.pais     || jsp?.pais     || '',
-      cargo_objetivo: jsp?.cargo_objetivo || '',
+      cargo_objetivo: cargoFromPerfilador,
       resumen:       String(oferta.oferta_valor || '').trim(),
       habilidades:   habGerente,
-      idiomas:       Array.isArray(p?.idiomas) ? p.idiomas : [],
+      idiomas:       idiomasGerente,
     }
   }
 
@@ -1275,14 +1286,21 @@ export default function CVDesdeCero() {
                     </span>
                     {resumenBloqueado && <button onClick={()=>setResumenBloqueado(false)} className="text-xs text-indigo-600 font-bold hover:underline">Editar de nuevo</button>}
                   </label>
-                  <textarea 
-                    placeholder="Describe tu trayectoria..." 
+                  {modoForzado === 'scratch' && datos.resumen && (
+                    <p className="text-xs text-slate-500 leading-relaxed mb-2 px-1">
+                      Esta es la sugerencia que resulta de tu <span className="font-bold text-indigo-600">Autoconocimiento</span>. Puedes modificarla y/o mejorarla con la ayuda de ELVIA®.
+                    </p>
+                  )}
+                  <textarea
+                    placeholder="Describe tu trayectoria..."
                     value={datos.resumen}
-                    onChange={e => upDatos('resumen', e.target.value)} 
-                    rows={5} 
+                    onChange={e => upDatos('resumen', e.target.value)}
+                    rows={12}
                     maxLength={800}
-                    className="w-full border border-slate-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400/50 resize-none bg-white shadow-sm" 
+                    className="w-full border border-slate-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400/50 resize-y bg-white shadow-sm leading-relaxed"
+                    style={{ minHeight: 220 }}
                   />
+
                   <div className="flex items-center justify-between mt-2">
                     <button
                       onClick={handleOptimizarResumen}
@@ -1520,37 +1538,32 @@ export default function CVDesdeCero() {
             {pasoActual === 4 && (
               <div className="space-y-4">
                 <div className="flex items-center gap-2 border-b border-slate-100 pb-3 mb-2">
-                  <h2 className="text-base font-bold text-slate-800">Habilidades</h2>
+                  <h2 className="text-base font-bold text-slate-800">Competencias y Habilidades</h2>
                   <HelpBadge id="cvdesdecero.habilidades" />
                 </div>
-                <p className="text-sm text-slate-600">Selecciona o agrega tus habilidades principales</p>
-                <div className="flex flex-wrap gap-2">
-                  {HABILIDADES_COMUNES.map(h => (
-                    <button key={h} onClick={() => togHab(h)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold border-2 transition-colors cursor-pointer ${datos.habilidades.includes(h) ? 'bg-blue-600 text-white border-blue-600' : 'border-slate-300 text-slate-600 hover:border-blue-400'}`}>
-                      {h}
-                    </button>
-                  ))}
-                </div>
+                <p className="text-xs text-slate-500 leading-relaxed">
+                  Estas son las competencias seleccionadas en tu pilar <span className="font-bold text-indigo-600">Competencias</span> del Gerente de Proyecto. Puedes quitar las que no quieras incluir en este CV o agregar habilidades adicionales.
+                </p>
 
-                {/* Habilidades extraídas del CV (no están en la lista estándar) */}
-                {datos.habilidades.filter(h => !HABILIDADES_COMUNES.includes(h)).length > 0 && (
-                  <div>
-                    <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Del CV:</p>
-                    <div className="flex flex-wrap gap-2">
-                      {datos.habilidades.filter(h => !HABILIDADES_COMUNES.includes(h)).map(h => (
-                        <span key={h} className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-600 text-white">
-                          {h}
-                          <button onClick={() => togHab(h)} className="cursor-pointer ml-0.5 opacity-70 hover:opacity-100"><X size={11} /></button>
-                        </span>
-                      ))}
-                    </div>
+                {/* Habilidades del usuario (vienen del Gerente o agregadas aquí) */}
+                {datos.habilidades.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {datos.habilidades.map(h => (
+                      <span key={h} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-600 text-white">
+                        {h}
+                        <button onClick={() => togHab(h)} className="cursor-pointer ml-0.5 opacity-70 hover:opacity-100 hover:bg-white/20 rounded-full" title="Quitar de este CV"><X size={11} weight="bold" /></button>
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-4 rounded-xl bg-slate-50 border border-dashed border-slate-300 text-xs text-slate-500 text-center">
+                    No tienes habilidades cargadas. Agrégalas debajo o ve al pilar Competencias para seleccionarlas.
                   </div>
                 )}
 
                 {/* Agregar habilidad personalizada */}
                 <div className="flex gap-2">
-                  <input type="text" placeholder="Agregar habilidad personalizada..." value={nuevaHab}
+                  <input type="text" placeholder="Agregar habilidad adicional..." value={nuevaHab}
                     onChange={e => setNuevaHab(e.target.value)}
                     onKeyDown={e => e.key === 'Enter' && addHab(nuevaHab)}
                     className="flex-1 border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400/50" />
