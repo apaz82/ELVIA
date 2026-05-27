@@ -21,9 +21,26 @@ const MODELO_RAPIDO = process.env.CLAUDE_MODEL_FAST || 'claude-haiku-4-5-2025100
  * @param {string} texto El resumen original del usuario.
  * @param {string} idioma Idioma destino ('es' o 'en').
  */
-async function optimizarResumen(texto, idioma = 'es') {
+async function optimizarResumen(texto, idioma = 'es', contextoGerente = null) {
   if (!texto || texto.trim().length < 10) return texto;
-  
+
+  // Bloque de contexto opcional: si el frontend envía info del Gerente de Proyecto
+  // (Oferta de Valor + Competencias + Nivel de cargo + Áreas), la IA usa esa información
+  // como NORTE de posicionamiento, sin inventar datos nuevos.
+  const ctxBlock = (() => {
+    if (!contextoGerente) return '';
+    const c = contextoGerente || {};
+    const lineas = [];
+    if (c.oferta_valor) lineas.push(`- OFERTA DE VALOR del candidato (su propuesta estratégica): "${String(c.oferta_valor).slice(0, 1500)}"`);
+    if (Array.isArray(c.hard_skills) && c.hard_skills.length > 0) lineas.push(`- COMPETENCIAS TÉCNICAS (Hard Skills): ${c.hard_skills.join(', ')}`);
+    if (Array.isArray(c.soft_skills) && c.soft_skills.length > 0) lineas.push(`- COMPETENCIAS DE IMPACTO (Power Skills): ${c.soft_skills.join(', ')}`);
+    if (Array.isArray(c.niveles_cargo) && c.niveles_cargo.length > 0) lineas.push(`- NIVEL JERÁRQUICO objetivo: ${c.niveles_cargo.join(', ')}`);
+    if (Array.isArray(c.areas) && c.areas.length > 0) lineas.push(`- ÁREAS de interés: ${c.areas.join(', ')}`);
+    if (c.industria) lineas.push(`- INDUSTRIA: ${c.industria}`);
+    if (lineas.length === 0) return '';
+    return `\n\nCONTEXTO DEL CANDIDATO (úsalo para alinear el resumen al posicionamiento estratégico; NO inventes datos nuevos, solo refuerza con keywords presentes en este contexto cuando sean coherentes con el texto original):\n${lineas.join('\n')}`;
+  })();
+
   try {
     const response = await client.messages.create({
       model: MODELO, // Cambiamos a Sonnet 3.5 para probar estabilidad
@@ -38,7 +55,7 @@ async function optimizarResumen(texto, idioma = 'es') {
       3. ESTRUCTURA: [Trayectoria] + [Especialidad] + [Valor Diferencial].
       4. SÍNTESIS: Sé directo y profesional.
       5. PRIMERA PERSONA: Usa "yo", "mis", "mi" — escribe como si la persona hablara de sí misma.
-      6. Responde únicamente con el párrafo optimizado en ${idioma === 'es' ? 'Español' : 'Inglés'}. Sin comillas ni explicaciones.`,
+      6. Responde únicamente con el párrafo optimizado en ${idioma === 'es' ? 'Español' : 'Inglés'}. Sin comillas ni explicaciones.${ctxBlock}`,
       messages: [{ role: 'user', content: `Optimiza este resumen profesional: "${texto}"` }]
     });
 

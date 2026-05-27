@@ -411,9 +411,25 @@ Para secciones no enviadas, devuelve null en el campo puntaje y strings vacíos 
 // ─────────────────────────────────────────────────────────────────────────────
 // optimizarResumen — Migrado desde claudeService
 // ─────────────────────────────────────────────────────────────────────────────
-const optimizarResumen = async (texto, idioma = 'es') => {
+const optimizarResumen = async (texto, idioma = 'es', contextoGerente = null) => {
   if (!texto || texto.trim().length < 10) return texto;
   if (!deepseek) return texto;
+
+  // Bloque de contexto del Gerente de Proyecto (opcional)
+  // Solo se inyecta si viene con datos reales, nunca se inventa información.
+  const ctxBlock = (() => {
+    if (!contextoGerente) return '';
+    const c = contextoGerente;
+    const lineas = [];
+    if (c.oferta_valor) lineas.push(`- OFERTA DE VALOR: "${String(c.oferta_valor).slice(0, 1500)}"`);
+    if (Array.isArray(c.hard_skills) && c.hard_skills.length > 0) lineas.push(`- COMPETENCIAS TÉCNICAS: ${c.hard_skills.join(', ')}`);
+    if (Array.isArray(c.soft_skills) && c.soft_skills.length > 0) lineas.push(`- COMPETENCIAS DE IMPACTO: ${c.soft_skills.join(', ')}`);
+    if (Array.isArray(c.niveles_cargo) && c.niveles_cargo.length > 0) lineas.push(`- NIVEL JERÁRQUICO objetivo: ${c.niveles_cargo.join(', ')}`);
+    if (Array.isArray(c.areas) && c.areas.length > 0) lineas.push(`- ÁREAS de interés: ${c.areas.join(', ')}`);
+    if (c.industria) lineas.push(`- INDUSTRIA: ${c.industria}`);
+    if (lineas.length === 0) return '';
+    return `\n\nCONTEXTO DEL CANDIDATO (úsalo para alinear el resumen al posicionamiento estratégico; NO inventes datos nuevos, solo refuerza con keywords presentes aquí cuando sean coherentes con el texto original):\n${lineas.join('\n')}`;
+  })();
 
   try {
     const response = await deepseek.chat.completions.create({
@@ -430,7 +446,7 @@ REGLAS:
 3. ESTRUCTURA: [Trayectoria] + [Especialidad] + [Valor Diferencial].
 4. SÍNTESIS: Sé directo y profesional.
 5. PRIMERA PERSONA: Usa "yo", "mis", "mi" — escribe como si la persona hablara de sí misma.
-6. Responde únicamente con el párrafo optimizado en ${idioma === 'es' ? 'Español' : 'Inglés'}. Sin comillas ni explicaciones.` },
+6. Responde únicamente con el párrafo optimizado en ${idioma === 'es' ? 'Español' : 'Inglés'}. Sin comillas ni explicaciones.${ctxBlock}` },
         { role: 'user', content: `Optimiza este resumen profesional: "${texto}"` }
       ],
     });
@@ -448,12 +464,25 @@ REGLAS:
 // optimizarDescripcionExp — Mejora la descripción de una experiencia laboral
 // con verbos de acción, formato STAR y sugerencias de métricas
 // ─────────────────────────────────────────────────────────────────────────────
-const optimizarDescripcionExp = async ({ texto, cargo, empresa, idioma = 'es' }) => {
+const optimizarDescripcionExp = async ({ texto, cargo, empresa, idioma = 'es', contextoGerente = null }) => {
   if (!texto || texto.trim().length < 10) return texto;
   if (!deepseek) return texto;
 
   const lang = idioma === 'en' ? 'English' : idioma === 'pt' ? 'português' : 'español';
   const contexto = [cargo && `Cargo: ${cargo}`, empresa && `Empresa: ${empresa}`].filter(Boolean).join(' | ');
+
+  // Bloque de contexto del Gerente — ayuda a la IA a usar keywords alineados al objetivo laboral
+  const ctxBlock = (() => {
+    if (!contextoGerente) return '';
+    const c = contextoGerente;
+    const lineas = [];
+    if (Array.isArray(c.hard_skills) && c.hard_skills.length > 0) lineas.push(`- COMPETENCIAS TÉCNICAS objetivo: ${c.hard_skills.slice(0, 10).join(', ')}`);
+    if (Array.isArray(c.soft_skills) && c.soft_skills.length > 0) lineas.push(`- COMPETENCIAS DE IMPACTO objetivo: ${c.soft_skills.slice(0, 8).join(', ')}`);
+    if (Array.isArray(c.niveles_cargo) && c.niveles_cargo.length > 0) lineas.push(`- NIVEL JERÁRQUICO que busca: ${c.niveles_cargo.join(', ')}`);
+    if (Array.isArray(c.areas) && c.areas.length > 0) lineas.push(`- ÁREAS de interés: ${c.areas.slice(0, 5).join(', ')}`);
+    if (lineas.length === 0) return '';
+    return `\n\nCONTEXTO ESTRATÉGICO (usa estos keywords cuando sean coherentes con el texto original; NO inventes experiencias nuevas):\n${lineas.join('\n')}`;
+  })();
 
   try {
     const response = await deepseek.chat.completions.create({
@@ -478,7 +507,7 @@ REGLAS DE SALIDA:
 - MÁXIMO 4-5 bullets. Sé preciso y ejecutivo.
 - FIDELIDAD: No inventes empresas, cargos ni logros que no estén en el texto.
 - IDIOMA: responde ÚNICAMENTE en ${lang}. No traduzcas si el original está en otro idioma.
-- Responde SOLO con el texto mejorado (bullets o párrafo según análisis). Sin comillas, sin secciones, sin explicaciones.` },
+- Responde SOLO con el texto mejorado (bullets o párrafo según análisis). Sin comillas, sin secciones, sin explicaciones.${ctxBlock}` },
         { role: 'user', content: `${contexto ? `Contexto: ${contexto}\n` : ''}Mejora esta descripción de experiencia laboral:\n${texto}` }
       ],
     });

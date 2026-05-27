@@ -41,13 +41,13 @@ export const generarCVDesdeCero = async (datos, language = 'es') => {
 }
 
 // Optimizar resumen profesional con IA
-export const optimizarResumenIA = async (texto, idioma = 'es') => {
-  return api.post('/api/cv/optimizar-resumen', { texto, idioma })
+export const optimizarResumenIA = async (texto, idioma = 'es', contextoGerente = null) => {
+  return api.post('/api/cv/optimizar-resumen', { texto, idioma, ...(contextoGerente ? { contextoGerente } : {}) })
 }
 
 // Optimizar descripción de experiencia laboral con IA (STAR + verbos de acción)
-export const optimizarExpIA = async (texto, cargo, empresa, idioma = 'es') => {
-  return api.post('/api/cv/optimizar-experiencia', { texto, cargo, empresa, idioma })
+export const optimizarExpIA = async (texto, cargo, empresa, idioma = 'es', contextoGerente = null) => {
+  return api.post('/api/cv/optimizar-experiencia', { texto, cargo, empresa, idioma, ...(contextoGerente ? { contextoGerente } : {}) })
 }
 
 // Path A — Fusionar resumen del CV original + Mi Oferta de Valor en un resumen único ATS-optimizado

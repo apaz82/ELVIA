@@ -308,6 +308,8 @@ export default function CVDesdeCero() {
   const [expOptimizando, setExpOptimizando] = useState({}) // { [i]: boolean } loading por exp
   const [expMejoradas, setExpMejoradas]   = useState({})  // { [i]: true } botón bloqueado tras aplicar
   const [alertaPlaceholder, setAlertaPlaceholder] = useState(false) // modal placeholder sin reemplazar
+  // Fase 4c: contexto estratégico del Gerente de Proyecto para las optimizaciones de IA
+  const [contextoGerente, setContextoGerente] = useState(null)
 
   // 1. Verificar si ya tiene CV al cargar
   useEffect(() => {
@@ -456,6 +458,18 @@ export default function CVDesdeCero() {
         // Capturar Mi Oferta de Valor del Gerente para Path A (fusión con el resumen del CV)
         const ofertaValorTexto = String(jsp?.oferta?.oferta_valor || '').trim()
         setOfertaValorGerente(ofertaValorTexto)
+
+        // Fase 4c: capturar contexto estratégico completo del Gerente para mejorar optimizaciones de IA
+        const auto4c = jsp?.autoconocimiento || {}
+        const perfil4c = jsp?.perfil || {}
+        setContextoGerente({
+          oferta_valor:  String(jsp?.oferta?.oferta_valor || '').trim() || null,
+          hard_skills:   Array.isArray(auto4c.hard_skills)   ? auto4c.hard_skills   : [],
+          soft_skills:   Array.isArray(auto4c.soft_skills)   ? auto4c.soft_skills   : [],
+          niveles_cargo: Array.isArray(perfil4c.niveles_cargo) ? perfil4c.niveles_cargo : [],
+          areas:         Array.isArray(perfil4c.areas)         ? perfil4c.areas        : [],
+          industria:     perfil4c.industria || null,
+        })
 
         if (borrador?.datos && Object.keys(borrador.datos).length > 0) {
           // Hay borrador en BD. Si el usuario entró desde el pilar con mode='scratch',
@@ -729,7 +743,7 @@ export default function CVDesdeCero() {
     setError('')
     setResumenBloqueado(false)
     try {
-      const res = await optimizarResumenIA(datos.resumen, cvIdioma || 'es')
+      const res = await optimizarResumenIA(datos.resumen, cvIdioma || 'es', contextoGerente)
       console.log('[Debug] Respuesta IA:', res)
       if (res.optimizado) {
         setResumenSugerido(res.optimizado)
@@ -749,7 +763,7 @@ export default function CVDesdeCero() {
     if (!exp?.descripcion || exp.descripcion.length < 10) return
     setExpOptimizando(prev => ({ ...prev, [i]: true }))
     try {
-      const res = await optimizarExpIA(exp.descripcion, exp.cargo, exp.empresa, cvIdioma || 'es')
+      const res = await optimizarExpIA(exp.descripcion, exp.cargo, exp.empresa, cvIdioma || 'es', contextoGerente)
       if (res.optimizado) {
         setExpSugeridas(prev => ({ ...prev, [i]: res.optimizado }))
       }

@@ -593,12 +593,12 @@ const generarCartaPresentacion = async (req, res, next) => {
 };
 
 const optimizarResumenController = async (req, res, next) => {
-  const { texto, idioma } = req.body;
+  const { texto, idioma, contextoGerente } = req.body;
   if (!texto) return res.status(400).json({ error: 'Falta el texto a optimizar' });
 
   try {
     // Usamos el nombre diferenciado del servicio
-    const optimizado = await optimizarResumenService(texto, idioma || 'es');
+    const optimizado = await optimizarResumenService(texto, idioma || 'es', contextoGerente || null);
 
     const exito = !!optimizado && optimizado !== texto;
 
@@ -646,11 +646,11 @@ const fusionarResumenController = async (req, res) => {
 };
 
 const optimizarExpController = async (req, res) => {
-  const { texto, cargo, empresa, idioma } = req.body;
+  const { texto, cargo, empresa, idioma, contextoGerente } = req.body;
   if (!texto) return res.status(400).json({ error: 'Falta el texto a optimizar' });
 
   try {
-    const optimizado = await optimizarDescripcionExp({ texto, cargo, empresa, idioma: idioma || 'es' });
+    const optimizado = await optimizarDescripcionExp({ texto, cargo, empresa, idioma: idioma || 'es', contextoGerente: contextoGerente || null });
     const exito = !!optimizado && optimizado !== texto;
     return res.json({
       optimizado: optimizado || texto,
