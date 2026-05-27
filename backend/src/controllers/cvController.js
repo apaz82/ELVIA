@@ -497,7 +497,7 @@ const generarInfografiaProyecto = async (req, res, next) => {
 
     const { data: profile, error } = await db
       .from('profiles')
-      .select('job_search_profile, nombre1, apellido1, salario_esperado, experiencia_anios, equipo_personas')
+      .select('job_search_profile, nombre1, apellido1, salario_esperado, experiencia_anos')
       .eq('id', userId)
       .single();
 
@@ -518,8 +518,7 @@ const generarInfografiaProyecto = async (req, res, next) => {
       perfil: {
         ...(profile.job_search_profile.perfil || {}),
         ...(profile.salario_esperado ? { salario_esperado: profile.salario_esperado } : {}),
-        ...(profile.experiencia_anios ? { experiencia_anios: profile.experiencia_anios } : {}),
-        ...(profile.equipo_personas   ? { equipo_personas:   profile.equipo_personas   } : {}),
+        ...(profile.experiencia_anos ? { experiencia_anios: profile.experiencia_anos } : {}),
       },
     };
 
