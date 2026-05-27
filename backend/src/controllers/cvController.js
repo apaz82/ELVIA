@@ -496,7 +496,7 @@ const generarInfografiaProyecto = async (req, res, next) => {
 
     const { data: profile, error } = await db
       .from('profiles')
-      .select('job_search_profile, nombre1, apellido1')
+      .select('job_search_profile, nombre1, apellido1, salario_esperado, experiencia_anios, equipo_personas')
       .eq('id', userId)
       .single();
 
@@ -504,13 +504,25 @@ const generarInfografiaProyecto = async (req, res, next) => {
       return res.status(400).json({ error: 'No se encontró el perfil de búsqueda laboral.' });
     }
 
+    // Enriquecer perfil del job_search_profile con campos que se guardan en columnas directas
+    // (salario_esperado, años de experiencia, etc. no fluyen automáticamente al JSONB)
+    const jspEnriquecido = {
+      ...profile.job_search_profile,
+      perfil: {
+        ...(profile.job_search_profile.perfil || {}),
+        ...(profile.salario_esperado ? { salario_esperado: profile.salario_esperado } : {}),
+        ...(profile.experiencia_anios ? { experiencia_anios: profile.experiencia_anios } : {}),
+        ...(profile.equipo_personas   ? { equipo_personas:   profile.equipo_personas   } : {}),
+      },
+    };
+
     // 1. Corrección IA (Ortografía Hispanoamericana) con fallback robusto
     let proyectoCorregido;
     try {
-      proyectoCorregido = await corregirProyectoLaboral(profile.job_search_profile);
+      proyectoCorregido = await corregirProyectoLaboral(jspEnriquecido);
     } catch (aiErr) {
       console.error('[generarInfografiaProyecto] AI Error:', aiErr.message);
-      proyectoCorregido = profile.job_search_profile;
+      proyectoCorregido = jspEnriquecido;
     }
 
     // Adjuntar nombre para la UI

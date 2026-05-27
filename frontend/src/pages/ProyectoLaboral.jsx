@@ -755,6 +755,22 @@ function PilarMiPerfil({ perfil, extraData, onChange, onSavePerfil, saving, isPa
             </div>
           </div>
 
+          {/* Expectativa de prestaciones */}
+          <div>
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 block">Expectativa de prestaciones</label>
+            <div className="flex flex-col gap-2">
+              {['Prestaciones superiores a la ley','Prestaciones similares a la ley','Abierto a prestaciones inferiores'].map(function(opt){
+                const sel = d.expectativa_prestaciones === opt
+                return (
+                  <label key={opt} className={'flex items-center gap-2.5 p-3 rounded-lg border cursor-pointer transition-colors text-sm ' + (sel ? 'bg-indigo-50 border-indigo-300 text-indigo-800 font-medium' : 'border-slate-200 text-slate-600 hover:border-slate-300')}>
+                    <input type="radio" name="expectativa_prestaciones" checked={sel} onChange={function(){ up('expectativa_prestaciones', opt) }} className="accent-indigo-600 shrink-0"/>
+                    {opt}
+                  </label>
+                )
+              })}
+            </div>
+          </div>
+
           {/* Prestaciones */}
           {lp.pais_prestaciones&&(
             <div>

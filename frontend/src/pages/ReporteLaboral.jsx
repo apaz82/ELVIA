@@ -26,8 +26,8 @@ const C = {
   plum:        '#831843',
   plumSoft:    '#F2D6E1',
 }
-const DISPLAY = '"Bricolage Grotesque", system-ui, sans-serif'
-const BODY    = '"Inter Tight", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
+const DISPLAY = '"Montserrat", system-ui, sans-serif'
+const BODY    = '"Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
 const MONO    = '"JetBrains Mono", ui-monospace, Menlo, monospace'
 
 // SVG resource icons (stroke-based, curated)
@@ -92,7 +92,7 @@ export default function ReporteLaboral() {
   useEffect(() => {
     const link = document.createElement('link')
     link.rel  = 'stylesheet'
-    link.href = 'https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300;12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&family=Inter+Tight:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap'
+    link.href = 'https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap'
     document.head.appendChild(link)
     return () => { try { document.head.removeChild(link) } catch (_) {} }
   }, [])
@@ -203,8 +203,11 @@ export default function ReporteLaboral() {
   // Stats strip — use available profile fields
   const expAnios    = perfilInfo.experiencia_anios || data?.experiencia_anios
   const equipoPers  = perfilInfo.equipo_personas   || data?.equipo_personas
-  const salario     = perfilInfo.salario_monto     || data?.salarioMinimo
-  const moneda      = perfilInfo.moneda            || data?.moneda || '$'
+  const salarioEsperado = perfilInfo.salario_esperado || data?.salario_esperado || ''
+  const salarioParts    = salarioEsperado ? salarioEsperado.trim().split(' ') : []
+  const salario         = salarioParts[0] || ''
+  const moneda          = salarioParts[1] || perfilInfo.moneda || data?.moneda || ''
+  const expectativaPrest = perfilInfo.expectativa_prestaciones || ''
 
   const stats = [
     {
@@ -214,21 +217,22 @@ export default function ReporteLaboral() {
       color: C.marine,
     },
     {
-      v: salario ? Number(salario).toLocaleString('es') : '—',
+      v: salario ? Number(String(salario).replace(/[.,]/g, '').replace(',', '')).toLocaleString('es') : '—',
       unit: salario ? moneda : '',
-      k: 'Expectativa salarial',
+      k: 'Expectativa salarial mensual',
       color: C.saffron,
+      sub: expectativaPrest || null,
     },
     {
       v: equipoPers ? `+${Number(equipoPers).toLocaleString('es')}` : hardSkills.length > 0 ? `${hardSkills.length}` : '—',
       unit: '',
-      k: equipoPers ? 'Personas lideradas' : 'Hard skills',
+      k: equipoPers ? 'Personas lideradas' : 'Hard Skills',
       color: C.sage,
     },
     {
       v: targetEmpresas.length > 0 ? `${targetEmpresas.length}` : softSkills.length > 0 ? `${softSkills.length}` : '—',
       unit: '',
-      k: targetEmpresas.length > 0 ? 'Empresas objetivo' : 'Soft skills',
+      k: targetEmpresas.length > 0 ? 'Empresas objetivo' : 'Power Skills',
       color: C.plum,
     },
   ]
@@ -241,9 +245,9 @@ export default function ReporteLaboral() {
   ]
 
   const repertorioCols = [
-    { label: 'Hard',  count: hardSkills.length,  color: C.marine,  skills: hardSkills  },
-    { label: 'Soft',  count: softSkills.length,  color: C.saffron, skills: softSkills  },
-    { label: 'Power', count: powerSkills.length, color: C.plum,    skills: powerSkills },
+    { label: 'Hard Skills',  count: hardSkills.length, color: C.marine,  skills: hardSkills },
+    { label: 'Power Skills', count: softSkills.length, color: C.saffron, skills: softSkills },
+    ...(powerSkills.length > 0 ? [{ label: 'Liderazgo', count: powerSkills.length, color: C.plum, skills: powerSkills }] : []),
   ]
 
   // ── Render ───────────────────────────────────────────────────────────────────
@@ -331,6 +335,7 @@ export default function ReporteLaboral() {
                   {s.unit && <small style={{ fontSize: 18, fontWeight: 500, color: C.muted, marginLeft: 4 }}>{s.unit}</small>}
                 </div>
                 <div style={{ fontFamily: MONO, fontSize: 9, letterSpacing: '0.20em', textTransform: 'uppercase', color: C.muted, fontWeight: 600 }}>{s.k}</div>
+                {s.sub && <div style={{ fontFamily: BODY, fontSize: 10, color: C.muted2, fontWeight: 500, marginTop: 2, lineHeight: 1.3 }}>{s.sub}</div>}
               </div>
             ))}
           </section>
@@ -348,11 +353,11 @@ export default function ReporteLaboral() {
                 <circle cx="200" cy="120" r="100" fill="#1E3A8A" fillOpacity="0.55" />
                 <circle cx="120" cy="200" r="100" fill="#365314" fillOpacity="0.55" />
                 <circle cx="200" cy="200" r="100" fill="#831843" fillOpacity="0.55" />
-                <text x="50"  y="50"  textAnchor="middle" fill="#D97706" fontFamily="Bricolage Grotesque" fontSize="11" fontWeight="700" letterSpacing="0.05em">AMAS</text>
-                <text x="270" y="50"  textAnchor="middle" fill="#1E3A8A" fontFamily="Bricolage Grotesque" fontSize="11" fontWeight="700" letterSpacing="0.05em">DESTACAS</text>
-                <text x="50"  y="290" textAnchor="middle" fill="#365314" fontFamily="Bricolage Grotesque" fontSize="11" fontWeight="700" letterSpacing="0.05em">NECESITA</text>
-                <text x="270" y="290" textAnchor="middle" fill="#831843" fontFamily="Bricolage Grotesque" fontSize="11" fontWeight="700" letterSpacing="0.05em">PAGARÁN</text>
-                <text x="160" y="158" textAnchor="middle" fill="#0E0D0A" fontFamily="Bricolage Grotesque" fontSize="18" fontWeight="800" letterSpacing="-0.02em">IKIGAI</text>
+                <text x="50"  y="50"  textAnchor="middle" fill="#D97706" fontFamily="Montserrat" fontSize="11" fontWeight="700" letterSpacing="0.05em">AMAS</text>
+                <text x="270" y="50"  textAnchor="middle" fill="#1E3A8A" fontFamily="Montserrat" fontSize="11" fontWeight="700" letterSpacing="0.05em">DESTACAS</text>
+                <text x="50"  y="290" textAnchor="middle" fill="#365314" fontFamily="Montserrat" fontSize="11" fontWeight="700" letterSpacing="0.05em">NECESITA</text>
+                <text x="270" y="290" textAnchor="middle" fill="#831843" fontFamily="Montserrat" fontSize="11" fontWeight="700" letterSpacing="0.05em">PAGARÁN</text>
+                <text x="160" y="158" textAnchor="middle" fill="#0E0D0A" fontFamily="Montserrat" fontSize="18" fontWeight="800" letterSpacing="-0.02em">IKIGAI</text>
                 <text x="160" y="174" textAnchor="middle" fill="#0E0D0A" fontFamily="JetBrains Mono" fontSize="7" fontWeight="600" letterSpacing="0.18em">RAZÓN DE SER</text>
               </svg>
               <div style={{ textAlign: 'center', marginTop: -6, fontFamily: MONO, fontSize: 9, letterSpacing: '0.18em', textTransform: 'uppercase', color: C.muted, fontWeight: 600 }}>
