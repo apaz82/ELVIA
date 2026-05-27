@@ -651,6 +651,8 @@ Redacta una "Oferta de Valor" profesional de 3-4 oraciones (~80-120 palabras) pa
 Requisitos:
 - Primera persona, voz activa, tono profesional y cercano — que suene a una persona real, no a un manual corporativo
 - Usa vocabulario natural del español latinoamericano; evita neologismos y palabras poco usadas (por ejemplo, usa "impulsar" no "impulsionar", "potenciar" no "potencializar")
+- FIDELIDAD AL IKIGAI: cada afirmación debe estar respaldada por algo concreto que el profesional escribió; si mencionó una actividad, logro o habilidad específica, úsala literal o parafraseada — nunca la reemplaces por abstracciones genéricas como "lidero proyectos" o "genero impacto"; prohibido inventar logros o atributos que no estén en la información entregada
+- Evita frases cliché que no dicen nada: "apasionado por", "orientado a resultados", "pensamiento estratégico", "soluciones innovadoras", "desafíos complejos" — si el dato concreto no está, no lo pongas
 - Integra skills y nivel de cargo de forma natural, sin listar${culturaStr ? '\n- Refleja el estilo y cultura de trabajo del profesional de forma auténtica, mencionándolo con naturalidad' : ''}
 - Refleja el propósito y diferencial único del profesional
 - Lista para copiar-pegar en un CV de élite
