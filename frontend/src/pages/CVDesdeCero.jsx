@@ -422,24 +422,44 @@ export default function CVDesdeCero() {
   const delEdu  = (i)              => setDatos(f => ({ ...f, educacion: f.educacion.filter((_, j) => j !== i) }))
   const togHab  = (h)              => setDatos(f => ({ ...f, habilidades: f.habilidades.includes(h) ? f.habilidades.filter(x => x !== h) : [...f.habilidades, h] }))
   const addHab  = (h)              => { if (h && !datos.habilidades.includes(h)) { setDatos(f => ({ ...f, habilidades: [...f.habilidades, h] })); setNuevaHab('') } }
-  const togIdm  = (id)             => { const arr = (datos.idiomas || []).filter(i => i.idioma !== id); if (!datos.idiomas?.some(i => i.idioma === id)) arr.push({ idioma: id, nivel: id === 'Español' ? 'C1' : 'B2' }); setDatos(f => ({ ...f, idiomas: arr })) }
+  const togIdm  = (id)             => { const existing = datos.idiomas?.find(i => i.idioma === id); const arr = (datos.idiomas || []).filter(i => i.idioma !== id); if (!existing) arr.push({ idioma: id, nivel: id === 'Español' ? 'Nativo' : null }); setDatos(f => ({ ...f, idiomas: arr })) }
   const upNivIdm = (id, nivel)     => setDatos(f => ({ ...f, idiomas: f.idiomas.map(i => i.idioma === id ? { ...i, nivel } : i) }))
 
   // ── Aplicar datos extraídos del CV ──────────────────────────────────────────
+  // Parsea el año de fecha_fin para ordenar — "Actualidad"/"Present"/null → más reciente (9999)
+  const parseExpYear = (fin) => {
+    if (!fin || /actual|present|current|hoy|vigente/i.test(fin)) return 9999
+    const m = String(fin).match(/\d{4}/)
+    return m ? parseInt(m[0], 10) : 0
+  }
+
   const aplicarDatos = (d) => {
-    // El controlador ya invierte el orden (más reciente primero) — no aplicar .reverse() aquí
     const expArr = Array.isArray(d.experiencias) && d.experiencias.length > 0
-      ? d.experiencias.map(e => ({ empresa: e.empresa || '', cargo: e.cargo || '', fecha_inicio: e.fecha_inicio || '', fecha_fin: e.fecha_fin || '', descripcion: e.descripcion || '' }))
+      ? d.experiencias
+          .map(e => ({ empresa: e.empresa || '', cargo: e.cargo || '', fecha_inicio: e.fecha_inicio || '', fecha_fin: e.fecha_fin || '', descripcion: e.descripcion || '' }))
+          .sort((a, b) => parseExpYear(b.fecha_fin) - parseExpYear(a.fecha_fin)) // más reciente primero
       : [{ empresa: '', cargo: '', fecha_inicio: '', fecha_fin: '', descripcion: '' }]
 
     const eduArr = Array.isArray(d.educacion) && d.educacion.length > 0
       ? d.educacion.map(e => ({ institucion: e.institucion || '', titulo: e.titulo || '', anio: e.anio || '' }))
       : [{ institucion: '', titulo: '', anio: '' }]
 
-    // Normalizar idiomas: el modelo puede devolver strings o {idioma, nivel}
-    const idiomasNorm = Array.isArray(d.idiomas) && d.idiomas.length > 0
-      ? d.idiomas.map(i => typeof i === 'string' ? { idioma: i, nivel: i === 'Español' ? 'Nativo' : 'B2' } : i)
-      : datos.idiomas
+    // Normalizar idiomas: strings → {idioma, nivel}. nivel null = usuario elige.
+    const IDIOMA_CV_MAP = { es: 'Español', en: 'Inglés', pt: 'Portugués', fr: 'Francés', de: 'Alemán', it: 'Italiano', ja: 'Japonés' }
+    const CEFR_VALIDOS = new Set(['Nativo', 'Native', 'C2', 'C1', 'B2', 'B1', 'A2', 'A1'])
+    let idiomasNorm = Array.isArray(d.idiomas) && d.idiomas.length > 0
+      ? d.idiomas.map(i => {
+          if (typeof i === 'string') return { idioma: i, nivel: i === 'Español' ? 'Nativo' : null, detectedFromCV: true }
+          const nivelNorm = CEFR_VALIDOS.has(i.nivel) ? i.nivel : (i.nivel === 'Native' ? 'Nativo' : null)
+          return { idioma: i.idioma, nivel: nivelNorm, detectedFromCV: true }
+        })
+      : [...(datos.idiomas || [])]
+
+    // Añadir el idioma del CV como entrada si no está ya en la lista
+    const idiomaCvNombre = d.idioma_cv ? IDIOMA_CV_MAP[d.idioma_cv] : null
+    if (idiomaCvNombre && !idiomasNorm.some(i => i.idioma === idiomaCvNombre)) {
+      idiomasNorm = [{ idioma: idiomaCvNombre, nivel: null, detectedFromCV: true }, ...idiomasNorm]
+    }
 
     const merged = {
       nombre:         d.nombre1    || datos.nombre    || '',
@@ -589,15 +609,20 @@ export default function CVDesdeCero() {
     setExpSugeridas(prev => { const n = { ...prev }; delete n[i]; return n })
   }
 
-  // Compara dos textos y pone en negrita las palabras nuevas
+  // Compara dos textos y pone en negrita las palabras nuevas — soporta multi-línea
   const renderDiff = (original, sugerido) => {
     if (!original || !sugerido) return sugerido
-    const wordsO = original.split(/\s+/)
-    const wordsS = sugerido.split(/\s+/)
-    return wordsS.map((w, i) => {
-      const exists = wordsO.some(ow => ow.toLowerCase().replace(/[.,]/g,'') === w.toLowerCase().replace(/[.,]/g,''))
-      return exists ? w + ' ' : <strong key={i} className="text-indigo-700 font-bold">{w} </strong>
-    })
+    const wordsO = new Set(original.toLowerCase().split(/\s+/).map(w => w.replace(/[.,•\-*]/g, '')))
+    return sugerido.split('\n').map((line, li) => (
+      <span key={li} style={{ display: 'block' }}>
+        {line.split(/\s+/).map((w, wi) => {
+          const clean = w.toLowerCase().replace(/[.,•\-*]/g, '')
+          return wordsO.has(clean) || clean === ''
+            ? <span key={wi}>{w} </span>
+            : <strong key={wi} className="text-indigo-700 font-bold">{w} </strong>
+        })}
+      </span>
+    ))
   }
 
 
@@ -1106,7 +1131,9 @@ export default function CVDesdeCero() {
                     </div>
                     {/* Descripción + botón de mejora */}
                     <textarea placeholder="Descripción y logros (en el idioma del CV)..." value={exp.descripcion} onChange={e => upExp(i, 'descripcion', e.target.value)}
-                      rows={3} className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400/50 resize-none" />
+                      rows={Math.max(3, (exp.descripcion || '').split('\n').length + 1)}
+                      style={{ whiteSpace: 'pre-wrap' }}
+                      className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400/50 resize-none leading-relaxed" />
 
                     <div className="flex items-center justify-between">
                       <button
@@ -1140,8 +1167,9 @@ export default function CVDesdeCero() {
                         <textarea
                           value={expSugeridas[i]}
                           onChange={e => setExpSugeridas(prev => ({ ...prev, [i]: e.target.value }))}
-                          rows={3}
-                          className="w-full bg-white border border-indigo-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400/30 resize-none"
+                          rows={Math.max(3, (expSugeridas[i] || '').split('\n').length + 1)}
+                          style={{ whiteSpace: 'pre-wrap' }}
+                          className="w-full bg-white border border-indigo-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400/30 resize-none leading-relaxed"
                         />
 
                         <div className="flex gap-2">
@@ -1271,20 +1299,45 @@ export default function CVDesdeCero() {
                 </div>
                 <p className="text-sm text-slate-600">Idiomas que dominas</p>
                 <div className="space-y-2">
-                  {IDIOMAS_LIST.map(idioma => (
-                    <div key={idioma} className="flex items-center gap-3 border border-slate-200 rounded-lg p-3">
-                      <input type="checkbox" checked={datos.idiomas?.some(i => i.idioma === idioma) || false}
-                        onChange={() => togIdm(idioma)} className="w-4 h-4 cursor-pointer accent-blue-600" />
-                      <span className="flex-1 text-sm font-medium text-slate-700">{idioma}</span>
-                      {datos.idiomas?.some(i => i.idioma === idioma) && (
-                        <select value={datos.idiomas.find(i => i.idioma === idioma)?.nivel || 'B2'}
-                          onChange={e => upNivIdm(idioma, e.target.value)}
-                          className="border border-slate-300 rounded-lg px-2 py-1 text-xs focus:outline-none">
-                          {NIVELES_CEFR.map(n => <option key={n} value={n}>{n}</option>)}
-                        </select>
-                      )}
+                  {/* Idiomas detectados del CV que no están en la lista estándar */}
+                  {(datos.idiomas || []).filter(i => i.detectedFromCV && !IDIOMAS_LIST.includes(i.idioma)).map(item => (
+                    <div key={item.idioma} className="flex items-center gap-3 border border-blue-200 bg-blue-50/40 rounded-lg p-3">
+                      <input type="checkbox" checked onChange={() => setDatos(f => ({ ...f, idiomas: f.idiomas.filter(x => x.idioma !== item.idioma) }))}
+                        className="w-4 h-4 cursor-pointer accent-blue-600" />
+                      <span className="flex-1 text-sm font-medium text-slate-700">{item.idioma}</span>
+                      <span className="text-[10px] font-bold text-blue-600 bg-blue-100 px-1.5 py-0.5 rounded-full">Del CV</span>
+                      <select
+                        value={item.nivel || ''}
+                        onChange={e => upNivIdm(item.idioma, e.target.value)}
+                        className={`border rounded-lg px-2 py-1 text-xs focus:outline-none ${!item.nivel ? 'border-amber-300 bg-amber-50 text-amber-700' : 'border-slate-300'}`}>
+                        <option value="" disabled>Seleccionar...</option>
+                        {NIVELES_CEFR.map(n => <option key={n} value={n}>{n}</option>)}
+                      </select>
                     </div>
                   ))}
+                  {IDIOMAS_LIST.map(idioma => {
+                    const entry = datos.idiomas?.find(i => i.idioma === idioma)
+                    const isChecked = !!entry
+                    const isFromCV = entry?.detectedFromCV
+                    const nivelActual = entry?.nivel
+                    return (
+                      <div key={idioma} className={`flex items-center gap-3 border rounded-lg p-3 ${isFromCV ? 'border-blue-200 bg-blue-50/40' : 'border-slate-200'}`}>
+                        <input type="checkbox" checked={isChecked}
+                          onChange={() => togIdm(idioma)} className="w-4 h-4 cursor-pointer accent-blue-600" />
+                        <span className="flex-1 text-sm font-medium text-slate-700">{idioma}</span>
+                        {isFromCV && <span className="text-[10px] font-bold text-blue-600 bg-blue-100 px-1.5 py-0.5 rounded-full shrink-0">Del CV</span>}
+                        {isChecked && (
+                          <select
+                            value={nivelActual || ''}
+                            onChange={e => upNivIdm(idioma, e.target.value)}
+                            className={`border rounded-lg px-2 py-1 text-xs focus:outline-none ${!nivelActual ? 'border-amber-300 bg-amber-50 text-amber-700' : 'border-slate-300'}`}>
+                            {!nivelActual && <option value="" disabled>Seleccionar...</option>}
+                            {NIVELES_CEFR.map(n => <option key={n} value={n}>{n}</option>)}
+                          </select>
+                        )}
+                      </div>
+                    )
+                  })}
                 </div>
                 {tipsPorPaso.idiomas.length > 0 && (
                   <div className="mt-2 p-3.5 bg-amber-50 border border-amber-200 rounded-xl">

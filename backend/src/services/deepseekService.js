@@ -289,9 +289,11 @@ REGLAS ESTRICTAS:
 3. Si un campo no existe, usa null. Arrays vacíos [] si no hay datos.
 4. Para "idioma_cv": detecta el idioma principal del documento ("es", "en", "pt", "fr", "de", u otro código ISO 639-1).
 5. Para "telefono1": extrae el número tal como aparece, incluyendo indicativo si existe.
-6. Para "experiencias": extrae TODAS las entradas de experiencia laboral exactamente en el orden en que aparecen en el CV (normalmente la más reciente primero). Usa los campos exactos del schema.
+6. Para "experiencias": extrae TODAS las entradas de experiencia laboral. Ponlas de MÁS RECIENTE a MÁS ANTIGUA (fecha_fin "Actualidad"/"Present"/"Presente" = más reciente, va primero).
 7. Para "educacion": extrae TODA la formación académica.
 8. "fecha_inicio" y "fecha_fin" deben ser strings como "2019-03", "2022" o "Actualidad"/"Present".
+9. BULLET POINTS en "descripcion": Si el CV usa bullets (•, -, *, números) en la descripción de una experiencia, PRESERVA la estructura usando saltos de línea reales: cada bullet en su propia línea comenzando con "• ". Si el rol tiene DOS secciones separadas (ej: "Actividades" / "Responsabilidades" y "Logros" / "Achievements"), FUSIÓNOLAS inteligentemente: para cada actividad principal, crea un bullet que combine la actividad y su logro asociado en una sola línea coherente (Verbo + Acción + Resultado). No pierdas información.
+10. Para "idiomas": devuelve un array de objetos con el nombre en ESPAÑOL y el nivel CEFR si aparece en el CV. Si no aparece el nivel, usa null.
 
 CV A PROCESAR:
 ${fragmento}
@@ -313,9 +315,9 @@ Devuelve este JSON (respeta los nombres de campo exactamente):
   "años_experiencia": número entero estimado o null,
   "industria": "industria principal o null",
   "habilidades": ["habilidad1", "habilidad2"],
-  "idiomas": ["Español", "Inglés"],
+  "idiomas": [{ "idioma": "Español", "nivel": "Nativo" }, { "idioma": "Inglés", "nivel": "B2 o null si no está especificado" }],
   "educacion": [{ "titulo": "título exacto", "institucion": "institución exacta", "anio": "año de graduación o null" }],
-  "experiencias": [{ "empresa": "empresa exacta", "cargo": "cargo exacto", "fecha_inicio": "YYYY-MM o YYYY", "fecha_fin": "YYYY-MM o YYYY o Actualidad", "descripcion": "descripción de responsabilidades y logros" }]
+  "experiencias": [{ "empresa": "empresa exacta", "cargo": "cargo exacto", "fecha_inicio": "YYYY-MM o YYYY", "fecha_fin": "YYYY-MM o YYYY o Actualidad", "descripcion": "texto con saltos de linea \\n• para bullets si aplica" }]
 }`;
 
   if (!deepseek) throw new Error('[DeepSeek] DEEPSEEK_API_KEY no configurada');
@@ -462,15 +464,22 @@ const optimizarDescripcionExp = async ({ texto, cargo, empresa, idioma = 'es' })
         { role: 'system', content: `Eres un Senior Career Coach experto en redacción de logros profesionales formato Harvard/Google para el mercado LATAM 2026.
 Tu tarea es mejorar la descripción de una experiencia laboral.
 
-REGLAS ESTRICTAS:
-1. VERBOS DE ACCIÓN: Inicia cada logro con un verbo fuerte (Lideré, Implementé, Optimicé, Reduje, Gestioné, Desarrollé, Incrementé, Coordiné...).
-2. MÉTRICAS: Si el texto original tiene números, mantenlos. Si no, agrega placeholders entre corchetes como [X%], [N personas], [$X], [X meses] donde tendrían sentido.
-3. FORMATO STAR implícito: Acción + Contexto + Resultado cuantificado.
-4. LONGITUD: Máximo 3-4 líneas compactas. Sé preciso y ejecutivo.
-5. FIDELIDAD: No inventes empresas, cargos ni logros que no estén en el texto original.
-6. IDIOMA: Responde ÚNICAMENTE en ${lang}. No traduzcas si el texto original está en otro idioma.
-7. Responde SOLO con el texto mejorado. Sin comillas, sin explicaciones, sin prefijos.` },
-        { role: 'user', content: `${contexto ? `Contexto: ${contexto}\n` : ''}Mejora esta descripción de experiencia laboral:\n"${texto}"` }
+PROCESO DE RAZONAMIENTO (aplica antes de escribir):
+Paso 1 — Analiza el texto: ¿tiene bullets (•, -, *, números)? ¿hay dos secciones separadas como "Actividades" y "Logros"?
+Paso 2 — Si tiene bullets: preserva la estructura (una idea por línea, cada línea empieza con "• ").
+Paso 3 — Si hay secciones "Actividades"+"Logros" separadas: para cada actividad, encuentra su logro asociado y fusiónalo en un solo bullet coherente (Verbo + Acción + Resultado).
+Paso 4 — Si es texto plano: reescríbelo en bullets con formato STAR.
+Paso 5 — Aplica verbos de acción al inicio de cada punto.
+Paso 6 — Añade métricas reales del texto; donde falten, usa [X%] / [N personas] / [$X] como placeholder.
+
+REGLAS DE SALIDA:
+- VERBOS DE ACCIÓN al inicio de cada bullet: Lideré, Implementé, Optimicé, Reduje, Gestioné, Desarrollé, Incrementé, Coordiné...
+- FORMATO: cada bullet en su propia línea comenzando con "• " (excepto si el original era texto plano sin bullets).
+- MÁXIMO 4-5 bullets. Sé preciso y ejecutivo.
+- FIDELIDAD: No inventes empresas, cargos ni logros que no estén en el texto.
+- IDIOMA: responde ÚNICAMENTE en ${lang}. No traduzcas si el original está en otro idioma.
+- Responde SOLO con el texto mejorado (bullets o párrafo según análisis). Sin comillas, sin secciones, sin explicaciones.` },
+        { role: 'user', content: `${contexto ? `Contexto: ${contexto}\n` : ''}Mejora esta descripción de experiencia laboral:\n${texto}` }
       ],
     });
 
