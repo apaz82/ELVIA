@@ -369,7 +369,20 @@ export default function CVDesdeCero() {
           setModoSeleccion(false)
           sessionStorage.setItem(CACHE_KEY, JSON.stringify({ datos: borrador.datos, paso_actual: borrador.paso_actual || 0 }))
         } else {
-          // Si no hay borrador, intentamos pre-llenar desde el perfil y del Gerente de Búsqueda (jsp)
+          // Si no hay borrador, pre-llenar desde el perfil y del Gerente de Proyecto:
+          // - Identidad (nombre, email, etc.) → profiles
+          // - Resumen profesional → jsp.oferta.oferta_valor (Mi Oferta de Valor)
+          // - Habilidades → jsp.autoconocimiento.hard_skills + soft_skills (Hard + Power Skills, sin duplicados)
+          // - Idiomas → profiles.idiomas (estructura [{idioma, nivel}])
+          const auto = jsp.autoconocimiento || {}
+          const oferta = jsp.oferta || {}
+          const habGerente = [
+            ...(Array.isArray(auto.hard_skills) ? auto.hard_skills : []),
+            ...(Array.isArray(auto.soft_skills) ? auto.soft_skills : []),
+          ].filter((v, i, a) => a.indexOf(v) === i)
+
+          const idiomasPerfil = Array.isArray(p.idiomas) ? p.idiomas : []
+
           setDatos({
             ...ESTADO_EMPTY,
             nombre:        p.nombre1  || jsp.nombre1 || '',
@@ -382,6 +395,9 @@ export default function CVDesdeCero() {
             ciudad:        p.ciudad   || jsp.ciudad   || '',
             pais:          p.pais     || jsp.pais     || '',
             cargo_objetivo: jsp.cargo_objetivo || '',
+            resumen:       String(oferta.oferta_valor || '').trim(),
+            habilidades:   habGerente,
+            idiomas:       idiomasPerfil,
           })
         }
       } catch (e) {
@@ -484,6 +500,24 @@ export default function CVDesdeCero() {
       idiomasNorm = [{ idioma: idiomaCvNombre, nivel: null, detectedFromCV: true }, ...idiomasNorm]
     }
 
+    // Merge con idiomas del Gerente (Perfilador) — unión sin duplicados
+    if (Array.isArray(datos.idiomas)) {
+      datos.idiomas.forEach(ig => {
+        if (ig?.idioma && !idiomasNorm.some(i => i.idioma === ig.idioma)) {
+          idiomasNorm.push(ig)
+        }
+      })
+    }
+
+    // Habilidades: combinar las del CV con las del Gerente (Hard + Power Skills), sin duplicados.
+    // Las del Gerente (Competencias del usuario) prevalecen porque son seleccionadas explícitamente.
+    const habsCV = Array.isArray(d.habilidades) ? d.habilidades : []
+    const habsGerente = Array.isArray(datos.habilidades) ? datos.habilidades : []
+    const habsMerged = [...habsGerente, ...habsCV].filter((v, i, a) => a.indexOf(v) === i)
+
+    // Resumen profesional: priorizar el del CV original; si viene vacío, usar Mi Oferta de Valor del Gerente
+    const resumenMerged = (d.resumen && String(d.resumen).trim()) || datos.resumen || ''
+
     const merged = {
       nombre:         d.nombre1    || datos.nombre    || '',
       nombre2:        d.nombre2    || datos.nombre2   || '',
@@ -495,10 +529,10 @@ export default function CVDesdeCero() {
       ciudad:         d.ciudad     || datos.ciudad    || '',
       pais:           d.pais       || datos.pais      || '',
       cargo_objetivo: d.cargo_actual || datos.cargo_objetivo || '',
-      resumen:        d.resumen    || '',
+      resumen:        resumenMerged,
       experiencias:   expArr,
       educacion:      eduArr,
-      habilidades:    Array.isArray(d.habilidades) && d.habilidades.length > 0 ? d.habilidades : datos.habilidades,
+      habilidades:    habsMerged.length > 0 ? habsMerged : datos.habilidades,
       idiomas:        idiomasNorm,
     }
 
@@ -1506,7 +1540,7 @@ export default function CVDesdeCero() {
                   Así quedará tu CV. Puedes volver a editar cualquier sección antes de generar.
                 </p>
                 {/* Contenedor scrollable con sombra de papel */}
-                <div className="overflow-y-auto max-h-[580px] rounded-xl border border-slate-200 shadow-inner bg-slate-100 p-4">
+                <div className="overflow-y-auto overflow-x-hidden max-h-[580px] rounded-xl border border-slate-200 shadow-inner bg-slate-100 p-4">
                   <CVHarvardPreview datos={datos} />
                 </div>
               </div>

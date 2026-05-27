@@ -9,10 +9,13 @@ const S = {
     lineHeight: 1.5,
     color: '#111',
     backgroundColor: '#fff',
-    width: 680,
-    minWidth: 680,
-    padding: '52px 60px',
+    width: '100%',
+    maxWidth: 680,
+    margin: '0 auto',
+    padding: 'clamp(24px, 6vw, 52px) clamp(20px, 7vw, 60px)',
     boxSizing: 'border-box',
+    wordWrap: 'break-word',
+    overflowWrap: 'break-word',
   },
   name: {
     fontSize: 22,
@@ -54,13 +57,17 @@ const S = {
   },
   expRow: {
     display: 'flex',
+    flexWrap: 'wrap',
     justifyContent: 'space-between',
     alignItems: 'baseline',
     marginBottom: 1,
+    gap: 4,
   },
   expCargo: {
     fontSize: 11.5,
     fontWeight: 'bold',
+    flex: '1 1 auto',
+    minWidth: 0,
   },
   expFechas: {
     fontSize: 10,
@@ -91,13 +98,17 @@ const S = {
   },
   eduRow: {
     display: 'flex',
+    flexWrap: 'wrap',
     justifyContent: 'space-between',
     alignItems: 'baseline',
     marginBottom: 1,
+    gap: 4,
   },
   eduTitulo: {
     fontSize: 11.5,
     fontWeight: 'bold',
+    flex: '1 1 auto',
+    minWidth: 0,
   },
   eduAnio: {
     fontSize: 10,
