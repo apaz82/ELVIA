@@ -1222,8 +1222,6 @@ function DashboardResumen({ data, pct, onSelect, perfil, activePilar }) {
             const pp = porPilar[p.id] || 0
             const c  = COLORES[p.color]
             const Icon = p.icon
-            const isCore = CORE_IDS.includes(p.id)
-            const isLocked = !isCore && !isUnlocked
             const isActive = activePilar === p.id
 
             const pilarIndex = PILARES.findIndex(function(pl){ return pl.id === p.id })
