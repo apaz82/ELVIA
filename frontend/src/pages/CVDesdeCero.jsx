@@ -289,6 +289,7 @@ export default function CVDesdeCero() {
   const [alertaIdioma, setAlertaIdioma] = useState(false) // modal confirm idioma antes de generar
   const [expSugeridas, setExpSugeridas]   = useState({})  // { [i]: string } sugerencia por exp
   const [expOptimizando, setExpOptimizando] = useState({}) // { [i]: boolean } loading por exp
+  const [expMejoradas, setExpMejoradas]   = useState({})  // { [i]: true } botón bloqueado tras aplicar
 
   // 1. Verificar si ya tiene CV al cargar
   useEffect(() => {
@@ -600,9 +601,16 @@ export default function CVDesdeCero() {
     }
   }
 
+  const PLACEHOLDER_EXP = /\[[^\]]*[%#]\]|\[X\]|\[N\]|\[XX?\]/i
   const aplicarSugerenciaExp = (i) => {
-    upExp(i, 'descripcion', expSugeridas[i])
+    const texto = expSugeridas[i] || ''
+    if (PLACEHOLDER_EXP.test(texto)) {
+      alert('El texto contiene marcadores sin completar (como [X%] o [#]). Reemplázalos con valores reales antes de aplicar.')
+      return
+    }
+    upExp(i, 'descripcion', texto)
     setExpSugeridas(prev => { const n = { ...prev }; delete n[i]; return n })
+    setExpMejoradas(prev => ({ ...prev, [i]: true }))
   }
 
   const rechazarSugerenciaExp = (i) => {
@@ -1138,11 +1146,11 @@ export default function CVDesdeCero() {
                     <div className="flex items-center justify-between">
                       <button
                         onClick={() => handleOptimizarExp(i)}
-                        disabled={expOptimizando[i] || !exp.descripcion || exp.descripcion.length < 10 || !!expSugeridas[i]}
-                        className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-xl transition-all ${expOptimizando[i] ? 'bg-slate-100 text-slate-400' : 'bg-white text-indigo-600 hover:bg-indigo-50 border border-indigo-100'} disabled:opacity-40`}
+                        disabled={expOptimizando[i] || !exp.descripcion || exp.descripcion.length < 10 || !!expSugeridas[i] || !!expMejoradas[i]}
+                        className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-xl transition-all ${expOptimizando[i] ? 'bg-slate-100 text-slate-400' : expMejoradas[i] ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' : 'bg-white text-indigo-600 hover:bg-indigo-50 border border-indigo-100'} disabled:opacity-40`}
                       >
-                        {expOptimizando[i] ? <SpinnerGap size={14} className="animate-spin" /> : <MagicWand size={14} weight="bold" />}
-                        {expOptimizando[i] ? 'Analizando...' : 'Mejorar con IA'}
+                        {expOptimizando[i] ? <SpinnerGap size={14} className="animate-spin" /> : expMejoradas[i] ? <CheckFat size={14} weight="fill" /> : <MagicWand size={14} weight="bold" />}
+                        {expOptimizando[i] ? 'Analizando...' : expMejoradas[i] ? 'Ya mejorado' : 'Mejorar con IA'}
                       </button>
                       <span className={`text-[10px] ${exp.descripcion.length >= 600 ? 'text-amber-500 font-bold' : 'text-slate-400'}`}>{exp.descripcion.length} chars</span>
                     </div>
