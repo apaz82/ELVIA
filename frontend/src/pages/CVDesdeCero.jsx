@@ -290,6 +290,7 @@ export default function CVDesdeCero() {
   const [expSugeridas, setExpSugeridas]   = useState({})  // { [i]: string } sugerencia por exp
   const [expOptimizando, setExpOptimizando] = useState({}) // { [i]: boolean } loading por exp
   const [expMejoradas, setExpMejoradas]   = useState({})  // { [i]: true } botón bloqueado tras aplicar
+  const [alertaPlaceholder, setAlertaPlaceholder] = useState(false) // modal placeholder sin reemplazar
 
   // 1. Verificar si ya tiene CV al cargar
   useEffect(() => {
@@ -605,7 +606,7 @@ export default function CVDesdeCero() {
   const aplicarSugerenciaExp = (i) => {
     const texto = expSugeridas[i] || ''
     if (PLACEHOLDER_EXP.test(texto)) {
-      alert('El texto contiene marcadores sin completar (como [X%] o [#]). Reemplázalos con valores reales antes de aplicar.')
+      setAlertaPlaceholder(true)
       return
     }
     upExp(i, 'descripcion', texto)
@@ -1388,6 +1389,33 @@ export default function CVDesdeCero() {
           )}
         </div>
       </div>
+
+      {/* ── Modal: placeholder sin reemplazar ────────────────────────────── */}
+      {alertaPlaceholder && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-7">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center shrink-0">
+                <Warning size={22} weight="duotone" className="text-amber-500" />
+              </div>
+              <h3 className="text-base font-bold text-slate-800">Marcadores sin completar</h3>
+            </div>
+            <p className="text-sm text-slate-600 leading-relaxed mb-6">
+              El texto contiene marcadores sin completar (como{' '}
+              <code className="bg-amber-50 text-amber-700 font-mono text-xs px-1.5 py-0.5 rounded">[X%]</code>
+              {' '}o{' '}
+              <code className="bg-amber-50 text-amber-700 font-mono text-xs px-1.5 py-0.5 rounded">[#]</code>
+              ). Reemplázalos con valores reales o elimínalos antes de aplicar.
+            </p>
+            <button
+              onClick={() => setAlertaPlaceholder(false)}
+              className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold transition-colors cursor-pointer"
+            >
+              Entendido
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ── Modal confirmación de idioma antes de generar ─────────────────── */}
       {alertaIdioma && (
