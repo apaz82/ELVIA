@@ -237,14 +237,11 @@ function calcularPorPilar(data, perfil) {
   const perf = (data&&data.perfil) ? data.perfil : {}
   let autoPts = 0
 
-  // 1. Hard Skills - 5 pts
-  if (Array.isArray(auto.hard_skills) && auto.hard_skills.length >= 2) autoPts += 5
+  // 1. Hard Skills - 8 pts
+  if (Array.isArray(auto.hard_skills) && auto.hard_skills.length >= 2) autoPts += 8
 
-  // 2. Soft Skills - 5 pts
-  if (Array.isArray(auto.soft_skills) && auto.soft_skills.length >= 2) autoPts += 5
-
-  // 3. Power Skills - 5 pts
-  if (Array.isArray(auto.power_skills) && auto.power_skills.length >= 2) autoPts += 5
+  // 2. Power/Soft Skills (soft_skills) - 7 pts
+  if (Array.isArray(auto.soft_skills) && auto.soft_skills.length >= 2) autoPts += 7
 
   // 4. Compañías - 5 pts
   if (Array.isArray(auto.top5empresas) && auto.top5empresas.filter(function(e){return e && String(e).trim()}).length >= 1) autoPts += 5
@@ -1642,33 +1639,7 @@ function PilarAutoconocimiento({ data, onChange, onSave, justSaved }) {
           </div>
         </div>
 
-        {/* Power Skills (sección original) — misma data que Hard Skills, quitada de UI para rollback */}
-        {false && <div className="p-5 rounded-2xl bg-violet-50 border border-violet-100">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-8 h-8 rounded-lg bg-violet-100 border border-violet-200 flex items-center justify-center flex-shrink-0">
-              <Sparkle size={15} className="text-violet-600" weight="duotone"/>
-            </div>
-            <div>
-              <div className="font-bold text-slate-800 text-sm leading-tight">Power Skills</div>
-              <div className="text-xs text-violet-600 font-medium">El "Saber lograr" · Competencias de alto impacto · <strong>Debes seleccionar al menos 3</strong></div>
-            </div>
-          </div>
-          <div className="space-y-2">
-            {POWER_SKILLS.map(function(a){
-              const sel = Array.isArray(d.power_skills)&&d.power_skills.includes(a)
-              return (
-                <button key={a} onClick={function(){toggle('power_skills',a)}}
-                  className={'w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left text-sm border-2 transition-all cursor-pointer '+(sel?'bg-violet-600 text-white border-violet-600 font-semibold shadow-sm':'bg-white border-violet-100 text-slate-700 font-medium hover:border-violet-300 hover:bg-violet-50/60')}
-                >
-                  <span className={'w-5 h-5 rounded-full border-2 shrink-0 flex items-center justify-center transition-colors '+(sel?'border-white bg-white/20':'border-violet-300')}>
-                    {sel && <span className="w-2.5 h-2.5 rounded-full bg-white"/>}
-                  </span>
-                  {a}
-                </button>
-              )
-            })}
-          </div>
-        </div>}
+
       </div>
       <div>
         <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Top 5 Compañías objetivo · <span className="text-amber-600">Debes llenar al menos 1</span></h3>

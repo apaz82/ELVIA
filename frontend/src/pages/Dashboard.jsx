@@ -213,9 +213,8 @@ export default function Dashboard() {
   
   const auto = jp.autoconocimiento || {}
   let autoPts = 0
-  if (Array.isArray(auto.hard_skills) && auto.hard_skills.length >= 2) autoPts += 5
-  if (Array.isArray(auto.soft_skills) && auto.soft_skills.length >= 2) autoPts += 5
-  if (Array.isArray(auto.power_skills) && auto.power_skills.length >= 2) autoPts += 5
+  if (Array.isArray(auto.hard_skills) && auto.hard_skills.length >= 2) autoPts += 8
+  if (Array.isArray(auto.soft_skills) && auto.soft_skills.length >= 2) autoPts += 7
   if (Array.isArray(auto.top5empresas) && auto.top5empresas.filter(e => e && String(e).trim()).length >= 1) autoPts += 5
 
   const bloques = jp.semana?.bloques || {}
