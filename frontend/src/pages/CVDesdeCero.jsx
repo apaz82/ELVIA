@@ -279,6 +279,7 @@ export default function CVDesdeCero() {
   const modoForzado = location.state?.mode || null
 
   const [showCancelModal, setShowCancelModal] = useState(false)
+  const [borradorPendiente, setBorradorPendiente] = useState(null) // { datos, paso_actual, p, jsp } cuando hay borrador en BD entrando con mode='scratch'
   const [pasoActual,    setPasoActual]    = useState(0)
   const [datos,         setDatos]         = useState(ESTADO_EMPTY)
   const [generando,     setGenerando]     = useState(false)
@@ -323,6 +324,72 @@ export default function CVDesdeCero() {
   useEffect(() => { datosRef.current = datos },     [datos])
   useEffect(() => { pasoRef.current  = pasoActual }, [pasoActual])
   useEffect(() => { userRef.current  = user },       [user])
+
+  // ── Pre-llenado desde Perfil + Gerente de Proyecto ──────────────────────────
+  // - Identidad (nombre, email, etc.) → profiles
+  // - Resumen profesional → jsp.oferta.oferta_valor (Mi Oferta de Valor)
+  // - Habilidades → jsp.autoconocimiento.hard_skills + soft_skills (Hard + Power Skills, sin duplicados)
+  // - Idiomas → profiles.idiomas (estructura [{idioma, nivel}])
+  const prefillFromGerente = (p, jsp) => {
+    const auto = jsp?.autoconocimiento || {}
+    const oferta = jsp?.oferta || {}
+    const habGerente = [
+      ...(Array.isArray(auto.hard_skills) ? auto.hard_skills : []),
+      ...(Array.isArray(auto.soft_skills) ? auto.soft_skills : []),
+    ].filter((v, i, a) => a.indexOf(v) === i)
+
+    return {
+      ...ESTADO_EMPTY,
+      nombre:        p?.nombre1  || jsp?.nombre1 || '',
+      nombre2:       p?.nombre2  || jsp?.nombre2 || '',
+      apellido:      p?.apellido1 || jsp?.apellido1 || '',
+      apellido2:     p?.apellido2 || jsp?.apellido2 || '',
+      email:         p?.email_principal || p?.email || '',
+      indicativo:    p?.indicativo1 || jsp?.indicativo1 || '+52',
+      telefono:      p?.telefono1 || jsp?.telefono1 || '',
+      ciudad:        p?.ciudad   || jsp?.ciudad   || '',
+      pais:          p?.pais     || jsp?.pais     || '',
+      cargo_objetivo: jsp?.cargo_objetivo || '',
+      resumen:       String(oferta.oferta_valor || '').trim(),
+      habilidades:   habGerente,
+      idiomas:       Array.isArray(p?.idiomas) ? p.idiomas : [],
+    }
+  }
+
+  // Decisión sobre borrador en progreso (modal cuando entras con mode='scratch' y ya hay borrador en BD)
+  const continuarBorrador = () => {
+    if (!borradorPendiente) return
+    const { datos: bDatos, paso_actual } = borradorPendiente
+    setDatos(bDatos)
+    setPasoActual(paso_actual || 0)
+    setModoSeleccion(false)
+    if (user) sessionStorage.setItem(`cv_draft_${user.id}`, JSON.stringify({ datos: bDatos, paso_actual: paso_actual || 0 }))
+    setBorradorPendiente(null)
+  }
+
+  const descartarYEmpezar = async () => {
+    if (!borradorPendiente || !user) return
+    const { p, jsp } = borradorPendiente
+
+    // Borrar cv_borrador + cv_datos_originales en BD
+    const newJsp = { ...jsp }
+    delete newJsp.cv_borrador
+    delete newJsp.cv_datos_originales
+    try {
+      await supabase.from('profiles').update({ job_search_profile: newJsp }).eq('id', user.id)
+    } catch (e) {
+      console.error('Error descartando borrador:', e)
+    }
+
+    // Limpiar caché local
+    sessionStorage.removeItem(`cv_draft_${user.id}`)
+
+    // Pre-llenar fresh
+    setDatos(prefillFromGerente(p, jsp))
+    setPasoActual(0)
+    setModoSeleccion(false)
+    setBorradorPendiente(null)
+  }
 
   // ── Carga inicial ───────────────────────────────────────────────────────────
   useEffect(() => {
@@ -371,45 +438,23 @@ export default function CVDesdeCero() {
         const jsp = p?.job_search_profile || {}
 
         if (borrador?.datos && Object.keys(borrador.datos).length > 0) {
-          setDatos(borrador.datos)
-          setPasoActual(borrador.paso_actual || 0)
-          setModoSeleccion(false)
-          sessionStorage.setItem(CACHE_KEY, JSON.stringify({ datos: borrador.datos, paso_actual: borrador.paso_actual || 0 }))
+          // Hay borrador en BD. Si el usuario entró desde el pilar con mode='scratch',
+          // mostramos modal de decisión: continuar borrador vs empezar nuevo.
+          // Si entró por link directo (sin mode), cargamos el borrador automáticamente (legacy).
+          if (modoForzado === 'scratch') {
+            setBorradorPendiente({ datos: borrador.datos, paso_actual: borrador.paso_actual || 0, p, jsp })
+          } else {
+            setDatos(borrador.datos)
+            setPasoActual(borrador.paso_actual || 0)
+            setModoSeleccion(false)
+            sessionStorage.setItem(CACHE_KEY, JSON.stringify({ datos: borrador.datos, paso_actual: borrador.paso_actual || 0 }))
+          }
         } else {
-          // Si no hay borrador, pre-llenar desde el perfil y del Gerente de Proyecto:
-          // - Identidad (nombre, email, etc.) → profiles
-          // - Resumen profesional → jsp.oferta.oferta_valor (Mi Oferta de Valor)
-          // - Habilidades → jsp.autoconocimiento.hard_skills + soft_skills (Hard + Power Skills, sin duplicados)
-          // - Idiomas → profiles.idiomas (estructura [{idioma, nivel}])
-          const auto = jsp.autoconocimiento || {}
-          const oferta = jsp.oferta || {}
-          const habGerente = [
-            ...(Array.isArray(auto.hard_skills) ? auto.hard_skills : []),
-            ...(Array.isArray(auto.soft_skills) ? auto.soft_skills : []),
-          ].filter((v, i, a) => a.indexOf(v) === i)
-
-          const idiomasPerfil = Array.isArray(p.idiomas) ? p.idiomas : []
-
+          // Si no hay borrador, pre-llenar fresh desde perfil + Gerente
           // Cache local stale: si no hay borrador en BD, el sessionStorage estaría desincronizado.
           // Lo limpiamos para que el próximo unmount no re-escriba datos viejos.
           sessionStorage.removeItem(CACHE_KEY)
-
-          setDatos({
-            ...ESTADO_EMPTY,
-            nombre:        p.nombre1  || jsp.nombre1 || '',
-            nombre2:       p.nombre2  || jsp.nombre2 || '',
-            apellido:      p.apellido1 || jsp.apellido1 || '',
-            apellido2:     p.apellido2 || jsp.apellido2 || '',
-            email:         p.email_principal || p.email || '',
-            indicativo:    p.indicativo1 || jsp.indicativo1 || '+52',
-            telefono:      p.telefono1 || jsp.telefono1 || '',
-            ciudad:        p.ciudad   || jsp.ciudad   || '',
-            pais:          p.pais     || jsp.pais     || '',
-            cargo_objetivo: jsp.cargo_objetivo || '',
-            resumen:       String(oferta.oferta_valor || '').trim(),
-            habilidades:   habGerente,
-            idiomas:       idiomasPerfil,
-          })
+          setDatos(prefillFromGerente(p, jsp))
         }
       } catch (e) {
         console.error('Error cargando datos:', e)
@@ -851,6 +896,46 @@ export default function CVDesdeCero() {
 
   const pasoInfo   = PASOS[pasoActual]
   const pctLlenado = calcularLlenado(datos)
+
+  // Si hay un borrador en BD y el usuario entró con mode='scratch', mostramos solo el modal
+  // (sin el wizard ni la pantalla de selección detrás)
+  if (borradorPendiente) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center p-6">
+        <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-7">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center shrink-0">
+              <Notepad size={20} weight="duotone" className="text-indigo-600" />
+            </div>
+            <h3 className="text-base font-black text-slate-800">Tienes un borrador en progreso</h3>
+          </div>
+          <p className="text-sm text-slate-600 leading-relaxed mb-6">
+            Detectamos un CV que estabas construyendo antes. ¿Quieres continuar donde lo dejaste o empezar uno nuevo con la información actualizada de tu Gerente de Proyecto?
+          </p>
+          <div className="flex flex-col gap-2">
+            <button
+              onClick={continuarBorrador}
+              className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold transition-colors cursor-pointer"
+            >
+              Continuar mi borrador
+            </button>
+            <button
+              onClick={descartarYEmpezar}
+              className="w-full py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 text-sm font-bold transition-colors cursor-pointer border border-rose-200 flex items-center justify-center gap-2"
+            >
+              <ArrowUUpLeft size={14} weight="bold" /> Empezar uno nuevo (descarta el anterior)
+            </button>
+            <button
+              onClick={() => { setBorradorPendiente(null); navigate('/proyecto-laboral') }}
+              className="w-full py-2.5 rounded-xl text-slate-500 hover:text-slate-700 text-xs font-bold transition-colors cursor-pointer"
+            >
+              Volver al Optimizador
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   if (alertaExistente && pasoActual === 0) {
     return (
