@@ -11,7 +11,7 @@ const requireActiveTrial    = require('../middleware/requireActiveTrial');
 const { dailyCap }          = require('../middleware/dailyCap');
 const upload                = require('../middleware/upload');
 const { limiterOptimize, limiterMatch, limiterResumen } = require('../middleware/rateLimiter');
-const { optimize, matchToJob, download, extractProfile, generarInfografia, generarInfografiaProyecto, generarCartaPresentacion, optimizarResumen, optimizarExp } = require('../controllers/cvController')
+const { optimize, matchToJob, download, extractProfile, generarInfografia, generarInfografiaProyecto, generarCartaPresentacion, optimizarResumen, optimizarExp, generarOfertaValorIA } = require('../controllers/cvController')
 const { generarCV } = require('../controllers/cvGenerarController')
 
 // Optimización de CV — dailyCap va DESPUÉS de upload para no consumir slot con archivos inválidos
@@ -43,5 +43,8 @@ router.post('/optimizar-resumen', auth, limiterResumen, optimizarResumen);
 
 // Optimiza descripción de una experiencia laboral (STAR + verbos de acción)
 router.post('/optimizar-experiencia', auth, limiterResumen, optimizarExp);
+
+// Genera borrador de Oferta de Valor con IA (Ikigai + Competencias → síntesis)
+router.post('/oferta-valor-ia', auth, generarOfertaValorIA);
 
 module.exports = router;

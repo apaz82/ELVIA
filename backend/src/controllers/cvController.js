@@ -619,6 +619,53 @@ const optimizarExpController = async (req, res) => {
   }
 };
 
+// POST /api/cv/oferta-valor-ia
+const generarOfertaValorIA = async (req, res) => {
+  try {
+    const { ikigai_amas, ikigai_bueno, ikigai_necesita, ikigai_pagar, hard_skills, soft_skills, niveles_cargo, areas } = req.body
+
+    if (!process.env.ANTHROPIC_API_KEY) {
+      return res.status(500).json({ error: 'Servicio de IA no configurado.' })
+    }
+
+    const Anthropic = require('@anthropic-ai/sdk')
+    const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+
+    const userPrompt = `Eres un experto en branding personal y CVs Harvard ATS-friendly para el mercado latinoamericano.
+
+Información del profesional:
+- Lo que AMAS hacer: ${ikigai_amas || 'No especificado'}
+- En qué eres MUY BUENO/A: ${ikigai_bueno || 'No especificado'}
+- Lo que el MUNDO NECESITA de ti: ${ikigai_necesita || 'No especificado'}
+- Por qué podrían PAGARTE: ${ikigai_pagar || 'No especificado'}
+- Hard Skills: ${(hard_skills || []).join(', ') || 'No especificadas'}
+- Power Skills: ${(soft_skills || []).join(', ') || 'No especificadas'}
+- Nivel de cargo objetivo: ${(niveles_cargo || []).join(', ') || 'No especificado'}
+- Área funcional: ${(areas || []).join(', ') || 'No especificada'}
+
+Redacta una "Oferta de Valor" profesional de 3-4 oraciones (~80-120 palabras) para incluir al inicio de un CV Harvard.
+Requisitos:
+- Primera persona, voz activa, tono profesional pero humano
+- Integra skills y nivel de cargo de forma natural, sin listar
+- Refleja el propósito y diferencial único del profesional
+- Lista para copiar-pegar en un CV de élite
+Responde ÚNICAMENTE con el texto de la oferta, sin introducción ni etiquetas.`
+
+    const response = await anthropic.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 400,
+      temperature: 0.7,
+      messages: [{ role: 'user', content: userPrompt }],
+    })
+
+    const oferta_valor = response.content[0]?.text?.trim() || ''
+    res.json({ oferta_valor })
+  } catch (err) {
+    console.error('generarOfertaValorIA error:', err.message)
+    res.status(500).json({ error: 'Error generando la oferta de valor.' })
+  }
+}
+
 module.exports = {
   optimize,
   matchToJob,
@@ -629,4 +676,5 @@ module.exports = {
   generarCartaPresentacion,
   optimizarResumen: optimizarResumenController,
   optimizarExp: optimizarExpController,
+  generarOfertaValorIA,
 };

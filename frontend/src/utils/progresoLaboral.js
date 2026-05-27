@@ -2,14 +2,13 @@
 // Importar desde AuthContext y ProyectoLaboral para mantener una sola fuente de verdad
 
 export const RECURSOS_DEFAULT = [
-  { id:'1',      nombre:'Espacio de trabajo tranquilo', descripcion:'Un lugar donde puedas concentrarte sin interrupciones.', costo:0, tengo:false },
   { id:'2',      nombre:'Conexión a internet estable',  descripcion:'Necesaria para aplicar, videollamadas y LinkedIn.',      costo:0, tengo:false },
   { id:'3',      nombre:'Celular activo',               descripcion:'Para recibir llamadas de reclutadores.',                 costo:0, tengo:false },
   { id:'4',      nombre:'LinkedIn Premium',             descripcion:'La red #1 para ser encontrado por reclutadores.',        costo:0, tengo:false },
   { id:'5',      nombre:'Transporte a entrevistas',     descripcion:'Transporte público o privado + estacionamiento.',        costo:0, tengo:false },
   { id:'6',      nombre:'Networking',                   descripcion:'Eventos, membresías o herramientas para ampliar tu red profesional.',     costo:0, tengo:false },
   { id:'7',      nombre:'Café / Coworking',             descripcion:'Si prefieres salir de casa para más productividad.',     costo:0, tengo:false },
-  { id:'optima', nombre:'Suscripción ELVIA',           descripcion:'Tu plan activo de ELVIA.',                           costo:0, tengo:false, obligatorio:true },
+  { id:'optima', nombre:'Suscripción ELVIA',            descripcion:'Tu plan activo de ELVIA.',                               costo:0, tengo:false, obligatorio:true, b2cOnly:true },
 ]
 
 // IDs de documentos del pilar Documentos (sin referencias a componentes React)

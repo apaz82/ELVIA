@@ -1545,7 +1545,7 @@ function PilarRecursos({ data, onChange, onSave, justSaved, pais }) {
         </p>
       </div>
       <div className="space-y-2.5">
-        {recursos.map(function(r){
+        {recursos.filter(function(r){ return !r.b2cOnly }).map(function(r){
           const isOptima = r.id==='optima'
           const optimaValor = isOptima && r.tengo ? convertirDesdeMXN(PRECIO_OPTIMA_MXN['free'], moneda) : r.costo
           return(
@@ -1737,12 +1737,49 @@ const CULTURA_SUGERIDAS = [
   'Procesos bien definidos','Con propósito social','Flexible',
 ]
 
-function PilarOfertaDeValor({ data, onChange, onSave, justSaved }) {
+function PilarOfertaDeValor({ data, onChange, onSave, justSaved, contexto }) {
   const d = data || {}
   const up = function(key, val) { onChange(Object.assign({}, d, {[key]: val})) }
   const [cultInput, setCultInput] = useState('')
   const [modalIkigai, setModalIkigai] = useState(false)
   const [modalIncompleto, setModalIncompleto] = useState(null) // null | string[]
+  const [iaLoading, setIaLoading] = useState(false)
+  const [iaDraft, setIaDraft] = useState(false)
+
+  const ikigaiCompleto = ['ikigai_amas','ikigai_bueno','ikigai_necesita','ikigai_pagar'].every(function(k){ return String(d[k]||'').trim().length >= 50 })
+  const tieneSkills = Array.isArray(contexto?.hard_skills) && contexto.hard_skills.length > 0
+
+  const generarConIA = async function() {
+    if (iaLoading) return
+    setIaLoading(true)
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+      const { data: { session } } = await (await import('../services/authService')).supabase.auth.getSession()
+      const res = await fetch(`${apiUrl}/api/cv/oferta-valor-ia`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token}` },
+        body: JSON.stringify({
+          ikigai_amas:     d.ikigai_amas || '',
+          ikigai_bueno:    d.ikigai_bueno || '',
+          ikigai_necesita: d.ikigai_necesita || '',
+          ikigai_pagar:    d.ikigai_pagar || '',
+          hard_skills:     contexto?.hard_skills || [],
+          soft_skills:     contexto?.soft_skills || [],
+          niveles_cargo:   contexto?.niveles_cargo || [],
+          areas:           contexto?.areas || [],
+        }),
+      })
+      const json = await res.json()
+      if (json.oferta_valor) {
+        up('oferta_valor', json.oferta_valor)
+        setIaDraft(true)
+      }
+    } catch (e) {
+      console.error('generarConIA:', e)
+    } finally {
+      setIaLoading(false)
+    }
+  }
 
   const IKIGAI_LABELS = {
     ikigai_amas:     '¿Qué es lo que AMAS?',
@@ -2092,12 +2129,34 @@ function PilarOfertaDeValor({ data, onChange, onSave, justSaved }) {
           Si tuvieras 5 minutos en una charla TED, ¿cómo le explicarías a una empresa exactamente
           qué valor único traes con tu experiencia, habilidades y forma de trabajar?
         </p>
-        <p className="text-xs text-rose-600 font-semibold mb-4">
+        <p className="text-xs text-rose-600 font-semibold mb-3">
           Este texto se integrará en tu CV optimizado, después de tus datos de contacto.
         </p>
+        <div className="flex items-center justify-between gap-3 mb-3">
+          {iaDraft && (
+            <span className="inline-flex items-center gap-1.5 text-[10px] font-bold text-violet-700 bg-violet-100 border border-violet-200 px-2.5 py-1 rounded-full">
+              <Sparkle size={10} weight="fill"/> Borrador IA — edítalo a tu gusto
+            </span>
+          )}
+          <button
+            onClick={generarConIA}
+            disabled={iaLoading || !ikigaiCompleto || !tieneSkills}
+            title={!ikigaiCompleto ? 'Completa las 4 preguntas IKIGAI primero' : !tieneSkills ? 'Agrega al menos 1 Hard Skill en Competencias' : ''}
+            className={'ml-auto flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all cursor-pointer border ' +
+              (iaLoading || !ikigaiCompleto || !tieneSkills
+                ? 'bg-slate-50 text-slate-400 border-slate-200 cursor-not-allowed'
+                : 'bg-violet-600 hover:bg-violet-700 text-white border-violet-600 shadow-sm hover:shadow-md')}
+          >
+            {iaLoading ? (
+              <><span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin"/> Generando…</>
+            ) : (
+              <><Sparkle size={14} weight="fill"/> Generar borrador con IA</>
+            )}
+          </button>
+        </div>
         <textarea
           value={d.oferta_valor || ''}
-          onChange={function(e){ up('oferta_valor', e.target.value) }}
+          onChange={function(e){ up('oferta_valor', e.target.value); if(iaDraft) setIaDraft(false) }}
           placeholder={'Ej: Soy un profesional de Supply Chain con 12 años de experiencia en manufactura automotriz. Mi valor está en reducir costos operativos sin sacrificar calidad: en mis últimos 3 roles, lideré proyectos que redujeron tiempos de entrega en un 30% y costos logísticos en un 18%. Combino análisis de datos con liderazgo de equipos multiculturales y me adapto rápido a entornos de alta presión. Lo que me diferencia es mi capacidad de conectar la estrategia de negocio con la operación del día a día.'}
           rows={8}
           maxLength={700}
@@ -2898,7 +2957,7 @@ export default function ProyectoLaboral() {
             {pilarId==='autoconocimiento'&&<PilarAutoconocimiento data={data.autoconocimiento} onChange={function(v){updatePilar('autoconocimiento',v)}} onSave={function(){handlePilarSave('autoconocimiento')}} justSaved={justSaved==='autoconocimiento'}/>}
             {pilarId==='recursos'      &&<PilarRecursos         data={data.recursos}         onChange={function(v){updatePilar('recursos',v)}} onSave={function(){handlePilarSave('recursos')}} justSaved={justSaved==='recursos'} pais={perfil?.pais_prestaciones || perfil?.pais || ''}/>}
             {pilarId==='semana'        &&<PilarSemana           data={data.semana}           onChange={function(v){updatePilar('semana',v)}} onSave={function(){handlePilarSave('semana')}} justSaved={justSaved==='semana'}/>}
-            {pilarId==='oferta'        &&<PilarOfertaDeValor    data={data.oferta}           onChange={function(v){updatePilar('oferta',v)}} onSave={function(){handlePilarSave('oferta')}} justSaved={justSaved==='oferta'}/>}
+            {pilarId==='oferta'        &&<PilarOfertaDeValor    data={data.oferta}           onChange={function(v){updatePilar('oferta',v)}} onSave={function(){handlePilarSave('oferta')}} justSaved={justSaved==='oferta'} contexto={{hard_skills:data?.autoconocimiento?.hard_skills||[],soft_skills:data?.autoconocimiento?.soft_skills||[],niveles_cargo:data?.perfil?.niveles_cargo||[],areas:data?.perfil?.areas||[]}}/>}
             {pilarId==='documentos'    &&<PilarOptimizadorCV pct={pct}/>}
           </div>
         </div>
