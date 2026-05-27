@@ -48,6 +48,16 @@ const CLOUD_STYLE = {
   sm: { fontSize: 12, fontWeight: 500, color: 'rgba(242,180,80,0.7)' },
 }
 
+const getCloudStyle = (size, text) => {
+  const base = CLOUD_STYLE[size] || CLOUD_STYLE.md;
+  if (text.length > 25) {
+    return { ...base, fontSize: 13, lineHeight: 1.1 };
+  } else if (text.length > 15) {
+    return { ...base, fontSize: 16, lineHeight: 1.1 };
+  }
+  return base;
+};
+
 // Cultura tag color cycling
 const TAG_COLORS = [
   { bg: '#FBE8C7', color: '#D97706' },
@@ -130,14 +140,25 @@ export default function ReporteLaboral() {
     const jsp        = data || profile?.job_search_profile || {}
     const perfilInfo = jsp.perfil || {}
     const nombre     = data?.nombreCandidato || `${perfilInfo.nombre1 || ''} ${perfilInfo.apellido1 || ''}`.trim() || 'ELVIA'
+
+    // Aplicar clase para forzar altura fija en PDF
+    reporteRef.current.classList.add('is-generating-pdf')
+
     const opt = {
       margin:      0,
       filename:    `Infografia_Ejecutiva_${nombre.replace(/\s+/g, '_')}.pdf`,
-      image:       { type: 'jpeg', quality: 1 },
+      image:       { type: 'jpeg', quality: 0.98 },
       html2canvas: { scale: 2, useCORS: true, letterRendering: true },
       jsPDF:       { unit: 'in', format: 'letter', orientation: 'portrait' },
     }
-    html2pdf().from(reporteRef.current).set(opt).save().then(() => setDescargando(false))
+    html2pdf().from(reporteRef.current).set(opt).save().then(() => {
+      reporteRef.current.classList.remove('is-generating-pdf')
+      setDescargando(false)
+    }).catch(err => {
+      reporteRef.current.classList.remove('is-generating-pdf')
+      setDescargando(false)
+      console.error('[html2pdf] Error generating PDF:', err)
+    })
   }
 
   if (loading) return (
@@ -184,17 +205,18 @@ export default function ReporteLaboral() {
   const totalBloques     = Object.values(semanaBloques).filter(Boolean).length
   const totalHoras       = totalBloques * 2
 
+  // Limitar recursos activos a máximo 6 para presupuesto de página única
   const rawRecursos      = Array.isArray(recursos) ? recursos : (Array.isArray(recursos.recursos) ? recursos.recursos : [])
-  const recursosActivos  = rawRecursos.filter(r => r.tengo)
+  const recursosActivos  = rawRecursos.filter(r => r.tengo).slice(0, 6)
 
   // Avatar initials
   const n1 = perfilInfo.nombre1   || nombreCandidato.split(' ')[0] || 'E'
   const a1 = perfilInfo.apellido1 || nombreCandidato.split(' ')[1] || 'X'
   const initials = `${n1[0]}${a1[0]}`.toUpperCase()
 
-  // Word cloud from hard skills
+  // Word cloud from hard skills (capped at 8 items for page-budget)
   const cloudTerms = hardSkills.length >= 4
-    ? hardSkills.slice(0, 12).map((s, i) => ({ text: s.toUpperCase(), size: CLOUD_SIZES[i % CLOUD_SIZES.length] }))
+    ? hardSkills.slice(0, 8).map((s, i) => ({ text: s.toUpperCase(), size: CLOUD_SIZES[i % CLOUD_SIZES.length] }))
     : [
         { text: 'LIDERAZGO', size: 'xl' }, { text: 'ESTRATEGIA', size: 'lg' },
         { text: 'GESTIÓN', size: 'xl' }, { text: 'INNOVACIÓN', size: 'md' },
@@ -244,18 +266,29 @@ export default function ReporteLaboral() {
     { num: '04', prefix: 'Por lo que me ', em: 'pagarían', suffix: '', body: ikigaiPagar, color: C.plum },
   ]
 
+  // Limitar visualización a un máximo de 8 competencias por lista
   const repertorioCols = [
-    { label: 'Hard Skills',  count: hardSkills.length, color: C.marine,  skills: hardSkills },
-    { label: 'Power Skills', count: softSkills.length, color: C.saffron, skills: softSkills },
-    ...(powerSkills.length > 0 ? [{ label: 'Liderazgo', count: powerSkills.length, color: C.plum, skills: powerSkills }] : []),
+    { label: 'Hard Skills',  count: hardSkills.length, color: C.marine,  skills: hardSkills.slice(0, 8) },
+    { label: 'Power Skills', count: softSkills.length, color: C.saffron, skills: softSkills.slice(0, 8) },
+    ...(powerSkills.length > 0 ? [{ label: 'Liderazgo', count: powerSkills.length, color: C.plum, skills: powerSkills.slice(0, 8) }] : []),
   ]
 
   // ── Render ───────────────────────────────────────────────────────────────────
   return (
     <div style={{ background: '#D9D5C8', minHeight: '100vh', paddingBottom: 96 }}>
 
+      {/* Estilo dinámico autoinyectado para forzar altura fija estricta de 11 pulgadas en el PDF */}
+      <style>{`
+        .is-generating-pdf {
+          height: 11in !important;
+          max-height: 11in !important;
+          box-sizing: border-box !important;
+          overflow: hidden !important;
+        }
+      `}</style>
+
       {/* Action bar — hidden in PDF */}
-      <div className="no-print" style={{ maxWidth: 900, margin: '0 auto', padding: '32px 24px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div className="no-print" style={{ maxWidth: 900, margin: '0 auto', padding: '24px 24px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <button
           onClick={() => navigate('/mis-cvs')}
           style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(8px)', border: `1px solid ${C.hairline}`, borderRadius: 12, padding: '10px 20px', fontFamily: MONO, fontSize: 11, letterSpacing: '0.15em', textTransform: 'uppercase', color: C.inkSoft, cursor: 'pointer' }}
@@ -280,24 +313,24 @@ export default function ReporteLaboral() {
         >
 
           {/* ── HEADER — navy + avatar + word cloud ───────────────────────────── */}
-          <header style={{ position: 'relative', background: `linear-gradient(135deg, ${C.navy} 0%, ${C.navy2} 100%)`, color: 'white', padding: '36px 44px 32px', overflow: 'hidden' }}>
+          <header style={{ position: 'relative', background: `linear-gradient(135deg, ${C.navy} 0%, ${C.navy2} 100%)`, color: 'white', padding: '24px 36px 20px', overflow: 'hidden' }}>
             <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(900px 500px at 100% -20%, rgba(217,119,6,0.18), transparent 55%), radial-gradient(700px 400px at -10% 120%, rgba(30,64,175,0.25), transparent 50%)', pointerEvents: 'none' }} />
-            <div style={{ position: 'relative', display: 'grid', gridTemplateColumns: '1.05fr 1fr', gap: 32, alignItems: 'center' }}>
+            <div style={{ position: 'relative', display: 'grid', gridTemplateColumns: '1.05fr 1fr', gap: 24, alignItems: 'center' }}>
 
               {/* Identity: avatar + name + role */}
-              <div style={{ display: 'grid', gridTemplateColumns: '96px 1fr', gap: 22, alignItems: 'center' }}>
-                <div style={{ width: 96, height: 96, borderRadius: '50%', background: C.paper, color: C.ink, fontFamily: DISPLAY, fontWeight: 700, fontSize: 36, letterSpacing: '-0.025em', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '3px solid rgba(255,255,255,0.15)', boxShadow: '0 4px 24px rgba(0,0,0,0.35)', flexShrink: 0 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr', gap: 16, alignItems: 'center' }}>
+                <div style={{ width: 80, height: 80, borderRadius: '50%', background: C.paper, color: C.ink, fontFamily: DISPLAY, fontWeight: 700, fontSize: 30, letterSpacing: '-0.025em', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '3px solid rgba(255,255,255,0.15)', boxShadow: '0 4px 24px rgba(0,0,0,0.35)', flexShrink: 0 }}>
                   {initials}
                 </div>
                 <div>
-                  <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.28em', textTransform: 'uppercase', color: C.saffronLight, fontWeight: 700, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{ fontFamily: MONO, fontSize: 9, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.saffronLight, fontWeight: 700, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
                     Resumen autoconocimiento
                     <span className="no-print"><HelpBadge id="reporte.main" /></span>
                   </div>
-                  <h1 style={{ fontFamily: DISPLAY, fontSize: 36, fontWeight: 700, letterSpacing: '-0.035em', lineHeight: 0.95, color: 'white', margin: '0 0 6px' }}>
+                  <h1 style={{ fontFamily: DISPLAY, fontSize: 30, fontWeight: 700, letterSpacing: '-0.035em', lineHeight: 0.95, color: 'white', margin: '0 0 4px' }}>
                     {nombreCandidato}
                   </h1>
-                  <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.22em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.7)', fontWeight: 500, lineHeight: 1.7 }}>
+                  <div style={{ fontFamily: MONO, fontSize: 9, letterSpacing: '0.20em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.7)', fontWeight: 500, lineHeight: 1.5 }}>
                     <b style={{ color: 'white', fontWeight: 700 }}>{cargoDeseado}</b>
                     {ciudad && ` · ${ciudad}${pais ? `, ${pais}` : ''}`}
                   </div>
@@ -305,9 +338,9 @@ export default function ReporteLaboral() {
               </div>
 
               {/* Word cloud — right side of header */}
-              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', gap: '6px 12px', fontFamily: DISPLAY, lineHeight: 1.0, letterSpacing: '-0.03em', justifyContent: 'flex-end', maxHeight: 130, overflow: 'hidden' }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', gap: '4px 8px', fontFamily: DISPLAY, lineHeight: 1.0, letterSpacing: '-0.03em', justifyContent: 'flex-end', maxHeight: 110, overflow: 'hidden' }}>
                 {cloudTerms.map((term, i) => (
-                  <span key={i} style={{ lineHeight: 1.0, ...CLOUD_STYLE[term.size] }}>
+                  <span key={i} style={{ lineHeight: 1.0, ...getCloudStyle(term.size, term.text) }}>
                     {term.text}
                   </span>
                 ))}
@@ -316,11 +349,11 @@ export default function ReporteLaboral() {
           </header>
 
           {/* ── STATEMENT — oferta de valor ───────────────────────────────────── */}
-          <section style={{ padding: '40px 44px 36px', background: C.paper, borderBottom: `1px solid ${C.hairline}`, display: 'grid', gridTemplateColumns: '80px 1fr', gap: 0, alignItems: 'start' }}>
-            <div style={{ fontFamily: DISPLAY, fontSize: 140, fontWeight: 400, color: C.saffron, lineHeight: 0.7, marginTop: 18, textAlign: 'center', letterSpacing: '-0.06em' }}>&ldquo;</div>
-            <div style={{ borderLeft: `2px solid ${C.saffron}`, paddingLeft: 22 }}>
-              <div style={{ fontFamily: MONO, fontSize: 10, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.saffron, fontWeight: 700, marginBottom: 14 }}>Mi oferta de valor</div>
-              <p style={{ fontFamily: DISPLAY, fontSize: 22, lineHeight: 1.22, letterSpacing: '-0.022em', fontWeight: 500, color: C.ink, margin: 0, maxWidth: 660 }}>
+          <section style={{ padding: '20px 36px', background: C.paper, borderBottom: `1px solid ${C.hairline}`, display: 'grid', gridTemplateColumns: '60px 1fr', gap: 0, alignItems: 'start' }}>
+            <div style={{ fontFamily: DISPLAY, fontSize: 100, fontWeight: 400, color: C.saffron, lineHeight: 0.7, marginTop: 8, textAlign: 'center', letterSpacing: '-0.06em' }}>&ldquo;</div>
+            <div style={{ borderLeft: `2px solid ${C.saffron}`, paddingLeft: 18 }}>
+              <div style={{ fontFamily: MONO, fontSize: 9, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.saffron, fontWeight: 700, marginBottom: 8 }}>Mi oferta de valor</div>
+              <p style={{ fontFamily: DISPLAY, fontSize: 18, lineHeight: 1.22, letterSpacing: '-0.022em', fontWeight: 500, color: C.ink, margin: 0, maxWidth: 660 }}>
                 {ofertaValor}
               </p>
             </div>
@@ -329,25 +362,25 @@ export default function ReporteLaboral() {
           {/* ── STATS STRIP ───────────────────────────────────────────────────── */}
           <section style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', background: C.paper, borderBottom: `1px solid ${C.hairline}` }}>
             {stats.map((s, i) => (
-              <div key={i} style={{ padding: '20px 24px', borderRight: i < 3 ? `1px solid ${C.hairline}` : 'none', display: 'flex', flexDirection: 'column', gap: 4 }}>
-                <div style={{ fontFamily: DISPLAY, fontSize: 40, fontWeight: 700, letterSpacing: '-0.04em', lineHeight: 1.0, color: s.color, fontVariantNumeric: 'tabular-nums' }}>
+              <div key={i} style={{ padding: '10px 20px', borderRight: i < 3 ? `1px solid ${C.hairline}` : 'none', display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <div style={{ fontFamily: DISPLAY, fontSize: 32, fontWeight: 700, letterSpacing: '-0.04em', lineHeight: 1.0, color: s.color, fontVariantNumeric: 'tabular-nums' }}>
                   {s.v}
-                  {s.unit && <small style={{ fontSize: 18, fontWeight: 500, color: C.muted, marginLeft: 4 }}>{s.unit}</small>}
+                  {s.unit && <small style={{ fontSize: 15, fontWeight: 500, color: C.muted, marginLeft: 2 }}>{s.unit}</small>}
                 </div>
-                <div style={{ fontFamily: MONO, fontSize: 9, letterSpacing: '0.20em', textTransform: 'uppercase', color: C.muted, fontWeight: 600 }}>{s.k}</div>
-                {s.sub && <div style={{ fontFamily: BODY, fontSize: 10, color: C.muted2, fontWeight: 500, marginTop: 2, lineHeight: 1.3 }}>{s.sub}</div>}
+                <div style={{ fontFamily: MONO, fontSize: 8.5, letterSpacing: '0.18em', textTransform: 'uppercase', color: C.muted, fontWeight: 600 }}>{s.k}</div>
+                {s.sub && <div style={{ fontFamily: BODY, fontSize: 9.5, color: C.muted2, fontWeight: 500, marginTop: 1, lineHeight: 1.2 }}>{s.sub}</div>}
               </div>
             ))}
           </section>
 
           {/* ── IKIGAI VENN ───────────────────────────────────────────────────── */}
-          <section style={{ padding: '30px 44px', display: 'grid', gridTemplateColumns: '300px 1fr', gap: 32, borderBottom: `1px solid ${C.hairline}`, background: C.paper }}>
-            <div style={{ gridColumn: '1 / -1', fontFamily: MONO, fontSize: 9, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.muted2, fontWeight: 600, marginBottom: 6 }}>
+          <section style={{ padding: '16px 36px', display: 'grid', gridTemplateColumns: '210px 1fr', gap: 24, borderBottom: `1px solid ${C.hairline}`, background: C.paper }}>
+            <div style={{ gridColumn: '1 / -1', fontFamily: MONO, fontSize: 8.5, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.muted2, fontWeight: 600, marginBottom: 2 }}>
               Propósito · método <b style={{ color: C.ink, fontWeight: 700 }}>Ikigai</b>
             </div>
 
-            {/* SVG Venn */}
-            <div>
+            {/* SVG Venn (Compacto: de 300px a 210px) */}
+            <div style={{ width: 210 }}>
               <svg viewBox="0 0 320 320" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', height: 'auto', display: 'block', mixBlendMode: 'multiply' }}>
                 <circle cx="120" cy="120" r="100" fill="#D97706" fillOpacity="0.55" />
                 <circle cx="200" cy="120" r="100" fill="#1E3A8A" fillOpacity="0.55" />
@@ -360,22 +393,22 @@ export default function ReporteLaboral() {
                 <text x="160" y="158" textAnchor="middle" fill="#0E0D0A" fontFamily="Montserrat" fontSize="18" fontWeight="800" letterSpacing="-0.02em">IKIGAI</text>
                 <text x="160" y="174" textAnchor="middle" fill="#0E0D0A" fontFamily="JetBrains Mono" fontSize="7" fontWeight="600" letterSpacing="0.18em">RAZÓN DE SER</text>
               </svg>
-              <div style={{ textAlign: 'center', marginTop: -6, fontFamily: MONO, fontSize: 9, letterSpacing: '0.18em', textTransform: 'uppercase', color: C.muted, fontWeight: 600 }}>
-                4 vectores · 1 <b style={{ color: C.ink, fontFamily: DISPLAY, fontSize: 13, fontWeight: 700, letterSpacing: 0, textTransform: 'none', margin: '0 4px' }}>propósito</b> · método japonés
+              <div style={{ textAlign: 'center', marginTop: 4, fontFamily: MONO, fontSize: 8, letterSpacing: '0.18em', textTransform: 'uppercase', color: C.muted, fontWeight: 600 }}>
+                4 vectores · 1 <b style={{ color: C.ink, fontFamily: DISPLAY, fontSize: 11, fontWeight: 700, letterSpacing: 0, textTransform: 'none', margin: '0 2px' }}>propósito</b>
               </div>
             </div>
 
             {/* Quadrants */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px 18px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 14px' }}>
               {ikigaiQuadrants.map((q, i) => (
-                <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-                    <span style={{ fontFamily: MONO, fontSize: 9, letterSpacing: '0.18em', fontWeight: 700, color: 'white', background: q.color, padding: '2px 5px', borderRadius: 2 }}>{q.num}</span>
-                    <span style={{ fontFamily: DISPLAY, fontSize: 14, fontWeight: 600, letterSpacing: '-0.01em', lineHeight: 1.1 }}>
+                <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+                    <span style={{ fontFamily: MONO, fontSize: 8, letterSpacing: '0.18em', fontWeight: 700, color: 'white', background: q.color, padding: '1px 4px', borderRadius: 2 }}>{q.num}</span>
+                    <span style={{ fontFamily: DISPLAY, fontSize: 12, fontWeight: 600, letterSpacing: '-0.01em', lineHeight: 1.1 }}>
                       {q.prefix}<em style={{ color: q.color, fontStyle: 'normal' }}>{q.em}</em>{q.suffix}
                     </span>
                   </div>
-                  <div style={{ fontFamily: BODY, fontSize: 10.5, lineHeight: 1.5, color: C.inkSoft }}>
+                  <div style={{ fontFamily: BODY, fontSize: 9.5, lineHeight: 1.4, color: C.inkSoft }}>
                     {q.body || 'Aún no completado.'}
                   </div>
                 </div>
@@ -385,14 +418,14 @@ export default function ReporteLaboral() {
 
           {/* ── MERCADO — typographic company logos ───────────────────────────── */}
           {targetEmpresas.length > 0 && (
-            <section style={{ padding: '28px 44px 26px', borderBottom: `1px solid ${C.hairline}`, background: C.paper2 }}>
+            <section style={{ padding: '14px 36px 12px', borderBottom: `1px solid ${C.hairline}`, background: C.paper2 }}>
               <SecLabel>Compañías objetivo</SecLabel>
-              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px 28px', fontFamily: DISPLAY, fontSize: 28, lineHeight: 1, letterSpacing: '-0.025em' }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '6px 20px', fontFamily: DISPLAY, fontSize: 22, lineHeight: 1, letterSpacing: '-0.025em' }}>
                 {targetEmpresas.map((emp, i) => (
                   <span key={i}>
                     <span style={CO_STYLES[i % CO_STYLES.length]}>{emp}</span>
                     {i < targetEmpresas.length - 1 && (
-                      <span style={{ fontFamily: MONO, fontSize: 14, color: C.muted2, fontWeight: 400, marginLeft: 14 }}>/</span>
+                      <span style={{ fontFamily: MONO, fontSize: 11, color: C.muted2, fontWeight: 400, marginLeft: 10 }}>/</span>
                     )}
                   </span>
                 ))}
@@ -401,22 +434,22 @@ export default function ReporteLaboral() {
           )}
 
           {/* ── REPERTORIO + HEATMAP + RESOURCES ─────────────────────────────── */}
-          <section style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', background: C.paper, borderBottom: `1px solid ${C.hairline}` }}>
+          <section style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', background: C.paper, borderBottom: `1px solid ${C.hairline}`, flexGrow: 1 }}>
 
             {/* 3-column skill lists */}
-            <div style={{ padding: '28px 28px 28px 44px', borderRight: `1px solid ${C.hairline}` }}>
+            <div style={{ padding: '16px 20px 16px 36px', borderRight: `1px solid ${C.hairline}` }}>
               <SecLabel>Repertorio · competencias <b style={{ color: C.ink, fontWeight: 700 }}>seleccionadas</b></SecLabel>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 18 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14 }}>
                 {repertorioCols.map((col, ci) => (
                   <div key={ci}>
-                    <h5 style={{ margin: '0 0 8px', fontFamily: DISPLAY, fontSize: 13, fontWeight: 700, letterSpacing: '-0.01em', color: col.color }}>
+                    <h5 style={{ margin: '0 0 6px', fontFamily: DISPLAY, fontSize: 11, fontWeight: 700, letterSpacing: '-0.01em', color: col.color }}>
                       {col.label}
-                      {col.count > 0 && <small style={{ fontFamily: MONO, fontSize: 9, color: C.muted2, marginLeft: 6, fontWeight: 500, letterSpacing: '0.12em' }}>{col.count}</small>}
+                      {col.count > 0 && <small style={{ fontFamily: MONO, fontSize: 8, color: C.muted2, marginLeft: 4, fontWeight: 500, letterSpacing: '0.12em' }}>{col.count}</small>}
                     </h5>
-                    <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
                       {col.skills.map((s, si) => (
-                        <li key={si} style={{ fontFamily: BODY, fontSize: 9.5, lineHeight: 1.4, color: C.inkSoft, padding: '1px 0' }}>
-                          <span style={{ color: C.muted2, marginRight: 6, fontWeight: 700 }}>·</span>{s}
+                        <li key={si} style={{ fontFamily: BODY, fontSize: 9, lineHeight: 1.3, color: C.inkSoft, padding: '0.5px 0' }}>
+                          <span style={{ color: C.muted2, marginRight: 4, fontWeight: 700 }}>·</span>{s}
                         </li>
                       ))}
                     </ul>
@@ -426,7 +459,7 @@ export default function ReporteLaboral() {
             </div>
 
             {/* Right stack: heatmap + resources */}
-            <div style={{ padding: '28px 44px 28px 28px', display: 'flex', flexDirection: 'column', gap: 24 }}>
+            <div style={{ padding: '16px 36px 16px 20px', display: 'flex', flexDirection: 'column', gap: 18 }}>
 
               {/* Heatmap */}
               <div>
@@ -437,18 +470,18 @@ export default function ReporteLaboral() {
                     const amOn = !!semanaBloques[`${key}_am`]
                     const pmOn = !!semanaBloques[`${key}_pm`]
                     return (
-                      <div key={di} style={{ display: 'grid', gridTemplateRows: 'auto 1fr 1fr', gap: 3 }}>
-                        <div style={{ textAlign: 'center', fontFamily: MONO, fontSize: 9, letterSpacing: '0.18em', color: C.muted, fontWeight: 600, marginBottom: 2 }}>{day}</div>
-                        <div style={{ height: 26, borderRadius: 2, background: amOn ? C.marine : C.paper2 }} />
-                        <div style={{ height: 26, borderRadius: 2, background: pmOn ? 'rgba(30,58,138,0.55)' : C.paper2 }} />
+                      <div key={di} style={{ display: 'grid', gridTemplateRows: 'auto 1fr 1fr', gap: 2.5 }}>
+                        <div style={{ textAlign: 'center', fontFamily: MONO, fontSize: 8, letterSpacing: '0.18em', color: C.muted, fontWeight: 600, marginBottom: 1 }}>{day}</div>
+                        <div style={{ height: 22, borderRadius: 2, background: amOn ? C.marine : C.paper2 }} />
+                        <div style={{ height: 22, borderRadius: 2, background: pmOn ? 'rgba(30,58,138,0.55)' : C.paper2 }} />
                       </div>
                     )
                   })}
                 </div>
                 {totalBloques > 0 && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 12, fontFamily: MONO, fontSize: 10, letterSpacing: '0.08em', color: C.muted }}>
-                    <span><b style={{ color: C.ink, fontFamily: DISPLAY, fontSize: 14, fontWeight: 700, marginRight: 4 }}>{totalBloques}</b> bloques</span>
-                    <span><b style={{ color: C.ink, fontFamily: DISPLAY, fontSize: 14, fontWeight: 700, marginRight: 4 }}>{totalHoras}h</b> · semana</span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, fontFamily: MONO, fontSize: 9, letterSpacing: '0.08em', color: C.muted }}>
+                    <span><b style={{ color: C.ink, fontFamily: DISPLAY, fontSize: 12, fontWeight: 700, marginRight: 2 }}>{totalBloques}</b> bloques</span>
+                    <span><b style={{ color: C.ink, fontFamily: DISPLAY, fontSize: 12, fontWeight: 700, marginRight: 2 }}>{totalHoras}h</b> · sem</span>
                   </div>
                 )}
               </div>
@@ -457,13 +490,13 @@ export default function ReporteLaboral() {
               {recursosActivos.length > 0 && (
                 <div>
                   <SecLabel>Recursos activos</SecLabel>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                     {recursosActivos.map((r, ri) => (
-                      <div key={ri} style={{ display: 'grid', gridTemplateColumns: '22px 1fr', gap: 10, alignItems: 'center', padding: '6px 0', borderTop: ri > 0 ? `1px dashed ${C.hairline}` : 'none' }}>
-                        <div style={{ width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.ink }}>
+                      <div key={ri} style={{ display: 'grid', gridTemplateColumns: '18px 1fr', gap: 8, alignItems: 'center', padding: '3px 0', borderTop: ri > 0 ? `1px dashed ${C.hairline}` : 'none' }}>
+                        <div style={{ width: 18, height: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.ink }}>
                           {RES_ICONS[ri % RES_ICONS.length]}
                         </div>
-                        <span style={{ fontFamily: BODY, fontSize: 10.5, lineHeight: 1.3, color: C.ink }}>{r.nombre}</span>
+                        <span style={{ fontFamily: BODY, fontSize: 9.5, lineHeight: 1.2, color: C.ink }}>{r.nombre}</span>
                       </div>
                     ))}
                   </div>
@@ -474,13 +507,13 @@ export default function ReporteLaboral() {
 
           {/* ── CULTURA TAGS ──────────────────────────────────────────────────── */}
           {culturaLaboral.length > 0 && (
-            <section style={{ padding: '22px 44px 28px', background: C.paper, borderBottom: `1px solid ${C.hairline}` }}>
+            <section style={{ padding: '12px 36px 16px', background: C.paper, borderBottom: `1px solid ${C.hairline}` }}>
               <SecLabel>Cultura que busco</SecLabel>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 8px', fontFamily: DISPLAY, fontSize: 14, fontWeight: 600, letterSpacing: '-0.015em' }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 6px', fontFamily: DISPLAY, fontSize: 12, fontWeight: 600, letterSpacing: '-0.015em' }}>
                 {culturaLaboral.map((cult, ci) => {
                   const tc = TAG_COLORS[ci % TAG_COLORS.length]
                   return (
-                    <span key={ci} style={{ padding: '6px 14px', borderRadius: 999, lineHeight: 1.0, background: tc.bg, color: tc.color }}>
+                    <span key={ci} style={{ padding: '4px 10px', borderRadius: 999, lineHeight: 1.0, background: tc.bg, color: tc.color }}>
                       <span style={{ opacity: 0.5, fontWeight: 400 }}># </span>{cult}
                     </span>
                   )
@@ -490,11 +523,11 @@ export default function ReporteLaboral() {
           )}
 
           {/* ── FOOTER ────────────────────────────────────────────────────────── */}
-          <footer style={{ padding: '14px 44px', background: '#E8E3D5', color: C.muted, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: MONO, fontSize: 9, letterSpacing: '0.22em', textTransform: 'uppercase', borderTop: `1px solid ${C.hairline}` }}>
+          <footer style={{ padding: '8px 36px', background: '#E8E3D5', color: C.muted, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: MONO, fontSize: 8, letterSpacing: '0.22em', textTransform: 'uppercase', borderTop: `1px solid ${C.hairline}` }}>
             <img
               src="/LOGOS/ELVIA_logo_fondo_transparente.png"
               alt="ELVIA"
-              style={{ height: 36, width: 'auto', objectFit: 'contain' }}
+              style={{ height: 28, width: 'auto', objectFit: 'contain' }}
             />
             <span>01 / 01</span>
           </footer>
