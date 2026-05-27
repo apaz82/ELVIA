@@ -279,41 +279,50 @@ Devuelve ÚNICAMENTE el JSON estructurado con las mismas llaves, pero con el tex
 // Extrae perfil desde PDF de CV — Reemplaza extractProfile en cvController (Haiku)
 // ─────────────────────────────────────────────────────────────────────────────
 const extractProfileFromCV = async (cvText) => {
-  const fragmento = cvText.substring(0, 4000);
+  const fragmento = cvText; // el controlador ya limita el tamaño
 
-  const prompt = `Extrae los datos personales y profesionales principales de este CV.
-Responde ÚNICAMENTE con JSON válido (sin texto extra):
+  const prompt = `Eres un extractor de datos estructurados de CVs. Tu única tarea es leer el CV y devolver un JSON con los datos exactamente como aparecen, sin inventar, traducir ni interpretar.
 
-CV:
+REGLAS ESTRICTAS:
+1. Devuelve ÚNICAMENTE JSON válido, sin texto extra, sin explicaciones, sin markdown.
+2. Extrae los datos TAL COMO ESTÁN en el CV (no traduzcas nombres, empresas ni títulos).
+3. Si un campo no existe, usa null. Arrays vacíos [] si no hay datos.
+4. Para "idioma_cv": detecta el idioma principal del documento ("es", "en", "pt", "fr", "de", u otro código ISO 639-1).
+5. Para "telefono1": extrae el número tal como aparece, incluyendo indicativo si existe.
+6. Para "experiencias": extrae TODAS las entradas de experiencia laboral en orden cronológico (la más antigua primero). Usa los campos exactos del schema.
+7. Para "educacion": extrae TODA la formación académica.
+8. "fecha_inicio" y "fecha_fin" deben ser strings como "2019-03", "2022" o "Actualidad"/"Present".
+
+CV A PROCESAR:
 ${fragmento}
 
-Estructura requerida:
+Devuelve este JSON (respeta los nombres de campo exactamente):
 {
+  "idioma_cv": "es",
   "nombre1": "primer nombre",
   "nombre2": "segundo nombre o null",
   "apellido1": "primer apellido",
   "apellido2": "segundo apellido o null",
   "email": "email o null",
-  "telefono": "teléfono o null",
+  "telefono1": "teléfono completo con indicativo o null",
   "ciudad": "ciudad o null",
   "pais": "país o null",
   "linkedin": "URL de LinkedIn o null",
-  "cargo_actual": "cargo o título profesional o null",
-  "resumen": "resumen profesional de 2-3 oraciones o null",
-  "años_experiencia": número estimado o null,
+  "cargo_actual": "cargo o título profesional principal o null",
+  "resumen": "texto del resumen/perfil profesional copiado del CV o null",
+  "años_experiencia": número entero estimado o null,
   "industria": "industria principal o null",
-  "idiomas": ["Español", "Inglés"],
   "habilidades": ["habilidad1", "habilidad2"],
-  "educacion": [{ "titulo": "...", "institucion": "...", "anio": "..." }],
-  "experiencia": [{ "empresa": "...", "cargo": "...", "periodo": "...", "descripcion": "..." }]
-}
-
-Si un campo no existe en el CV, usa null. Arrays vacíos si no hay datos.`;
+  "idiomas": ["Español", "Inglés"],
+  "educacion": [{ "titulo": "título exacto", "institucion": "institución exacta", "anio": "año de graduación o null" }],
+  "experiencias": [{ "empresa": "empresa exacta", "cargo": "cargo exacto", "fecha_inicio": "YYYY-MM o YYYY", "fecha_fin": "YYYY-MM o YYYY o Actualidad", "descripcion": "descripción de responsabilidades y logros" }]
+}`;
 
   if (!deepseek) throw new Error('[DeepSeek] DEEPSEEK_API_KEY no configurada');
   const response = await deepseek.chat.completions.create({
     model: MODELO_DS,
-    max_tokens: 1500,
+    max_tokens: 2500,
+    temperature: 0.1,
     messages: [{ role: 'user', content: prompt }],
   });
 

@@ -374,11 +374,17 @@ const extractProfile = async (req, res, next) => {
       return res.status(400).json({ error: 'No se pudo extraer texto del CV. Verifica que sea un PDF o Word valido.' });
     }
 
-    // Extraer perfil usando DeepSeek (antes usaba Anthropic directo con claude-haiku-4-5-20251001)
-    const perfil = await extractProfileFromCV(cvText.substring(0, 4000));
+    // Extraer perfil usando DeepSeek. Pasamos hasta 8000 chars para no perder experiencia/formación.
+    const perfil = await extractProfileFromCV(cvText.substring(0, 8000));
 
     if (!perfil.nombre1) {
       return res.status(400).json({ error: 'No se encontro nombre en el CV. Verifica que sea un CV valido.' });
+    }
+
+    // Normalizar aliases defensivos: el modelo a veces devuelve nombres distintos
+    if (!perfil.telefono1 && perfil.telefono) perfil.telefono1 = perfil.telefono;
+    if (!Array.isArray(perfil.experiencias) && Array.isArray(perfil.experiencia)) {
+      perfil.experiencias = perfil.experiencia;
     }
 
     // Asegurar arrays bien formados
@@ -387,7 +393,8 @@ const extractProfile = async (req, res, next) => {
     if (!Array.isArray(perfil.experiencias)) perfil.experiencias = [];
     if (!Array.isArray(perfil.habilidades))  perfil.habilidades  = [];
 
-    // Invertir experiencias para que vayan de más reciente a más antigua
+    // El prompt ya pide orden cronológico (más antigua primero).
+    // Invertir para que el wizard muestre la más reciente arriba.
     if (perfil.experiencias.length > 0) {
       perfil.experiencias = perfil.experiencias.reverse();
     }

@@ -285,6 +285,8 @@ export default function CVDesdeCero() {
   const [optimizandoResumen, setOptimizandoResumen] = useState(false)
   const [resumenSugerido, setResumenSugerido] = useState('')
   const [resumenBloqueado, setResumenBloqueado] = useState(false)
+  const [cvIdioma, setCvIdioma] = useState('es')         // idioma detectado del CV subido
+  const [alertaIdioma, setAlertaIdioma] = useState(false) // modal confirm idioma antes de generar
 
   // 1. Verificar si ya tiene CV al cargar
   useEffect(() => {
@@ -423,13 +425,19 @@ export default function CVDesdeCero() {
 
   // ── Aplicar datos extraídos del CV ──────────────────────────────────────────
   const aplicarDatos = (d) => {
+    // El controlador ya invierte el orden (más reciente primero) — no aplicar .reverse() aquí
     const expArr = Array.isArray(d.experiencias) && d.experiencias.length > 0
-      ? d.experiencias.map(e => ({ empresa: e.empresa || '', cargo: e.cargo || '', fecha_inicio: e.fecha_inicio || '', fecha_fin: e.fecha_fin || '', descripcion: e.descripcion || '' })).reverse()
+      ? d.experiencias.map(e => ({ empresa: e.empresa || '', cargo: e.cargo || '', fecha_inicio: e.fecha_inicio || '', fecha_fin: e.fecha_fin || '', descripcion: e.descripcion || '' }))
       : [{ empresa: '', cargo: '', fecha_inicio: '', fecha_fin: '', descripcion: '' }]
 
     const eduArr = Array.isArray(d.educacion) && d.educacion.length > 0
       ? d.educacion.map(e => ({ institucion: e.institucion || '', titulo: e.titulo || '', anio: e.anio || '' }))
       : [{ institucion: '', titulo: '', anio: '' }]
+
+    // Normalizar idiomas: el modelo puede devolver strings o {idioma, nivel}
+    const idiomasNorm = Array.isArray(d.idiomas) && d.idiomas.length > 0
+      ? d.idiomas.map(i => typeof i === 'string' ? { idioma: i, nivel: i === 'Español' ? 'Nativo' : 'B2' } : i)
+      : datos.idiomas
 
     const merged = {
       nombre:         d.nombre1    || datos.nombre    || '',
@@ -437,17 +445,20 @@ export default function CVDesdeCero() {
       apellido:       d.apellido1  || datos.apellido  || '',
       apellido2:      d.apellido2  || datos.apellido2 || '',
       email:          datos.email  || '',                          // no sobreescribir el email del registro
-      indicativo:     d.indicativo1 ? d.indicativo1 : datos.indicativo,
-      telefono:       d.telefono1  || datos.telefono  || '',
+      indicativo:     datos.indicativo,
+      telefono:       d.telefono1  || d.telefono || datos.telefono  || '',
       ciudad:         d.ciudad     || datos.ciudad    || '',
       pais:           d.pais       || datos.pais      || '',
-      cargo_objetivo: datos.cargo_objetivo || '',
-      resumen:        d.resumen    || '',                          // idioma original
+      cargo_objetivo: d.cargo_actual || datos.cargo_objetivo || '',
+      resumen:        d.resumen    || '',
       experiencias:   expArr,
       educacion:      eduArr,
-      habilidades:    Array.isArray(d.habilidades) ? d.habilidades : datos.habilidades,
-      idiomas:        Array.isArray(d.idiomas) && d.idiomas.length > 0 ? d.idiomas : datos.idiomas,
+      habilidades:    Array.isArray(d.habilidades) && d.habilidades.length > 0 ? d.habilidades : datos.habilidades,
+      idiomas:        idiomasNorm,
     }
+
+    // Guardar idioma detectado para usarlo en optimizarResumen y generarCV
+    if (d.idioma_cv) setCvIdioma(d.idioma_cv)
 
     setDatos(merged)
     setAnalisis(analizarCalidad(merged))
@@ -502,17 +513,28 @@ export default function CVDesdeCero() {
   }
 
   // ── Generar CV con IA ────────────────────────────────────────────────────────
-  const generarCV = async () => {
+  const generarCV = async (idiomaForzado) => {
+    const lang = idiomaForzado || cvIdioma || 'es'
+    setAlertaIdioma(false)
     setError('')
     setGenerando(true)
     try {
-      const resultado = await generarCVDesdeCero(datos, 'es')
+      const resultado = await generarCVDesdeCero(datos, lang)
       if (resultado.error) throw new Error(resultado.error)
       setCvGenerada(resultado)
     } catch (err) {
       setError(err.message || 'Error al generar CV')
     } finally {
       setGenerando(false)
+    }
+  }
+
+  // Si el CV subido está en un idioma distinto al español, pedir confirmación antes de generar
+  const iniciarGenerarCV = () => {
+    if (cvIdioma && cvIdioma !== 'es') {
+      setAlertaIdioma(true)
+    } else {
+      generarCV('es')
     }
   }
 
@@ -525,7 +547,7 @@ export default function CVDesdeCero() {
     setError('')
     setResumenBloqueado(false)
     try {
-      const res = await optimizarResumenIA(datos.resumen, 'es')
+      const res = await optimizarResumenIA(datos.resumen, cvIdioma || 'es')
       console.log('[Debug] Respuesta IA:', res)
       if (res.optimizado) {
         setResumenSugerido(res.optimizado)
@@ -830,6 +852,17 @@ export default function CVDesdeCero() {
                       <CheckCircle size={15} weight="fill" className="text-green-500 shrink-0" />
                       <p className="text-xs text-slate-700">
                         Datos extraídos de <span className="font-bold">{cvFileName}</span> — revisa y ajusta si es necesario
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Aviso de idioma detectado distinto al español */}
+                  {!cvMismatch && cvIdioma && cvIdioma !== 'es' && cvFileName && (
+                    <div className="mt-2 flex items-start gap-2 p-2.5 rounded-xl bg-amber-50 border border-amber-200">
+                      <Warning size={15} weight="fill" className="text-amber-500 shrink-0 mt-0.5" />
+                      <p className="text-xs text-amber-800">
+                        Tu CV está en <span className="font-bold">{cvIdioma === 'en' ? 'inglés' : cvIdioma === 'pt' ? 'portugués' : cvIdioma === 'fr' ? 'francés' : cvIdioma.toUpperCase()}</span>.
+                        Las sugerencias de resumen se generarán en ese idioma. Al llegar al último paso podrás elegir el idioma del CV final.
                       </p>
                     </div>
                   )}
@@ -1188,7 +1221,7 @@ export default function CVDesdeCero() {
                 <ArrowLeft size={16} /> Anterior
               </button>
               {pasoActual === PASOS.length - 1 ? (
-                <button onClick={generarCV} disabled={generando || !datos.nombre || !datos.apellido}
+                <button onClick={iniciarGenerarCV} disabled={generando || !datos.nombre || !datos.apellido}
                   className="flex items-center gap-2 px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold disabled:opacity-50 transition-colors text-sm cursor-pointer">
                   {generando ? <><SpinnerGap size={16} className="animate-spin" /> Generando...</> : <><FileArrowDown size={16} /> Generar CV</>}
                 </button>
@@ -1213,6 +1246,41 @@ export default function CVDesdeCero() {
           )}
         </div>
       </div>
+
+      {/* ── Modal confirmación de idioma antes de generar ─────────────────── */}
+      {alertaIdioma && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-7">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center shrink-0">
+                <Warning size={20} weight="duotone" className="text-amber-500" />
+              </div>
+              <h3 className="text-base font-bold text-slate-800">CV en otro idioma</h3>
+            </div>
+            <p className="text-sm text-slate-600 leading-relaxed mb-5">
+              Detectamos que tu CV está redactado en{' '}
+              <strong>{cvIdioma === 'en' ? 'inglés' : cvIdioma === 'pt' ? 'portugués' : cvIdioma === 'fr' ? 'francés' : cvIdioma.toUpperCase()}</strong>.
+              El CV generado saldrá en ese idioma. ¿Confirmas o prefieres generarlo en español?
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => generarCV('es')}
+                className="py-2.5 rounded-xl border-2 border-slate-200 text-slate-700 text-sm font-bold hover:bg-slate-50 transition-colors cursor-pointer">
+                Generar en español
+              </button>
+              <button
+                onClick={() => generarCV(cvIdioma)}
+                className="py-2.5 rounded-xl bg-green-600 hover:bg-green-700 text-white text-sm font-bold transition-colors cursor-pointer">
+                Continuar en {cvIdioma === 'en' ? 'inglés' : cvIdioma === 'pt' ? 'portugués' : cvIdioma === 'fr' ? 'francés' : cvIdioma.toUpperCase()}
+              </button>
+            </div>
+            <button onClick={() => setAlertaIdioma(false)}
+              className="mt-3 w-full text-xs text-slate-400 hover:text-slate-600 cursor-pointer">
+              Cancelar
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
