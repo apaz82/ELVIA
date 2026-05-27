@@ -71,7 +71,7 @@ const indicativoPorPais=(p)=>{
   return e?.ind||'+1'
 }
 const PRESTACIONES_POR_PAIS = {
-  'México':['IMSS','INFONAVIT','AFORE','Aguinaldo','Prima vacacional','Seguro de gastos médicos','Seguro de vida','Vales de despensa','Fondo de ahorro','Auto de empresa','Car allowance','Viáticos'],
+  'México':['IMSS','INFONAVIT','Días de vacaciones','Aguinaldo','Prima vacacional','Seguro de gastos médicos','Seguro de vida','Vales de despensa','Vales de gasolina','Otros vales','Fondo de ahorro','Auto de empresa','Car allowance','Viáticos','PTU','AFORE'],
   'Colombia':['EPS (salud)','Pensión','ARL','Prima de servicios','Cesantías','Vacaciones adicionales','Dotación','Caja de compensación','Seguro de vida'],
   'Argentina':['Obra social','ART','SAC (aguinaldo)','Jubilación','Plan médico privado','Seguro de vida'],
   'Chile':['AFP','Isapre / Fonasa','Seguro de cesantía','Gratificación legal'],
@@ -97,15 +97,19 @@ const NIVELES_EDUCACION=['No profesional','Profesional','Postgrado']
 const MONEDAS_LIST=[{code:'MXN',symbol:'$'},{code:'COP',symbol:'$'},{code:'ARS',symbol:'$'},{code:'CLP',symbol:'$'},{code:'PEN',symbol:'S/'},{code:'USD',symbol:'$'},{code:'EUR',symbol:'€'},{code:'BRL',symbol:'R$'},{code:'UYU',symbol:'$'}]
 const MONEDAS_US=['MXN','USD','CAD']
 const MEXICO_DETALLE={
+  'Días de vacaciones':     { tipo:'dias',     label:'Días',          default:'12'       },
   'Aguinaldo':              { tipo:'dias',     label:'Días',          default:'30'       },
   'Prima vacacional':       { tipo:'pct',      label:'% prima',       default:'25'       },
   'Seguro de gastos médicos':{ tipo:'selector', label:'Cobertura',    opciones:['Personal','Familiar'], default:'Personal' },
   'Vales de despensa':      { tipo:'monto',    label:'Monto mensual', default:''         },
+  'Vales de gasolina':      { tipo:'monto',    label:'Monto mensual', default:''         },
+  'Otros vales':            { tipo:'monto',    label:'Monto mensual', default:''         },
   'Fondo de ahorro':        { tipo:'pct',      label:'% fondo',       default:''         },
   'Auto de empresa':        { tipo:'monto',    label:'Valor / mes',   default:''         },
   'Car allowance':          { tipo:'monto',    label:'Monto mensual', default:''         },
   'House allowance':        { tipo:'monto',    label:'Monto mensual', default:''         },
   'Viáticos':               { tipo:'monto',    label:'Monto mensual', default:''         },
+  'PTU':                    { tipo:'monto',    label:'Monto anual',   default:''         },
 }
 const soloNumericos = (val, moneda) => {
   if (MONEDAS_US.includes(moneda)) return val.replace(/[^0-9.]/g, '')
@@ -769,64 +773,84 @@ function PilarMiPerfil({ perfil, extraData, onChange, onSavePerfil, saving, isPa
                   const updateDetalle=(key,val)=>setLP(f=>({...f,prestaciones_detalle:{...f.prestaciones_detalle,[key]:val}}))
                   return(
                     <div key={p}>
-                      <label className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-colors text-xs ${isChecked?'bg-indigo-50 border-indigo-300 text-indigo-800 font-medium':'border-slate-200 text-slate-600 hover:border-slate-400'}`}>
-                        <input type="checkbox" checked={isChecked} onChange={()=>setLP(f=>({...f,prestaciones:f.prestaciones.includes(p)?f.prestaciones.filter(x=>x!==p):[...f.prestaciones,p]}))}
-                          className="accent-indigo-600 shrink-0"/>
-                        {p}
-                      </label>
-                      {isChecked&&detailCfg&&(
-                        <div className="mt-1 px-1">
-                          {detailCfg.tipo==='selector'?(
-                            <select value={lp.prestaciones_detalle[p]??detailCfg.default} onChange={e=>updateDetalle(p,e.target.value)}
-                              className="w-full border border-slate-200 rounded-md px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400">
-                              {detailCfg.opciones.map(o=><option key={o} value={o}>{o}</option>)}
-                            </select>
-                          ):(
+                      {p==='Días de vacaciones' ? (
+                        <>
+                          <div className="flex items-center gap-2 p-2 rounded-lg border border-indigo-200 bg-indigo-50 text-xs text-indigo-800 font-medium">
+                            {p}
+                          </div>
+                          <div className="mt-1 px-1">
                             <div className="flex items-center gap-1">
-                              <input type="text" inputMode="decimal"
-                                value={lp.prestaciones_detalle[p]??detailCfg.default}
-                                onChange={e=>{
-                                  const val=detailCfg.tipo==='monto'?soloNumericos(e.target.value,lp.moneda):e.target.value.replace(/[^0-9.]/g,'')
-                                  updateDetalle(p,val)
-                                }}
-                                onBlur={()=>{
-                                  if(detailCfg.tipo==='monto'){
-                                    const val=lp.prestaciones_detalle[p]??''
-                                    updateDetalle(p,formatearMonto(String(val),lp.moneda))
-                                  }
-                                }}
-                                placeholder={detailCfg.tipo==='monto'?(MONEDAS_US.includes(lp.moneda)?'10,000':'10.000'):detailCfg.label}
+                              <input type="text" inputMode="numeric"
+                                value={lp.prestaciones_detalle[p]!==undefined?lp.prestaciones_detalle[p]:'12'}
+                                onChange={e=>updateDetalle(p,e.target.value.replace(/[^0-9]/g,''))}
+                                placeholder="12"
                                 className="flex-1 border border-slate-200 rounded-md px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400"/>
-                              {detailCfg.tipo==='pct'&&<span className="text-xs text-slate-400 shrink-0">%</span>}
-                              {detailCfg.tipo==='dias'&&<span className="text-xs text-slate-400 shrink-0">días</span>}
+                              <span className="text-xs text-slate-400 shrink-0">días</span>
+                            </div>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <label className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-colors text-xs ${isChecked?'bg-indigo-50 border-indigo-300 text-indigo-800 font-medium':'border-slate-200 text-slate-600 hover:border-slate-400'}`}>
+                            <input type="checkbox" checked={isChecked} onChange={()=>setLP(f=>({...f,prestaciones:f.prestaciones.includes(p)?f.prestaciones.filter(x=>x!==p):[...f.prestaciones,p]}))}
+                              className="accent-indigo-600 shrink-0"/>
+                            {p}
+                          </label>
+                          {isChecked&&detailCfg&&(
+                            <div className="mt-1 px-1">
+                              {detailCfg.tipo==='selector'?(
+                                <select value={lp.prestaciones_detalle[p]??detailCfg.default} onChange={e=>updateDetalle(p,e.target.value)}
+                                  className="w-full border border-slate-200 rounded-md px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400">
+                                  {detailCfg.opciones.map(o=><option key={o} value={o}>{o}</option>)}
+                                </select>
+                              ):(
+                                <div className="flex items-center gap-1">
+                                  <input type="text" inputMode="decimal"
+                                    value={lp.prestaciones_detalle[p]??detailCfg.default}
+                                    onChange={e=>{
+                                      const val=detailCfg.tipo==='monto'?soloNumericos(e.target.value,lp.moneda):e.target.value.replace(/[^0-9.]/g,'')
+                                      updateDetalle(p,val)
+                                    }}
+                                    onBlur={()=>{
+                                      if(detailCfg.tipo==='monto'){
+                                        const val=lp.prestaciones_detalle[p]??''
+                                        updateDetalle(p,formatearMonto(String(val),lp.moneda))
+                                      }
+                                    }}
+                                    placeholder={detailCfg.tipo==='monto'?(MONEDAS_US.includes(lp.moneda)?'10,000':'10.000'):detailCfg.label}
+                                    className="flex-1 border border-slate-200 rounded-md px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400"/>
+                                  {detailCfg.tipo==='pct'&&<span className="text-xs text-slate-400 shrink-0">%</span>}
+                                  {detailCfg.tipo==='dias'&&<span className="text-xs text-slate-400 shrink-0">días</span>}
+                                </div>
+                              )}
+                              {/* Calculation display for Aguinaldo */}
+                              {p==='Aguinaldo'&&salarioNum>0&&(()=>{
+                                const dias=parseFloat(lp.prestaciones_detalle[p]||detailCfg.default||'30')||30
+                                const calc=Math.round(salarioNum/30*dias)
+                                return <div className="text-[10px] text-emerald-700 bg-emerald-50 border border-emerald-100 rounded px-2 py-1 font-semibold mt-1">≈ {formatearMonto(String(calc),lp.moneda)} {lp.moneda} anuales</div>
+                              })()}
+                              {/* Calculation display for Prima vacacional */}
+                              {p==='Prima vacacional'&&salarioNum>0&&(()=>{
+                                const pct=parseFloat(lp.prestaciones_detalle[p]||detailCfg.default||'25')||25
+                                const diasVac=parseInt(lp.prestaciones_detalle['Días de vacaciones']||d.dias_vacaciones||'12')||12
+                                const calc=Math.round(salarioNum/30*diasVac*(pct/100))
+                                return <div className="text-[10px] text-emerald-700 bg-emerald-50 border border-emerald-100 rounded px-2 py-1 font-semibold mt-1">≈ {formatearMonto(String(calc),lp.moneda)} {lp.moneda} anuales</div>
+                              })()}
+                              {/* Monto field for Fondo de ahorro */}
+                              {p==='Fondo de ahorro'&&(
+                                <div className="mt-1">
+                                  <label className="block text-[10px] text-slate-500 mb-0.5">Monto mensual ({lp.moneda||'$'})</label>
+                                  <input type="text" inputMode="decimal"
+                                    value={d.fondo_ahorro_monto||''}
+                                    onChange={e=>up('fondo_ahorro_monto', soloNumericos(e.target.value, lp.moneda))}
+                                    onBlur={()=>up('fondo_ahorro_monto', formatearMonto(d.fondo_ahorro_monto||'', lp.moneda))}
+                                    placeholder={MONEDAS_US.includes(lp.moneda)?'2,000':'2.000'}
+                                    className="w-full border border-slate-200 rounded-md px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400"/>
+                                </div>
+                              )}
                             </div>
                           )}
-                          {/* Calculation display for Aguinaldo */}
-                          {p==='Aguinaldo'&&salarioNum>0&&(()=>{
-                            const dias=parseFloat(lp.prestaciones_detalle[p]||detailCfg.default||'30')||30
-                            const calc=Math.round(salarioNum/30*dias)
-                            return <div className="text-[10px] text-emerald-700 bg-emerald-50 border border-emerald-100 rounded px-2 py-1 font-semibold mt-1">≈ {formatearMonto(String(calc),lp.moneda)} {lp.moneda} anuales</div>
-                          })()}
-                          {/* Calculation display for Prima vacacional */}
-                          {p==='Prima vacacional'&&salarioNum>0&&(()=>{
-                            const pct=parseFloat(lp.prestaciones_detalle[p]||detailCfg.default||'25')||25
-                            const diasVac=parseInt(d.dias_vacaciones||'12')||12
-                            const calc=Math.round(salarioNum/30*diasVac*(pct/100))
-                            return <div className="text-[10px] text-emerald-700 bg-emerald-50 border border-emerald-100 rounded px-2 py-1 font-semibold mt-1">≈ {formatearMonto(String(calc),lp.moneda)} {lp.moneda} anuales</div>
-                          })()}
-                          {/* Monto field for Fondo de ahorro */}
-                          {p==='Fondo de ahorro'&&(
-                            <div className="mt-1">
-                              <label className="block text-[10px] text-slate-500 mb-0.5">Monto mensual ({lp.moneda||'$'})</label>
-                              <input type="text" inputMode="decimal"
-                                value={d.fondo_ahorro_monto||''}
-                                onChange={e=>up('fondo_ahorro_monto', soloNumericos(e.target.value, lp.moneda))}
-                                onBlur={()=>up('fondo_ahorro_monto', formatearMonto(d.fondo_ahorro_monto||'', lp.moneda))}
-                                placeholder={MONEDAS_US.includes(lp.moneda)?'2,000':'2.000'}
-                                className="w-full border border-slate-200 rounded-md px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400"/>
-                            </div>
-                          )}
-                        </div>
+                        </>
                       )}
                     </div>
                   )
@@ -835,61 +859,7 @@ function PilarMiPerfil({ perfil, extraData, onChange, onSavePerfil, saving, isPa
             </div>
           )}
 
-          {/* Días de vacaciones */}
-          <div>
-            <label className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1 block">Días de vacaciones</label>
-            <div className="flex items-center gap-3">
-              <input type="text" inputMode="numeric"
-                value={d.dias_vacaciones !== undefined ? d.dias_vacaciones : '12'}
-                onChange={e=>up('dias_vacaciones', e.target.value.replace(/[^0-9]/g,''))}
-                className="w-24 border border-slate-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400/40"/>
-              <span className="text-xs text-slate-500">días/año (mínimo legal: 12)</span>
-            </div>
-          </div>
 
-          {/* Vales adicionales */}
-          {(lp.pais_prestaciones||lp.salario_monto)&&(
-            <div>
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 block">Vales adicionales</label>
-              <div className="space-y-2">
-                {[
-                  {key:'vales_gasolina_monto', label:'Vales de gasolina'},
-                  {key:'vales_otros_monto',    label:'Otros vales'},
-                ].map(function(item){
-                  return (
-                    <div key={item.key} className="flex items-center gap-2">
-                      <span className="text-xs text-slate-600 w-32 shrink-0">{item.label}</span>
-                      <span className="text-sm text-slate-400 shrink-0">{MONEDAS_LIST.find(m=>m.code===lp.moneda)?.symbol||'$'}</span>
-                      <input type="text" inputMode="decimal"
-                        value={d[item.key]||''}
-                        onChange={e=>up(item.key, soloNumericos(e.target.value, lp.moneda))}
-                        onBlur={()=>up(item.key, formatearMonto(d[item.key]||'', lp.moneda))}
-                        placeholder={MONEDAS_US.includes(lp.moneda)?'1,000':'1.000'}
-                        className="flex-1 border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400/40"/>
-                      <span className="text-xs text-slate-500 shrink-0">/mes</span>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* PTU — sólo México */}
-          {lp.pais_prestaciones==='México'&&(
-            <div>
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1 block">PTU (Participación de Utilidades)</label>
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-slate-400 shrink-0">{MONEDAS_LIST.find(m=>m.code===lp.moneda)?.symbol||'$'}</span>
-                <input type="text" inputMode="decimal"
-                  value={d.ptu_monto||''}
-                  onChange={e=>up('ptu_monto', soloNumericos(e.target.value, lp.moneda))}
-                  onBlur={()=>up('ptu_monto', formatearMonto(d.ptu_monto||'', lp.moneda))}
-                  placeholder={MONEDAS_US.includes(lp.moneda)?'10,000':'10.000'}
-                  className="flex-1 border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400/40"/>
-                <span className="text-xs text-slate-500 shrink-0">anual</span>
-              </div>
-            </div>
-          )}
 
           {/* Bonos / Variables — múltiples */}
           {(()=>{
@@ -1097,15 +1067,15 @@ function PilarMiPerfil({ perfil, extraData, onChange, onSavePerfil, saving, isPa
           {(()=>{
             const salarioNum = parseMonto(lp.salario_monto, lp.moneda)
             if (!salarioNum) return null
-            const diasVac = parseInt(d.dias_vacaciones||'12')||12
+            const diasVac = parseInt(lp.prestaciones_detalle['Días de vacaciones']||d.dias_vacaciones||'12')||12
             const diasAg = lp.prestaciones.includes('Aguinaldo') ? parseFloat(lp.prestaciones_detalle['Aguinaldo']||'30')||30 : 0
             const primaPct = lp.prestaciones.includes('Prima vacacional') ? parseFloat(lp.prestaciones_detalle['Prima vacacional']||'25')||25 : 0
             const valesDes = lp.prestaciones.includes('Vales de despensa') ? parseMonto(lp.prestaciones_detalle['Vales de despensa']||'', lp.moneda) : 0
-            const valesGas = parseMonto(d.vales_gasolina_monto||'', lp.moneda)
-            const valesOtr = parseMonto(d.vales_otros_monto||'', lp.moneda)
+            const valesGas = lp.prestaciones.includes('Vales de gasolina') ? parseMonto(lp.prestaciones_detalle['Vales de gasolina']||'', lp.moneda) : 0
+            const valesOtr = lp.prestaciones.includes('Otros vales') ? parseMonto(lp.prestaciones_detalle['Otros vales']||'', lp.moneda) : 0
             const fondoMonto = parseMonto(d.fondo_ahorro_monto||'', lp.moneda)
             const carAl = lp.prestaciones.includes('Car allowance') ? parseMonto(lp.prestaciones_detalle['Car allowance']||'', lp.moneda) : 0
-            const ptu = parseMonto(d.ptu_monto||'', lp.moneda)
+            const ptu = lp.prestaciones.includes('PTU') ? parseMonto(lp.prestaciones_detalle['PTU']||'', lp.moneda) : 0
             const aguinaldoCalc = diasAg > 0 ? Math.round(salarioNum/30*diasAg) : 0
             const primaCalc = primaPct > 0 ? Math.round(salarioNum/30*diasVac*(primaPct/100)) : 0
             const bonosExtra = Array.isArray(d.bonos_extra) ? d.bonos_extra : []
@@ -1125,7 +1095,7 @@ function PilarMiPerfil({ perfil, extraData, onChange, onSavePerfil, saving, isPa
               ...(valesDes>0?[{label:'Vales de despensa × 12',v:valesDes*12}]:[]),
               ...(valesGas>0?[{label:'Vales de gasolina × 12',v:valesGas*12}]:[]),
               ...(valesOtr>0?[{label:'Otros vales × 12',v:valesOtr*12}]:[]),
-              ...(fondoMonto>0?[{label:'Fondo de ahorro × 12',v:fondoMonto*12}]:[]),
+              ...(fondoMonto>0?[{label:'Fondo de ahorro',v:fondoMonto}]:[]),
               ...(carAl>0?[{label:'Car allowance × 12',v:carAl*12}]:[]),
               ...(bonosAnual>0?[{label:'Bonos / Variables',v:Math.round(bonosAnual)}]:[]),
               ...(ptu>0?[{label:'PTU',v:ptu}]:[]),
