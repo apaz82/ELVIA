@@ -284,6 +284,7 @@ export default function CVDesdeCero() {
   const [cvPending,     setCvPending]     = useState(null)   // datos extraídos en espera de confirmar
   const [cvFileName,    setCvFileName]    = useState('')
   const [alertaExistente, setAlertaExistente] = useState(false)
+  const [modoSeleccion,   setModoSeleccion]   = useState(true)  // false cuando hay borrador o el usuario eligió ruta
   const [optimizandoResumen, setOptimizandoResumen] = useState(false)
   const [resumenSugerido, setResumenSugerido] = useState('')
   const [resumenBloqueado, setResumenBloqueado] = useState(false)
@@ -330,6 +331,7 @@ export default function CVDesdeCero() {
           if (b?.datos && (b.datos.nombre || b.paso_actual > 0)) {
             setDatos(b.datos)
             setPasoActual(b.paso_actual || 0)
+            setModoSeleccion(false)
             setInicializando(false)
             return
           }
@@ -348,6 +350,7 @@ export default function CVDesdeCero() {
         if (borrador?.datos && Object.keys(borrador.datos).length > 0) {
           setDatos(borrador.datos)
           setPasoActual(borrador.paso_actual || 0)
+          setModoSeleccion(false)
           sessionStorage.setItem(CACHE_KEY, JSON.stringify({ datos: borrador.datos, paso_actual: borrador.paso_actual || 0 }))
         } else {
           // Si no hay borrador, intentamos pre-llenar desde el perfil y del Gerente de Búsqueda (jsp)
@@ -526,6 +529,7 @@ export default function CVDesdeCero() {
       }
 
       aplicarDatos(resultado)
+      setModoSeleccion(false)
     } catch (err) {
       setCvFileName('')
       const msg = err?.message || ''
@@ -809,6 +813,84 @@ export default function CVDesdeCero() {
               Crear uno nuevo de todas formas
             </button>
           </div>
+        </div>
+      </div>
+    )
+  }
+
+  // ── Pantalla de selección de ruta (primera visita o sin borrador) ────────────
+  if (!inicializando && modoSeleccion) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center p-6">
+        {/* Input oculto reutilizado del wizard */}
+        <input ref={fileRef} type="file" accept=".pdf,.doc,.docx"
+          onChange={e => extraerCV(e.target.files?.[0])} className="hidden" />
+
+        <div className="max-w-2xl w-full">
+          {/* Título */}
+          <div className="text-center mb-10">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-indigo-600 shadow-lg shadow-indigo-200 mb-5">
+              <FileDoc size={30} weight="duotone" className="text-white" />
+            </div>
+            <h1 className="text-3xl font-black text-slate-800 mb-2">Crea tu CV Inicial</h1>
+            <p className="text-slate-500 text-sm max-w-xs mx-auto leading-relaxed">
+              Tu CV base con el estándar Harvard® — el cimiento de tu transición con ELVIA®.
+            </p>
+          </div>
+
+          {/* Cards de selección */}
+          <div className="grid sm:grid-cols-2 gap-5">
+
+            {/* Card A: Subir mi CV */}
+            <button
+              onClick={() => fileRef.current?.click()}
+              disabled={extrayendo}
+              className="group relative bg-white rounded-2xl border-2 border-slate-200 hover:border-indigo-400 hover:shadow-lg hover:shadow-indigo-50 p-8 text-left transition-all cursor-pointer disabled:opacity-60 disabled:cursor-wait"
+            >
+              {extrayendo && (
+                <div className="absolute inset-0 bg-white/80 rounded-2xl flex flex-col items-center justify-center gap-2 z-10">
+                  <SpinnerGap size={28} className="animate-spin text-indigo-500" />
+                  <p className="text-xs font-bold text-indigo-700">Analizando tu CV...</p>
+                </div>
+              )}
+              <div className="w-12 h-12 rounded-xl bg-blue-50 group-hover:bg-indigo-50 flex items-center justify-center mb-5 transition-colors">
+                <UploadSimple size={24} weight="duotone" className="text-blue-600 group-hover:text-indigo-600 transition-colors" />
+              </div>
+              <h3 className="text-base font-black text-slate-800 mb-2">Subir mi CV</h3>
+              <p className="text-sm text-slate-500 leading-relaxed">
+                Tengo un CV listo. ELVIA lo analiza, lo estructura y lo optimiza al estándar Harvard.
+              </p>
+              <div className="mt-5 text-xs font-bold text-slate-400 group-hover:text-indigo-500 transition-colors">
+                PDF o Word · Max. 5MB →
+              </div>
+            </button>
+
+            {/* Card B: Empezar de cero */}
+            <button
+              onClick={() => setModoSeleccion(false)}
+              className="group bg-white rounded-2xl border-2 border-slate-200 hover:border-emerald-400 hover:shadow-lg hover:shadow-emerald-50 p-8 text-left transition-all cursor-pointer"
+            >
+              <div className="w-12 h-12 rounded-xl bg-emerald-50 group-hover:bg-emerald-100 flex items-center justify-center mb-5 transition-colors">
+                <PencilSimple size={24} weight="duotone" className="text-emerald-600" />
+              </div>
+              <h3 className="text-base font-black text-slate-800 mb-2">Empezar de cero</h3>
+              <p className="text-sm text-slate-500 leading-relaxed">
+                Construye tu CV paso a paso con la guía de ELVIA, campo por campo y con IA en cada sección.
+              </p>
+              <div className="mt-5 text-xs font-bold text-slate-400 group-hover:text-emerald-600 transition-colors">
+                6 pasos · ~15 minutos →
+              </div>
+            </button>
+
+          </div>
+
+          {error && (
+            <div className="mt-5 bg-red-50 border border-red-200 rounded-xl p-3 text-sm text-red-700 text-center">{error}</div>
+          )}
+
+          <p className="text-center text-[11px] text-slate-400 mt-8">
+            En ambos casos terminarás con una Vista Previa Harvard antes de generar tu CV final.
+          </p>
         </div>
       </div>
     )
