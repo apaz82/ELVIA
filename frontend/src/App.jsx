@@ -178,10 +178,11 @@ function AppLayout({ children }) {
 
 // Layout limpio para Landing, Auth y Onboarding
 function FullLayout({ children }) {
+  const { user } = useAuth()
   return (
     <div className="min-h-screen flex flex-col bg-surface">
       {children}
-      <AiChatBot />
+      {user && <AiChatBot />}
     </div>
   )
 }
