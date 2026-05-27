@@ -404,9 +404,8 @@ function PilarMiPerfil({ perfil, extraData, onChange, onSavePerfil, saving, isPa
     await onSavePerfil(p)
     setJustSaved(true)
     setTimeout(() => setJustSaved(false), 3000)
-    if (subTab === 'asp') {
-      window.alert('Se guardó tu información. ¡Esta sección está al 100%! Si quieres volver después a modificar, puedes entrar de nuevo.')
-    }
+    if (subTab === 'datos') setSubTab('comp')
+    else if (subTab === 'comp') setSubTab('asp')
   }
 
   // Auto-save con debounce de 1.5s — solo después de que el usuario haya editado
@@ -436,7 +435,7 @@ function PilarMiPerfil({ perfil, extraData, onChange, onSavePerfil, saving, isPa
   const toggleArea=(a)=>{const arr=Array.isArray(d.areas)?d.areas:[];up('areas',arr.includes(a)?arr.filter(x=>x!==a):[...arr,a])}
   const toggleInd=(ind)=>{const arr=Array.isArray(d.industrias_deseadas)?d.industrias_deseadas:[];up('industrias_deseadas',arr.includes(ind)?arr.filter(x=>x!==ind):[...arr,ind])}
   const toggleNC=(n)=>{const arr=Array.isArray(d.niveles_cargo)?d.niveles_cargo:[];up('niveles_cargo',arr.includes(n)?arr.filter(x=>x!==n):[...arr,n])}
-  const TABS=[{id:'datos',label:'Datos Personales'},{id:'comp',label:'Compensación'},{id:'asp',label:'Aspiraciones'}]
+  const TABS=[{id:'datos',label:'Datos Personales'},{id:'comp',label:'Compensación'},{id:'asp',label:'Perfilador'}]
   const iBtn=(sel,txt,fn)=><button key={txt} onClick={fn} className={`px-3 py-1.5 rounded-lg text-sm font-semibold border transition-colors cursor-pointer ${sel?'bg-indigo-600 text-white border-indigo-600':'border-slate-300 text-slate-600 hover:border-indigo-400'}`}>{txt}</button>
 
   // Normalizar string para comparación (lowercase, sin espacios/acentos)
@@ -711,9 +710,9 @@ function PilarMiPerfil({ perfil, extraData, onChange, onSavePerfil, saving, isPa
               <input type="number" value={lp.edad||''} onChange={e=>setLP(f=>({...f,edad:e.target.value}))} placeholder="Ej: 32" min={18} max={70}
                 className="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400/40"/></div>
           </div>
-          <button onClick={()=>onSavePerfil(lp)} disabled={saving}
+          <button onClick={()=>onSavePerfilLocal(lp)} disabled={saving}
             className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm px-6 py-3 rounded-xl transition-colors cursor-pointer disabled:opacity-60">
-            {saving?<SpinnerGap size={16} className="animate-spin"/>:<CheckCircle size={16} weight="fill"/>} Guardar datos personales</button>
+            {saving?<SpinnerGap size={16} className="animate-spin"/>:<CheckCircle size={16} weight="fill"/>} Guardar y continuar</button>
         </div>
       )}
       {subTab==='comp'&&(
@@ -927,34 +926,29 @@ function PilarMiPerfil({ perfil, extraData, onChange, onSavePerfil, saving, isPa
           <button onClick={()=>onSavePerfilLocal(lp)} disabled={saving}
             className={`flex items-center gap-2 font-bold text-sm px-6 py-3 rounded-xl transition-all cursor-pointer disabled:opacity-60 ${justSaved ? 'bg-emerald-600 text-white' : 'bg-indigo-600 hover:bg-indigo-700 text-white'}`}>
             {saving ? <SpinnerGap size={16} className="animate-spin"/> : (justSaved ? <CheckCircle size={16} weight="fill"/> : <CheckCircle size={16} weight="fill"/>)} 
-            {justSaved ? 'Guardado' : 'Guardar compensación'}
+            {justSaved ? 'Guardado' : 'Guardar y continuar'}
           </button>
         </div>
       )}
       {subTab==='asp'&&(
         <div className="space-y-6">
           <div className="flex items-center gap-2 border-b border-slate-100 pb-3 mb-2">
-            <h3 className="text-sm font-black text-slate-800">Aspiraciones del Proyecto</h3>
+            <h3 className="text-sm font-black text-slate-800">Perfilador del Proyecto</h3>
             <HelpBadge id="proyecto.asp" />
           </div>
           <div>
-            <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Cargo objetivo</h3>
-            <p className="text-xs text-slate-400 mb-2">¿Qué puesto estás buscando? (ej. Gerente de Marketing, Analista de Datos, CFO)</p>
-            <input value={d.cargo_objetivo||''} onChange={e=>up('cargo_objetivo',e.target.value)}
-              placeholder="Ej. Gerente de Operaciones, Analista Senior, Director Comercial..."
-              className="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400/40"/>
-            {d.cargo_objetivo&&(()=>{
-              const c=d.cargo_objetivo.toLowerCase()
-              const s=/c-?level|ceo|cfo|coo|cto|cpo|chief|vp\b|vice|vicepresidente/.test(c)?{label:'C-Level / VP',color:'bg-purple-100 text-purple-700'}
-                :/gerente|director|head of|l[ií]der\b|lead\b/.test(c)?{label:'Senior (Gerente/Director)',color:'bg-blue-100 text-blue-700'}
-                :/jefe|coordinador|supervisor|especialista\b/.test(c)?{label:'Mid-Senior (Jefe/Coordinador)',color:'bg-indigo-100 text-indigo-700'}
-                :/analista|asistente|auxiliar|jr\b|junior/.test(c)?{label:'Junior (Analista/Asistente)',color:'bg-emerald-100 text-emerald-700'}
+            <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Nivel de cargo objetivo</h3>
+            <div className="flex flex-wrap gap-2">{NIVELES_CARGO.map(n=>{const sel=Array.isArray(d.niveles_cargo)&&d.niveles_cargo.includes(n);return iBtn(sel,n,()=>toggleNC(n))})}</div>
+            {Array.isArray(d.niveles_cargo)&&d.niveles_cargo.length>0&&(()=>{
+              const sel=d.niveles_cargo
+              const s=sel.some(n=>/c-?level/i.test(n))?{label:'C-Level / VP',color:'bg-purple-100 text-purple-700'}
+                :sel.some(n=>/director|gerente/i.test(n))?{label:'Senior (Gerente/Director)',color:'bg-blue-100 text-blue-700'}
+                :sel.some(n=>/jefe|coordinador/i.test(n))?{label:'Mid-Senior (Jefe/Coordinador)',color:'bg-indigo-100 text-indigo-700'}
+                :sel.some(n=>/analista|asistente|asesor/i.test(n))?{label:'Junior (Analista/Asistente)',color:'bg-emerald-100 text-emerald-700'}
                 :null
-              return s?<span className={`inline-block mt-2 text-xs font-bold px-2.5 py-1 rounded-full ${s.color}`}>Seniority detectado: {s.label}</span>:null
+              return s?<span className={`inline-block mt-2 text-xs font-bold px-2.5 py-1 rounded-full ${s.color}`}>Seniority: {s.label}</span>:null
             })()}
           </div>
-          <div><h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Nivel de cargo objetivo</h3>
-            <div className="flex flex-wrap gap-2">{NIVELES_CARGO.map(n=>{const sel=Array.isArray(d.niveles_cargo)&&d.niveles_cargo.includes(n);return iBtn(sel,n,()=>toggleNC(n))})}</div></div>
           <div><h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Área funcional objetivo</h3>
             <div className="flex flex-wrap gap-2">{AREAS_FUNC.map(a=>{const sel=Array.isArray(d.areas)&&d.areas.includes(a);return iBtn(sel,a,()=>toggleArea(a))})}</div>
             {Array.isArray(d.areas)&&d.areas.includes('Otro')&&(
@@ -981,7 +975,7 @@ function PilarMiPerfil({ perfil, extraData, onChange, onSavePerfil, saving, isPa
             ))}</div></div>
           <div><h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Ciudades / Países de búsqueda</h3>
             <div className="flex items-center gap-3 mb-3">
-              <span className="text-sm text-slate-600">¿Dispuesto a buscar en otras ciudades?</span>
+              <span className="text-sm text-slate-600">¿Relocalización?</span>
               {['Sí','No'].map(op=>(
                 <button key={op} onClick={()=>up('busca_otras_ciudades',op==='Sí')}
                   className={`px-4 py-1.5 rounded-xl text-sm font-bold border transition-colors cursor-pointer ${d.busca_otras_ciudades===(op==='Sí')?'bg-slate-800 text-white border-slate-800':'border-slate-300 text-slate-600 hover:border-slate-500'}`}>{op}</button>
@@ -1054,7 +1048,7 @@ function PilarMiPerfil({ perfil, extraData, onChange, onSavePerfil, saving, isPa
           <button onClick={()=>onSavePerfilLocal(lp)} disabled={saving}
             className={`flex items-center gap-2 font-bold text-sm px-6 py-3 rounded-xl transition-all cursor-pointer disabled:opacity-60 ${justSaved ? 'bg-emerald-600 text-white' : 'bg-indigo-600 hover:bg-indigo-700 text-white'}`}>
             {saving ? <SpinnerGap size={16} className="animate-spin"/> : (justSaved ? <CheckCircle size={16} weight="fill"/> : <CheckCircle size={16} weight="fill"/>)} 
-            {justSaved ? 'Guardado' : 'Guardar aspiraciones'}
+            {justSaved ? 'Guardado' : 'Guardar Perfilador'}
           </button>
         </div>
       )}
@@ -1329,8 +1323,7 @@ function PilarAutoconocimiento({ data, onChange, onSave, justSaved }) {
   function getIncompletos() {
     const items = []
     if (!Array.isArray(d.hard_skills)||d.hard_skills.length<2)   items.push('Hard Skills — selecciona al menos 2')
-    if (!Array.isArray(d.soft_skills)||d.soft_skills.length<2)   items.push('Soft Skills — selecciona al menos 2')
-    if (!Array.isArray(d.power_skills)||d.power_skills.length<2) items.push('Power Skills — selecciona al menos 2')
+    if (!Array.isArray(d.soft_skills)||d.soft_skills.length<2)   items.push('Power Skills — selecciona al menos 2')
     if (!Array.isArray(d.top5empresas)||d.top5empresas.filter(function(e){return e&&String(e).trim()}).length<1) items.push('Top 5 Compañías — escribe al menos 1')
     return items
   }
@@ -1437,8 +1430,8 @@ function PilarAutoconocimiento({ data, onChange, onSave, justSaved }) {
               <Heart size={15} className="text-emerald-600" weight="duotone"/>
             </div>
             <div>
-              <div className="font-bold text-slate-800 text-sm leading-tight">Soft Skills</div>
-              <div className="text-xs text-emerald-600 font-medium">El "Saber ser" · Habilidades sociales y de carácter · <strong>Debes seleccionar al menos 3</strong></div>
+              <div className="font-bold text-slate-800 text-sm leading-tight">Power Skills</div>
+              <div className="text-xs text-emerald-600 font-medium">El "Saber lograr" · Habilidades de liderazgo e impacto · <strong>Debes seleccionar al menos 3</strong></div>
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -1450,8 +1443,8 @@ function PilarAutoconocimiento({ data, onChange, onSave, justSaved }) {
           </div>
         </div>
 
-        {/* Power Skills */}
-        <div className="p-5 rounded-2xl bg-violet-50 border border-violet-100">
+        {/* Power Skills (sección original) — misma data que Hard Skills, quitada de UI para rollback */}
+        {false && <div className="p-5 rounded-2xl bg-violet-50 border border-violet-100">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-8 h-8 rounded-lg bg-violet-100 border border-violet-200 flex items-center justify-center flex-shrink-0">
               <Sparkle size={15} className="text-violet-600" weight="duotone"/>
@@ -1476,7 +1469,7 @@ function PilarAutoconocimiento({ data, onChange, onSave, justSaved }) {
               )
             })}
           </div>
-        </div>
+        </div>}
       </div>
       <div>
         <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Top 5 Compañías objetivo · <span className="text-amber-600">Debes llenar al menos 1</span></h3>
@@ -2355,8 +2348,7 @@ export default function ProyectoLaboral() {
       const a = d.autoconocimiento||{}
       const items=[]
       if (!Array.isArray(a.hard_skills)||a.hard_skills.length<2)   items.push('Hard Skills — selecciona al menos 2')
-      if (!Array.isArray(a.soft_skills)||a.soft_skills.length<2)   items.push('Soft Skills — selecciona al menos 2')
-      if (!Array.isArray(a.power_skills)||a.power_skills.length<2) items.push('Power Skills — selecciona al menos 2')
+      if (!Array.isArray(a.soft_skills)||a.soft_skills.length<2)   items.push('Power Skills — selecciona al menos 2')
       if (!Array.isArray(a.top5empresas)||a.top5empresas.filter(function(e){return e&&String(e).trim()}).length<1) items.push('Top 5 Compañías — escribe al menos 1')
       return items
     }
@@ -2893,7 +2885,7 @@ export default function ProyectoLaboral() {
               <h2 className="font-black text-slate-800 text-lg">{pilarObj.label}</h2>
               <p className="text-xs text-slate-500 font-medium">
                 {pilarId==='perfil'          &&'Tu identidad profesional · Datos, compensación y aspiraciones'}
-                {pilarId==='autoconocimiento'&&'Competencias · Hard Skills, Soft Skills y Power Skills que te definen'}
+                {pilarId==='autoconocimiento'&&'Competencias · Hard Skills y Power Skills que te definen'}
                 {pilarId==='recursos'        &&'Gastos · Inversión real de tu búsqueda laboral'}
                 {pilarId==='semana'          &&'Ejecución · Comprométete con el tiempo que dedicarás'}
                 {pilarId==='oferta'          &&'Tu propuesta diferencial ★ · Input principal para tu CV de élite'}

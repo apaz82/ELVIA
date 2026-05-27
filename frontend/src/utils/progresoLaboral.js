@@ -7,7 +7,7 @@ export const RECURSOS_DEFAULT = [
   { id:'3',      nombre:'Celular activo',               descripcion:'Para recibir llamadas de reclutadores.',                 costo:0, tengo:false },
   { id:'4',      nombre:'LinkedIn Premium',             descripcion:'La red #1 para ser encontrado por reclutadores.',        costo:0, tengo:false },
   { id:'5',      nombre:'Transporte a entrevistas',     descripcion:'Transporte público o privado + estacionamiento.',        costo:0, tengo:false },
-  { id:'6',      nombre:'Ropa de presentación',         descripcion:'Outfit adecuado para entrevistas presenciales.',         costo:0, tengo:false },
+  { id:'6',      nombre:'Networking',                   descripcion:'Eventos, membresías o herramientas para ampliar tu red profesional.',     costo:0, tengo:false },
   { id:'7',      nombre:'Café / Coworking',             descripcion:'Si prefieres salir de casa para más productividad.',     costo:0, tengo:false },
   { id:'optima', nombre:'Suscripción ELVIA',           descripcion:'Tu plan activo de ELVIA.',                           costo:0, tengo:false, obligatorio:true },
 ]
@@ -33,14 +33,11 @@ export function calcularProgreso(data, perfil) {
   const auto = (data&&data.autoconocimiento) ? data.autoconocimiento : {}
   let autoPts = 0
 
-  // 1. Hard Skills - 5 pts
-  if (Array.isArray(auto.hard_skills) && auto.hard_skills.length >= 2) autoPts += 5
+  // 1. Hard Skills - 8 pts
+  if (Array.isArray(auto.hard_skills) && auto.hard_skills.length >= 2) autoPts += 8
 
-  // 2. Soft Skills - 5 pts
-  if (Array.isArray(auto.soft_skills) && auto.soft_skills.length >= 2) autoPts += 5
-
-  // 3. Power Skills - 5 pts
-  if (Array.isArray(auto.power_skills) && auto.power_skills.length >= 2) autoPts += 5
+  // 2. Power Skills - 7 pts (sección ex Soft Skills, renombrada)
+  if (Array.isArray(auto.soft_skills) && auto.soft_skills.length >= 2) autoPts += 7
 
   // 4. Compañías - 5 pts
   if (Array.isArray(auto.top5empresas) && auto.top5empresas.filter(function(e){return e && String(e).trim()}).length >= 1) autoPts += 5
