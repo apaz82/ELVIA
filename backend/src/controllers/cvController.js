@@ -500,8 +500,14 @@ const generarInfografiaProyecto = async (req, res, next) => {
       .eq('id', userId)
       .single();
 
-    if (error || !profile || !profile.job_search_profile) {
+    if (error || !profile) {
       return res.status(400).json({ error: 'No se encontró el perfil de búsqueda laboral.' });
+    }
+
+    // Si job_search_profile es null (usuario no ha guardado el Gerente aún),
+    // se usa un objeto vacío para que la infografía se genere con los datos disponibles.
+    if (!profile.job_search_profile) {
+      profile.job_search_profile = {};
     }
 
     // Enriquecer perfil del job_search_profile con campos que se guardan en columnas directas
