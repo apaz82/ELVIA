@@ -54,7 +54,9 @@
 | 3 — Pantalla selección en /cv-desde-cero | ✅ `90922db` |
 | 3b — Reestructurar pilares | ✅ `25e8672` |
 | 3c — Sequential lock + modal fix | ✅ `c682ed8` |
-| 4 — Path A integrado (upload → wizard) | ⏸️ Pendiente |
+| 4a — Path A: modos upload/scratch separados, modal cancelar, pre-llenado desde Gerente | ✅ `784fc0d` |
+| 4b — Path A: Fusión resumen CV + Mi Oferta de Valor (3 cajas + botón Fusionar con ELVIA®) | ✅ `cc5686f` |
+| 4c — Contexto del Gerente → optimizarResumen + optimizarDescripcionExp (ambos paths) | ✅ `9ed5bac` |
 | 5 — Versionado en MisCVs | ⏸️ Pendiente |
 | 6 — Puntaje visible | ⏸️ Pendiente |
 

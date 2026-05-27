@@ -4,7 +4,7 @@
 > Branch: `main`
 > Objetivo: Unificar la creación de CV bajo el concepto **CV Inicial** en un único tab dentro de Autoconocimiento, con dos puntos de entrada (upload + desde cero) que convergen en data estructurada, vista previa Harvard y versionado por fecha.
 >
-> **Nota (2026-05-27):** Las Fases 4-6 siguen pendientes. En sesión paralela se realizaron mejoras al tab de Compensaciones (commits `adeafc1`, `6cd39ca`) y un fix al backend de infografía (`de2b085`). Estos cambios son independientes del refactor CV Inicial y no afectan las fases planificadas.
+> **Nota (2026-05-27):** Las Fases 4a, 4b y 4c del refactor de CV Inicial ya están completamente implementadas e integradas. Se realizó un fix crítico de migración de `fusionarResumen` a DeepSeek V3 para solucionar un error 500. Las Fases 5 y 6 siguen pendientes.
 
 ---
 
@@ -28,7 +28,9 @@
 | 3b | Reestructurar pilares: renombrar (Competencias/Gastos/Optimizador de CV), nuevos weights, PilarOptimizadorCV, botón Mis Documentos gated al 100% | ✅ Completado | `25e8672` |
 | 3c | Sequential lock progresivo + quitar upload CV de Mi Perfil + fix modal hardcoded | ✅ Completado | `c682ed8` |
 | fix | Fix build: declaración duplicada `isLocked` en grid de pilares | ✅ Completado | `0899929` |
-| 4 | Path A: upload → extractProfile → optimización por sección → wizard pre-llenado | ⏸️ Pendiente | — |
+| 4a | Path A: modos upload/scratch separados, modal cancelar, pre-llenado desde Gerente | ✅ Completado | `784fc0d` |
+| 4b | Path A: Fusión resumen CV + Mi Oferta de Valor (3 cajas + botón Fusionar con ELVIA®) | ✅ Completado | `cc5686f` |
+| 4c | Contexto del Gerente → optimizarResumen + optimizarDescripcionExp (ambos paths) | ✅ Completado | `9ed5bac` |
 | 5 | Versionado en MisCVs (badge CV Inicial / CV Modificada fecha) | ⏸️ Pendiente | — |
 | 6 | Puntaje visible (inicial+final en Path A, solo final en Path B) | ⏸️ Pendiente | — |
 
@@ -180,3 +182,40 @@ Para revivir la página Optimizer como producto visible:
 1. `Sidebar.jsx`: descomentar línea del menú HERRAMIENTAS
 2. Considerar feature flag `VITE_FEATURE_OPTIMIZER_LEGACY=true` para activación selectiva por tenant
 3. La ruta, endpoint, datos históricos y código nunca se removieron — solo se restaura visibilidad UI
+
+---
+
+## Fase 4b — Fusión de Resumen (Path A)
+
+**Commit**: `cc5686f` · **Fix**: `feat(cv-inicial): migrar fusionarResumen a DeepSeek V3`
+
+**Qué cambia:**
+- Paso de Resumen en Path A (upload) muestra 3 cajas:
+  - **A. Resumen extraído del CV** (read-only, snapshot del PDF)
+  - **B. Tu Oferta de Valor (Gerente)** (read-only, `jsp.oferta.oferta_valor`)
+  - **C. Resumen definitivo** (textarea editable, output de la fusión)
+- Botón **✨ Fusionar con ELVIA®** llama a `POST /api/cv/fusionar-resumen`
+- Modelo: DeepSeek V3 (migrado de Claude Sonnet 4.6 para estabilidad, velocidad y consistencia con la arquitectura del backend), temperature 0.2 (anti-alucinación máxima).
+- maxLength 1000 chars; counter 3-colores: <800 slate, 800-899 amber, ≥900 rose
+- Path B (desde cero) no cambia visualmente
+- **Bug Fix**: Corrección de error 500 debido a que el controlador (`cvController.js`) importaba la función desde `deepseekService.js` pero esta había sido implementada originalmente en el servicio inactivo `claudeService.js` sin ser exportada. Se portó e implementó correctamente en `deepseekService.js` utilizando el cliente de DeepSeek V3.
+
+**Rollback:** `git revert cc5686f` y revertir el commit del fix de DeepSeek.
+
+---
+
+## Fase 4c — Contexto del Gerente en optimizaciones de IA (ambos paths)
+
+**Commit**: `9ed5bac` · cleanup: `c0f7529`
+
+**Qué cambia:**
+- Nuevo estado `contextoGerente` en `CVDesdeCero.jsx` — se captura al cargar desde `jsp`:
+  `{ oferta_valor, hard_skills, soft_skills, niveles_cargo, areas, industria }`
+- Se inyecta como bloque CONTEXTO ESTRATÉGICO en el system prompt de DeepSeek cuando:
+  - El usuario presiona "✨ Optimizar" en el resumen (`optimizarResumenIA`)
+  - El usuario presiona "Mejorar con IA" en cada experiencia (`optimizarExpIA`)
+- **Aplica a ambos paths** (upload Y desde cero) — la captura del contexto es independiente del modo
+- Si el Gerente está vacío → `contextoGerente = null` → bloque NO se inyecta → retrocompatible
+- Archivos modificados: `deepseekService.js`, `cvController.js`, `cvService.js`, `CVDesdeCero.jsx`
+
+**Rollback:** `git revert 9ed5bac`
