@@ -37,3 +37,20 @@
 
     # ── Reduce información expuesta en headers ────────────────────────────
     X-Powered-By = ""
+
+# ────────────────────────────────────────────────────────────────────────────
+# Cache Headers — evita que chunks viejos rompan tras un deploy nuevo
+# ────────────────────────────────────────────────────────────────────────────
+
+# index.html nunca se cachea → el browser siempre obtiene el HTML con los
+# hashes de chunks del deploy más reciente.
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "no-cache, no-store, must-revalidate"
+
+# Assets con hash en el nombre → inmutables, caché de 1 año.
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
