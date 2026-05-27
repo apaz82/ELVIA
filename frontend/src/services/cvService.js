@@ -50,6 +50,11 @@ export const optimizarExpIA = async (texto, cargo, empresa, idioma = 'es') => {
   return api.post('/api/cv/optimizar-experiencia', { texto, cargo, empresa, idioma })
 }
 
+// Path A — Fusionar resumen del CV original + Mi Oferta de Valor en un resumen único ATS-optimizado
+export const fusionarResumenIA = async (cvResumen, ofertaValor, idioma = 'es') => {
+  return api.post('/api/cv/fusionar-resumen', { cv_resumen: cvResumen, oferta_valor: ofertaValor, idioma })
+}
+
 // Descargar CV generado como PDF o Word
 export const descargarCV = async (id, format = 'pdf') => {
   const res = await api.download(`/api/cv/download/${id}?format=${format}`)

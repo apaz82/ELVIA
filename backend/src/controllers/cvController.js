@@ -8,6 +8,7 @@ const {
   corregirProyectoLaboral,
   generarCarta,
   optimizarResumen: optimizarResumenService,
+  fusionarResumen: fusionarResumenService,
   optimizarDescripcionExp,
   extractProfileFromCV,
 } = require('../services/deepseekService');
@@ -598,21 +599,48 @@ const optimizarResumenController = async (req, res, next) => {
   try {
     // Usamos el nombre diferenciado del servicio
     const optimizado = await optimizarResumenService(texto, idioma || 'es');
-    
+
     const exito = !!optimizado && optimizado !== texto;
-    
-    return res.json({ 
-      optimizado: optimizado || texto, 
+
+    return res.json({
+      optimizado: optimizado || texto,
       exito,
       mensaje: exito ? 'Optimizado con éxito' : 'Usando borrador original'
     });
   } catch (err) {
     console.error('[Controller] Error crítico capturado:', err.message);
-    return res.json({ 
-      optimizado: texto, 
-      exito: false, 
+    return res.json({
+      optimizado: texto,
+      exito: false,
       error: err.message,
-      mensaje: 'Servicio de IA temporalmente indisponible' 
+      mensaje: 'Servicio de IA temporalmente indisponible'
+    });
+  }
+};
+
+// Path A — fusión del resumen extraído del CV + Mi Oferta de Valor (Gerente de Proyecto).
+// Devuelve un único resumen profesional optimizado para ATS, sin alucinaciones.
+const fusionarResumenController = async (req, res) => {
+  const { cv_resumen, oferta_valor, idioma } = req.body || {};
+  const cv = String(cv_resumen || '').trim();
+  const ov = String(oferta_valor || '').trim();
+
+  if (!cv && !ov) {
+    return res.status(400).json({ error: 'Se requiere al menos uno de los textos para fusionar' });
+  }
+
+  try {
+    const fusionado = await fusionarResumenService(cv, ov, idioma || 'es');
+    return res.json({
+      fusionado,
+      exito: !!fusionado,
+      mensaje: 'Resumen fusionado con éxito'
+    });
+  } catch (err) {
+    console.error('[Controller] Error en fusionarResumen:', err.message);
+    return res.status(500).json({
+      error: err.message,
+      mensaje: 'No pudimos fusionar el resumen. Intenta de nuevo en un momento.'
     });
   }
 };
@@ -703,5 +731,6 @@ module.exports = {
   generarCartaPresentacion,
   optimizarResumen: optimizarResumenController,
   optimizarExp: optimizarExpController,
+  fusionarResumen: fusionarResumenController,
   generarOfertaValorIA,
 };

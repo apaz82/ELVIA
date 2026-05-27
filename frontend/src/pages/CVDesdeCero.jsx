@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../services/authService'
-import { generarCVDesdeCero, extractarPerfilCV, descargarCV, optimizarResumenIA, optimizarExpIA } from '../services/cvService'
+import { generarCVDesdeCero, extractarPerfilCV, descargarCV, optimizarResumenIA, optimizarExpIA, fusionarResumenIA } from '../services/cvService'
 import HelpBadge from '../components/common/HelpBadge'
 import {
   Plus, X, ArrowLeft, ArrowRight, Question, Check,
@@ -297,6 +297,11 @@ export default function CVDesdeCero() {
   const [optimizandoResumen, setOptimizandoResumen] = useState(false)
   const [resumenSugerido, setResumenSugerido] = useState('')
   const [resumenBloqueado, setResumenBloqueado] = useState(false)
+  // Path A — fusión CV + Oferta de Valor
+  const [cvResumenOriginal, setCvResumenOriginal] = useState('') // snapshot del resumen extraído del CV (inmutable)
+  const [ofertaValorGerente, setOfertaValorGerente] = useState('') // texto Mi Oferta de Valor del Gerente (inmutable)
+  const [fusionando, setFusionando] = useState(false)
+  const [errorFusion, setErrorFusion] = useState('')
   const [cvIdioma, setCvIdioma] = useState('es')         // idioma detectado del CV subido
   const [alertaIdioma, setAlertaIdioma] = useState(false) // modal confirm idioma antes de generar
   const [expSugeridas, setExpSugeridas]   = useState({})  // { [i]: string } sugerencia por exp
@@ -447,6 +452,10 @@ export default function CVDesdeCero() {
 
         const borrador = p?.job_search_profile?.cv_borrador
         const jsp = p?.job_search_profile || {}
+
+        // Capturar Mi Oferta de Valor del Gerente para Path A (fusión con el resumen del CV)
+        const ofertaValorTexto = String(jsp?.oferta?.oferta_valor || '').trim()
+        setOfertaValorGerente(ofertaValorTexto)
 
         if (borrador?.datos && Object.keys(borrador.datos).length > 0) {
           // Hay borrador en BD. Si el usuario entró desde el pilar con mode='scratch',
@@ -606,10 +615,36 @@ export default function CVDesdeCero() {
     // Guardar idioma detectado para usarlo en optimizarResumen y generarCV
     if (d.idioma_cv) setCvIdioma(d.idioma_cv)
 
+    // Path A: capturar snapshot del resumen del CV original (inmutable) para mostrar en la fusión
+    setCvResumenOriginal(String(d.resumen || '').trim())
+
     setDatos(merged)
     setAnalisis(analizarCalidad(merged))
     setCvPending(null)
     setError('')
+  }
+
+  // Path A — Fusionar el resumen extraído del CV con la Oferta de Valor del Gerente.
+  // El resultado pasa a ser el resumen activo del wizard (datos.resumen).
+  const handleFusionarResumen = async () => {
+    if (fusionando) return
+    if (!cvResumenOriginal && !ofertaValorGerente) {
+      setErrorFusion('Necesitas al menos el resumen del CV o tu Oferta de Valor para fusionar.')
+      return
+    }
+    setFusionando(true)
+    setErrorFusion('')
+    try {
+      const res = await fusionarResumenIA(cvResumenOriginal, ofertaValorGerente, cvIdioma || 'es')
+      const texto = String(res?.fusionado || '').trim()
+      if (!texto) throw new Error('La fusión no devolvió texto.')
+      upDatos('resumen', texto)
+    } catch (err) {
+      console.error('[Fusión] Error:', err)
+      setErrorFusion(err?.message || 'No pudimos fusionar el resumen. Intenta de nuevo.')
+    } finally {
+      setFusionando(false)
+    }
   }
 
   // ── Extracción del CV ────────────────────────────────────────────────────────
@@ -1276,12 +1311,66 @@ export default function CVDesdeCero() {
                   <h2 className="text-base font-bold text-slate-800">Resumen Profesional</h2>
                   <HelpBadge id="cvdesdecero.resumen" />
                 </div>
-                
-                {/* CAJA 1: Borrador / Entrada */}
+
+                {/* ── Path A: Fusión CV original + Oferta de Valor ─────────────────── */}
+                {modoForzado === 'upload' && (cvResumenOriginal || ofertaValorGerente) && (
+                  <div className="space-y-4">
+                    {/* Caja A: Resumen del CV original (read-only) */}
+                    <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200">
+                      <label className="text-xs font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5 mb-2">
+                        <Notepad size={14} weight="duotone" /> A. Resumen extraído de tu CV
+                      </label>
+                      {cvResumenOriginal ? (
+                        <p className="text-xs text-slate-600 leading-relaxed whitespace-pre-line">{cvResumenOriginal}</p>
+                      ) : (
+                        <p className="text-xs text-slate-400 italic">Tu CV no traía un resumen explícito.</p>
+                      )}
+                    </div>
+
+                    {/* Caja B: Oferta de Valor del Gerente (read-only) */}
+                    <div className="p-4 rounded-2xl bg-indigo-50/60 border border-indigo-100">
+                      <label className="text-xs font-black text-indigo-700 uppercase tracking-widest flex items-center gap-1.5 mb-2">
+                        <Sparkle size={14} weight="duotone" /> B. Tu Oferta de Valor (Gerente de Proyecto)
+                      </label>
+                      {ofertaValorGerente ? (
+                        <p className="text-xs text-indigo-900/80 leading-relaxed whitespace-pre-line">{ofertaValorGerente}</p>
+                      ) : (
+                        <p className="text-xs text-indigo-400 italic">Aún no has llenado Mi Oferta de Valor en el Gerente de Proyecto.</p>
+                      )}
+                    </div>
+
+                    {/* Botón fusión */}
+                    <div className="flex flex-col items-center gap-2">
+                      <button
+                        onClick={handleFusionarResumen}
+                        disabled={fusionando || (!cvResumenOriginal && !ofertaValorGerente)}
+                        className={`flex items-center gap-2 text-sm font-black px-6 py-3 rounded-xl transition-all shadow-lg ${fusionando ? 'bg-slate-100 text-slate-400 cursor-wait' : 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white hover:from-indigo-700 hover:to-violet-700 hover:shadow-xl cursor-pointer'}`}
+                      >
+                        {fusionando ? <SpinnerGap size={18} className="animate-spin" /> : <MagicWand size={18} weight="fill" />}
+                        {fusionando ? 'Fusionando con ELVIA®…' : 'Fusionar con ELVIA®'}
+                      </button>
+                      <p className="text-[10px] text-slate-400 text-center max-w-xs">
+                        ELVIA® sintetiza ambos textos en un resumen ATS-optimizado. Cero alucinación: solo usa información presente en tus textos.
+                      </p>
+                      {errorFusion && (
+                        <div className="text-xs text-rose-600 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2 mt-1">{errorFusion}</div>
+                      )}
+                    </div>
+
+                    {/* Separador visual */}
+                    <div className="flex items-center gap-3 py-2">
+                      <div className="flex-1 h-px bg-slate-200" />
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">C. Resultado</span>
+                      <div className="flex-1 h-px bg-slate-200" />
+                    </div>
+                  </div>
+                )}
+
+                {/* CAJA principal: borrador/entrada */}
                 <div className={`transition-all duration-300 ${resumenBloqueado ? 'opacity-50 pointer-events-none scale-[0.98]' : ''}`}>
                   <label className="text-sm font-bold text-slate-700 flex items-center justify-between mb-2">
                     <span className="flex items-center gap-1">
-                      1. Tu borrador profesional
+                      {modoForzado === 'upload' ? 'Resumen profesional definitivo' : '1. Tu borrador profesional'}
                       <Tooltip text="Escribe libremente tus logros y trayectoria. La IA te ayudará a pulirlo." />
                     </span>
                     {resumenBloqueado && <button onClick={()=>setResumenBloqueado(false)} className="text-xs text-indigo-600 font-bold hover:underline">Editar de nuevo</button>}
@@ -1291,16 +1380,28 @@ export default function CVDesdeCero() {
                       Esta es la sugerencia que resulta de tu <span className="font-bold text-indigo-600">Autoconocimiento</span>. Puedes modificarla y/o mejorarla con la ayuda de ELVIA®.
                     </p>
                   )}
+                  {modoForzado === 'upload' && (
+                    <p className="text-xs text-slate-500 leading-relaxed mb-2 px-1">
+                      Edita libremente o usa <span className="font-bold text-indigo-600">Fusionar con ELVIA®</span> arriba para combinar tu CV con tu Oferta de Valor.
+                    </p>
+                  )}
                   <textarea
                     placeholder="Describe tu trayectoria..."
                     value={datos.resumen}
                     onChange={e => upDatos('resumen', e.target.value)}
                     rows={12}
-                    maxLength={800}
+                    maxLength={1000}
                     className="w-full border border-slate-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400/50 resize-y bg-white shadow-sm leading-relaxed"
                     style={{ minHeight: 220 }}
                   />
-
+                  {datos.resumen.length > 800 && (
+                    <div className="mt-2 flex items-start gap-2 p-2.5 rounded-xl bg-amber-50 border border-amber-200">
+                      <Warning size={14} weight="fill" className="text-amber-500 shrink-0 mt-0.5" />
+                      <p className="text-xs text-amber-800 leading-relaxed">
+                        Tu resumen tiene <span className="font-bold">{datos.resumen.length} caracteres</span>. Para un CV de 1 página, lo ideal es mantenerlo entre 400 y 800. Considera acortarlo.
+                      </p>
+                    </div>
+                  )}
                   <div className="flex items-center justify-between mt-2">
                     <button
                       onClick={handleOptimizarResumen}
@@ -1310,7 +1411,7 @@ export default function CVDesdeCero() {
                       {optimizandoResumen ? <SpinnerGap size={16} className="animate-spin" /> : <MagicWand size={16} weight="bold" />}
                       {optimizandoResumen ? 'Analizando...' : 'Sugerencia de mejora'}
                     </button>
-                    <div className={`text-[10px] ${datos.resumen.length >= 750 ? 'text-amber-500 font-bold' : 'text-slate-400'}`}>{datos.resumen.length}/800 caracteres</div>
+                    <div className={`text-[10px] ${datos.resumen.length >= 900 ? 'text-rose-500 font-bold' : datos.resumen.length >= 800 ? 'text-amber-500 font-bold' : 'text-slate-400'}`}>{datos.resumen.length}/1000 caracteres</div>
                   </div>
                 </div>
 

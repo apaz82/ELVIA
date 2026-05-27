@@ -51,6 +51,83 @@ async function optimizarResumen(texto, idioma = 'es') {
   }
 }
 
+/**
+ * Fusiona el resumen del CV original con la Oferta de Valor del candidato en UN solo
+ * resumen profesional optimizado para ATS. Estricto: cero invención.
+ * @param {string} cvResumen Resumen extraído del CV cargado por el usuario.
+ * @param {string} ofertaValor Texto de Mi Oferta de Valor (Gerente de Proyecto).
+ * @param {string} idioma 'es' | 'en'.
+ */
+async function fusionarResumen(cvResumen, ofertaValor, idioma = 'es') {
+  const cv = String(cvResumen || '').trim();
+  const ov = String(ofertaValor || '').trim();
+  if (!cv && !ov) return '';
+  if (!cv) return ov;
+  if (!ov) return cv;
+
+  const idiomaNombre = idioma === 'en' ? 'English' : 'Español neutro hispanoamericano';
+
+  try {
+    const response = await client.messages.create({
+      model: MODELO,
+      max_tokens: 1200,
+      temperature: 0.2, // Bajo para minimizar alucinaciones
+      system: `Eres un experto en redacción de CVs ejecutivos optimizados para ATS (Applicant Tracking Systems) y reclutadores senior. Tu única tarea es FUSIONAR dos textos en un resumen profesional cohesivo, literal y poderoso.
+
+╔══════════════════════════════════════════════════════════════════════════╗
+║  REGLA #1 (NO NEGOCIABLE): CERO INVENCIÓN                                 ║
+║  Solo puedes usar información PRESENTE en uno de los dos textos.          ║
+╚══════════════════════════════════════════════════════════════════════════╝
+
+PROHIBIDO ABSOLUTAMENTE inventar, deducir o agregar:
+  ✗ Métricas, porcentajes, cifras o años de experiencia que no estén en los inputs
+  ✗ Empresas, cargos, sectores o industrias que no estén en los inputs
+  ✗ Certificaciones, premios, idiomas o competencias que no estén en los inputs
+  ✗ Cualquier hecho específico que no aparezca en uno de los dos textos
+
+REGLAS DE FUSIÓN:
+1. SÍNTESIS LITERAL: combina lo que dicen ambos textos sin contradicciones ni duplicaciones. Si un dato está en ambos, escríbelo una sola vez con la formulación más precisa.
+2. PRIORIDAD: la EXPERIENCIA factual del CV manda; la OFERTA DE VALOR aporta posicionamiento estratégico, propósito y diferenciación.
+3. OPTIMIZACIÓN ATS:
+   - Usa keywords presentes en los inputs (cargos, industrias, metodologías, herramientas)
+   - Verbos de acción profesionales (lidero, diseño, transformo, optimizo, gestiono, ejecuto, escalo)
+   - Voz activa, sin pronombres personales (yo, mí, mi)
+   - Sin clichés vacíos ("apasionado", "proactivo", "team player", "orientado a resultados" suelto)
+4. ESTRUCTURA RECOMENDADA (3-5 oraciones):
+   - Quién es + años de experiencia (si los hay en los inputs) + dominio/sector
+   - Logros y métricas (SOLO si están en los inputs)
+   - Competencias diferenciales (técnicas + estratégicas)
+   - Visión / propósito profesional (de la oferta de valor)
+5. LONGITUD: entre 500 y 900 caracteres. Máximo absoluto: 1000.
+6. IDIOMA DE SALIDA: ${idiomaNombre}.
+
+FORMATO DE RESPUESTA:
+Devuelve SOLO el resumen fusionado. Sin preámbulos, sin etiquetas, sin comillas, sin explicaciones. Solo el texto del resumen profesional optimizado.`,
+      messages: [{
+        role: 'user',
+        content: `INPUT 1 — Resumen del CV original del candidato:
+"""
+${cv}
+"""
+
+INPUT 2 — Oferta de Valor del candidato (autoconocimiento del Gerente de Proyecto):
+"""
+${ov}
+"""
+
+Fusiona ambos en un único resumen profesional optimizado para ATS. Solo usa información presente en uno de los dos textos.`
+      }]
+    });
+
+    const result = response.content[0].text.trim().replace(/^["'«]+|["'»]+$/g, '').trim();
+    console.log('[Claude] Resumen fusionado con éxito.');
+    return result;
+  } catch (error) {
+    console.error('[Claude] Error en fusionarResumen:', error.message);
+    throw error;
+  }
+}
+
 // --- Instrucciones del sistema compartidas ---
 const SISTEMA_BASE = `Eres un experto en recursos humanos y redacción de CV con 20 años de experiencia
 en el mercado laboral de LATAM y USA. Tus análisis son objetivos, sin sesgos por edad, género u origen.
@@ -964,6 +1041,7 @@ module.exports = {
   analizarLinkedin,
   generarCarta,
   optimizarResumen,
+  fusionarResumen,
   // ── Bot de Chat ELVIA (RAG Híbrido: Claude lee Gemini) ─────────────────────
   generateChatResponse,
   // ── Extracción con PII → Claude Haiku (PII permanece en Anthropic/LGPD) ───
