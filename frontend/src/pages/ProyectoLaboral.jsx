@@ -214,7 +214,7 @@ function convertirDesdeMXN(montoMXN, moneda) {
 const RECURSOS_DEFAULT = RECURSOS_DEFAULT_BASE
 
 const DOCS_LIST = [
-  { id:'cv',          label:'CV optimizado con ELVIA',            link:'/cv-optimizer',   Icon:FileMagnifyingGlass, nota:'Tu CV base, optimizado para pasar filtros ATS y destacar tu perfil.'            },
+  { id:'cv',          label:'CV Inicial con ELVIA',               link:'/cv-desde-cero',  Icon:FileMagnifyingGlass, nota:'Tu CV base, construido y optimizado paso a paso con el estándar premium Harvard.' },
   { id:'linkedin',    label:'LinkedIn actualizado y auditado',     link:'/linkedin-pro',   Icon:LinkedinLogo, target:'_blank', nota:'Perfil LinkedIn® analizado y optimizado con keywords de tu industria.' },
   { id:'cv_vacante',  label:'CV adaptado a una vacante objetivo',  link:'/cv-vs-job',      Icon:MagnifyingGlass,    nota:'CV personalizado para una vacante de alto interés, con match > 70%.'        },
   { id:'entrevista',  label:'Práctica de entrevista realizada',    link:'/entrevista',     Icon:Robot,              nota:'Al menos una simulación de entrevista completa con feedback de ELVIA.'       },

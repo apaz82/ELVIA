@@ -260,7 +260,7 @@ export default function MisCVs() {
                 <HelpBadge id="miscvs.optimizados" />
               </div>
               {cvsOptimizados.length === 0
-              ? <EmptyState mensaje="Aún no tienes documentos optimizados." cta="Optimizar mi CV ahora" ruta="/cv-optimizer" />
+              ? <EmptyState mensaje="Aún no tienes documentos generados." cta="Crear mi CV ahora" ruta="/cv-desde-cero" />
               : <div className="space-y-4">
                   {cvsOptimizados.map(item => (
                     <div key={item.id} className="group flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 bg-white border border-gray-100 rounded-2xl hover:border-primary/30 hover:shadow-xl hover:shadow-primary/5 transition-all duration-300">
@@ -346,7 +346,7 @@ export default function MisCVs() {
                 <HelpBadge id="miscvs.original" />
               </div>
               {cvsOriginal.length === 0
-              ? <EmptyState mensaje="Aún no has subido tu CV base." cta="Subir mi primer documento" ruta="/cv-optimizer" />
+              ? <EmptyState mensaje="Aún no has creado tu CV base." cta="Crear mi CV ahora" ruta="/cv-desde-cero" />
               : <div className="space-y-4">
                   {cvsOriginal.map(item => (
                     <div key={item.id} className="group flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 bg-white border border-gray-100 rounded-2xl hover:border-emerald-300 hover:shadow-xl hover:shadow-emerald-50 transition-all duration-300">

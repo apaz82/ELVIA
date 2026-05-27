@@ -15,7 +15,8 @@ const INICIO = [
 ]
 
 const HERRAMIENTAS = [
-  { to: '/cv-optimizer',    label: 'CV Optimizer',          Icon: FileMagnifyingGlass },
+  // CV Optimizer oculto en Fase 0 del refactor — ver REFACTOR_CV_INICIAL.md (ruta /cv-optimizer sigue accesible por URL)
+  // { to: '/cv-optimizer',    label: 'CV Optimizer',          Icon: FileMagnifyingGlass },
   { to: '/linkedin-pro',     label: 'LinkedIn® Pro',          Icon: LinkedinLogo },
   { to: '/cv-vs-job',       label: 'CV vs Vacante',         Icon: MagnifyingGlass },
   { to: '/jobs',            label: 'Vacantes',              Icon: Briefcase },

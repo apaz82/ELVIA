@@ -255,9 +255,9 @@ export default function Dashboard() {
   if (metricas.cvsOptimizados === 0) {
     notificaciones.push({
       id: 'cv_opt',
-      title: 'Optimiza tu CV',
-      desc: 'Sube tu CV para adaptarlo automáticamente al estándar premium Harvard.',
-      to: '/cv-optimizer',
+      title: 'Crea tu CV Inicial',
+      desc: 'Construye tu CV con el estándar premium Harvard, guiado paso a paso por ELVIA.',
+      to: '/cv-desde-cero',
       type: 'info'
     })
   }
@@ -389,10 +389,10 @@ export default function Dashboard() {
             )}
           </div>
 
-          <Link to="/cv-optimizer"
+          <Link to="/cv-desde-cero"
             className="flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold text-xs px-5 py-3 rounded-2xl transition-all shadow-md shadow-indigo-50 active:scale-95">
             <FileMagnifyingGlass size={16} weight="duotone" />
-            Optimizar CV
+            Crear mi CV
           </Link>
         </div>
       </header>
@@ -534,12 +534,12 @@ export default function Dashboard() {
             <MetricCard
               icon={FileMagnifyingGlass}
               iconBg="bg-indigo-500"
-              label="CVs optimizados"
+              label="CVs generados"
               value={val(metricas.cvsOptimizados)}
-              sub={!loadingMetricas && (metricas.cvsOptimizados ?? 0) === 0 ? 'Sin optimizar' : 'estándar Harvard'}
-              to="/cv-optimizer"
+              sub={!loadingMetricas && (metricas.cvsOptimizados ?? 0) === 0 ? 'Sin generar' : 'estándar Harvard'}
+              to="/cv-desde-cero"
               isEmpty={!loadingMetricas && (metricas.cvsOptimizados ?? 0) === 0}
-              ctaLabel="Optimizar CV"
+              ctaLabel="Crear mi CV"
             />
             <MetricCard
               icon={MagnifyingGlass}
