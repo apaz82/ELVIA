@@ -36,14 +36,14 @@ export default function LoginEmpresa() {
 
     if (isCompanyAdmin) {
       navigate('/empresa-admin', { replace: true })
-    } else if (onboardingPendiente) {
+    } else if (onboardingPendiente || justActivated) {
       navigate('/bienvenida', { replace: true })
     } else if (!featuresDesbloqueadas) {
       navigate('/proyecto-laboral', { replace: true })
     } else {
       navigate('/dashboard', { replace: true })
     }
-  }, [user, authLoading, tenantLoading, perfilCargado, isCompanyAdmin, onboardingPendiente, featuresDesbloqueadas, navigate])
+  }, [user, authLoading, tenantLoading, perfilCargado, isCompanyAdmin, onboardingPendiente, featuresDesbloqueadas, justActivated, navigate])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
