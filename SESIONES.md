@@ -345,3 +345,34 @@ Ver `REPORTE_AUDITORIAS.md` para detalle completo.
 - Archivos modificados no commiteados: `backend/src/app.js`, `backend/src/routes/admin.js`
 
 ---
+
+---
+
+## Sesion 2026-05-27 - Antigravity
+
+### Contexto
+Continuacion de sesion Claude (limite alcanzado). Tab Compensaciones ya tenia los campos base.
+
+### Que se hizo
+
+**1. Compensaciones - Reorganizacion del grid (adeafc1)**
+- PRESTACIONES_POR_PAIS Mexico: AFORE al final; nuevos: Dias de vacaciones (pos.3), Vales de gasolina, Otros vales, PTU
+- MEXICO_DETALLE: config para 4 nuevos campos (tipo dias/monto)
+- Dias de vacaciones: sin checkbox, siempre visible, stored en lp.prestaciones_detalle. Prima vacacional lo lee desde ahi.
+- Vales de gasolina, Otros vales, PTU: checkboxes en el grid (igual que Vales de despensa), stored en lp.prestaciones_detalle. Eliminadas 3 secciones standalone.
+- Panel Anualizado: fondoMonto suma directo sin x12; vales/allowance siguen x12.
+
+**2. Expectativa de prestaciones (6cd39ca)**
+- Labels: 'Prestaciones superiores' / 'Prestaciones similares' / 'Abierto a prestaciones inferiores' (sin 'a la ley')
+
+**3. Fix backend infografia-proyecto (de2b085)**
+- generarInfografiaProyecto: cuando job_search_profile es null, usa {} como fallback en vez de devolver 400.
+
+**4. Redeploy Railway (b40a8e7)**
+- Deploy cancelado por Railway -> commit vacio para triggear redeploy. ACTIVE en produccion.
+
+### Archivos modificados
+- frontend/src/pages/ProyectoLaboral.jsx
+- backend/src/controllers/cvController.js
+
+### Commits: adeafc1 - 6cd39ca - de2b085 - b40a8e7

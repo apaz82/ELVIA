@@ -1,8 +1,10 @@
 # Refactor CV Inicial — Bitácora de fases y rollback
 
-> Inicio: 2026-05-26
+> Inicio: 2026-05-26 · Última revisión: 2026-05-27
 > Branch: `main`
 > Objetivo: Unificar la creación de CV bajo el concepto **CV Inicial** en un único tab dentro de Autoconocimiento, con dos puntos de entrada (upload + desde cero) que convergen en data estructurada, vista previa Harvard y versionado por fecha.
+>
+> **Nota (2026-05-27):** Las Fases 4-6 siguen pendientes. En sesión paralela se realizaron mejoras al tab de Compensaciones (commits `adeafc1`, `6cd39ca`) y un fix al backend de infografía (`de2b085`). Estos cambios son independientes del refactor CV Inicial y no afectan las fases planificadas.
 
 ---
 

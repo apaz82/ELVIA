@@ -1,10 +1,11 @@
 # Current Project State
 
 ## Environment Status
-- **Date**: 2026-05-03
+- **Date**: 2026-05-27
 - **Branch**: `main`
-- **Frontend**: Local Dev running (`localhost:5178`) / Production Verified
-- **Backend API**: `localhost:3001` (pointing to Supabase/Railway).
+- **Frontend**: Netlify (Production verified) / Local Dev `localhost:5178`
+- **Backend API**: Railway (Production) `cv-optimizer-pro-production.up.railway.app` / Local `localhost:5000`
+- **Last commits**: `adeafc1`, `6cd39ca`, `de2b085`, `b40a8e7`
 
 ## Current Active Phases
 
@@ -17,6 +18,13 @@
 - **Waitlist System**: Referral engine with unique code generation, validation, and viral incentives (5 refs = discount).
 - **Compliance**: Cookie Policy page and Blur-effect Consent Banner with persistence logic.
 - **Security UX**: Real-time password strength indicator and Turnstile integration in ResetPassword page.
+- **Compensaciones Tab v2** _(2026-05-27)_:
+  - Días de vacaciones → dentro del grid de prestaciones México (posición 3, sin checkbox, siempre visible), stored en `lp.prestaciones_detalle['Días de vacaciones']`
+  - AFORE → movido al final de la lista México
+  - Vales de gasolina, Otros vales, PTU → ahora son checkboxes en el grid igual que Vales de despensa, stored en `lp.prestaciones_detalle`
+  - Eliminadas 3 secciones standalone (Días de vacaciones, Vales adicionales, PTU)
+  - Panel Salario Anualizado: Fondo de ahorro suma monto directo (sin ×12), vales/car allowance ×12
+  - Expectativa de prestaciones: labels abreviados (sin "a la ley")
 
 ### Back-End (Express + Supabase SDK)
 - **LinkedIn History**: Added `linkedin_analyses` table and persistence logic.
@@ -25,12 +33,24 @@
 - **Admin Infrastructure**: Dedicated `administrators` table and RLS policies active.
 - **Waitlist API**: Unique code generator, manual code validation endpoint, and email integration with Resend.
 - **Recovery Infrastructure**: Domain whitelist for reset URLs, Resend verified sender (soporte@elvia.lat), and granular error codes for non-existent users.
+- **Infografía Proyecto — Fallback** _(2026-05-27)_: `generarInfografiaProyecto` en `cvController.js` tolera `job_search_profile = null` usando `{}` como fallback. Ya no devuelve 400 al usuario que no ha guardado el Gerente de Proyecto.
 
-## Imminent Next Steps (Roadmap)
-1. **Interview Prefill logic**:
-   - Verify `sessionStorage` prefill from Pipeline to Entrevista.
-2. **User Feedback Loop**: Implement post-onboarding satisfaction survey.
+## Refactor CV Inicial — Estado de fases
+| Fase | Estado |
+|------|--------|
+| 0 — Ocultar Optimizer de navegación | ✅ `026102b` |
+| 1 — CVHarvardPreview.jsx | ✅ `bd9cf7f` |
+| 2 — Paso 7 "Vista Previa" en wizard | ✅ `bd9cf7f` |
+| 3 — Pantalla selección en /cv-desde-cero | ✅ `90922db` |
+| 3b — Reestructurar pilares | ✅ `25e8672` |
+| 3c — Sequential lock + modal fix | ✅ `c682ed8` |
+| 4 — Path A integrado (upload → wizard) | ⏸️ Pendiente |
+| 5 — Versionado en MisCVs | ⏸️ Pendiente |
+| 6 — Puntaje visible | ⏸️ Pendiente |
 
-*Managed by Gemini (Antigravity) - Updated 2026-05-03 16:35.*
+## Pendientes conocidos
+- **Deuda técnica seguridad**: `Math.random()` en company.js → `crypto.randomBytes`; rate limiter en `POST /api/company/registration/:slug`; remover `detalle/stack` del catch de cvGenerarController.js en prod
+- **Precio Optima**: `valorOptima` usa plan hardcodeado `'free'` (=$0), debe leer `perfil.plan` y mapear a precios reales
+- **Refactor Fases 4-6**: Path A (upload→wizard), versionado MisCVs, puntaje visible
 
-
+*Managed by Antigravity — Updated 2026-05-27.*
