@@ -31,6 +31,7 @@
 | 4a | Path A: modos upload/scratch separados, modal cancelar, pre-llenado desde Gerente | ✅ Completado | `784fc0d` |
 | 4b | Path A: Fusión resumen CV + Mi Oferta de Valor (3 cajas + botón Fusionar con ELVIA®) | ✅ Completado | `cc5686f` |
 | 4c | Contexto del Gerente → optimizarResumen + optimizarDescripcionExp (ambos paths) | ✅ Completado | `9ed5bac` |
+| 4d | Habilitar documentos al 100% y desbloqueo total al Confirmar CV | ✅ Completado | `feat` |
 | 5 | Versionado en MisCVs (badge CV Inicial / CV Modificada fecha) | ⏸️ Pendiente | — |
 | 6 | Puntaje visible (inicial+final en Path A, solo final en Path B) | ⏸️ Pendiente | — |
 
@@ -219,3 +220,16 @@ Para revivir la página Optimizer como producto visible:
 - Archivos modificados: `deepseekService.js`, `cvController.js`, `cvService.js`, `CVDesdeCero.jsx`
 
 **Rollback:** `git revert 9ed5bac`
+
+---
+
+## Fase 4d — Desbloqueo de Plataforma al Guardar CV (Path A y B)
+
+**Commit**: `feat(cv-inicial): autocompletar documentos y desbloquear todas las secciones`
+
+**Qué cambia:**
+- Al hacer clic en **"Confirmar y Finalizar"** en `CVDesdeCero.jsx`, se actualiza el perfil del usuario en Supabase inyectando `optimizer: { cv_generado: true }` dentro de `job_search_profile`.
+- Esto hace que, tras la sincronización, el pilar **"Mis Documentos"** en Autoconocimiento figure al **100%**.
+- Si el usuario completó la secuencia de autoconocimiento, esto eleva el progreso general al **100% (Estratega Completo)**.
+- Activa de forma inmediata y dinámica `featuresDesbloqueadas = true` en toda la plataforma, desbloqueando el menú completo de navegación.
+

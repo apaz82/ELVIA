@@ -57,6 +57,7 @@
 | 4a — Path A: modos upload/scratch separados, modal cancelar, pre-llenado desde Gerente | ✅ `784fc0d` |
 | 4b — Path A: Fusión resumen CV + Mi Oferta de Valor (3 cajas + botón Fusionar con ELVIA®) | ✅ `cc5686f` |
 | 4c — Contexto del Gerente → optimizarResumen + optimizarDescripcionExp (ambos paths) | ✅ `9ed5bac` |
+| 4d — Habilitar documentos al 100% y desbloqueo total al Confirmar CV | ✅ `feat` |
 | 5 — Versionado en MisCVs | ⏸️ Pendiente |
 | 6 — Puntaje visible | ⏸️ Pendiente |
 

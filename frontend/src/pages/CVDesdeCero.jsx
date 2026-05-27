@@ -849,7 +849,11 @@ export default function CVDesdeCero() {
         cv_filename: nombreArchivo,
         job_search_profile: {
           ...restoJsp,
-          cv_datos_originales: { datos, generado_en: new Date().toISOString() }
+          cv_datos_originales: { datos, generado_en: new Date().toISOString() },
+          optimizer: {
+            ...(restoJsp.optimizer || {}),
+            cv_generado: true
+          }
         }
       }).eq('id', user.id)
       
