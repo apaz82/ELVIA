@@ -289,7 +289,7 @@ REGLAS ESTRICTAS:
 3. Si un campo no existe, usa null. Arrays vacíos [] si no hay datos.
 4. Para "idioma_cv": detecta el idioma principal del documento ("es", "en", "pt", "fr", "de", u otro código ISO 639-1).
 5. Para "telefono1": extrae el número tal como aparece, incluyendo indicativo si existe.
-6. Para "experiencias": extrae TODAS las entradas de experiencia laboral en orden cronológico (la más antigua primero). Usa los campos exactos del schema.
+6. Para "experiencias": extrae TODAS las entradas de experiencia laboral exactamente en el orden en que aparecen en el CV (normalmente la más reciente primero). Usa los campos exactos del schema.
 7. Para "educacion": extrae TODA la formación académica.
 8. "fecha_inicio" y "fecha_fin" deben ser strings como "2019-03", "2022" o "Actualidad"/"Present".
 

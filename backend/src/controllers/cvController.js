@@ -393,11 +393,8 @@ const extractProfile = async (req, res, next) => {
     if (!Array.isArray(perfil.experiencias)) perfil.experiencias = [];
     if (!Array.isArray(perfil.habilidades))  perfil.habilidades  = [];
 
-    // El prompt ya pide orden cronológico (más antigua primero).
-    // Invertir para que el wizard muestre la más reciente arriba.
-    if (perfil.experiencias.length > 0) {
-      perfil.experiencias = perfil.experiencias.reverse();
-    }
+    // El modelo extrae las experiencias en el orden que aparecen en el CV
+    // (normalmente más reciente primero). No se invierte — se respeta el orden original.
 
     // Validacion de identidad
     const db = req.supabase;
