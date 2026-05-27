@@ -1767,6 +1767,7 @@ function PilarOfertaDeValor({ data, onChange, onSave, justSaved, contexto }) {
           soft_skills:     contexto?.soft_skills || [],
           niveles_cargo:   contexto?.niveles_cargo || [],
           areas:           contexto?.areas || [],
+          cultura:         Array.isArray(d.cultura) ? d.cultura : [],
         }),
       })
       const json = await res.json()

@@ -622,7 +622,7 @@ const optimizarExpController = async (req, res) => {
 // POST /api/cv/oferta-valor-ia
 const generarOfertaValorIA = async (req, res) => {
   try {
-    const { ikigai_amas, ikigai_bueno, ikigai_necesita, ikigai_pagar, hard_skills, soft_skills, niveles_cargo, areas } = req.body
+    const { ikigai_amas, ikigai_bueno, ikigai_necesita, ikigai_pagar, hard_skills, soft_skills, niveles_cargo, areas, cultura } = req.body
 
     if (!process.env.ANTHROPIC_API_KEY) {
       return res.status(500).json({ error: 'Servicio de IA no configurado.' })
@@ -630,6 +630,10 @@ const generarOfertaValorIA = async (req, res) => {
 
     const Anthropic = require('@anthropic-ai/sdk')
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+
+    const culturaStr = Array.isArray(cultura) && cultura.length > 0
+      ? cultura.join(', ')
+      : null
 
     const userPrompt = `Eres un experto en branding personal y CVs Harvard ATS-friendly para el mercado latinoamericano.
 
@@ -641,12 +645,13 @@ Información del profesional:
 - Hard Skills: ${(hard_skills || []).join(', ') || 'No especificadas'}
 - Power Skills: ${(soft_skills || []).join(', ') || 'No especificadas'}
 - Nivel de cargo objetivo: ${(niveles_cargo || []).join(', ') || 'No especificado'}
-- Área funcional: ${(areas || []).join(', ') || 'No especificada'}
+- Área funcional: ${(areas || []).join(', ') || 'No especificada'}${culturaStr ? `\n- Cultura y valores de trabajo: ${culturaStr}` : ''}
 
 Redacta una "Oferta de Valor" profesional de 3-4 oraciones (~80-120 palabras) para incluir al inicio de un CV Harvard.
 Requisitos:
-- Primera persona, voz activa, tono profesional pero humano
-- Integra skills y nivel de cargo de forma natural, sin listar
+- Primera persona, voz activa, tono profesional y cercano — que suene a una persona real, no a un manual corporativo
+- Usa vocabulario natural del español latinoamericano; evita neologismos y palabras poco usadas (por ejemplo, usa "impulsar" no "impulsionar", "potenciar" no "potencializar")
+- Integra skills y nivel de cargo de forma natural, sin listar${culturaStr ? '\n- Refleja el estilo y cultura de trabajo del profesional de forma auténtica, mencionándolo con naturalidad' : ''}
 - Refleja el propósito y diferencial único del profesional
 - Lista para copiar-pegar en un CV de élite
 Responde ÚNICAMENTE con el texto de la oferta, sin introducción ni etiquetas.`
