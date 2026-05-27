@@ -2482,7 +2482,7 @@ function PilarOptimizadorCV({ pct }) {
       </Link>
 
       {/* Card B: Empezar de cero */}
-      <Link to="/cv-desde-cero"
+      <Link to="/cv-desde-cero" state={{ mode: 'scratch' }}
         className="flex items-start gap-4 p-5 rounded-2xl border-2 border-slate-200 bg-white hover:border-indigo-300 hover:shadow-md transition-all group"
       >
         <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center shrink-0 group-hover:bg-indigo-100 group-hover:scale-105 transition-all">

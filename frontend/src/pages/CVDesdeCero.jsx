@@ -1,6 +1,6 @@
 // Wizard: Crear CV desde cero
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../services/authService'
 import { generarCVDesdeCero, extractarPerfilCV, descargarCV, optimizarResumenIA, optimizarExpIA } from '../services/cvService'
@@ -270,7 +270,15 @@ function generarTipsPorPaso(d) {
 export default function CVDesdeCero() {
   const { user, isPaidPlan, perfil, refreshPerfil, refreshJpData } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
 
+  // Modo forzado al entrar desde el Pilar Optimizador de CV
+  // 'upload'  → muestra solo upload (pantalla 0 obligatoria)
+  // 'scratch' → salta directo al wizard, sin upload
+  // null      → comportamiento legacy: pantalla de selección con 2 cards
+  const modoForzado = location.state?.mode || null
+
+  const [showCancelModal, setShowCancelModal] = useState(false)
   const [pasoActual,    setPasoActual]    = useState(0)
   const [datos,         setDatos]         = useState(ESTADO_EMPTY)
   const [generando,     setGenerando]     = useState(false)
@@ -338,6 +346,14 @@ export default function CVDesdeCero() {
         } catch { /* ignorar error de parseo */ }
       }
 
+      // 1.5. Si el modo viene forzado desde el Pilar Optimizador de CV
+      //   - 'scratch' → salta la pantalla de selección y entra al wizard directo
+      //   - 'upload'  → mantiene la pantalla de selección (pantalla 0 obligatoria de upload)
+      // El comportamiento sin modo (link directo a /cv-desde-cero) sigue mostrando las 2 cards legacy.
+      if (modoForzado === 'scratch') {
+        setModoSeleccion(false)
+      }
+
       // 2. Sin caché: fetch desde Supabase
       try {
         setInicializando(true)
@@ -376,7 +392,7 @@ export default function CVDesdeCero() {
       }
     }
     cargar()
-  }, [user])
+  }, [user, modoForzado])
 
   // ── Auto-save (todos los usuarios) ─────────────────────────────────────────
   const guardarBorrador = useCallback(() => {
@@ -818,34 +834,51 @@ export default function CVDesdeCero() {
     )
   }
 
-  // ── Pantalla de selección de ruta (primera visita o sin borrador) ────────────
+  // ── Pantalla de selección de ruta ───────────────────────────────────────────
+  // - modoForzado='upload'  → solo card de upload (pantalla 0 obligatoria)
+  // - modoForzado=null      → comportamiento legacy: 2 cards
+  // - modoForzado='scratch' → nunca llega aquí (skip directo en cargar())
   if (!inicializando && modoSeleccion) {
+    const soloUpload = modoForzado === 'upload'
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center p-6">
         {/* Input oculto reutilizado del wizard */}
         <input ref={fileRef} type="file" accept=".pdf,.doc,.docx"
           onChange={e => extraerCV(e.target.files?.[0])} className="hidden" />
 
-        <div className="max-w-2xl w-full">
+        <div className={soloUpload ? 'max-w-xl w-full' : 'max-w-2xl w-full'}>
+          {/* Volver al pilar */}
+          {soloUpload && (
+            <button
+              onClick={() => navigate('/proyecto-laboral')}
+              className="mb-6 flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-slate-700 transition-colors cursor-pointer">
+              <ArrowLeft size={14} weight="bold" /> Volver al Optimizador de CV
+            </button>
+          )}
+
           {/* Título */}
           <div className="text-center mb-10">
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-indigo-600 shadow-lg shadow-indigo-200 mb-5">
               <FileDoc size={30} weight="duotone" className="text-white" />
             </div>
-            <h1 className="text-3xl font-black text-slate-800 mb-2">Crea tu CV Inicial</h1>
-            <p className="text-slate-500 text-sm max-w-xs mx-auto leading-relaxed">
-              Tu CV base con el estándar Harvard® — el cimiento de tu transición con ELVIA®.
+            <h1 className="text-3xl font-black text-slate-800 mb-2">
+              {soloUpload ? 'Sube tu CV' : 'Crea tu CV Inicial'}
+            </h1>
+            <p className="text-slate-500 text-sm max-w-sm mx-auto leading-relaxed">
+              {soloUpload
+                ? 'ELVIA® analiza tu CV actual y lo combina con tu información del Gerente de Proyecto para entregarte una versión optimizada al estándar Harvard®.'
+                : 'Tu CV base con el estándar Harvard® — el cimiento de tu transición con ELVIA®.'}
             </p>
           </div>
 
-          {/* Cards de selección */}
-          <div className="grid sm:grid-cols-2 gap-5">
+          {/* Cards */}
+          <div className={soloUpload ? '' : 'grid sm:grid-cols-2 gap-5'}>
 
-            {/* Card A: Subir mi CV */}
+            {/* Card A: Subir mi CV (siempre visible) */}
             <button
               onClick={() => fileRef.current?.click()}
               disabled={extrayendo}
-              className="group relative bg-white rounded-2xl border-2 border-slate-200 hover:border-indigo-400 hover:shadow-lg hover:shadow-indigo-50 p-8 text-left transition-all cursor-pointer disabled:opacity-60 disabled:cursor-wait"
+              className={`group relative bg-white rounded-2xl border-2 border-slate-200 hover:border-indigo-400 hover:shadow-lg hover:shadow-indigo-50 ${soloUpload ? 'p-10' : 'p-8'} text-left transition-all cursor-pointer disabled:opacity-60 disabled:cursor-wait w-full`}
             >
               {extrayendo && (
                 <div className="absolute inset-0 bg-white/80 rounded-2xl flex flex-col items-center justify-center gap-2 z-10">
@@ -856,31 +889,37 @@ export default function CVDesdeCero() {
               <div className="w-12 h-12 rounded-xl bg-blue-50 group-hover:bg-indigo-50 flex items-center justify-center mb-5 transition-colors">
                 <UploadSimple size={24} weight="duotone" className="text-blue-600 group-hover:text-indigo-600 transition-colors" />
               </div>
-              <h3 className="text-base font-black text-slate-800 mb-2">Subir mi CV</h3>
+              <h3 className="text-base font-black text-slate-800 mb-2">
+                {soloUpload ? 'Selecciona tu CV (PDF o Word)' : 'Subir mi CV'}
+              </h3>
               <p className="text-sm text-slate-500 leading-relaxed">
-                Tengo un CV listo. ELVIA lo analiza, lo estructura y lo optimiza al estándar Harvard.
+                {soloUpload
+                  ? 'Haz clic para escoger el archivo desde tu computadora. Lo procesamos y construimos un nuevo CV optimizado con tu contexto de ELVIA®.'
+                  : 'Tengo un CV listo. ELVIA lo analiza, lo estructura y lo optimiza al estándar Harvard.'}
               </p>
               <div className="mt-5 text-xs font-bold text-slate-400 group-hover:text-indigo-500 transition-colors">
                 PDF o Word · Max. 5MB →
               </div>
             </button>
 
-            {/* Card B: Empezar de cero */}
-            <button
-              onClick={() => setModoSeleccion(false)}
-              className="group bg-white rounded-2xl border-2 border-slate-200 hover:border-emerald-400 hover:shadow-lg hover:shadow-emerald-50 p-8 text-left transition-all cursor-pointer"
-            >
-              <div className="w-12 h-12 rounded-xl bg-emerald-50 group-hover:bg-emerald-100 flex items-center justify-center mb-5 transition-colors">
-                <PencilSimple size={24} weight="duotone" className="text-emerald-600" />
-              </div>
-              <h3 className="text-base font-black text-slate-800 mb-2">Empezar de cero</h3>
-              <p className="text-sm text-slate-500 leading-relaxed">
-                Construye tu CV paso a paso con la guía de ELVIA, campo por campo y con IA en cada sección.
-              </p>
-              <div className="mt-5 text-xs font-bold text-slate-400 group-hover:text-emerald-600 transition-colors">
-                6 pasos · ~15 minutos →
-              </div>
-            </button>
+            {/* Card B: Empezar de cero (solo en modo legacy) */}
+            {!soloUpload && (
+              <button
+                onClick={() => setModoSeleccion(false)}
+                className="group bg-white rounded-2xl border-2 border-slate-200 hover:border-emerald-400 hover:shadow-lg hover:shadow-emerald-50 p-8 text-left transition-all cursor-pointer"
+              >
+                <div className="w-12 h-12 rounded-xl bg-emerald-50 group-hover:bg-emerald-100 flex items-center justify-center mb-5 transition-colors">
+                  <PencilSimple size={24} weight="duotone" className="text-emerald-600" />
+                </div>
+                <h3 className="text-base font-black text-slate-800 mb-2">Empezar de cero</h3>
+                <p className="text-sm text-slate-500 leading-relaxed">
+                  Construye tu CV paso a paso con la guía de ELVIA, campo por campo y con IA en cada sección.
+                </p>
+                <div className="mt-5 text-xs font-bold text-slate-400 group-hover:text-emerald-600 transition-colors">
+                  6 pasos · ~15 minutos →
+                </div>
+              </button>
+            )}
 
           </div>
 
@@ -888,9 +927,11 @@ export default function CVDesdeCero() {
             <div className="mt-5 bg-red-50 border border-red-200 rounded-xl p-3 text-sm text-red-700 text-center">{error}</div>
           )}
 
-          <p className="text-center text-[11px] text-slate-400 mt-8">
-            En ambos casos terminarás con una Vista Previa Harvard antes de generar tu CV final.
-          </p>
+          {!soloUpload && (
+            <p className="text-center text-[11px] text-slate-400 mt-8">
+              En ambos casos terminarás con una Vista Previa Harvard antes de generar tu CV final.
+            </p>
+          )}
         </div>
       </div>
     )
@@ -902,8 +943,19 @@ export default function CVDesdeCero() {
 
         {/* Header */}
         <div className="mb-6">
-          <h1 className="text-2xl font-black text-slate-800 mb-1">Crea tu CV desde cero</h1>
-          <p className="text-slate-500 text-sm">Paso {pasoActual + 1} de {PASOS.length} · {pasoInfo.icon} {pasoInfo.label}</p>
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex-1 min-w-0">
+              <h1 className="text-2xl font-black text-slate-800 mb-1">
+                {modoForzado === 'upload' ? 'Optimiza tu CV' : 'Crea tu CV desde cero'}
+              </h1>
+              <p className="text-slate-500 text-sm">Paso {pasoActual + 1} de {PASOS.length} · {pasoInfo.icon} {pasoInfo.label}</p>
+            </div>
+            <button
+              onClick={() => setShowCancelModal(true)}
+              className="shrink-0 flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-rose-600 px-3 py-1.5 rounded-lg border border-slate-200 hover:border-rose-200 hover:bg-rose-50 transition-colors cursor-pointer">
+              <X size={14} weight="bold" /> Cancelar
+            </button>
+          </div>
 
           {/* Barra de pasos */}
           <div className="mt-3 flex gap-1">
@@ -948,7 +1000,8 @@ export default function CVDesdeCero() {
                   <h2 className="text-base font-bold text-slate-800">Datos Personales</h2>
                   <HelpBadge id="cvdesdecero.datos" />
                 </div>
-                {/* Upload CV */}
+                {/* Upload CV — oculto en modo 'scratch' (el usuario eligió empezar desde cero desde el pilar) */}
+                {modoForzado !== 'scratch' && (
                 <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-dashed border-blue-300 rounded-2xl p-5">
                   <input ref={fileRef} type="file" accept=".pdf,.doc,.docx"
                     onChange={e => extraerCV(e.target.files?.[0])} className="hidden" />
@@ -1012,6 +1065,7 @@ export default function CVDesdeCero() {
                     </div>
                   )}
                 </div>
+                )}
 
                 {error && (
                   <div className="flex items-center gap-2 text-xs text-red-600 bg-red-50 border border-red-200 p-3 rounded-xl">
@@ -1554,6 +1608,55 @@ export default function CVDesdeCero() {
               className="mt-3 w-full text-xs text-slate-400 hover:text-slate-600 cursor-pointer">
               Cancelar
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal cancelar wizard ────────────────────────────────────────────── */}
+      {showCancelModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-7">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center shrink-0">
+                <Warning size={20} weight="fill" className="text-amber-600" />
+              </div>
+              <h3 className="text-base font-black text-slate-800">¿Salir del wizard?</h3>
+            </div>
+            <p className="text-sm text-slate-600 leading-relaxed mb-6">
+              {modoForzado === 'upload'
+                ? 'Perderás el progreso de optimización de este CV. Puedes volver al pilar Optimizador de CV y subir un CV distinto cuando quieras.'
+                : 'Perderás lo que llevas escrito en este CV desde cero. Si ya tienes un CV listo, puedes subirlo desde el pilar Optimizador de CV y dejar que ELVIA® lo trabaje por ti.'}
+            </p>
+            <div className="flex flex-col gap-2">
+              {modoForzado !== 'upload' && (
+                <button
+                  onClick={() => {
+                    if (user) sessionStorage.removeItem(`cv_draft_${user.id}`)
+                    setShowCancelModal(false)
+                    navigate('/cv-desde-cero', { state: { mode: 'upload' }, replace: true })
+                  }}
+                  className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold transition-colors cursor-pointer flex items-center justify-center gap-2"
+                >
+                  <UploadSimple size={14} weight="bold" /> Salir y subir mi CV
+                </button>
+              )}
+              <button
+                onClick={() => {
+                  if (user) sessionStorage.removeItem(`cv_draft_${user.id}`)
+                  setShowCancelModal(false)
+                  navigate('/proyecto-laboral')
+                }}
+                className="w-full py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 text-sm font-bold transition-colors cursor-pointer border border-rose-200"
+              >
+                Salir sin guardar
+              </button>
+              <button
+                onClick={() => setShowCancelModal(false)}
+                className="w-full py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-bold transition-colors cursor-pointer"
+              >
+                Volver al wizard
+              </button>
+            </div>
           </div>
         </div>
       )}

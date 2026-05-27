@@ -26,6 +26,16 @@
   - Panel Salario Anualizado: Fondo de ahorro suma monto directo (sin ×12), vales/car allowance ×12
   - Expectativa de prestaciones: labels abreviados (sin "a la ley")
 
+### Pilar Competencias — Modelo de Skills (decisión histórica documentada 2026-05-27)
+- Quedaron **2 categorías**: Hard Skills + Power Skills (originalmente eran 3: Hard + Soft + Power)
+- Decisión: eliminar duplicación conceptual entre Soft y Power → renombrar Soft → Power, quitar Power original
+- **Discrepancia nombre interno vs UI** (no se renombra BD, no destructivo):
+  - `data.autoconocimiento.hard_skills` → UI: "Hard Skills"
+  - `data.autoconocimiento.soft_skills` → UI: "Power Skills"
+  - `data.autoconocimiento.power_skills` → oculto (`{false && ...}` línea ~1646), data muerta en BD
+- Al leer skills del pilar usar `hard_skills` + `soft_skills`, etiquetar como "Hard" + "Power"
+- En el CV final ambas se fusionan en sección unificada **"Competencias y Habilidades"**
+
 ### Back-End (Express + Supabase SDK)
 - **LinkedIn History**: Added `linkedin_analyses` table and persistence logic.
 - **NLP keyword extraction**: Updated `matchCVtoJob` prompt to extract structured keyword metadata.

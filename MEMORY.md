@@ -46,6 +46,7 @@ OPTIMA-CV (ELVIA) is a dual-interface Human Resources & Career Optimization ecos
 22. **CV History Sanitization**: Added strict database and client-side filters to prevent career project infographics from cluttering the optimized Harvard resume history.
 23. **Compensaciones Tab v2 — Grid unificado (2026-05-27)**: Días de vacaciones, Vales de gasolina, Otros vales y PTU integrados al grid de prestaciones (mismo checkbox format que Vales de despensa). AFORE movido al final de la lista México. Panel anualizado: Fondo de ahorro suma el monto directo sin x12. Commits: `adeafc1`, `6cd39ca`.
 24. **Infografía Proyecto — Fallback robusto (2026-05-27)**: `generarInfografiaProyecto` en `cvController.js` ya no rechaza con 400 cuando `job_search_profile` es `null`; usa `{}` como fallback para generar la infografía con los datos disponibles en columnas directas. Commit: `de2b085`.
+25. **Pilar Competencias — Modelo 2 categorías (decisión sin fecha previa, documentada 2026-05-27)**: El pilar quedó con **Hard Skills + Power Skills** (eliminada la tercera categoría por duplicación conceptual con Soft Skills). Renombre solo en UI: la columna interna sigue siendo `soft_skills` pero se muestra como "Power Skills". El array `power_skills` (data original) queda oculto con `{false && ...}` en `ProyectoLaboral.jsx:1646` y la data muerta queda en BD para rollback. En el CV final ambas se fusionan en la sección **"Competencias y Habilidades"**.
 
 ### Crucial Directives
 - **Performance**: Always use `sessionStorage` caching (e.g., `vacante_prefill`, `entrevista_prefill`).
