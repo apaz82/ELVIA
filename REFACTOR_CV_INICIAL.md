@@ -19,7 +19,7 @@
 
 | Fase | Descripción | Estado | Commit |
 |------|-------------|--------|--------|
-| 0 | Ocultar Optimizer de navegación + redirigir CTAs a `/cv-desde-cero` | ⏳ En curso | _pendiente_ |
+| 0 | Ocultar Optimizer de navegación + redirigir CTAs a `/cv-desde-cero` | ✅ Completado | `026102b` |
 | 1 | Crear `CVHarvardPreview.jsx` (componente presentacional puro) | ⏸️ Pendiente | — |
 | 2 | Añadir paso 7 "Vista Previa" en wizard CVDesdeCero | ⏸️ Pendiente | — |
 | 3 | Crear tab "Mi CV Inicial" en Autoconocimiento (2 cards: upload/desde cero) | ⏸️ Pendiente | — |
