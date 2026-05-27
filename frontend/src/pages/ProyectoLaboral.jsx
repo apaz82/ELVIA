@@ -32,12 +32,12 @@ if (!document.getElementById('pjs-font')) {
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
 const PILARES = [
-  { id: 'perfil',           label: 'Mi Perfil',           icon: User,          color: 'indigo', weight: 20 },
-  { id: 'autoconocimiento', label: 'Autoconocimiento',    icon: Brain,         color: 'violet', weight: 25 },
-  { id: 'recursos',         label: 'Recursos',            icon: Toolbox,       color: 'blue',   weight: 10 },
-  { id: 'semana',           label: 'Horario semanal',     icon: CalendarCheck, color: 'teal',   weight: 15 },
-  { id: 'oferta',           label: 'Mi oferta de valor',  icon: Sparkle,       color: 'rose',   weight: 10 },
-  { id: 'documentos',       label: 'Documentos',          icon: FileText,      color: 'amber',  weight: 20 },
+  { id: 'perfil',           label: 'Mi Perfil',           icon: User,                color: 'indigo', weight: 20 },
+  { id: 'autoconocimiento', label: 'Competencias',         icon: Brain,               color: 'violet', weight: 20 },
+  { id: 'recursos',         label: 'Gastos',               icon: Toolbox,             color: 'blue',   weight: 10 },
+  { id: 'semana',           label: 'Horario semanal',      icon: CalendarCheck,       color: 'teal',   weight: 10 },
+  { id: 'oferta',           label: 'Mi oferta de valor',   icon: Sparkle,             color: 'rose',   weight: 30 },
+  { id: 'documentos',       label: 'Optimizador de CV',    icon: FileMagnifyingGlass, color: 'amber',  weight: 10 },
 ]
 
 // ─── Catálogos para Mi Perfil ─────────────────────────────────────────────────
@@ -246,9 +246,6 @@ function calcularPorPilar(data, perfil) {
   if (Array.isArray(auto.top5empresas) && auto.top5empresas.filter(function(e){return e && String(e).trim()}).length >= 1) autoPts += 5
 
 
-  const checks = (data&&data.documentos&&data.checks) ? data.documentos.checks : {}
-  const docsDone = DOCS_LIST.filter(function(d){return checks[d.id]}).length
-
   const bloques = (data&&data.semana&&data.semana.bloques) ? data.semana.bloques : {}
   const bN = Object.values(bloques).filter(Boolean).length
   let semanaPts = 0
@@ -269,7 +266,7 @@ function calcularPorPilar(data, perfil) {
   return {
     perfil:           Math.round((perfilPts/20)*100),
     autoconocimiento: Math.round((Math.min(autoPts,20)/20)*100),
-    documentos:       Math.round((docsDone/DOCS_LIST.length)*100),
+    documentos:       (data && data.optimizer && data.optimizer.cv_generado) ? 100 : 0,
     semana:           Math.round((semanaPts/20)*100),
     recursos:         Math.round((recPts/20)*100),
     oferta:           Math.round((Math.min(ofertaPts,20)/20)*100),
@@ -1117,16 +1114,14 @@ function FeaturePreviewGrid() {
 
 function DashboardResumen({ data, pct, onSelect, perfil, activePilar }) {
   const porPilar = calcularPorPilar(data, perfil)
-  const checks = (data&&data.documentos&&data.documentos.checks) ? data.documentos.checks : {}
-  const docsDone = DOCS_LIST.filter(function(d){return checks[d.id]}).length
   const bloques = (data&&data.semana&&data.semana.bloques) ? data.semana.bloques : {}
   const horas = Object.values(bloques).filter(Boolean).length * 2
   const rec = (data&&data.recursos&&data.recursos.recursos) ? data.recursos.recursos : RECURSOS_DEFAULT
   const costoTotal = rec.reduce(function(s,r){return s+(Number(r.costo)||0)},0)
   const auto = (data&&data.autoconocimiento) ? data.autoconocimiento : {}
+  const cvGenerado = data && data.optimizer && data.optimizer.cv_generado
 
-  // Los 5 pilares al 100% desbloquean herramientas clave
-  const CORE_IDS = ['perfil','autoconocimiento','recursos','semana','oferta']
+  const CORE_IDS = ['perfil','autoconocimiento','recursos','semana','oferta','documentos']
   const isUnlocked = pct >= 100
 
   const statusLabel = pct===100?'Estratega Completo':pct>=80?'Muy avanzado':pct>=50?'En progreso':pct>0?'Iniciado':'Sin inicio'
@@ -1134,7 +1129,7 @@ function DashboardResumen({ data, pct, onSelect, perfil, activePilar }) {
 
   const kpis = [
     { label:'Horas / sem',   value: horas>0?horas+'h':'—',                              icon:CalendarCheck, color:'text-teal-500',  bg:'bg-teal-50'   },
-    { label:'Docs listos',   value: docsDone+' / '+DOCS_LIST.length,                    icon:FileText,      color:'text-amber-500', bg:'bg-amber-50'  },
+    { label:'CV Inicial',    value: cvGenerado ? '✓ Generado' : 'Pendiente',            icon:FileMagnifyingGlass, color:'text-amber-500', bg:'bg-amber-50'  },
     { label:'Costo mensual', value: costoTotal>0?'$'+costoTotal.toLocaleString():'—',   icon:Briefcase,     color:'text-blue-500',  bg:'bg-blue-50'   },
     { label:'Industrias',    value: Array.isArray(auto.industrias)&&auto.industrias.length>0?auto.industrias[0]:'—', icon:Target, color:'text-violet-500', bg:'bg-violet-50', small:true },
   ]
@@ -1198,22 +1193,22 @@ function DashboardResumen({ data, pct, onSelect, perfil, activePilar }) {
           </div>
         </div>
 
-        {/* Banner de desbloqueo cuando llega a 100% */}
+        {/* Banner de calidad del perfil */}
         {isUnlocked && (
           <div className="mt-4 flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-50 border border-emerald-200">
             <CheckFat size={16} weight="fill" className="text-emerald-600 shrink-0"/>
-            <p className="text-xs font-bold text-emerald-700">¡Herramientas clave desbloqueadas! Alcanzaste el 100% de tu estrategia.</p>
+            <p className="text-xs font-bold text-emerald-700">Perfil al 100% — tu CV tendrá la máxima calidad. Genera tu CV Inicial cuando estés listo.</p>
           </div>
         )}
         {!isUnlocked && (
           <div className="mt-4">
             <div className="flex justify-between items-center mb-1.5">
-              <p className="text-[10px] font-semibold text-slate-400">Completa el 100% para desbloquear herramientas</p>
-              <p className="text-[10px] font-bold text-violet-600">{pct} / 100%</p>
+              <p className="text-[10px] font-semibold text-slate-400">Calidad de tu perfil para el CV — tómate tu tiempo</p>
+              <p className="text-[10px] font-bold text-violet-600">{pct}%</p>
             </div>
             <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
-              <div className="h-full bg-gradient-to-r from-violet-500 to-violet-400 rounded-full transition-all duration-700"
-                style={{width: Math.min((pct/60)*100, 100)+'%'}}/>
+              <div className="h-full bg-gradient-to-r from-violet-500 to-rose-400 rounded-full transition-all duration-700"
+                style={{width: pct+'%'}}/>
             </div>
           </div>
         )}
@@ -1231,54 +1226,79 @@ function DashboardResumen({ data, pct, onSelect, perfil, activePilar }) {
             const isLocked = !isCore && !isUnlocked
             const isActive = activePilar === p.id
 
+            const tooltipMsg = p.id==='documentos'
+              ? (pp===100 ? '¡CV Inicial generado!' : 'Genera tu CV cuando estés listo — cuanto más completo tu perfil, mejor resultado')
+              : (pp===100 ? '¡Sección completa!' : 'Te falta '+(100-pp)+'% para terminar')
+
             return (
-              <button key={p.id} onClick={function(){ if(!isLocked) onSelect(p.id) }}
-                title={isLocked ? 'Completa los 6 pilares estratégicos para desbloquear' : pp===100 ? '¡Sección completa!' : 'Te falta '+(100-pp)+'% para terminar esta sección'}
+              <button key={p.id} onClick={function(){ onSelect(p.id) }}
+                title={tooltipMsg}
                 className={'group relative flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-all text-center '
-                  + (isLocked
-                    ? 'border-slate-200 bg-slate-50 cursor-not-allowed opacity-60'
-                    : isActive
+                  + (isActive
                     ? 'cursor-pointer shadow-md border-current ' + c.soft
                     : 'cursor-pointer hover:shadow-md border-transparent hover:border-current ' + c.soft)}
               >
-                {/* Candado */}
-                {isLocked && (
-                  <div className="absolute top-2 right-2">
-                    <Lock size={12} weight="fill" className="text-slate-400"/>
+                {/* Badge ★ Oferta de Valor */}
+                {p.id==='oferta' && (
+                  <div className="absolute -top-2 left-1/2 -translate-x-1/2 z-10">
+                    <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-rose-500 text-white shadow-sm whitespace-nowrap">★ Clave para tu CV</span>
                   </div>
                 )}
 
                 {/* Tooltip */}
-                {!isLocked && (
-                  <div className="absolute -top-10 left-1/2 -translate-x-1/2 z-20 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-150">
-                    <div className="bg-slate-800 text-white text-[10px] font-semibold px-2.5 py-1.5 rounded-lg whitespace-nowrap shadow-lg">
-                      {pp===100 ? '¡Sección completa!' : 'Te falta '+(100-pp)+'% para terminar'}
-                    </div>
-                    <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800"/>
+                <div className="absolute -top-10 left-1/2 -translate-x-1/2 z-20 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+                  <div className="bg-slate-800 text-white text-[10px] font-semibold px-2.5 py-1.5 rounded-lg whitespace-nowrap shadow-lg max-w-[180px] text-center leading-snug">
+                    {tooltipMsg}
                   </div>
-                )}
-
-                {/* Icono */}
-                <div className={'w-10 h-10 rounded-xl flex items-center justify-center ' + (isLocked?'bg-slate-200':c.badge)}>
-                  <Icon size={18} weight="duotone" className={isLocked?'text-slate-400':c.icon} />
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800"/>
                 </div>
 
-                {/* Label completo */}
-                <p className={'text-[11px] font-bold leading-tight ' + (isLocked?'text-slate-400':'text-slate-700')}
-                   style={{wordBreak:'break-word'}}>
+                {/* Icono */}
+                <div className={'w-10 h-10 rounded-xl flex items-center justify-center ' + c.badge}>
+                  <Icon size={18} weight="duotone" className={c.icon} />
+                </div>
+
+                {/* Label */}
+                <p className="text-[11px] font-bold leading-tight text-slate-700" style={{wordBreak:'break-word'}}>
                   {p.label}
                 </p>
 
                 {/* Barra de progreso */}
                 <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
-                  <div className={'h-full rounded-full transition-all duration-500 ' + (isLocked?'bg-slate-300':c.bar)}
-                    style={{width:pp+'%'}} />
+                  <div className={'h-full rounded-full transition-all duration-500 ' + c.bar} style={{width:pp+'%'}} />
                 </div>
 
-                <span className={'text-xs font-black ' + (isLocked?'text-slate-400':c.icon)}>{pp}%</span>
+                <span className={'text-xs font-black ' + c.icon}>{pp}%</span>
               </button>
             )
           })}
+        </div>
+
+        {/* ── Botón transversal Mis Documentos ── */}
+        <div className="mt-3">
+          {isUnlocked ? (
+            <Link to="/mis-cvs"
+              className="flex items-center justify-between w-full px-5 py-3 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 text-white shadow-sm hover:shadow-md hover:from-amber-600 hover:to-amber-700 transition-all group/docs"
+            >
+              <div className="flex items-center gap-2.5">
+                <FileText size={16} weight="duotone" className="shrink-0"/>
+                <span className="text-xs font-black tracking-wide">Mis Documentos</span>
+                <span className="text-[10px] font-medium opacity-80 hidden sm:inline">· Tu CV Inicial y materiales de candidatura</span>
+              </div>
+              <ArrowRight size={14} className="group-hover/docs:translate-x-1 transition-transform shrink-0"/>
+            </Link>
+          ) : (
+            <div className="flex items-center justify-between w-full px-5 py-3 rounded-2xl bg-slate-100 border-2 border-dashed border-slate-200"
+              title="Completa tu perfil al 100% para acceder a Mis Documentos"
+            >
+              <div className="flex items-center gap-2.5">
+                <FileText size={16} className="text-slate-300 shrink-0"/>
+                <span className="text-xs font-bold text-slate-400 tracking-wide">Mis Documentos</span>
+                <span className="text-[10px] text-slate-300 hidden sm:inline">· Disponible cuando tu perfil esté al 100%</span>
+              </div>
+              <span className="text-[10px] font-black text-slate-400 bg-slate-200 px-2 py-0.5 rounded-full shrink-0">{pct}%</span>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -2143,84 +2163,71 @@ function PilarOfertaDeValor({ data, onChange, onSave, justSaved }) {
   )
 }
 
-// ─── Pilar 5: Documentos ────────────────────────────────────────────────────
+// ─── Pilar 5: Optimizador de CV ──────────────────────────────────────────────
 
-function PilarDocumentos({ data, onChange, onSave, justSaved, pct, isPaidPlan }) {
-  const isUnlocked = pct >= 60
-  const checks = (data&&data.checks)?data.checks:{}
-  const toggle = function(id){onChange({checks:Object.assign({},checks,{[id]:!checks[id]})})}
-  const completados = DOCS_LIST.filter(function(d){return checks[d.id]}).length
-  const pctDocs = Math.round((completados/DOCS_LIST.length)*100)
+function PilarOptimizadorCV({ pct }) {
+  const allDone = pct >= 100
   return (
-    <div className="space-y-6">
-      <div>
-        <div className="flex items-center justify-between mb-2">
-          <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest">Progreso de tu carpeta</h3>
-          <span className="text-xs font-bold text-amber-600">{completados}/{DOCS_LIST.length} listos</span>
-        </div>
-        <div className="h-2.5 bg-slate-200 rounded-full overflow-hidden">
-          <div className="h-full bg-gradient-to-r from-amber-400 to-amber-500 rounded-full transition-all duration-500" style={{width:pctDocs+'%'}}/>
-        </div>
+    <div className="space-y-5">
+      {/* Callout calidad — sin urgencia */}
+      <div className="p-4 rounded-xl bg-amber-50 border border-amber-200">
+        <p className="text-xs text-amber-800 font-medium leading-relaxed">
+          Tu CV se nutre de todo lo que has construido aquí. Cuanto más completo esté tu perfil, más poderoso será el resultado.
+          Tómate el tiempo de pulir cada sección — sobre todo <span className="font-black text-amber-900">Mi Oferta de Valor</span>, que es tu propuesta diferencial.
+        </p>
       </div>
-      <div className="space-y-3">
-        {DOCS_LIST.map(function(item){
-          const done=!!checks[item.id]; const Icon=item.Icon
-          const unlocked = isUnlocked && (item.id !== 'linkedin' || isPaidPlan)
-          return (
-            <div key={item.id} className={'flex items-start gap-4 p-4 rounded-2xl border-2 transition-all '+(done?'bg-amber-50 border-amber-200':'bg-white border-slate-200')}>
-              <button onClick={function(){toggle(item.id)}} className="shrink-0 cursor-pointer mt-0.5">
-                {done?<CheckSquare size={22} weight="fill" className="text-amber-500"/>:<Square size={22} className="text-slate-300 hover:text-slate-500 transition-colors"/>}
-              </button>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2.5 flex-wrap mb-0.5">
-                  <Icon size={17} className={done?'text-amber-500':'text-slate-400'} weight="duotone"/>
-                  <span className={'text-sm font-semibold '+(done?'text-amber-700':'text-slate-700')}>{item.label}</span>
-                  {done
-                    ? <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 shrink-0">Listo ✓</span>
-                    : unlocked
-                      ? <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 shrink-0">Pendiente</span>
-                      : null
-                  }
-                </div>
-                {item.nota && <p className={'text-[11px] leading-snug mt-0.5 '+(done?'text-amber-600/70':'text-slate-400')}>{item.nota}</p>}
-              </div>
-              {item.link&&(
-                unlocked ? (
-                  <Link to={item.link} target={item.target || (item.link.startsWith('http') ? '_blank' : '_self')} className="shrink-0 flex items-center gap-1 text-xs font-bold text-slate-500 hover:text-amber-600 border border-slate-200 hover:border-amber-300 rounded-lg px-3 py-1.5 transition-all cursor-pointer hover:shadow-sm hover:translate-x-0.5">
-                    {done?'Revisar':'Ir ahora'} <ArrowRight size={12}/>
-                  </Link>
-                ) : (
-                  <span className="shrink-0 flex items-center gap-1 text-xs font-bold text-slate-300 border border-slate-100 rounded-lg px-3 py-1.5 cursor-not-allowed bg-slate-50/50">
-                    {item.id==='linkedin'&&!isPaidPlan ? <><Lock size={12}/> Pro</> : <><Lock size={12}/> Bloqueado</>}
-                  </span>
-                )
-              )}
-            </div>
-          )
-        })}
-      </div>
-      {pctDocs===100&&(
-        <div className="p-6 rounded-2xl bg-gradient-to-br from-amber-50 to-teal-50 border-2 border-amber-200 text-center">
-          <Trophy size={40} weight="duotone" className="text-amber-500 mx-auto mb-2"/>
-          <h3 className="font-black text-slate-800 text-lg mb-1">¡Carpeta 100% lista!</h3>
-          <p className="text-sm text-slate-500">Estás listo para postular con confianza.</p>
+
+      {/* Indicador de calidad */}
+      {allDone ? (
+        <div className="flex items-center gap-3 p-4 rounded-xl bg-emerald-50 border border-emerald-200">
+          <CheckFat size={20} weight="fill" className="text-emerald-600 shrink-0"/>
+          <div>
+            <p className="text-sm font-black text-emerald-800">¡Perfil al 100%!</p>
+            <p className="text-xs text-emerald-600 mt-0.5">Tu CV tendrá toda la información necesaria para destacar.</p>
+          </div>
         </div>
-      )}
-      {!isUnlocked && (
-        <div className="p-4 rounded-xl bg-amber-50 border border-amber-200">
-          <p className="text-xs text-amber-800 font-medium">
-            <span className="font-bold">Nota:</span> Las funcionalidades avanzadas (Optimizador, LinkedIn, etc.) se desbloquearán cuando alcances el <span className="font-bold text-amber-900">100% de progreso</span>.
-          </p>
+      ) : (
+        <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
+          <div className="flex justify-between items-center mb-2">
+            <p className="text-xs font-bold text-slate-600">Calidad de tu perfil para el CV</p>
+            <span className="text-xs font-black text-violet-600">{pct}%</span>
+          </div>
+          <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
+            <div className="h-full bg-gradient-to-r from-violet-500 to-rose-500 rounded-full transition-all duration-700" style={{width:pct+'%'}}/>
+          </div>
+          <p className="text-[10px] text-slate-400 mt-2">Puedes generar tu CV en cualquier momento — a mayor completitud, mejor resultado.</p>
         </div>
       )}
 
-      {/* Botón de guardar */}
-      <div className="mt-8 pt-6 border-t border-slate-200 flex justify-end">
-        <button onClick={onSave}
-          className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm transition-all cursor-pointer ${justSaved?'bg-emerald-600 text-white':'bg-amber-600 hover:bg-amber-700 text-white'}`}>
-          {justSaved ? (<><CheckFat size={16} weight="fill"/> Guardado</>) : 'Guardar'}
-        </button>
-      </div>
+      <p className="text-xs font-bold text-slate-500 uppercase tracking-widest pt-1">¿Cómo quieres generar tu CV?</p>
+
+      {/* Card A: Subir mi CV */}
+      <Link to="/cv-desde-cero" state={{ mode: 'upload' }}
+        className="flex items-start gap-4 p-5 rounded-2xl border-2 border-indigo-200 bg-indigo-50 hover:border-indigo-400 hover:shadow-md transition-all group"
+      >
+        <div className="w-12 h-12 rounded-xl bg-indigo-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+          <UploadSimple size={22} weight="duotone" className="text-white"/>
+        </div>
+        <div className="flex-1 min-w-0">
+          <h3 className="font-black text-slate-800 text-sm mb-1">Subir mi CV actual</h3>
+          <p className="text-xs text-slate-500 leading-relaxed">Sube tu CV en PDF o Word. ELVIA® lo analiza, extrae tu información y la optimiza automáticamente con todo tu perfil.</p>
+        </div>
+        <ArrowRight size={16} className="text-indigo-400 group-hover:text-indigo-600 group-hover:translate-x-1 transition-all shrink-0 mt-1"/>
+      </Link>
+
+      {/* Card B: Empezar de cero */}
+      <Link to="/cv-desde-cero"
+        className="flex items-start gap-4 p-5 rounded-2xl border-2 border-slate-200 bg-white hover:border-indigo-300 hover:shadow-md transition-all group"
+      >
+        <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center shrink-0 group-hover:bg-indigo-100 group-hover:scale-105 transition-all">
+          <FileMagnifyingGlass size={22} weight="duotone" className="text-slate-500 group-hover:text-indigo-600 transition-colors"/>
+        </div>
+        <div className="flex-1 min-w-0">
+          <h3 className="font-black text-slate-800 text-sm mb-1">Empezar de cero</h3>
+          <p className="text-xs text-slate-500 leading-relaxed">Construye tu CV paso a paso con el wizard de ELVIA®. Formato Harvard ATS-friendly, con previsualización antes de generar.</p>
+        </div>
+        <ArrowRight size={16} className="text-slate-300 group-hover:text-indigo-500 group-hover:translate-x-1 transition-all shrink-0 mt-1"/>
+      </Link>
     </div>
   )
 }
@@ -2793,11 +2800,11 @@ export default function ProyectoLaboral() {
                   <div className="grid grid-cols-2 gap-x-4 gap-y-3 mb-8 bg-white/5 rounded-2xl p-4 border border-white/5">
                     {[
                       {label:'Perfil',            id:'perfil',           color:'bg-indigo-500'},
-                      {label:'Autoconocimiento',  id:'autoconocimiento', color:'bg-violet-500'},
-                      {label:'Recursos',          id:'recursos',         color:'bg-blue-400'},
+                      {label:'Competencias',      id:'autoconocimiento', color:'bg-violet-500'},
+                      {label:'Gastos',            id:'recursos',         color:'bg-blue-400'},
                       {label:'Semana',            id:'semana',           color:'bg-teal-400'},
-                      {label:'Oferta',            id:'oferta',           color:'bg-rose-500'},
-                      {label:'Documentos',        id:'documentos',       color:'bg-amber-400'},
+                      {label:'Oferta de Valor',   id:'oferta',           color:'bg-rose-500'},
+                      {label:'CV Optimizer',      id:'documentos',       color:'bg-amber-400'},
                     ].map(function(l){
                       const v = porPilar[l.id] || 0
                       return(
@@ -2868,11 +2875,11 @@ export default function ProyectoLaboral() {
               <h2 className="font-black text-slate-800 text-lg">{pilarObj.label}</h2>
               <p className="text-xs text-slate-500 font-medium">
                 {pilarId==='perfil'          &&'Tu identidad profesional · Datos, compensación y aspiraciones'}
-                {pilarId==='autoconocimiento'&&'Iniciación · Define tu punto de partida y tu objetivo'}
-                {pilarId==='recursos'        &&'Planificación · Entiende la inversión real de tu búsqueda'}
+                {pilarId==='autoconocimiento'&&'Competencias · Hard Skills, Soft Skills y Power Skills que te definen'}
+                {pilarId==='recursos'        &&'Gastos · Inversión real de tu búsqueda laboral'}
                 {pilarId==='semana'          &&'Ejecución · Comprométete con el tiempo que dedicarás'}
-                {pilarId==='oferta'          &&'Diferenciación · Define qué te hace único como candidato'}
-                {pilarId==='documentos'      &&'Monitoreo · Estado de tus materiales de candidatura'}
+                {pilarId==='oferta'          &&'Tu propuesta diferencial ★ · Input principal para tu CV de élite'}
+                {pilarId==='documentos'      &&'Optimizador de CV · Genera tu CV Inicial en formato Harvard ATS-friendly'}
               </p>
             </div>
           </div>
@@ -2882,7 +2889,7 @@ export default function ProyectoLaboral() {
             {pilarId==='recursos'      &&<PilarRecursos         data={data.recursos}         onChange={function(v){updatePilar('recursos',v)}} onSave={function(){handlePilarSave('recursos')}} justSaved={justSaved==='recursos'} pais={perfil?.pais_prestaciones || perfil?.pais || ''}/>}
             {pilarId==='semana'        &&<PilarSemana           data={data.semana}           onChange={function(v){updatePilar('semana',v)}} onSave={function(){handlePilarSave('semana')}} justSaved={justSaved==='semana'}/>}
             {pilarId==='oferta'        &&<PilarOfertaDeValor    data={data.oferta}           onChange={function(v){updatePilar('oferta',v)}} onSave={function(){handlePilarSave('oferta')}} justSaved={justSaved==='oferta'}/>}
-            {pilarId==='documentos'    &&<PilarDocumentos       data={data.documentos}       onChange={function(v){updatePilar('documentos',v)}} onSave={function(){handlePilarSave('documentos')}} justSaved={justSaved==='documentos'} pct={pct} isPaidPlan={isPaidPlan}/>}
+            {pilarId==='documentos'    &&<PilarOptimizadorCV pct={pct}/>}
           </div>
         </div>
 

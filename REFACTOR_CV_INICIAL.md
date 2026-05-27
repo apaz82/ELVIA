@@ -20,9 +20,10 @@
 | Fase | Descripción | Estado | Commit |
 |------|-------------|--------|--------|
 | 0 | Ocultar Optimizer de navegación + redirigir CTAs a `/cv-desde-cero` | ✅ Completado | `026102b` |
-| 1 | Crear `CVHarvardPreview.jsx` (componente presentacional puro) | ⏸️ Pendiente | — |
-| 2 | Añadir paso 7 "Vista Previa" en wizard CVDesdeCero | ⏸️ Pendiente | — |
-| 3 | Crear tab "Mi CV Inicial" en Autoconocimiento (2 cards: upload/desde cero) | ⏸️ Pendiente | — |
+| 1 | Crear `CVHarvardPreview.jsx` (componente presentacional puro) | ✅ Completado | `bd9cf7f` |
+| 2 | Añadir paso 7 "Vista Previa" en wizard CVDesdeCero | ✅ Completado | `bd9cf7f` |
+| 3 | Pantalla selección en `/cv-desde-cero` (2 cards: upload/desde cero) | ✅ Completado | `90922db` |
+| 3b | Reestructurar pilares: renombrar (Competencias/Gastos/Optimizador de CV), nuevos weights, PilarOptimizadorCV, botón Mis Documentos gated al 100% | 🔄 En curso | — |
 | 4 | Path A: upload → extractProfile → optimización por sección → wizard pre-llenado | ⏸️ Pendiente | — |
 | 5 | Versionado en MisCVs (badge CV Inicial / CV Modificada fecha) | ⏸️ Pendiente | — |
 | 6 | Puntaje visible (inicial+final en Path A, solo final en Path B) | ⏸️ Pendiente | — |

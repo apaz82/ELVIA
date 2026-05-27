@@ -47,22 +47,27 @@ export function calcularProgreso(data, perfil) {
 
   core += Math.min(autoPts, 20)
 
+  // Semana: 10 pts (peso reducido, ejecución táctica)
   const bloques = (data&&data.semana&&data.semana.bloques) ? data.semana.bloques : {}
   const bN = Object.values(bloques).filter(Boolean).length
-  if (bN>=3) core+=20; else if (bN>=1) core+=10;
+  if (bN>=3) core+=10; else if (bN>=1) core+=5;
 
+  // Gastos: 10 pts (peso reducido, planificación financiera)
   const rawRec = data&&data.recursos ? (Array.isArray(data.recursos) ? data.recursos : (data.recursos.recursos||null)) : null
   const rec = (rawRec&&rawRec.length>0) ? rawRec : RECURSOS_DEFAULT
   const nActivos = rec.filter(function(r){return r.tengo===true}).length
-  core += (nActivos >= 2) ? 20 : (nActivos * 10)
+  core += (nActivos >= 2) ? 10 : (nActivos * 5)
 
-  // Oferta: 5 ítems × 4 pts = 20 · sin fracciones
+  // Oferta de Valor: 5 ítems × 6 pts = 30 · insumo principal del CV (peso mayor)
   const oferta = (data&&data.oferta) ? data.oferta : {}
   let ofertaPts = 0
-  if (String(oferta.oferta_valor||'').trim().length>=20) ofertaPts+=4
+  if (String(oferta.oferta_valor||'').trim().length>=20) ofertaPts+=6
   const IKIGAI_KEYS = ['ikigai_amas','ikigai_bueno','ikigai_necesita','ikigai_pagar']
-  IKIGAI_KEYS.forEach(function(k){ if (String(oferta[k]||'').trim().length>=50) ofertaPts+=4 })
-  core += Math.min(ofertaPts, 20)
+  IKIGAI_KEYS.forEach(function(k){ if (String(oferta[k]||'').trim().length>=50) ofertaPts+=6 })
+  core += Math.min(ofertaPts, 30)
+
+  // Optimizador de CV: 10 pts cuando se genera el CV inicial
+  if (data && data.optimizer && data.optimizer.cv_generado === true) core += 10
 
   return Math.min(core, 100)
 }
