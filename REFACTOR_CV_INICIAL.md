@@ -194,14 +194,14 @@ Para revivir la página Optimizer como producto visible:
 - Paso de Resumen en Path A (upload) muestra 3 cajas:
   - **A. Resumen extraído del CV** (read-only, snapshot del PDF)
   - **B. Tu Oferta de Valor (Gerente)** (read-only, `jsp.oferta.oferta_valor`)
-  - **C. Resumen definitivo** (textarea editable, output de la fusión)
+  - **C. Propuesta de Fusión con ELVIA®** (caja punteada en violeta con **visual diff highlighting** en verde esmeralda para identificar exactamente qué palabras estratégicas nuevas se agregaron antes de aplicar o descartar la fusión).
 - Botón **✨ Fusionar con ELVIA®** llama a `POST /api/cv/fusionar-resumen`
 - Modelo: DeepSeek V3 (migrado de Claude Sonnet 4.6 para estabilidad, velocidad y consistencia con la arquitectura del backend), temperature 0.2 (anti-alucinación máxima).
 - maxLength 1000 chars; counter 3-colores: <800 slate, 800-899 amber, ≥900 rose
 - Path B (desde cero) no cambia visualmente
 - **Bug Fix**: Corrección de error 500 debido a que el controlador (`cvController.js`) importaba la función desde `deepseekService.js` pero esta había sido implementada originalmente en el servicio inactivo `claudeService.js` sin ser exportada. Se portó e implementó correctamente en `deepseekService.js` utilizando el cliente de DeepSeek V3.
 
-**Rollback:** `git revert cc5686f` y revertir el commit del fix de DeepSeek.
+**Rollback:** `git revert cc5686f` y revertir los commits subsecuentes de la fusión.
 
 ---
 

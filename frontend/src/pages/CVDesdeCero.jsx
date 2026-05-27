@@ -302,6 +302,7 @@ export default function CVDesdeCero() {
   const [ofertaValorGerente, setOfertaValorGerente] = useState('') // texto Mi Oferta de Valor del Gerente (inmutable)
   const [fusionando, setFusionando] = useState(false)
   const [errorFusion, setErrorFusion] = useState('')
+  const [resumenFusionSugerido, setResumenFusionSugerido] = useState('')
   const [cvIdioma, setCvIdioma] = useState('es')         // idioma detectado del CV subido
   const [alertaIdioma, setAlertaIdioma] = useState(false) // modal confirm idioma antes de generar
   const [expSugeridas, setExpSugeridas]   = useState({})  // { [i]: string } sugerencia por exp
@@ -652,7 +653,9 @@ export default function CVDesdeCero() {
       const res = await fusionarResumenIA(cvResumenOriginal, ofertaValorGerente, cvIdioma || 'es')
       const texto = String(res?.fusionado || '').trim()
       if (!texto) throw new Error('La fusión no devolvió texto.')
-      upDatos('resumen', texto)
+      setResumenFusionSugerido(texto)
+      setResumenSugerido('') // limpiar optimización normal
+      setResumenBloqueado(false)
     } catch (err) {
       console.error('[Fusión] Error:', err)
       setErrorFusion(err?.message || 'No pudimos fusionar el resumen. Intenta de nuevo.')
@@ -801,6 +804,22 @@ export default function CVDesdeCero() {
           return wordsO.has(clean) || clean === ''
             ? <span key={wi}>{w} </span>
             : <strong key={wi} className="text-indigo-700 font-bold">{w} </strong>
+        })}
+      </span>
+    ))
+  }
+
+  // Compara el resumen del CV y la Fusión, resaltando las adiciones en verde esmeralda
+  const renderDiffFusion = (original, sugerido) => {
+    if (!original || !sugerido) return sugerido
+    const wordsO = new Set(original.toLowerCase().split(/\s+/).map(w => w.replace(/[.,•\-*]/g, '')))
+    return sugerido.split('\n').map((line, li) => (
+      <span key={li} style={{ display: 'block' }}>
+        {line.split(/\s+/).map((w, wi) => {
+          const clean = w.toLowerCase().replace(/[.,•\-*]/g, '')
+          return wordsO.has(clean) || clean === ''
+            ? <span key={wi}>{w} </span>
+            : <span key={wi} className="text-emerald-700 bg-emerald-50 px-1 py-0.5 rounded font-black border border-emerald-100 inline-block m-0.5 text-[11px] leading-none">{w} </span>
         })}
       </span>
     ))
@@ -1384,8 +1403,62 @@ export default function CVDesdeCero() {
                   </div>
                 )}
 
+                {/* Propuesta de Fusión con ELVIA® (Editable + Diff) */}
+                {resumenFusionSugerido && !resumenBloqueado && (
+                  <div className="p-6 bg-violet-50/30 border-2 border-dashed border-violet-300 rounded-3xl animate-in fade-in slide-in-from-top-4 shadow-sm space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-xl bg-violet-600/10 flex items-center justify-center border border-violet-200/50 shadow-sm">
+                          <Sparkle size={16} weight="fill" className="text-violet-600" />
+                        </div>
+                        <div>
+                          <span className="text-[10px] font-black text-violet-700 uppercase tracking-widest">Fusión Estratégica ELVIA®</span>
+                          <h4 className="text-xs font-bold text-slate-800 leading-none mt-0.5">Propuesta de Fusión (Editable)</h4>
+                        </div>
+                      </div>
+                      <button onClick={() => setResumenFusionSugerido('')} className="text-slate-400 hover:text-slate-600 transition-colors"><X size={18} /></button>
+                    </div>
+
+                    {/* Diff visual */}
+                    <div className="p-4 bg-white/80 rounded-2xl text-xs leading-relaxed text-slate-600 border border-violet-100 shadow-inner">
+                      <p className="font-bold text-[9px] text-violet-500 uppercase tracking-wider mb-2 flex items-center gap-1">
+                        <Sparkle size={12} weight="fill" /> Palabras estratégicas nuevas añadidas por ELVIA® (en verde):
+                      </p>
+                      <div className="max-h-[220px] overflow-y-auto pr-1">
+                        {renderDiffFusion(cvResumenOriginal, resumenFusionSugerido)}
+                      </div>
+                    </div>
+
+                    {/* Textarea editable de la propuesta */}
+                    <textarea 
+                      value={resumenFusionSugerido}
+                      onChange={e => setResumenFusionSugerido(e.target.value)}
+                      rows={8}
+                      maxLength={1000}
+                      className="w-full bg-white border border-violet-200 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400/30 resize-y shadow-sm leading-relaxed"
+                      style={{ minHeight: 150 }}
+                    />
+
+                    {/* Botones de acción */}
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() => { upDatos('resumen', resumenFusionSugerido); setResumenFusionSugerido(''); setResumenBloqueado(true) }}
+                        className="flex-1 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white text-xs font-black py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-indigo-100 cursor-pointer"
+                      >
+                        <CheckFat size={16} weight="fill" /> Aplicar Fusión y Finalizar
+                      </button>
+                      <button
+                        onClick={() => setResumenFusionSugerido('')}
+                        className="px-6 bg-white border border-slate-200 text-slate-500 text-xs font-bold py-3.5 rounded-xl hover:bg-slate-50 transition-all cursor-pointer"
+                      >
+                        Descartar
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 {/* CAJA principal: borrador/entrada */}
-                <div className={`transition-all duration-300 ${resumenBloqueado ? 'opacity-50 pointer-events-none scale-[0.98]' : ''}`}>
+                <div className={`transition-all duration-300 ${(resumenBloqueado || resumenFusionSugerido) ? 'opacity-50 pointer-events-none scale-[0.98]' : ''}`}>
                   <label className="text-sm font-bold text-slate-700 flex items-center justify-between mb-2">
                     <span className="flex items-center gap-1">
                       {modoForzado === 'upload' ? 'Resumen profesional definitivo' : '1. Tu borrador profesional'}
