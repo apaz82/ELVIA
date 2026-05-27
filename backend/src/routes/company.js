@@ -686,7 +686,7 @@ router.post('/invitations', auth, requireRole('company_admin'), requireTenantCon
       email:         emailLower,
       password:      crypto.randomBytes(24).toString('base64url'),
       email_confirm: true,
-      user_metadata: { nombre1: nombre.trim(), apellido1: (apellido || '').trim(), company_id: company.id },
+      user_metadata: { nombre1: nombre.trim(), apellido1: (apellido || '').trim(), company_id: company.id, bienvenida_pendiente: true },
     })
 
     let authUserId = authData?.user?.id

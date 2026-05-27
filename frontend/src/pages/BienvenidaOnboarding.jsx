@@ -2,6 +2,7 @@
 // Font: Plus Jakarta Sans (app standard) · Large type · All-ages friendly
 import { useEffect, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { supabase } from '../services/authService'
 import {
   ArrowRight, MapPin, MusicNote, Coffee, Lightbulb, ShieldCheck
 } from '@phosphor-icons/react'
@@ -219,7 +220,10 @@ export default function BienvenidaOnboarding() {
         {/* ── CTA ── */}
         <div style={{ ...fade(440), textAlign: 'center' }}>
           <button
-            onClick={() => navigate('/proyecto-laboral')}
+            onClick={async () => {
+            await supabase.auth.updateUser({ data: { bienvenida_pendiente: false } }).catch(() => {})
+            navigate('/proyecto-laboral')
+          }}
             style={{
               position: 'relative', overflow: 'hidden',
               background: 'linear-gradient(135deg, #0071E3 0%, #005BB5 100%)',

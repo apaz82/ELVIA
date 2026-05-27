@@ -238,7 +238,8 @@ export const AuthProvider = ({ children }) => {
   const usageCount          = planInfo.usageCount
   const creditosRestantes   = planInfo.creditosMatchRestantes
 
-  const onboardingPendiente = useMemo(() => !loading && perfilCargado && !!user && (!perfil || !perfil.nombre1), [loading, perfilCargado, user, perfil])
+  const onboardingPendiente  = useMemo(() => !loading && perfilCargado && !!user && (!perfil || !perfil.nombre1), [loading, perfilCargado, user, perfil])
+  const bienvenidaPendiente  = useMemo(() => !loading && !!user && user.user_metadata?.bienvenida_pendiente === true, [loading, user])
 
   // Progreso del Gerente de Búsqueda (0-100) — disponible globalmente
   const progresoLaboral = useMemo(() => {
@@ -271,7 +272,7 @@ export const AuthProvider = ({ children }) => {
     perfil,
     refreshPerfil,
     refreshUsage,
-    onboardingPendiente, perfilCargado,
+    onboardingPendiente, bienvenidaPendiente, perfilCargado,
     isRecovering, setIsRecovering,
     // Progreso Gerente de Búsqueda
     progresoLaboral, featuresDesbloqueadas, jpLoaded, jpData, refreshJpData,
@@ -283,7 +284,7 @@ export const AuthProvider = ({ children }) => {
     usageCount, creditosRestantes, LIMITE_PLAN,
   }), [
     user, session, loading, login, register, logout, perfil, refreshPerfil, refreshUsage,
-    onboardingPendiente, perfilCargado, isRecovering, setIsRecovering, progresoLaboral,
+    onboardingPendiente, bienvenidaPendiente, perfilCargado, isRecovering, setIsRecovering, progresoLaboral,
     featuresDesbloqueadas, jpLoaded, jpData, refreshJpData, role, companyId, isAdmin, isCompanyAdmin,
     planInfo, usageCount, creditosRestantes
   ])

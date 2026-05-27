@@ -14,7 +14,7 @@ export default function LoginEmpresa() {
   const [searchParams] = useSearchParams()
   const justActivated = searchParams.get('activated') === '1'
   const { tenant, loading: tenantLoading, isUniversity } = useTenant()
-  const { user, loading: authLoading, onboardingPendiente, featuresDesbloqueadas, isCompanyAdmin, perfilCargado } = useAuth()
+  const { user, loading: authLoading, onboardingPendiente, bienvenidaPendiente, featuresDesbloqueadas, isCompanyAdmin, perfilCargado } = useAuth()
 
   const [email, setEmail]       = useState('')
   const [password, setPassword] = useState('')
@@ -36,14 +36,14 @@ export default function LoginEmpresa() {
 
     if (isCompanyAdmin) {
       navigate('/empresa-admin', { replace: true })
-    } else if (onboardingPendiente || justActivated) {
+    } else if (onboardingPendiente || bienvenidaPendiente) {
       navigate('/bienvenida', { replace: true })
     } else if (!featuresDesbloqueadas) {
       navigate('/proyecto-laboral', { replace: true })
     } else {
       navigate('/dashboard', { replace: true })
     }
-  }, [user, authLoading, tenantLoading, perfilCargado, isCompanyAdmin, onboardingPendiente, featuresDesbloqueadas, justActivated, navigate])
+  }, [user, authLoading, tenantLoading, perfilCargado, isCompanyAdmin, onboardingPendiente, bienvenidaPendiente, featuresDesbloqueadas, navigate])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
