@@ -1050,7 +1050,7 @@ function PilarMiPerfil({ perfil, extraData, onChange, onSavePerfil, saving, isPa
             <div>
               <label className="text-xs font-bold text-blue-600 uppercase tracking-widest mb-2 block">Expectativa de prestaciones</label>
               <div className="flex flex-col gap-2">
-                {['Prestaciones superiores a la ley','Prestaciones similares a la ley','Abierto a prestaciones inferiores'].map(function(opt){
+                {['Prestaciones superiores','Prestaciones similares','Abierto a prestaciones inferiores'].map(function(opt){
                   const sel = d.expectativa_prestaciones === opt
                   return (
                     <label key={opt} className={'flex items-center gap-2.5 p-3 rounded-lg border cursor-pointer transition-colors text-sm ' + (sel ? 'bg-blue-100 border-blue-400 text-blue-800 font-medium' : 'border-blue-100 bg-white text-slate-600 hover:border-blue-300')}>
