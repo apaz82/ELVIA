@@ -43,7 +43,7 @@
 - **Admin Infrastructure**: Dedicated `administrators` table and RLS policies active.
 - **Waitlist API**: Unique code generator, manual code validation endpoint, and email integration with Resend.
 - **Recovery Infrastructure**: Domain whitelist for reset URLs, Resend verified sender (soporte@elvia.lat), and granular error codes for non-existent users.
-- **Infografía Proyecto — Fallback** _(2026-05-27)_: `generarInfografiaProyecto` en `cvController.js` tolera `job_search_profile = null` usando `{}` como fallback. Ya no devuelve 400 al usuario que no ha guardado el Gerente de Proyecto.
+- **Infografía Proyecto — Fallback e Habilitación** _(2026-05-27)_: `generarInfografiaProyecto` en `cvController.js` tolera `job_search_profile = null` usando `{}` como fallback. En el frontend, se habilitó la generación de la infografía ejecutiva de forma dinámica si el progreso general es ≥ 50% O si el pilar de **"Mi Oferta de Valor" está al 100%** (`porPilar.oferta === 100`).
 
 ## Refactor CV Inicial — Estado de fases
 | Fase | Estado |

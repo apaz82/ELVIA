@@ -2645,8 +2645,9 @@ export default function ProyectoLaboral() {
   const cvAutoPopuladoRef    = useRef(false)  // evita doble ejecución
 
   const generarInfografia = async () => {
-    if (pct < 50) {
-      alert("Debes completar al menos el 50% de tu Proyecto Laboral para generar la infografía ejecutiva. ¡Sigue avanzando!")
+    const ofertaCompleta = porPilar?.oferta === 100
+    if (pct < 50 && !ofertaCompleta) {
+      alert("Debes completar al menos el 50% de tu Proyecto Laboral o tener tu Oferta de Valor al 100% para generar la infografía ejecutiva. ¡Sigue avanzando!")
       return
     }
     setGenerandoPdf(true)
@@ -3094,7 +3095,7 @@ export default function ProyectoLaboral() {
                     onClick={generarInfografia}
                     disabled={generandoPdf}
                     className="group/btn w-full relative overflow-hidden bg-white text-slate-900 font-black text-xs py-4 rounded-[1.25rem] transition-all hover:scale-[1.02] active:scale-[0.98] shadow-[0_20px_40px_-10px_rgba(255,255,255,0.1)] disabled:opacity-50"
-                    title={pct < 50 ? "Requiere 50% de completitud" : "Genera tu presentación ejecutiva"}
+                    title={(pct < 50 && porPilar?.oferta !== 100) ? "Requiere 50% de completitud o 100% de Oferta de Valor" : "Genera tu presentación ejecutiva"}
                   >
                     <div className="absolute inset-0 bg-gradient-to-r from-violet-600 to-indigo-600 opacity-0 group-hover/btn:opacity-100 transition-opacity duration-300"/>
                     <div className="relative z-10 flex items-center justify-center gap-2 group-hover/btn:text-white transition-colors">
