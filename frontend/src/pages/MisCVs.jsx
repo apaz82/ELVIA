@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../services/authService'
 import { descargarCV } from '../services/cvService'
 import FeatureLocked from '../components/common/FeatureLocked'
 import HelpBadge from '../components/common/HelpBadge'
-import { FilePdf } from '@phosphor-icons/react'
+import { FilePdf, LinkedinLogo } from '@phosphor-icons/react'
 
 const extraerNombre = (contenido) => {
   if (!contenido) return 'CV sin nombre'
@@ -90,15 +90,20 @@ function InfoVacante({ title, company, location, link, via, snippet }) {
 export default function MisCVs() {
   const { user, loading: authLoading, featuresDesbloqueadas } = useAuth()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
 
   const [cvsOptimizados, setCvsOptimizados] = useState([])
   const [cvsOriginal,    setCvsOriginal]    = useState([])
   const [cvsMatch,       setCvsMatch]       = useState([])
   const [cvsReportes,    setCvsReportes]    = useState([])
+  // Reportes guardados desde LinkedIn Pro (metadata.subtipo === 'linkedin_analysis')
+  const [cvsLinkedin,    setCvsLinkedin]    = useState([])
   const [checks, setChecks]                 = useState([])
   const [loading, setLoading]               = useState(true)
   const [descargando, setDescargando]       = useState({})
-  const [tab, setTab]                       = useState('optimizados')
+  // Tab inicial respeta ?tab=linkedin del query string (lo usa LinkedinPro tras descargar PDF).
+  const tabInicial = searchParams.get('tab') === 'linkedin' ? 'linkedin' : 'optimizados'
+  const [tab, setTab]                       = useState(tabInicial)
   const [filtroCompatibilidad, setFiltroCompatibilidad] = useState('todos')
   const [seleccionados, setSeleccionados]   = useState(new Set())
 
@@ -148,9 +153,12 @@ export default function MisCVs() {
     // - Originales: tipo 'original'
     // - Reportes: subtipo 'infografia' o tipo 'infografia_proyecto' (legacy)
     
-    setCvsOptimizados(todos.filter(c => c.tipo === 'optimize' && c.subtipo !== 'infografia_proyecto'))
+    // Optimizados: excluir infografía Y análisis LinkedIn (que tienen su propia tab)
+    setCvsOptimizados(todos.filter(c => c.tipo === 'optimize' && c.subtipo !== 'infografia_proyecto' && c.subtipo !== 'linkedin_analysis'))
     setCvsOriginal(todos.filter(c => c.tipo === 'original'))
     setCvsReportes(todos.filter(c => c.tipo === 'infografia_proyecto' || c.subtipo === 'infografia_proyecto'))
+    // Análisis LinkedIn — guardados desde LinkedinPro al descargar el PDF del informe
+    setCvsLinkedin(todos.filter(c => c.subtipo === 'linkedin_analysis'))
     
     setCvsMatch(todos.filter(c => c.tipo === 'match').map(cv => {
       const jobTitle   = cv.metadata?.jobData?.title || ''
@@ -224,6 +232,7 @@ export default function MisCVs() {
     { key: 'optimizados',     label: `CV Optimizado (${cvsOptimizados.length})` },
     { key: 'original',        label: `CV Inicial (${cvsOriginal.length})` },
     { key: 'reportes',        label: `Reportes (${cvsReportes.length})` },
+    { key: 'linkedin',        label: `LinkedIn® (${cvsLinkedin.length})` },
     { key: 'compatibilidades', label: `Compatibilidad (${checks.length})` },
     { key: 'match',           label: `CV vs Vacante (${cvsMatch.length})` },
   ]
@@ -333,6 +342,63 @@ export default function MisCVs() {
                       </div>
                     </div>
                   ))}
+                </div>
+              }
+            </div>
+          )}
+
+          {/* Tab LinkedIn — análisis guardados desde LinkedIn Pro */}
+          {tab === 'linkedin' && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 border-b border-gray-100 pb-3 mb-2">
+                <LinkedinLogo size={18} weight="fill" className="text-[#0077B5]" />
+                <h3 className="text-sm font-bold text-gray-800">Análisis de LinkedIn®</h3>
+                <HelpBadge id="miscvs.linkedin" />
+              </div>
+              {cvsLinkedin.length === 0
+              ? <EmptyState mensaje="Aún no has guardado un análisis de LinkedIn." cta="Analizar mi LinkedIn ahora" ruta="/linkedin-pro" />
+              : <div className="space-y-4">
+                  {cvsLinkedin.map(item => {
+                    const meta = item.metadata || {}
+                    const puntaje = meta.puntaje_global
+                    const puntajeColor = puntaje >= 80 ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                      : puntaje >= 60 ? 'bg-blue-50 text-blue-700 border-blue-200'
+                      : puntaje >= 40 ? 'bg-amber-50 text-amber-700 border-amber-200'
+                      : 'bg-rose-50 text-rose-700 border-rose-200'
+                    return (
+                      <div key={item.id} className="group flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 bg-white border border-gray-100 rounded-2xl hover:border-[#0077B5]/40 hover:shadow-xl hover:shadow-blue-50 transition-all duration-300">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap mb-2">
+                            <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-lg bg-[#0077B5]/5 text-[#0077B5] border border-[#0077B5]/15">
+                              Análisis LinkedIn
+                            </span>
+                            {typeof puntaje === 'number' ? (
+                              <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-lg border ${puntajeColor}`}>
+                                {puntaje} / 100
+                              </span>
+                            ) : null}
+                          </div>
+                          <p className="text-lg font-bold text-gray-800 truncate group-hover:text-[#0077B5] transition-colors">
+                            {meta.filename || 'Informe LinkedIn'}
+                          </p>
+                          <p className="text-sm text-gray-400 mt-1 flex items-center gap-1.5 font-medium">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                            {formatFecha(item.created_at)}
+                          </p>
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => navigate('/linkedin-pro')}
+                            className="px-6 py-2.5 text-sm font-bold text-white bg-[#0077B5] hover:bg-[#005e8d] rounded-xl flex items-center justify-center min-w-[160px] transition-all shadow-lg shadow-blue-100"
+                          >
+                            Ir a LinkedIn Pro →
+                          </button>
+                        </div>
+                      </div>
+                    )
+                  })}
                 </div>
               }
             </div>
