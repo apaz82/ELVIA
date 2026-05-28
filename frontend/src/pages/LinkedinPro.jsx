@@ -7,6 +7,7 @@ import { calcularProgreso } from '../utils/progresoLaboral'
 import toast from 'react-hot-toast'
 import HelpBadge from '../components/common/HelpBadge'
 import LinkedinReportePDF from '../components/common/LinkedinReportePDF'
+import LinkedinResultModal from '../components/common/LinkedinResultModal'
 import {
   LinkedinLogo, Sparkle, CheckCircle, WarningCircle,
   CaretDown, CaretUp, ArrowRight, Trophy, Star, LightbulbFilament,
@@ -363,6 +364,8 @@ export default function LinkedinOptima() {
   const reporteRef = useRef(null)
   const [descargandoPDF, setDescargandoPDF] = useState(false)
   const [pdfSaved, setPdfSaved] = useState(false)
+  // El modal disclaimer solo aparece en análisis nuevos (no al revisar historial).
+  const [showResultModal, setShowResultModal] = useState(false)
 
   const [campos, setCampos] = useState({ titular: '', extracto: '', experiencia: '', habilidades: '', educacion: '' })
   const [importMode, setImportMode] = useState('pdf') // 'pdf' | 'manual'
@@ -524,6 +527,8 @@ export default function LinkedinOptima() {
         created_at: new Date().toISOString(),
       }, ...prev.slice(0, 9)])
       window.scrollTo({ top: 0, behavior: 'smooth' })
+      // Mostrar modal disclaimer solo en análisis NUEVOS (no al revisar histórico).
+      setShowResultModal(true)
     } catch (err) {
       setError(err.message)
     } finally {
@@ -713,6 +718,23 @@ export default function LinkedinOptima() {
           nombre={`${perfil?.nombre1 || ''} ${perfil?.apellido1 || ''}`.trim()}
           resultado={resultado}
           editables={editables}
+        />
+
+        {/* Modal disclaimer post-análisis (solo en análisis nuevos, no en historial) */}
+        <LinkedinResultModal
+          open={showResultModal}
+          onClose={() => setShowResultModal(false)}
+          puntajeGlobal={resultado?.puntaje_global}
+          restantes={usoMes?.restantes}
+          descargando={descargandoPDF}
+          onDescargarPDF={async () => {
+            await descargarPDF()
+            setShowResultModal(false)
+          }}
+          onIrMisDocumentos={() => {
+            setShowResultModal(false)
+            navigate('/mis-cvs?tab=linkedin')
+          }}
         />
       </div>
     )
