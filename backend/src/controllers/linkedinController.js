@@ -170,4 +170,50 @@ const extraerPerfilPDF = async (req, res, next) => {
   }
 }
 
-module.exports = { analizarPerfil, extraerPerfilPDF, getHistorial }
+// POST /api/linkedin/guardar-reporte
+// Persiste el reporte LinkedIn (análisis + textos editables del usuario) en cv_results
+// para que aparezca en "Mis Documentos". Patrón replicado de generarInfografiaProyecto.
+const guardarReporte = async (req, res, next) => {
+  try {
+    if (!req.supabase || !req.user?.id) {
+      return res.status(401).json({ error: 'Usuario no autenticado' })
+    }
+    const { analisis, editables, original, filename } = req.body || {}
+    if (!analisis || typeof analisis !== 'object') {
+      return res.status(400).json({ error: 'Falta el análisis a guardar' })
+    }
+
+    const payload = {
+      analisis,
+      editables: editables || null,
+      original:  original  || null,
+      version:   'linkedin_pro_v2',
+    }
+
+    const { data, error } = await req.supabase
+      .from('cv_results')
+      .insert({
+        user_id: req.user.id,
+        tipo: 'optimize', // requerido por el constraint existente; discriminamos vía metadata.subtipo
+        contenido: JSON.stringify(payload),
+        metadata: {
+          filename: filename || `Analisis_LinkedIn_${new Date().toISOString().slice(0,10)}.pdf`,
+          frontend_pdf: true,
+          subtipo: 'linkedin_analysis',
+          puntaje_global: analisis.puntaje_global ?? null,
+        },
+      })
+      .select('id')
+      .single()
+
+    if (error) {
+      console.error('[linkedin/guardar-reporte] insert error:', error.message)
+      return res.status(500).json({ error: 'No se pudo guardar el reporte' })
+    }
+    return res.json({ id: data?.id, ok: true })
+  } catch (err) {
+    next(err)
+  }
+}
+
+module.exports = { analizarPerfil, extraerPerfilPDF, getHistorial, guardarReporte }

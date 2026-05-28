@@ -1,15 +1,17 @@
 // LinkedIn Optima — Validador y optimizador de perfil LinkedIn con IA
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../services/authService'
 import { calcularProgreso } from '../utils/progresoLaboral'
 import toast from 'react-hot-toast'
 import HelpBadge from '../components/common/HelpBadge'
+import LinkedinReportePDF from '../components/common/LinkedinReportePDF'
 import {
   LinkedinLogo, Sparkle, CheckCircle, WarningCircle,
   CaretDown, CaretUp, ArrowRight, Trophy, Star, LightbulbFilament,
   FilePdf, NotePencil, UploadSimple, CircleNotch, Clock,
-  Copy, Eye, EyeSlash, PencilSimple
+  Copy, Eye, EyeSlash, PencilSimple, DownloadSimple
 } from '@phosphor-icons/react'
 import FeatureLocked from '../components/common/FeatureLocked'
 
@@ -351,10 +353,16 @@ function SeccionResultado({ seccion, datos, original, editable, onEditableChange
 
 export default function LinkedinOptima() {
   const { user, isPaidPlan, trialExpired, jpData, perfil } = useAuth()
-  
+  const navigate = useNavigate()
+
   // Calcular progreso para el "Progress-based Unlock"
   const proyectoPct = calcularProgreso(jpData || {}, perfil || {})
   const isUnlockedByProgress = proyectoPct >= 100
+
+  // Ref al nodo off-screen del reporte PDF (capturado por html2pdf).
+  const reporteRef = useRef(null)
+  const [descargandoPDF, setDescargandoPDF] = useState(false)
+  const [pdfSaved, setPdfSaved] = useState(false)
 
   const [campos, setCampos] = useState({ titular: '', extracto: '', experiencia: '', habilidades: '', educacion: '' })
   const [importMode, setImportMode] = useState('pdf') // 'pdf' | 'manual'
@@ -511,7 +519,71 @@ export default function LinkedinOptima() {
   const handleReset = () => {
     setResultado(null)
     setCampos({ titular: '', extracto: '', experiencia: '', habilidades: '', educacion: '' })
+    setEditables({ titular: '', extracto: '', experiencia: '', habilidades: [], educacion: '' })
+    setOriginalSnapshot({ titular: '', extracto: '', experiencia: '', habilidades: '', educacion: '' })
     setImportMode('pdf')
+    setPdfSaved(false)
+  }
+
+  // Genera y descarga el reporte PDF + lo persiste en cv_results para que aparezca en Mis Documentos.
+  const descargarPDF = async () => {
+    if (!reporteRef.current) {
+      toast.error('No se pudo preparar el reporte')
+      return
+    }
+    setDescargandoPDF(true)
+    try {
+      // Import dinámico para no inflar el bundle inicial.
+      const html2pdfModule = await import('html2pdf.js')
+      const html2pdf = html2pdfModule.default || html2pdfModule
+
+      const nombreUsuario = `${perfil?.nombre1 || ''} ${perfil?.apellido1 || ''}`.trim() || 'ELVIA'
+      const filename = `Analisis_LinkedIn_${nombreUsuario.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.pdf`
+
+      const opt = {
+        margin:      0,
+        filename,
+        image:       { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true, letterRendering: true, windowWidth: 816 },
+        jsPDF:       { unit: 'in', format: 'letter', orientation: 'portrait' },
+        pagebreak:   { mode: ['css', 'legacy'] },
+      }
+
+      await html2pdf().from(reporteRef.current).set(opt).save()
+
+      // Persistir el reporte en cv_results — best effort, no bloquea la descarga.
+      if (!pdfSaved && user) {
+        try {
+          const { data: { session } } = await supabase.auth.getSession()
+          const token = session?.access_token
+          if (token) {
+            await fetch(`${API}/api/linkedin/guardar-reporte`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify({
+                analisis: resultado,
+                editables,
+                original: originalSnapshot,
+                filename,
+              }),
+            })
+            setPdfSaved(true)
+          }
+        } catch {
+          // Fallar el save no debe romper la descarga
+        }
+      }
+
+      toast.success('Reporte descargado y guardado en Mis Documentos')
+    } catch (err) {
+      console.error('[descargarPDF] error:', err)
+      toast.error('No pudimos generar el PDF. Intenta de nuevo.')
+    } finally {
+      setDescargandoPDF(false)
+    }
   }
 
   // ─── Vista de resultados ─────────────────────────────────────────────────
@@ -574,16 +646,40 @@ export default function LinkedinOptima() {
           })}
         </div>
 
-        {/* Botón para nuevo análisis */}
-        <div className="space-y-4">
+        {/* Acciones finales */}
+        <div className="space-y-3">
+          <button
+            onClick={descargarPDF}
+            disabled={descargandoPDF}
+            className="w-full py-4 rounded-2xl bg-[#019DF4] hover:bg-[#0288d1] text-white text-sm font-black uppercase tracking-wider shadow-lg shadow-blue-900/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-[0.98] flex items-center justify-center gap-3"
+          >
+            {descargandoPDF ? (
+              <>
+                <CircleNotch size={18} className="animate-spin" />
+                Generando informe PDF...
+              </>
+            ) : (
+              <>
+                <DownloadSimple size={18} weight="bold" />
+                Descargar informe PDF
+              </>
+            )}
+          </button>
+          <button
+            onClick={() => navigate('/mis-cvs?tab=linkedin')}
+            className="w-full py-4 rounded-2xl bg-white border border-slate-200 text-sm font-bold text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all shadow-sm active:scale-[0.98] flex items-center justify-center gap-2"
+          >
+            Ir a Mis Documentos
+            <ArrowRight size={16} weight="bold" />
+          </button>
           <button
             onClick={handleReset}
-            className="w-full py-4 rounded-2xl bg-white border border-slate-200 text-sm font-bold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all shadow-sm active:scale-[0.98]"
+            className="w-full py-3 rounded-2xl bg-transparent text-xs font-bold text-slate-500 hover:text-slate-700 transition-all"
           >
             Analizar otro perfil
           </button>
-          
-          <div className="text-center opacity-40 grayscale hover:grayscale-0 transition-all duration-500">
+
+          <div className="text-center opacity-40 grayscale hover:grayscale-0 transition-all duration-500 pt-4">
              <div className="flex items-center justify-center gap-2 mb-1">
                 <Sparkle size={12} weight="fill" className="text-amber-500" />
                 <p className="text-[9px] font-black uppercase tracking-widest text-slate-800">
@@ -595,6 +691,14 @@ export default function LinkedinOptima() {
              </p>
           </div>
         </div>
+
+        {/* Vista off-screen del PDF — html2pdf captura este nodo cuando el usuario descarga */}
+        <LinkedinReportePDF
+          reporteRef={reporteRef}
+          nombre={`${perfil?.nombre1 || ''} ${perfil?.apellido1 || ''}`.trim()}
+          resultado={resultado}
+          editables={editables}
+        />
       </div>
     )
   }
