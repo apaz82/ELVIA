@@ -18,6 +18,52 @@ const extraerResumenDeCV = (cvRow) => {
   } catch { return '' }
 }
 
+// Límite mensual de análisis IA por usuario.
+// Contamos en la tabla linkedin_analyses (se inserta automáticamente en cada análisis).
+// Esto cuenta consumo de tokens DeepSeek, no descargas de PDF.
+const LIMITE_ANALISIS_MES = 5
+
+const contarAnalisisMes = async (supabase, userId) => {
+  const inicio = new Date()
+  inicio.setDate(1)
+  inicio.setHours(0, 0, 0, 0)
+  const { count, error } = await supabase
+    .from('linkedin_analyses')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .gte('created_at', inicio.toISOString())
+  if (error) {
+    console.warn('[linkedin/uso-mes] no se pudo contar análisis:', error.message)
+    return 0
+  }
+  return count || 0
+}
+
+// Primer día del próximo mes en ISO — usado para mensajes de "tu contador se reinicia el ..."
+const fechaResetMes = () => {
+  const ahora = new Date()
+  return new Date(ahora.getFullYear(), ahora.getMonth() + 1, 1).toISOString()
+}
+
+// GET /api/linkedin/uso-mes
+// Devuelve cuántos análisis lleva el usuario este mes y cuántos le quedan.
+const getUsoMes = async (req, res, next) => {
+  try {
+    if (!req.supabase || !req.user?.id) {
+      return res.json({ usados: 0, restantes: LIMITE_ANALISIS_MES, limite: LIMITE_ANALISIS_MES, fecha_reset: fechaResetMes() })
+    }
+    const usados = await contarAnalisisMes(req.supabase, req.user.id)
+    return res.json({
+      usados,
+      restantes: Math.max(0, LIMITE_ANALISIS_MES - usados),
+      limite: LIMITE_ANALISIS_MES,
+      fecha_reset: fechaResetMes(),
+    })
+  } catch (err) {
+    next(err)
+  }
+}
+
 // POST /api/linkedin/analizar
 const analizarPerfil = async (req, res, next) => {
   try {
@@ -28,6 +74,20 @@ const analizarPerfil = async (req, res, next) => {
 
     if (camposRecibidos.length === 0) {
       return res.status(400).json({ error: 'Debes completar al menos una sección del perfil' })
+    }
+
+    // Verificar límite mensual ANTES de gastar tokens en DeepSeek.
+    if (req.supabase && req.user?.id) {
+      const usados = await contarAnalisisMes(req.supabase, req.user.id)
+      if (usados >= LIMITE_ANALISIS_MES) {
+        return res.status(429).json({
+          error: `Ya usaste tus ${LIMITE_ANALISIS_MES} análisis de IA este mes. El contador se reinicia el 1º del próximo mes.`,
+          codigo: 'limite_mensual_alcanzado',
+          usados,
+          limite: LIMITE_ANALISIS_MES,
+          fecha_reset: fechaResetMes(),
+        })
+      }
     }
 
     // Enriquecimiento opcional con datos del Gerente de Proyecto y CV optimizado.
@@ -216,4 +276,4 @@ const guardarReporte = async (req, res, next) => {
   }
 }
 
-module.exports = { analizarPerfil, extraerPerfilPDF, getHistorial, guardarReporte }
+module.exports = { analizarPerfil, extraerPerfilPDF, getHistorial, guardarReporte, getUsoMes }

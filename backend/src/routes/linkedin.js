@@ -5,7 +5,7 @@ const auth    = require('../middleware/auth')
 const { planContext }    = require('../middleware/planContext')
 const requirePaidPlan    = require('../middleware/requirePaidPlan')
 const { limiterOptimize } = require('../middleware/rateLimiter')
-const { analizarPerfil, extraerPerfilPDF, getHistorial, guardarReporte } = require('../controllers/linkedinController')
+const { analizarPerfil, extraerPerfilPDF, getHistorial, guardarReporte, getUsoMes } = require('../controllers/linkedinController')
 
 // Configuración de Multer para recibir PDF en memoria
 const storage = multer.memoryStorage()
@@ -23,6 +23,9 @@ router.post('/analizar',      auth, planContext, requirePaidPlan, limiterOptimiz
 
 // Historial de análisis del usuario (solo requiere auth, no plan de pago)
 router.get('/historial',      auth, planContext, getHistorial)
+
+// Uso del mes — para mostrar contador "X de 5 análisis restantes este mes" antes de gastar tokens
+router.get('/uso-mes',        auth, planContext, getUsoMes)
 
 // Extracción de PDF de LinkedIn
 router.post('/extraer-pdf',   auth, planContext, requirePaidPlan, limiterOptimize, upload.single('pdf'), extraerPerfilPDF)

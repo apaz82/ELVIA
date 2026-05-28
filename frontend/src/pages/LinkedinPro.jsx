@@ -377,22 +377,30 @@ export default function LinkedinOptima() {
   const [error, setError] = useState('')
   const [historial, setHistorial] = useState([])
   const [historialAbierto, setHistorialAbierto] = useState(false)
+  // Contador de uso mensual (límite duro de análisis IA por mes calendario).
+  const [usoMes, setUsoMes] = useState({ usados: 0, restantes: 5, limite: 5, fecha_reset: null })
 
   useEffect(() => {
     if (!user) return
-    const loadHistorial = async () => {
+    const loadHistorialYUso = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession()
-        const res = await fetch(`${API}/api/linkedin/historial`, {
-          headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {},
-        })
-        if (res.ok) {
-          const data = await res.json()
+        const headers = session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}
+        const [resH, resU] = await Promise.all([
+          fetch(`${API}/api/linkedin/historial`, { headers }),
+          fetch(`${API}/api/linkedin/uso-mes`, { headers }),
+        ])
+        if (resH.ok) {
+          const data = await resH.json()
           setHistorial(Array.isArray(data) ? data : [])
         }
-      } catch { /* historial es no-crítico */ }
+        if (resU.ok) {
+          const u = await resU.json()
+          setUsoMes(u)
+        }
+      } catch { /* lectura inicial no es crítica */ }
     }
-    loadHistorial()
+    loadHistorialYUso()
   }, [user])
 
   // Bloqueo para usuarios que no han llegado al 100% de progreso (o plan pago)
@@ -474,6 +482,13 @@ export default function LinkedinOptima() {
 
       const data = await res.json()
       setResultado(data)
+
+      // Decremento optimista del contador (el backend ya validó antes del análisis).
+      setUsoMes(prev => ({
+        ...prev,
+        usados: (prev.usados || 0) + 1,
+        restantes: Math.max(0, (prev.restantes || 0) - 1),
+      }))
 
       // Snapshot del texto original que el usuario tenía en el momento del análisis.
       // Sirve para el botón "Ver mi texto actual" en cada sección editable.
@@ -956,19 +971,39 @@ export default function LinkedinOptima() {
                 </div>
               )}
 
+              {/* Contador de análisis IA del mes — el usuario sabe cuánto le queda antes de presionar */}
+              <div className={`flex items-center justify-between gap-3 px-5 py-3 rounded-2xl border ${usoMes.restantes <= 1 ? 'bg-amber-50 border-amber-200' : 'bg-slate-50 border-slate-200'} mt-8`}>
+                <div className="flex items-center gap-2">
+                  <Sparkle size={16} weight="fill" className={usoMes.restantes <= 1 ? 'text-amber-500' : 'text-indigo-500'} />
+                  <span className="text-xs font-bold text-slate-700">
+                    Análisis IA restantes este mes: <span className={`font-black ${usoMes.restantes === 0 ? 'text-rose-600' : usoMes.restantes <= 1 ? 'text-amber-700' : 'text-indigo-700'}`}>{usoMes.restantes} / {usoMes.limite}</span>
+                  </span>
+                </div>
+                {usoMes.restantes === 0 && usoMes.fecha_reset ? (
+                  <span className="text-[10px] font-bold text-rose-700 uppercase tracking-wider">
+                    Se reinicia el {new Date(usoMes.fecha_reset).toLocaleDateString('es-CO', { day: '2-digit', month: 'short' })}
+                  </span>
+                ) : null}
+              </div>
+
               <button
                 type="submit"
-                disabled={!camposLlenos || cargando}
+                disabled={!camposLlenos || cargando || usoMes.restantes === 0}
                 className="w-full flex items-center justify-center gap-4 py-5 rounded-[2rem]
                            bg-gradient-to-r from-[#0077B5] to-[#00a0dc] text-white font-black text-xs uppercase tracking-[0.35em] shadow-2xl shadow-indigo-900/30
                            hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed
-                           transition-all active:scale-[0.97] mt-10 relative overflow-hidden group"
+                           transition-all active:scale-[0.97] mt-4 relative overflow-hidden group"
               >
                 <div className="absolute inset-0 bg-white/10 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
                 {cargando ? (
                   <>
                     <PI.CircleNotch size={20} className="animate-spin" />
                     Ejecutando Análisis Maestro...
+                  </>
+                ) : usoMes.restantes === 0 ? (
+                  <>
+                    <PI.WarningCircle size={20} weight="fill" />
+                    Límite mensual alcanzado
                   </>
                 ) : (
                   <>
