@@ -8,7 +8,8 @@ import HelpBadge from '../components/common/HelpBadge'
 import {
   LinkedinLogo, Sparkle, CheckCircle, WarningCircle,
   CaretDown, CaretUp, ArrowRight, Trophy, Star, LightbulbFilament,
-  FilePdf, NotePencil, UploadSimple, CircleNotch, Clock
+  FilePdf, NotePencil, UploadSimple, CircleNotch, Clock,
+  Copy, Eye, EyeSlash, PencilSimple
 } from '@phosphor-icons/react'
 import FeatureLocked from '../components/common/FeatureLocked'
 
@@ -84,9 +85,170 @@ function ScoreRing({ score }) {
   )
 }
 
-function SeccionResultado({ seccion, datos }) {
+// Copia al portapapeles + toast (helper compartido por las cards de sección).
+const copiarPortapapeles = async (texto, etiqueta) => {
+  if (!texto) return
+  try {
+    await navigator.clipboard.writeText(texto)
+    toast.success(`${etiqueta} copiado al portapapeles`)
+  } catch {
+    toast.error('No pudimos copiar — intenta seleccionar el texto manualmente')
+  }
+}
+
+// Bloque editable + botones (Copiar / Ver original) para una sección de texto largo.
+// El usuario decide qué pegar en LinkedIn — el AI propone, NO impone.
+function BloqueEditable({ seccion, original, valor, onChange, maxLength }) {
+  const [verOriginal, setVerOriginal] = useState(false)
+  return (
+    <div className="bg-white border-2 border-emerald-200 rounded-2xl p-5 mt-2">
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-[11px] font-black uppercase tracking-wider text-emerald-700 flex items-center gap-1.5">
+          <PencilSimple size={13} weight="fill" /> Tu {seccion.label.toLowerCase()} — edítalo si quieres antes de pegarlo
+        </p>
+        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+          {(valor || '').length}{maxLength ? ` / ${maxLength}` : ''}
+        </span>
+      </div>
+      <textarea
+        value={valor || ''}
+        onChange={e => onChange(e.target.value)}
+        rows={Math.max(seccion.rows || 4, 4)}
+        maxLength={maxLength}
+        className="w-full resize-none rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-800 placeholder:text-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:bg-white leading-relaxed"
+        placeholder={`Aquí aparecerá la sugerencia generada para ${seccion.label}. Edítala antes de pegarla en LinkedIn.`}
+      />
+      <div className="flex flex-wrap items-center gap-2 mt-3">
+        <button
+          type="button"
+          onClick={() => copiarPortapapeles(valor || '', seccion.label)}
+          disabled={!valor}
+          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-600 text-white text-[11px] font-bold uppercase tracking-wider hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+        >
+          <Copy size={13} weight="bold" /> Copiar al portapapeles
+        </button>
+        {original ? (
+          <button
+            type="button"
+            onClick={() => setVerOriginal(v => !v)}
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-slate-200 text-slate-600 text-[11px] font-bold uppercase tracking-wider hover:bg-slate-50 transition-all"
+          >
+            {verOriginal
+              ? <><EyeSlash size={13} weight="bold" /> Ocultar mi texto actual</>
+              : <><Eye size={13} weight="bold" /> Ver mi texto actual</>
+            }
+          </button>
+        ) : null}
+      </div>
+      {verOriginal && original ? (
+        <div className="mt-3 bg-slate-50 border border-slate-200 rounded-xl p-4">
+          <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">Texto original tuyo</p>
+          <p className="text-xs text-slate-600 leading-relaxed whitespace-pre-line">{original}</p>
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
+// Bloque editable especial para habilidades — chips removibles + entrada nueva + copiar todo.
+function BloqueHabilidades({ habilidades, onChange, original }) {
+  const [nuevaSkill, setNuevaSkill] = useState('')
+  const [verOriginal, setVerOriginal] = useState(false)
+  const lista = Array.isArray(habilidades) ? habilidades : []
+  const eliminar = (i) => onChange(lista.filter((_, idx) => idx !== i))
+  const agregar = () => {
+    const v = nuevaSkill.trim()
+    if (!v) return
+    if (lista.includes(v)) {
+      toast('Esa habilidad ya está en la lista', { icon: 'ℹ️' })
+      setNuevaSkill('')
+      return
+    }
+    if (lista.length >= 50) {
+      toast.error('LinkedIn permite máximo 50 habilidades')
+      return
+    }
+    onChange([...lista, v])
+    setNuevaSkill('')
+  }
+  return (
+    <div className="bg-white border-2 border-emerald-200 rounded-2xl p-5 mt-2">
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-[11px] font-black uppercase tracking-wider text-emerald-700 flex items-center gap-1.5">
+          <PencilSimple size={13} weight="fill" /> Tus habilidades — edita la lista antes de pegarlas
+        </p>
+        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+          {lista.length} / 50
+        </span>
+      </div>
+      <div className="flex flex-wrap gap-2 mb-3 min-h-[48px] bg-slate-50 p-3 rounded-xl">
+        {lista.length === 0 && (
+          <span className="text-xs text-slate-400 italic">Las habilidades sugeridas aparecerán aquí.</span>
+        )}
+        {lista.map((s, i) => (
+          <span key={`${s}-${i}`} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white border border-emerald-200 text-emerald-800 text-xs font-semibold shadow-sm">
+            {s}
+            <button
+              type="button"
+              onClick={() => eliminar(i)}
+              className="text-emerald-500 hover:text-rose-500 transition-colors font-bold text-sm"
+              aria-label={`Eliminar ${s}`}
+            >×</button>
+          </span>
+        ))}
+      </div>
+      <div className="flex gap-2 mb-3">
+        <input
+          type="text"
+          value={nuevaSkill}
+          onChange={e => setNuevaSkill(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); agregar() } }}
+          placeholder="Agregar habilidad y presionar Enter"
+          className="flex-1 rounded-xl bg-slate-50 px-4 py-2.5 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:bg-white"
+        />
+        <button
+          type="button"
+          onClick={agregar}
+          disabled={!nuevaSkill.trim()}
+          className="px-4 py-2 rounded-xl bg-slate-100 text-slate-700 text-xs font-bold hover:bg-slate-200 disabled:opacity-40 transition-all"
+        >Agregar</button>
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          onClick={() => copiarPortapapeles(lista.join('\n'), 'Habilidades')}
+          disabled={lista.length === 0}
+          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-600 text-white text-[11px] font-bold uppercase tracking-wider hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+        >
+          <Copy size={13} weight="bold" /> Copiar todas
+        </button>
+        {original ? (
+          <button
+            type="button"
+            onClick={() => setVerOriginal(v => !v)}
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-slate-200 text-slate-600 text-[11px] font-bold uppercase tracking-wider hover:bg-slate-50 transition-all"
+          >
+            {verOriginal
+              ? <><EyeSlash size={13} weight="bold" /> Ocultar mi lista actual</>
+              : <><Eye size={13} weight="bold" /> Ver mi lista actual</>
+            }
+          </button>
+        ) : null}
+      </div>
+      {verOriginal && original ? (
+        <div className="mt-3 bg-slate-50 border border-slate-200 rounded-xl p-4">
+          <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">Tus habilidades actuales</p>
+          <p className="text-xs text-slate-600 leading-relaxed whitespace-pre-line">{original}</p>
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
+function SeccionResultado({ seccion, datos, original, editable, onEditableChange }) {
   const [abierto, setAbierto] = useState(true)
   const color = colorPuntaje(datos.puntaje)
+  const esHabilidades = seccion.id === 'habilidades'
 
   return (
     <div className={`rounded-3xl border ${color.border} overflow-hidden bg-white shadow-sm hover:shadow-md transition-all duration-300`}>
@@ -155,7 +317,7 @@ function SeccionResultado({ seccion, datos }) {
             </div>
           )}
 
-          {/* Ejemplo reescrito */}
+          {/* Ejemplo reescrito (recordatorio del análisis IA — sigue visible) */}
           {datos.ejemplo && (
             <div className="bg-teal-50 border border-teal-200 rounded-xl px-4 py-3">
               <p className="text-xs font-bold uppercase tracking-wider text-teal-600 mb-1.5 flex items-center gap-1.5">
@@ -163,6 +325,23 @@ function SeccionResultado({ seccion, datos }) {
               </p>
               <p className="text-sm text-teal-800 leading-relaxed italic">"{datos.ejemplo}"</p>
             </div>
+          )}
+
+          {/* Bloque editable: el texto sugerido aplicado, listo para pegar en LinkedIn */}
+          {esHabilidades ? (
+            <BloqueHabilidades
+              habilidades={editable}
+              onChange={onEditableChange}
+              original={original}
+            />
+          ) : (
+            <BloqueEditable
+              seccion={seccion}
+              original={original}
+              valor={editable}
+              onChange={onEditableChange}
+              maxLength={seccion.maxLength}
+            />
           )}
         </div>
       )}
@@ -182,6 +361,11 @@ export default function LinkedinOptima() {
   const [isExtracting, setIsExtracting] = useState(false)
   const [cargando, setCargando] = useState(false)
   const [resultado, setResultado] = useState(null)
+  // Snapshot del texto original que el usuario subió/escribió en el momento del análisis.
+  // Lo guardamos por separado para que el botón "Ver mi texto actual" siga funcionando aunque cambien `campos` después.
+  const [originalSnapshot, setOriginalSnapshot] = useState({ titular: '', extracto: '', experiencia: '', habilidades: '', educacion: '' })
+  // Textos editables que la IA sugirió por sección — el usuario los modifica antes de pegarlos en LinkedIn.
+  const [editables, setEditables] = useState({ titular: '', extracto: '', experiencia: '', habilidades: [], educacion: '' })
   const [error, setError] = useState('')
   const [historial, setHistorial] = useState([])
   const [historialAbierto, setHistorialAbierto] = useState(false)
@@ -282,6 +466,29 @@ export default function LinkedinOptima() {
 
       const data = await res.json()
       setResultado(data)
+
+      // Snapshot del texto original que el usuario tenía en el momento del análisis.
+      // Sirve para el botón "Ver mi texto actual" en cada sección editable.
+      setOriginalSnapshot({ ...campos })
+
+      // Inicializar editables desde sugerencias_aplicables. Si el backend no las envía
+      // (compatibilidad hacia atrás), caemos a `secciones[id].ejemplo` y luego al texto original.
+      const sa = data.sugerencias_aplicables || {}
+      const secs = data.secciones || {}
+      const habilidadesIniciales = (() => {
+        if (Array.isArray(sa.habilidades)) return sa.habilidades.filter(Boolean)
+        // Fallback: parsear el ejemplo o el texto original separado por coma
+        const fuente = sa.habilidades || secs.habilidades?.ejemplo || campos.habilidades || ''
+        return String(fuente).split(/[,\n;]+/).map(s => s.trim()).filter(Boolean)
+      })()
+      setEditables({
+        titular:     sa.titular     || secs.titular?.ejemplo     || campos.titular     || '',
+        extracto:    sa.extracto    || secs.extracto?.ejemplo    || campos.extracto    || '',
+        experiencia: sa.experiencia || secs.experiencia?.ejemplo || campos.experiencia || '',
+        habilidades: habilidadesIniciales,
+        educacion:   sa.educacion   || secs.educacion?.ejemplo   || campos.educacion   || '',
+      })
+
       // Agregar al historial local inmediatamente (sin esperar re-fetch)
       const camposUsados = Object.entries(campos).filter(([, v]) => v.trim().length > 0).map(([k]) => k)
       setHistorial(prev => [{
@@ -354,7 +561,16 @@ export default function LinkedinOptima() {
             const datos = resultado.secciones?.[sec.id]
             const desdHistorial = !!resultado.campos_analizados
             if (!datos || (!desdHistorial && !campos[sec.id]?.trim())) return null
-            return <SeccionResultado key={sec.id} seccion={sec} datos={datos} />
+            return (
+              <SeccionResultado
+                key={sec.id}
+                seccion={sec}
+                datos={datos}
+                original={originalSnapshot[sec.id] || ''}
+                editable={editables[sec.id]}
+                onEditableChange={(nuevo) => setEditables(prev => ({ ...prev, [sec.id]: nuevo }))}
+              />
+            )
           })}
         </div>
 
@@ -422,7 +638,23 @@ export default function LinkedinOptima() {
                       {campos && <p className="text-[11px] text-slate-400 mt-0.5 truncate capitalize">{campos}</p>}
                     </div>
                     <button
-                      onClick={() => { setResultado(entry); setHistorialAbierto(false) }}
+                      onClick={() => {
+                        setResultado(entry)
+                        // Para análisis del historial no tenemos snapshot del texto original ni sugerencias_aplicables.
+                        // Caemos al "ejemplo" del análisis IA — el usuario aún puede editar y copiar.
+                        const secs = entry.secciones || {}
+                        const habilidadesIniciales = String(secs.habilidades?.ejemplo || '')
+                          .split(/[,\n;]+/).map(s => s.trim()).filter(Boolean)
+                        setOriginalSnapshot({ titular: '', extracto: '', experiencia: '', habilidades: '', educacion: '' })
+                        setEditables({
+                          titular:     secs.titular?.ejemplo     || '',
+                          extracto:    secs.extracto?.ejemplo    || '',
+                          experiencia: secs.experiencia?.ejemplo || '',
+                          habilidades: habilidadesIniciales,
+                          educacion:   secs.educacion?.ejemplo   || '',
+                        })
+                        setHistorialAbierto(false)
+                      }}
                       className="shrink-0 text-xs font-bold text-[#0077B5] border border-[#0077B5]/20 hover:bg-[#0077B5]/5 rounded-lg px-3 py-1.5 transition-colors flex items-center gap-1"
                     >
                       Ver <ArrowRight size={11} />
