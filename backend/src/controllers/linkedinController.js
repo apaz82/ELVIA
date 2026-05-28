@@ -1,6 +1,23 @@
 const { analizarLinkedin, extraerDatosLinkedin } = require('../services/deepseekService')
 const { extraerTextoPDF } = require('../utils/pdfParser')
 
+// Extrae narrativa del CV optimizado guardado en cv_results.contenido (JSON serializado).
+// Tolerante a distintas formas históricas: string, objeto con `cargo_objetivo`/`titular`/`headline`, etc.
+const extraerTitularDeCV = (cvRow) => {
+  if (!cvRow?.contenido) return ''
+  try {
+    const c = typeof cvRow.contenido === 'string' ? JSON.parse(cvRow.contenido) : cvRow.contenido
+    return c?.cargo_objetivo || c?.titular || c?.headline || ''
+  } catch { return '' }
+}
+const extraerResumenDeCV = (cvRow) => {
+  if (!cvRow?.contenido) return ''
+  try {
+    const c = typeof cvRow.contenido === 'string' ? JSON.parse(cvRow.contenido) : cvRow.contenido
+    return c?.resumen || c?.extracto || c?.about || ''
+  } catch { return '' }
+}
+
 // POST /api/linkedin/analizar
 const analizarPerfil = async (req, res, next) => {
   try {
@@ -13,7 +30,58 @@ const analizarPerfil = async (req, res, next) => {
       return res.status(400).json({ error: 'Debes completar al menos una sección del perfil' })
     }
 
-    const resultado = await analizarLinkedin({ titular, extracto, experiencia, habilidades, educacion, contextoLaboral })
+    // Enriquecimiento opcional con datos del Gerente de Proyecto y CV optimizado.
+    // Si la BD falla o no hay datos, el análisis sigue funcionando sin enriquecer.
+    let gerenteContext = null
+    let cvOptimo = null
+    if (req.supabase && req.user?.id) {
+      try {
+        const { data: prof } = await req.supabase
+          .from('profiles')
+          .select('job_search_profile')
+          .eq('id', req.user.id)
+          .maybeSingle()
+        const jp = prof?.job_search_profile || {}
+        const auto = jp.autoconocimiento || {}
+        const oferta = jp.oferta || {}
+        gerenteContext = {
+          oferta_valor: oferta.oferta_valor || '',
+          hard_skills: Array.isArray(auto.hard_skills) ? auto.hard_skills : [],
+          // BD mantiene "soft_skills" aunque la UI muestra "Power Skills" (decisión documentada).
+          soft_skills: Array.isArray(auto.soft_skills) ? auto.soft_skills : [],
+        }
+
+        const { data: cvRows } = await req.supabase
+          .from('cv_results')
+          .select('contenido, metadata, created_at')
+          .eq('user_id', req.user.id)
+          .order('created_at', { ascending: false })
+          .limit(10)
+        const cvRow = (cvRows || []).find(r => {
+          let meta = r.metadata
+          if (typeof meta === 'string') {
+            try { meta = JSON.parse(meta) } catch { meta = null }
+          }
+          const subtipo = meta?.subtipo
+          return subtipo !== 'infografia_proyecto' && subtipo !== 'linkedin_analysis'
+        })
+        if (cvRow) {
+          cvOptimo = {
+            titular: extraerTitularDeCV(cvRow),
+            extracto: extraerResumenDeCV(cvRow),
+          }
+        }
+      } catch (e) {
+        console.warn('[linkedin/analizar] enriquecimiento opcional falló, continuando sin contexto:', e.message)
+      }
+    }
+
+    const resultado = await analizarLinkedin({
+      titular, extracto, experiencia, habilidades, educacion,
+      contextoLaboral,
+      gerenteContext,
+      cvOptimo,
+    })
 
     // Persistir análisis para historial (best-effort — no bloquea la respuesta si falla)
     if (req.supabase && req.user?.id) {
@@ -63,7 +131,37 @@ const extraerPerfilPDF = async (req, res, next) => {
     // 1. Extraer texto plano del PDF
     const rawText = await extraerTextoPDF(req.file.buffer)
 
-    // 2. Estructurar con IA
+    // 2. Validar identidad: el PDF debe pertenecer al usuario autenticado.
+    // Comparamos primer nombre + primer apellido (normalizados sin acentos) contra el texto del PDF.
+    // Patrón replicado de cvController.optimize — evita que se analicen perfiles de terceros.
+    if (req.supabase && req.user?.id) {
+      const { data: profile } = await req.supabase
+        .from('profiles')
+        .select('nombre1, apellido1')
+        .eq('id', req.user.id)
+        .single()
+
+      if (profile) {
+        const norm = (s) => (s || '')
+          .normalize('NFD')
+          .replace(/[̀-ͯ]/g, '')
+          .toLowerCase()
+          .trim()
+        const txt = norm(rawText)
+        const primerNombre   = norm(profile.nombre1).split(' ')[0]
+        const primerApellido = norm(profile.apellido1).split(' ')[0]
+
+        const faltaNombre   = primerNombre   && !txt.includes(primerNombre)
+        const faltaApellido = primerApellido && !txt.includes(primerApellido)
+        if (faltaNombre || faltaApellido) {
+          return res.status(400).json({
+            error: 'Este perfil de LinkedIn no coincide con tu información de registro. Asegúrate de descargar TU propio PDF: entra a tu perfil principal, haz clic en "Recursos" y selecciona "Guardar en PDF".'
+          })
+        }
+      }
+    }
+
+    // 3. Estructurar con IA
     const data = await extraerDatosLinkedin(rawText)
 
     return res.json(data)
@@ -72,21 +170,4 @@ const extraerPerfilPDF = async (req, res, next) => {
   }
 }
 
-// POST /api/linkedin/extraer-texto
-const extraerPerfilTexto = async (req, res, next) => {
-  try {
-    const { blob } = req.body
-    if (!blob || blob.trim().length < 50) {
-      return res.status(400).json({ error: 'El texto proporcionado es demasiado corto' })
-    }
-
-    // Estructurar con IA
-    const data = await extraerDatosLinkedin(blob)
-
-    return res.json(data)
-  } catch (err) {
-    next(err)
-  }
-}
-
-module.exports = { analizarPerfil, extraerPerfilPDF, extraerPerfilTexto, getHistorial }
+module.exports = { analizarPerfil, extraerPerfilPDF, getHistorial }

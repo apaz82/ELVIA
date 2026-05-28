@@ -8,13 +8,13 @@ import HelpBadge from '../components/common/HelpBadge'
 import {
   LinkedinLogo, Sparkle, CheckCircle, WarningCircle,
   CaretDown, CaretUp, ArrowRight, Trophy, Star, LightbulbFilament,
-  FilePdf, NotePencil, UploadSimple, CircleNotch, Clock
+  FilePdf, MagicWand, NotePencil, UploadSimple, SelectionAll, CircleNotch, Clock
 } from '@phosphor-icons/react'
 import FeatureLocked from '../components/common/FeatureLocked'
 
-const PI = {
-  FilePdf, NotePencil, UploadSimple,
-  CircleNotch, Sparkle, CheckCircle, WarningCircle, ArrowRight
+const PI = { 
+  FilePdf, MagicWand, NotePencil, UploadSimple, SelectionAll, 
+  CircleNotch, Sparkle, CheckCircle, WarningCircle, ArrowRight 
 }
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:3001'
@@ -178,7 +178,7 @@ export default function LinkedinOptima() {
   const isUnlockedByProgress = proyectoPct >= 100
 
   const [campos, setCampos] = useState({ titular: '', extracto: '', experiencia: '', habilidades: '', educacion: '' })
-  const [importMode, setImportMode] = useState('pdf') // 'pdf' | 'manual'
+  const [importMode, setImportMode] = useState('pdf') // 'pdf' | 'paste' | 'manual'
   const [isExtracting, setIsExtracting] = useState(false)
   const [cargando, setCargando] = useState(false)
   const [resultado, setResultado] = useState(null)
@@ -218,7 +218,7 @@ export default function LinkedinOptima() {
     if (!file) return
     setIsExtracting(true)
     setError('')
-
+    
     try {
       const { data: { session } } = await supabase.auth.getSession()
       const formData = new FormData()
@@ -232,22 +232,43 @@ export default function LinkedinOptima() {
         body: formData,
       })
 
-      if (!res.ok) {
-        // Preferimos el mensaje exacto del backend (incluye instrucciones de descarga si el PDF no coincide).
-        let backendMsg = 'No se pudo extraer la información del PDF. Asegúrate de que sea el "Guardar en PDF" de LinkedIn.'
-        try {
-          const payload = await res.json()
-          if (payload?.error) backendMsg = payload.error
-        } catch { /* ignoramos parse error y usamos el mensaje por defecto */ }
-        throw new Error(backendMsg)
-      }
+      if (!res.ok) throw new Error('No se pudo extraer la información del PDF')
       const data = await res.json()
-
+      
       setCampos(data)
       setImportMode('manual') // Cambiar a manual para que vean los resultados
       toast.success('¡Perfil importado con éxito!')
     } catch (err) {
-      setError(err.message || 'Error al procesar el PDF. Asegúrate de que sea el "Guardar en PDF" de LinkedIn.')
+      setError('Error al procesar el PDF. Asegúrate de que sea el "Guardar en PDF" de LinkedIn.')
+    } finally {
+      setIsExtracting(false)
+    }
+  }
+
+  const handlePasteMagic = async (blob) => {
+    if (!blob || blob.length < 50) return
+    setIsExtracting(true)
+    setError('')
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const res = await fetch(`${API}/api/linkedin/extraer-texto`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+        },
+        body: JSON.stringify({ blob }),
+      })
+
+      if (!res.ok) throw new Error('La IA no pudo procesar este texto')
+      const data = await res.json()
+      
+      setCampos(data)
+      setImportMode('manual')
+      toast.success('¡Texto procesado e importado!')
+    } catch (err) {
+      setError('No logramos estructurar el texto. Prueba con el PDF o pega sección por sección.')
     } finally {
       setIsExtracting(false)
     }
@@ -471,6 +492,7 @@ export default function LinkedinOptima() {
       <div className="flex items-center gap-1 bg-slate-100 p-1.5 rounded-2xl mb-10 border border-slate-200 shadow-sm transition-all">
         {[
           { id: 'pdf', label: 'Carga PDF', icon: PI.FilePdf },
+          { id: 'paste', label: 'Pegado Mágico', icon: PI.MagicWand },
           { id: 'manual', label: 'Manual', icon: PI.NotePencil },
         ].map(m => (
           <button
@@ -491,75 +513,71 @@ export default function LinkedinOptima() {
       {/* MODOS DE CARGA */}
       <div className="mb-10 min-h-[300px]">
         {importMode === 'pdf' && (
-          <div className="space-y-6">
-            {/* Instrucciones paso a paso */}
-            <div className="bg-indigo-50/50 border border-indigo-100 rounded-3xl p-6">
-              <p className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.25em] mb-4">
-                Cómo descargar TU perfil en PDF
-              </p>
-              <ol className="space-y-3 text-sm text-slate-700">
-                <li className="flex items-start gap-3">
-                  <span className="flex items-center justify-center w-6 h-6 rounded-full bg-indigo-600 text-white font-bold text-[11px] shrink-0">1</span>
-                  Entra a <strong>tu perfil principal</strong> en LinkedIn (no a otro perfil).
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="flex items-center justify-center w-6 h-6 rounded-full bg-indigo-600 text-white font-bold text-[11px] shrink-0">2</span>
-                  Haz clic en el botón <strong>"Recursos"</strong> (o "Más", según el idioma).
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="flex items-center justify-center w-6 h-6 rounded-full bg-indigo-600 text-white font-bold text-[11px] shrink-0">3</span>
-                  Selecciona <strong>"Guardar en PDF"</strong> y descarga el archivo.
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="flex items-center justify-center w-6 h-6 rounded-full bg-indigo-600 text-white font-bold text-[11px] shrink-0">4</span>
-                  Súbelo aquí — ELVIA valida que el perfil sea tuyo y analiza el contenido.
-                </li>
-              </ol>
-            </div>
-
-            {/* Zona de carga */}
-            <div className="bg-white border-2 border-dashed border-slate-200 rounded-[3rem] p-12 text-center hover:border-indigo-500/50 transition-all group relative overflow-hidden shadow-xl shadow-slate-200/40">
-              <div className="relative z-10">
-                <div className="w-20 h-20 bg-indigo-50 rounded-[2rem] flex items-center justify-center mx-auto mb-8 group-hover:scale-110 group-hover:rotate-6 transition-transform duration-500">
-                  <PI.UploadSimple size={36} className="text-indigo-600" weight="duotone" />
-                </div>
-                <h3 className="text-xl font-black text-slate-900 mb-3 italic">Importación Express de PDF</h3>
-                <p className="text-sm text-slate-500 mb-10 max-w-sm mx-auto leading-relaxed">
-                  Súbelo aquí y ELVIA hará el resto.
-                </p>
-
-                <input
-                  type="file"
-                  accept=".pdf"
-                  onChange={e => handlePDFUpload(e.target.files[0])}
-                  className="absolute inset-0 opacity-0 cursor-pointer z-20"
-                  disabled={isExtracting}
-                />
-
-                {isExtracting ? (
-                  <div className="flex flex-col items-center gap-4">
-                     <div className="w-12 h-12 border-[3px] border-indigo-600 border-t-transparent rounded-full animate-spin" />
-                     <p className="text-[11px] font-black text-indigo-600 uppercase tracking-widest animate-pulse">Decodificando Perfil...</p>
-                  </div>
-                ) : (
-                  <button className="px-10 py-4 bg-indigo-600 text-white text-[11px] font-black uppercase tracking-[0.25em] rounded-2xl shadow-2xl shadow-indigo-900/30 group-hover:bg-indigo-500 group-hover:-translate-y-1 transition-all duration-300">
-                    Seleccionar archivo PDF
-                  </button>
-                )}
+          <div className="bg-white border-2 border-dashed border-slate-200 rounded-[3rem] p-12 text-center hover:border-indigo-500/50 transition-all group relative overflow-hidden shadow-xl shadow-slate-200/40">
+            <div className="relative z-10">
+              <div className="w-20 h-20 bg-indigo-50 rounded-[2rem] flex items-center justify-center mx-auto mb-8 group-hover:scale-110 group-hover:rotate-6 transition-transform duration-500">
+                <PI.UploadSimple size={36} className="text-indigo-600" weight="duotone" />
               </div>
-              <div className="absolute -bottom-12 -right-12 w-48 h-48 bg-indigo-500/5 rounded-full blur-3xl" />
-            </div>
-
-            {/* Panel de error visible en modo PDF (validación de identidad o lectura) */}
-            {error && (
-              <div className="flex items-start gap-4 bg-rose-50 border border-rose-200 rounded-[2rem] px-6 py-5 shadow-inner">
-                <PI.WarningCircle size={24} className="text-rose-500 shrink-0" weight="fill" />
-                <div>
-                  <h4 className="text-[11px] font-black text-rose-800 uppercase tracking-widest mb-1">No pudimos procesar el PDF</h4>
-                  <p className="text-sm font-medium text-rose-700 leading-relaxed">{error}</p>
+              <h3 className="text-xl font-black text-slate-900 mb-3 italic">Importación Express de PDF</h3>
+              <p className="text-sm text-slate-500 mb-10 max-w-sm mx-auto leading-relaxed">
+                LinkedIn → Perfil → Botón 'Más' → <span className="font-bold text-slate-800">Guardar en PDF</span>.<br/>Súbelo aquí y ELVIA hará el resto.
+              </p>
+              
+              <input 
+                type="file" 
+                accept=".pdf"
+                onChange={e => handlePDFUpload(e.target.files[0])}
+                className="absolute inset-0 opacity-0 cursor-pointer z-20"
+                disabled={isExtracting}
+              />
+              
+              {isExtracting ? (
+                <div className="flex flex-col items-center gap-4">
+                   <div className="w-12 h-12 border-[3px] border-indigo-600 border-t-transparent rounded-full animate-spin" />
+                   <p className="text-[11px] font-black text-indigo-600 uppercase tracking-widest animate-pulse">Decodificando Perfil...</p>
                 </div>
+              ) : (
+                <button className="px-10 py-4 bg-indigo-600 text-white text-[11px] font-black uppercase tracking-[0.25em] rounded-2xl shadow-2xl shadow-indigo-900/30 group-hover:bg-indigo-500 group-hover:-translate-y-1 transition-all duration-300">
+                  Seleccionar archivo PDF
+                </button>
+              )}
+            </div>
+            {/* Decoración de fondo */}
+            <div className="absolute -bottom-12 -right-12 w-48 h-48 bg-indigo-500/5 rounded-full blur-3xl" />
+          </div>
+        )}
+
+        {importMode === 'paste' && (
+          <div className="bg-white border border-slate-200 rounded-[3rem] p-10 shadow-xl shadow-slate-200/30">
+            <div className="flex items-center gap-4 mb-8">
+               <div className="w-12 h-12 bg-violet-50 rounded-2xl flex items-center justify-center border border-violet-100">
+                 <PI.SelectionAll size={24} className="text-violet-600" weight="duotone" />
+               </div>
+               <div>
+                  <h3 className="text-base font-black text-slate-800 uppercase tracking-tight italic">Caja Mágica de Pegado</h3>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Extrae todo tu perfil en segundos</p>
+               </div>
+            </div>
+            
+            <textarea 
+              placeholder="Haz Ctrl+A en tu perfil de LinkedIn, copia y pega TODO aquí... la IA lo limpia por ti."
+              className="w-full bg-slate-50 border border-slate-200 rounded-[2rem] p-8 text-sm text-slate-700 h-56 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-white transition-all leading-relaxed placeholder:text-slate-300 shadow-inner"
+              onPaste={(e) => {
+                const text = e.clipboardData.getData('text')
+                handlePasteMagic(text)
+              }}
+            />
+            
+            {isExtracting && (
+              <div className="mt-6 flex items-center gap-3 justify-center">
+                 <PI.CircleNotch size={20} className="text-violet-500 animate-spin" />
+                 <span className="text-[11px] font-black text-violet-600 uppercase tracking-widest animate-pulse">IA Procesando Textos...</span>
               </div>
             )}
+            
+            <p className="mt-6 text-[10px] text-slate-400 italic text-center font-bold uppercase tracking-[0.2em] leading-relaxed">
+              No te preocupes por el formato o textos extra de la web,<br/>nuestra IA separa las secciones automáticamente.
+            </p>
           </div>
         )}
 
