@@ -448,6 +448,183 @@ const sendBienvenidaActivacionEmail = async (to, { nombre, apellido, companyName
   })
 }
 
+/**
+ * Correo 1: Oferta de Valor Completada (Hito de Autoconocimiento)
+ */
+const sendOfertaValorCompletadaEmail = async (to, nombre) => {
+  if (!resend) {
+    console.warn('[Resend] sendOfertaValorCompletadaEmail — email deshabilitado (sin API key)')
+    return
+  }
+  const nombreSafe = escapeHtml((nombre || '').trim())
+  const loginUrl = process.env.FRONTEND_URL || 'https://elvia.lat/login'
+
+  return resend.emails.send({
+    from: FROM_EMAIL,
+    to,
+    reply_to: 'soporte@elvia.lat',
+    subject: '🌟 ¡Muy bien hecho! Tu Autoconocimiento está listo en ELVIA®',
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; line-height: 1.6; color: #1e293b;">
+        <div style="text-align: center; padding: 32px 0 16px;">
+          <img src="https://elvia.lat/LOGOS/ELVIA_logo_fondo_transparente.png" alt="ELVIA®" style="height: 36px; width: auto;" />
+        </div>
+        <div style="background: #002650; height: 4px; border-radius: 2px; margin-bottom: 32px;"></div>
+
+        <h2 style="color: #0f172a; margin: 0 0 16px;">
+          ¡Muy bien hecho${nombreSafe ? `, ${nombreSafe}` : ''}! 🌟
+        </h2>
+        <p style="color: #475569; margin: 0 0 16px; font-size: 15px;">
+          Has finalizado con éxito la sección de <strong>Autoconocimiento</strong> y definido tu <strong>Oferta de Valor Profesional</strong>. ¡Este es el pilar fundamental de tu Proyecto Laboral!
+        </p>
+        <p style="color: #475569; margin: 0 0 24px; font-size: 15px;">
+          Ahora estás a solo un paso de desbloquear todas las herramientas inteligentes de la plataforma. Solo falta que generes y confirmes tu **CV optimizado** para activar el Simulador de Entrevistas, el Análisis de LinkedIn y el Match de Vacantes.
+        </p>
+
+        <div style="text-align: center; margin: 32px 0;">
+          <a href="${loginUrl}"
+             style="display: inline-block; background: #002650; color: #ffffff; padding: 14px 40px;
+                    border-radius: 10px; text-decoration: none; font-weight: bold; font-size: 16px; box-shadow: 0 4px 6px rgba(0,38,80,0.15);">
+            Optimizar mi CV ahora
+          </a>
+        </div>
+
+        <p style="font-size: 13px; color: #64748b;">
+          El control total de tu carrera está en tus manos. Si tienes dudas o comentarios sobre tu oferta de valor, escríbenos a
+          <a href="mailto:soporte@elvia.lat" style="color: #002650;">soporte@elvia.lat</a>.
+        </p>
+
+        <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 32px 0 16px;" />
+        <p style="font-size: 11px; color: #94a3b8; text-align: center; margin: 0 0 8px;">
+          © ${new Date().getFullYear()} ELVIA® · Plataforma de Outplacement y Empleabilidad
+        </p>
+        <p style="font-size: 10px; color: #cbd5e1; text-align: center; line-height: 1.4; margin: 0;">
+          Recibes este correo porque estás registrado en la plataforma ELVIA® de optimización y aceleración profesional. Tu privacidad es de máxima importancia para nosotros. Tratamos todos tus datos personales de manera estrictamente confidencial de acuerdo con nuestras Políticas de Privacidad y el disclaimer de privacidad de datos.
+        </p>
+      </div>
+    `,
+  })
+}
+
+/**
+ * Correo 2: Infografía Descargada/Generada
+ */
+const sendInfografiaGeneradaEmail = async (to, nombre) => {
+  if (!resend) {
+    console.warn('[Resend] sendInfografiaGeneradaEmail — email deshabilitado (sin API key)')
+    return
+  }
+  const nombreSafe = escapeHtml((nombre || '').trim())
+  const docsUrl = `${process.env.FRONTEND_URL || 'https://elvia.lat'}/mis-cvs`
+
+  return resend.emails.send({
+    from: FROM_EMAIL,
+    to,
+    reply_to: 'soporte@elvia.lat',
+    subject: '📊 Has descargado tu Infografía Profesional en ELVIA®',
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; line-height: 1.6; color: #1e293b;">
+        <div style="text-align: center; padding: 32px 0 16px;">
+          <img src="https://elvia.lat/LOGOS/ELVIA_logo_fondo_transparente.png" alt="ELVIA®" style="height: 36px; width: auto;" />
+        </div>
+        <div style="background: #002650; height: 4px; border-radius: 2px; margin-bottom: 32px;"></div>
+
+        <h2 style="color: #0f172a; margin: 0 0 16px;">
+          ¡Hola${nombreSafe ? `, ${nombreSafe}` : ''}! 👋
+        </h2>
+        <p style="color: #475569; margin: 0 0 16px; font-size: 15px;">
+          Hemos detectado que has generado o descargado tu **Infografía Profesional**. En ella podrás ver un mapa visual consolidado de tu perfil: tu propuesta de valor, ritmo de búsqueda semanal, propósito Ikigai y repertorio de competencias clave.
+        </p>
+        <p style="color: #475569; margin: 0 0 16px; font-size: 15px;">
+          Si tuviste algún inconveniente al descargar el documento en tu dispositivo, no te preocupes: tu reporte visual se encuentra guardado de forma permanente y segura en tu sección de <strong>Mis documentos</strong> en la plataforma.
+        </p>
+        <p style="color: #475569; margin: 0 0 24px; font-size: 15px; font-style: italic;">
+          *Recuerda que para visualizar este reporte consolidado y descargar tu infografía, es necesario haber generado también tu CV optimizado estilo Harvard en la suite.
+        </p>
+
+        <div style="text-align: center; margin: 32px 0;">
+          <a href="${docsUrl}"
+             style="display: inline-block; background: #002650; color: #ffffff; padding: 14px 40px;
+                    border-radius: 10px; text-decoration: none; font-weight: bold; font-size: 16px; box-shadow: 0 4px 6px rgba(0,38,80,0.15);">
+            Ir a Mis documentos
+          </a>
+        </div>
+
+        <p style="font-size: 13px; color: #64748b;">
+          ¿Deseas actualizar tu infografía? Puedes hacerlo editando los pilares de tu Proyecto Laboral en cualquier momento. Si necesitas soporte, escríbenos a
+          <a href="mailto:soporte@elvia.lat" style="color: #002650;">soporte@elvia.lat</a>.
+        </p>
+
+        <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 32px 0 16px;" />
+        <p style="font-size: 11px; color: #94a3b8; text-align: center; margin: 0 0 8px;">
+          © ${new Date().getFullYear()} ELVIA® · Plataforma de Outplacement y Empleabilidad
+        </p>
+        <p style="font-size: 10px; color: #cbd5e1; text-align: center; line-height: 1.4; margin: 0;">
+          Recibes este correo porque estás registrado en la plataforma ELVIA® de optimización y aceleración profesional. Tu privacidad es de máxima importancia para nosotros. Tratamos todos tus datos personales de manera estrictamente confidencial de acuerdo con nuestras Políticas de Privacidad y el disclaimer de privacidad de datos.
+        </p>
+      </div>
+    `,
+  })
+}
+
+/**
+ * Correo 3: CV Optimizado Generado (Desbloqueo Total)
+ */
+const sendCVOptimizadoCompletadaEmail = async (to, nombre) => {
+  if (!resend) {
+    console.warn('[Resend] sendCVOptimizadoCompletadaEmail — email deshabilitado (sin API key)')
+    return
+  }
+  const nombreSafe = escapeHtml((nombre || '').trim())
+  const dashboardUrl = `${process.env.FRONTEND_URL || 'https://elvia.lat'}/dashboard`
+
+  return resend.emails.send({
+    from: FROM_EMAIL,
+    to,
+    reply_to: 'soporte@elvia.lat',
+    subject: '🎉 ¡Felicitaciones! Has desbloqueado todo el poder de ELVIA®',
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; line-height: 1.6; color: #1e293b;">
+        <div style="text-align: center; padding: 32px 0 16px;">
+          <img src="https://elvia.lat/LOGOS/ELVIA_logo_fondo_transparente.png" alt="ELVIA®" style="height: 36px; width: auto;" />
+        </div>
+        <div style="background: #002650; height: 4px; border-radius: 2px; margin-bottom: 32px;"></div>
+
+        <h2 style="color: #0f172a; margin: 0 0 16px;">
+          ¡Felicidades${nombreSafe ? `, ${nombreSafe}` : ''}! 🎉
+        </h2>
+        <p style="color: #475569; margin: 0 0 16px; font-size: 15px;">
+          ¡Has confirmado y finalizado la optimización de tu CV Inicial! Con esto, has <strong>desbloqueado el 100% de las funcionalidades avanzadas</strong> de la plataforma ELVIA®.
+        </p>
+        <p style="color: #475569; margin: 0 0 24px; font-size: 15px;">
+          Es momento de materializar y poner en acción toda la planeación que estructuraste en tu sección de Autoconocimiento. Tu Centro de Control ya está activo para que simules entrevistas personalizadas con IA, audites tu perfil de LinkedIn y busques vacantes de manera inteligente.
+        </p>
+
+        <div style="text-align: center; margin: 32px 0;">
+          <a href="${dashboardUrl}"
+             style="display: inline-block; background: #002650; color: #ffffff; padding: 14px 40px;
+                    border-radius: 10px; text-decoration: none; font-weight: bold; font-size: 16px; box-shadow: 0 4px 6px rgba(0,38,80,0.15);">
+            Ir a mi Centro de Control
+          </a>
+        </div>
+
+        <p style="font-size: 13px; color: #64748b;">
+          El camino hacia tu siguiente gran paso profesional está listo. Estamos muy orgullosos de acompañarte. Si necesitas asistencia, contáctanos en
+          <a href="mailto:soporte@elvia.lat" style="color: #002650;">soporte@elvia.lat</a>.
+        </p>
+
+        <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 32px 0 16px;" />
+        <p style="font-size: 11px; color: #94a3b8; text-align: center; margin: 0 0 8px;">
+          © ${new Date().getFullYear()} ELVIA® · Plataforma de Outplacement y Empleabilidad
+        </p>
+        <p style="font-size: 10px; color: #cbd5e1; text-align: center; line-height: 1.4; margin: 0;">
+          Recibes este correo porque estás registrado en la plataforma ELVIA® de optimización y aceleración profesional. Tu privacidad es de máxima importancia para nosotros. Tratamos todos tus datos personales de manera estrictamente confidencial de acuerdo con nuestras Políticas de Privacidad y el disclaimer de privacidad de datos.
+        </p>
+      </div>
+    `,
+  })
+}
+
 module.exports = {
   sendCVEmail,
   sendOTPEmail,
@@ -456,4 +633,7 @@ module.exports = {
   sendHRWelcomeEmail,
   sendCandidatoInviteEmail,
   sendBienvenidaActivacionEmail,
+  sendOfertaValorCompletadaEmail,
+  sendInfografiaGeneradaEmail,
+  sendCVOptimizadoCompletadaEmail,
 };

@@ -26,3 +26,10 @@ uploads/
 .claude-flow/
 .mcp.json
 .claude/settings.local.json
+
+# Propuestas comerciales (documentos internos)
+docs/*.html
+
+# Scripts de utilería root (potrace)
+/package.json
+/package-lock.json
