@@ -5,12 +5,11 @@ import { useCV } from '../context/CVContext'
 import { matchCVVacante, descargarCV, obtenerInfografia } from '../services/cvService'
 import CVInfographic from '../components/cv/CVInfographic'
 import { supabase } from '../services/authService'
-import { api } from '../services/api'
 import LanguageSelector from '../components/common/LanguageSelector'
 import Button from '../components/common/Button'
 import FeatureLocked from '../components/common/FeatureLocked'
 import HelpBadge from '../components/common/HelpBadge'
-import { MagnifyingGlass, CaretDown, FileText, ArrowRight } from '@phosphor-icons/react'
+import { MagnifyingGlass, CaretDown, FileText, ArrowRight, Lightbulb } from '@phosphor-icons/react'
 
 export default function CVvsJob() {
   const { user, refreshUsage, featuresDesbloqueadas } = useAuth()
@@ -72,9 +71,6 @@ export default function CVvsJob() {
     if (prefill) { sessionStorage.removeItem('vacante_prefill'); return JSON.parse(prefill).texto }
     return ''
   })
-  const [jobUrl, setJobUrl] = useState('')
-  const [modoInput, setModoInput] = useState('descripcion') // descripcion | link
-  const [loadingUrl, setLoadingUrl] = useState(false)
   const [language, setLanguage] = useState('')
   const [loading, setLoading] = useState(false)
   const [loadingText, setLoadingText] = useState('')
@@ -137,26 +133,9 @@ export default function CVvsJob() {
     }
   }
 
-  const cargarDesdeUrl = async () => {
-    if (!jobUrl.trim()) return
-    setLoadingUrl(true)
-    setError('')
-    try {
-      // Usa api.post() para incluir el JWT automáticamente — fetch nativo causaba 401
-      const data = await api.post('/api/jobs/fetch-url', { url: jobUrl })
-      if (data.error) return setError(data.error)
-      setJobText(data.text)
-      setModoInput('descripcion')
-    } catch (err) {
-      setError(err.message || 'No se pudo cargar la URL. Pega la descripción manualmente.')
-    } finally {
-      setLoadingUrl(false)
-    }
-  }
-
   useEffect(() => {
     setError('')
-  }, [modoInput, jobUrl, jobText, selectedCvId])
+  }, [jobText, selectedCvId])
 
   const analizar = async () => {
     if (!selectedCvId) return setError('Selecciona un CV optimizado para continuar.')
@@ -302,23 +281,38 @@ export default function CVvsJob() {
 
           {/* ── Sección 2: Vacante ── */}
           <div className="mt-6">
-            <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center justify-between mb-3">
               <h2 className="text-lg font-semibold text-gray-800">2. Vacante</h2>
-              <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
-                {[{ key: 'descripcion', label: 'Pegar descripción' }, { key: 'link', label: 'Pegar link' }].map((m) => (
-                  <button key={m.key} onClick={() => setModoInput(m.key)} className={`text-xs font-medium py-1.5 px-3 rounded-md transition-colors ${modoInput === m.key ? 'bg-white text-primary shadow-sm' : 'text-gray-500 hover:text-gray-800'}`}>{m.label}</button>
-                ))}
-              </div>
+              {jobText.length > 0 && (
+                <span className={`text-xs font-medium ${jobText.length >= 200 ? 'text-emerald-600' : 'text-amber-500'}`}>
+                  {jobText.length} caracteres{jobText.length < 200 ? ' — pega más detalle para mejor análisis' : ' ✓'}
+                </span>
+              )}
             </div>
-            {modoInput === 'descripcion' ? (
-              <textarea value={jobText} onChange={(e) => setJobText(e.target.value)} placeholder="Pega aquí el título, empresa y descripción completa de la vacante..." rows={6} className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary resize-none" />
-            ) : (
-              <div className="flex gap-2">
-                <input type="url" value={jobUrl} onChange={(e) => setJobUrl(e.target.value)} placeholder="https://www.linkedin.com/jobs/view/..." className="flex-1 border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
-                <Button onClick={cargarDesdeUrl} loading={loadingUrl} disabled={!jobUrl.trim()} variant="outline">{loadingUrl ? 'Cargando...' : 'Cargar'}</Button>
-              </div>
-            )}
-            {modoInput === 'link' && jobText && <p className="mt-2 text-xs text-green-600 font-medium flex items-center gap-1"><span className="text-lg">✓</span> Contenido de la vacante cargado.</p>}
+
+            {/* Tip educativo */}
+            <div className="flex items-start gap-2 bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 mb-3">
+              <Lightbulb size={16} weight="fill" className="text-blue-500 shrink-0 mt-0.5" />
+              <p className="text-xs text-blue-800 leading-relaxed">
+                <strong>Tip:</strong> Abre la vacante en otra pestaña · selecciona todo el texto{' '}
+                <kbd className="bg-blue-100 text-blue-700 px-1 py-0.5 rounded text-[10px] font-mono">Ctrl+A</kbd>{' '}
+                · copia{' '}
+                <kbd className="bg-blue-100 text-blue-700 px-1 py-0.5 rounded text-[10px] font-mono">Ctrl+C</kbd>{' '}
+                · y pégalo aquí. Incluye título, empresa, ubicación y requisitos para un análisis más preciso.
+              </p>
+            </div>
+
+            <textarea
+              value={jobText}
+              onChange={(e) => setJobText(e.target.value)}
+              placeholder={'Ejemplo:\n\nGerente de Marketing Digital — Empresa XYZ | Bogotá, Colombia\n\nBuscamos un profesional con 5+ años de experiencia en marketing digital, gestión de equipos y estrategia de contenidos. Requisitos: Google Analytics, Meta Ads, SEO/SEM, presupuesto >$100k USD...'}
+              rows={8}
+              className={`w-full border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 resize-none transition-colors ${
+                jobText.length >= 200
+                  ? 'border-emerald-300 focus:ring-emerald-400 bg-emerald-50/30'
+                  : 'border-gray-300 focus:ring-primary'
+              }`}
+            />
           </div>
 
           <div className="mt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">

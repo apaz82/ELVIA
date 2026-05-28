@@ -97,12 +97,22 @@ router.post('/fetch-url', auth, async (req, res) => {
     }
 
     if (!response.ok) {
-      if (response.status === 403) {
-        return res.status(403).json({
-          error: 'Acceso bloqueado por el sitio web (Indeed/LinkedIn). Por seguridad, estos sitios bloquean lectores automáticos. Te recomendamos copiar y pegar la descripción manualmente en la otra pestaña.'
+      let hostname = '';
+      try { hostname = new URL(url).hostname.replace(/^www\./, ''); } catch {}
+
+      if (response.status === 403 || response.status === 401 || response.status === 429) {
+        return res.status(response.status).json({
+          error: `El sitio${hostname ? ` ${hostname}` : ''} bloqueó la lectura automática de la vacante. Muchos portales de empleo y sistemas ATS impiden el acceso sin navegador. Copia y pega la descripción manualmente en la pestaña "Pegar descripción".`
         });
       }
-      return res.status(400).json({ error: `No se pudo acceder a la URL (Error ${response.status})` });
+      if (response.status === 404) {
+        return res.status(404).json({
+          error: `La vacante ya no está disponible${hostname ? ` en ${hostname}` : ''} (Error 404). Verifica el enlace o pega la descripción manualmente.`
+        });
+      }
+      return res.status(400).json({
+        error: `No pudimos leer la vacante${hostname ? ` en ${hostname}` : ''} (Error ${response.status}). Copia y pega la descripción manualmente.`
+      });
     }
 
     // Validar content-type (solo HTML o texto)
