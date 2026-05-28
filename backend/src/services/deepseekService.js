@@ -335,14 +335,52 @@ Devuelve este JSON (respeta los nombres de campo exactamente):
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Analiza el perfil LinkedIn — Migrado desde claudeService (Claude no disponible)
+// Acepta contexto enriquecido del Gerente de Proyecto (oferta_valor, skills) y
+// del CV optimizado del usuario para que las sugerencias estén listas para pegar.
 // ─────────────────────────────────────────────────────────────────────────────
-const analizarLinkedin = async ({ titular, extracto, experiencia, habilidades, educacion, contextoLaboral }) => {
+const analizarLinkedin = async ({
+  titular,
+  extracto,
+  experiencia,
+  habilidades,
+  educacion,
+  contextoLaboral,
+  gerenteContext, // { oferta_valor, hard_skills[], soft_skills[] }
+  cvOptimo,       // { titular, extracto } — del CV optimizado más reciente del usuario
+}) => {
   const secciones = []
   if (titular?.trim())    secciones.push(`TITULAR:\n${titular}`)
   if (extracto?.trim())   secciones.push(`EXTRACTO:\n${extracto}`)
   if (experiencia?.trim()) secciones.push(`EXPERIENCIA:\n${experiencia}`)
   if (habilidades?.trim()) secciones.push(`HABILIDADES:\n${habilidades}`)
   if (educacion?.trim())  secciones.push(`EDUCACION:\n${educacion}`)
+
+  // Bloque opcional con datos declarados por el usuario en Gerente de Proyecto.
+  // Solo se inyecta lo que existe — el modelo entiende qué hacer cuando faltan campos.
+  const gerenteBlock = (() => {
+    if (!gerenteContext) return ''
+    const lineas = []
+    if (gerenteContext.oferta_valor) {
+      lineas.push(`- Oferta de Valor declarada: "${String(gerenteContext.oferta_valor).slice(0, 1500)}"`)
+    }
+    if (Array.isArray(gerenteContext.hard_skills) && gerenteContext.hard_skills.length > 0) {
+      lineas.push(`- Hard Skills declaradas: ${gerenteContext.hard_skills.join(', ')}`)
+    }
+    if (Array.isArray(gerenteContext.soft_skills) && gerenteContext.soft_skills.length > 0) {
+      lineas.push(`- Power Skills declaradas: ${gerenteContext.soft_skills.join(', ')}`)
+    }
+    if (lineas.length === 0) return ''
+    return `\nDATOS DECLARADOS POR EL USUARIO (Gerente de Proyecto):\n${lineas.join('\n')}\n`
+  })()
+
+  const cvBlock = (() => {
+    if (!cvOptimo) return ''
+    const lineas = []
+    if (cvOptimo.titular)  lineas.push(`- Titular CV optimizado: "${String(cvOptimo.titular).slice(0, 300)}"`)
+    if (cvOptimo.extracto) lineas.push(`- Resumen CV optimizado: "${String(cvOptimo.extracto).slice(0, 1200)}"`)
+    if (lineas.length === 0) return ''
+    return `\nCV OPTIMIZADO EXISTENTE DEL USUARIO (úsalo como base de verdad para mantener coherencia con su narrativa):\n${lineas.join('\n')}\n`
+  })()
 
   const prompt = `Eres un experto en personal branding y LinkedIn para el mercado laboral de LATAM 2026.
 Analiza las siguientes secciones del perfil LinkedIn de un profesional y devuelve un análisis detallado.
@@ -359,18 +397,22 @@ ${JSON.stringify({
   empresasTarget: contextoLaboral.empresasMock
 }, null, 2)}
 ` : ''}
+${gerenteBlock}${cvBlock}
 
 CRITERIOS DE EVALUACIÓN 2026:
 - Alineación Estratégica: Si hay CONTEXTO DEL PROYECTO LABORAL, todas las sugerencias deben orientarse a posicionar al profesional para ese objetivo, industria y ciudades específicas.
 - Titular: debe contener cargo (alineado al objetivo si hay), industria/nicho, propuesta de valor, keywords de ATS. Máx 220 chars.
 - Extracto: primera línea con gancho, historia profesional acorde al objetivo, logros cuantificados, CTA. Debe tener 3+ párrafos.
 - Experiencia: verbos de acción, logros con métricas, descripciones enfocadas en habilidades transferibles al rol objetivo.
-- Habilidades: mix de hard skills + soft skills, priorizando las relevantes para el sector objetivo.
+- Habilidades: mix de hard skills + power skills, priorizando las relevantes para el sector objetivo.
 
 REGLAS ESTRICTAS DE ÉTICA Y CALIDAD:
 1. NO inventes ni asumas experiencia laboral, títulos o habilidades que no estén explícitamente en el perfil.
 2. Centra tu análisis en el mérito profesional. Prohibido mencionar edad, género, raza u origen.
 3. El campo "ejemplo" debe proveer una redacción lista para usar que respete el estilo y la verdad del candidato.
+4. RESPETA badges de autoridad del usuario (TOP VOICE, Certificaciones LinkedIn, In Demand, Premios) — NO los elimines del titular ni del extracto; son señales de marca personal. Optimiza el resto del texto alrededor.
+5. Si existen DATOS DECLARADOS POR EL USUARIO (Oferta de Valor / Hard / Power Skills), úsalos como ancla de verdad para reforzar el posicionamiento. NO los inventes ni los contradigas.
+6. Si existe CV OPTIMIZADO, mantén coherencia narrativa con su titular y resumen — el LinkedIn debe alinearse con la historia que ya construyó.
 
 Responde ÚNICAMENTE con un JSON con esta estructura exacta (sin texto extra):
 {
@@ -389,15 +431,24 @@ Responde ÚNICAMENTE con un JSON con esta estructura exacta (sin texto extra):
     "experiencia": { "puntaje": <0-100 o null>, "diagnostico": "...", "fortalezas": [], "mejoras": [], "ejemplo": "..." },
     "habilidades": { "puntaje": <0-100 o null>, "diagnostico": "...", "fortalezas": [], "mejoras": [], "ejemplo": "..." },
     "educacion": { "puntaje": <0-100 o null>, "diagnostico": "...", "fortalezas": [], "mejoras": [], "ejemplo": "..." }
+  },
+  "sugerencias_aplicables": {
+    "titular": "<texto final listo para pegar en LinkedIn, max 220 chars>",
+    "extracto": "<texto final listo para pegar, max 2600 chars, 3+ párrafos>",
+    "experiencia": "<texto final listo para pegar en la sección Experiencia>",
+    "habilidades": ["<skill 1>", "<skill 2>", "<skill 3>", "..."],
+    "educacion": "<texto final listo para pegar en la sección Educación>"
   }
 }
 
-Para secciones no enviadas, devuelve null en el campo puntaje y strings vacíos en los demás campos.`
+Para secciones no enviadas, devuelve null en "puntaje" y strings vacíos en los demás campos.
+En "sugerencias_aplicables", devuelve strings vacíos para secciones no enviadas (excepto "habilidades" que es array vacío []).
+El array "habilidades" debe contener máximo 50 skills, priorizando la intersección de: (a) las Hard/Power Skills declaradas por el usuario, (b) skills demandadas en LinkedIn 2026 para su industria/cargo objetivo, (c) experiencias reales del perfil.`
 
   if (!deepseek) throw new Error('[DeepSeek] DEEPSEEK_API_KEY no configurada')
   const response = await deepseek.chat.completions.create({
     model: MODELO_DS,
-    max_tokens: 3000,
+    max_tokens: 4000,
     messages: [{ role: 'user', content: prompt }],
   })
 

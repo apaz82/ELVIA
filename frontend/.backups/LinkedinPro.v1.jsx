@@ -1,24 +1,20 @@
 // LinkedIn Optima — Validador y optimizador de perfil LinkedIn con IA
-import { useState, useEffect, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../services/authService'
 import { calcularProgreso } from '../utils/progresoLaboral'
 import toast from 'react-hot-toast'
 import HelpBadge from '../components/common/HelpBadge'
-import LinkedinReportePDF from '../components/common/LinkedinReportePDF'
-import LinkedinResultModal from '../components/common/LinkedinResultModal'
 import {
   LinkedinLogo, Sparkle, CheckCircle, WarningCircle,
   CaretDown, CaretUp, ArrowRight, Trophy, Star, LightbulbFilament,
-  FilePdf, NotePencil, UploadSimple, CircleNotch, Clock,
-  Copy, Eye, EyeSlash, PencilSimple, DownloadSimple
+  FilePdf, MagicWand, NotePencil, UploadSimple, SelectionAll, CircleNotch, Clock
 } from '@phosphor-icons/react'
 import FeatureLocked from '../components/common/FeatureLocked'
 
-const PI = {
-  FilePdf, NotePencil, UploadSimple,
-  CircleNotch, Sparkle, CheckCircle, WarningCircle, ArrowRight
+const PI = { 
+  FilePdf, MagicWand, NotePencil, UploadSimple, SelectionAll, 
+  CircleNotch, Sparkle, CheckCircle, WarningCircle, ArrowRight 
 }
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:3001'
@@ -88,170 +84,9 @@ function ScoreRing({ score }) {
   )
 }
 
-// Copia al portapapeles + toast (helper compartido por las cards de sección).
-const copiarPortapapeles = async (texto, etiqueta) => {
-  if (!texto) return
-  try {
-    await navigator.clipboard.writeText(texto)
-    toast.success(`${etiqueta} copiado al portapapeles`)
-  } catch {
-    toast.error('No pudimos copiar — intenta seleccionar el texto manualmente')
-  }
-}
-
-// Bloque editable + botones (Copiar / Ver original) para una sección de texto largo.
-// El usuario decide qué pegar en LinkedIn — el AI propone, NO impone.
-function BloqueEditable({ seccion, original, valor, onChange, maxLength }) {
-  const [verOriginal, setVerOriginal] = useState(false)
-  return (
-    <div className="bg-white border-2 border-emerald-200 rounded-2xl p-5 mt-2">
-      <div className="flex items-center justify-between mb-3">
-        <p className="text-[11px] font-black uppercase tracking-wider text-emerald-700 flex items-center gap-1.5">
-          <PencilSimple size={13} weight="fill" /> Tu {seccion.label.toLowerCase()} — edítalo si quieres antes de pegarlo
-        </p>
-        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-          {(valor || '').length}{maxLength ? ` / ${maxLength}` : ''}
-        </span>
-      </div>
-      <textarea
-        value={valor || ''}
-        onChange={e => onChange(e.target.value)}
-        rows={Math.max(seccion.rows || 4, 4)}
-        maxLength={maxLength}
-        className="w-full resize-none rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-800 placeholder:text-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:bg-white leading-relaxed"
-        placeholder={`Aquí aparecerá la sugerencia generada para ${seccion.label}. Edítala antes de pegarla en LinkedIn.`}
-      />
-      <div className="flex flex-wrap items-center gap-2 mt-3">
-        <button
-          type="button"
-          onClick={() => copiarPortapapeles(valor || '', seccion.label)}
-          disabled={!valor}
-          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-600 text-white text-[11px] font-bold uppercase tracking-wider hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-        >
-          <Copy size={13} weight="bold" /> Copiar al portapapeles
-        </button>
-        {original ? (
-          <button
-            type="button"
-            onClick={() => setVerOriginal(v => !v)}
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-slate-200 text-slate-600 text-[11px] font-bold uppercase tracking-wider hover:bg-slate-50 transition-all"
-          >
-            {verOriginal
-              ? <><EyeSlash size={13} weight="bold" /> Ocultar mi texto actual</>
-              : <><Eye size={13} weight="bold" /> Ver mi texto actual</>
-            }
-          </button>
-        ) : null}
-      </div>
-      {verOriginal && original ? (
-        <div className="mt-3 bg-slate-50 border border-slate-200 rounded-xl p-4">
-          <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">Texto original tuyo</p>
-          <p className="text-xs text-slate-600 leading-relaxed whitespace-pre-line">{original}</p>
-        </div>
-      ) : null}
-    </div>
-  )
-}
-
-// Bloque editable especial para habilidades — chips removibles + entrada nueva + copiar todo.
-function BloqueHabilidades({ habilidades, onChange, original }) {
-  const [nuevaSkill, setNuevaSkill] = useState('')
-  const [verOriginal, setVerOriginal] = useState(false)
-  const lista = Array.isArray(habilidades) ? habilidades : []
-  const eliminar = (i) => onChange(lista.filter((_, idx) => idx !== i))
-  const agregar = () => {
-    const v = nuevaSkill.trim()
-    if (!v) return
-    if (lista.includes(v)) {
-      toast('Esa habilidad ya está en la lista', { icon: 'ℹ️' })
-      setNuevaSkill('')
-      return
-    }
-    if (lista.length >= 50) {
-      toast.error('LinkedIn permite máximo 50 habilidades')
-      return
-    }
-    onChange([...lista, v])
-    setNuevaSkill('')
-  }
-  return (
-    <div className="bg-white border-2 border-emerald-200 rounded-2xl p-5 mt-2">
-      <div className="flex items-center justify-between mb-3">
-        <p className="text-[11px] font-black uppercase tracking-wider text-emerald-700 flex items-center gap-1.5">
-          <PencilSimple size={13} weight="fill" /> Tus habilidades — edita la lista antes de pegarlas
-        </p>
-        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-          {lista.length} / 50
-        </span>
-      </div>
-      <div className="flex flex-wrap gap-2 mb-3 min-h-[48px] bg-slate-50 p-3 rounded-xl">
-        {lista.length === 0 && (
-          <span className="text-xs text-slate-400 italic">Las habilidades sugeridas aparecerán aquí.</span>
-        )}
-        {lista.map((s, i) => (
-          <span key={`${s}-${i}`} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white border border-emerald-200 text-emerald-800 text-xs font-semibold shadow-sm">
-            {s}
-            <button
-              type="button"
-              onClick={() => eliminar(i)}
-              className="text-emerald-500 hover:text-rose-500 transition-colors font-bold text-sm"
-              aria-label={`Eliminar ${s}`}
-            >×</button>
-          </span>
-        ))}
-      </div>
-      <div className="flex gap-2 mb-3">
-        <input
-          type="text"
-          value={nuevaSkill}
-          onChange={e => setNuevaSkill(e.target.value)}
-          onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); agregar() } }}
-          placeholder="Agregar habilidad y presionar Enter"
-          className="flex-1 rounded-xl bg-slate-50 px-4 py-2.5 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:bg-white"
-        />
-        <button
-          type="button"
-          onClick={agregar}
-          disabled={!nuevaSkill.trim()}
-          className="px-4 py-2 rounded-xl bg-slate-100 text-slate-700 text-xs font-bold hover:bg-slate-200 disabled:opacity-40 transition-all"
-        >Agregar</button>
-      </div>
-      <div className="flex flex-wrap items-center gap-2">
-        <button
-          type="button"
-          onClick={() => copiarPortapapeles(lista.join('\n'), 'Habilidades')}
-          disabled={lista.length === 0}
-          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-600 text-white text-[11px] font-bold uppercase tracking-wider hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-        >
-          <Copy size={13} weight="bold" /> Copiar todas
-        </button>
-        {original ? (
-          <button
-            type="button"
-            onClick={() => setVerOriginal(v => !v)}
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-slate-200 text-slate-600 text-[11px] font-bold uppercase tracking-wider hover:bg-slate-50 transition-all"
-          >
-            {verOriginal
-              ? <><EyeSlash size={13} weight="bold" /> Ocultar mi lista actual</>
-              : <><Eye size={13} weight="bold" /> Ver mi lista actual</>
-            }
-          </button>
-        ) : null}
-      </div>
-      {verOriginal && original ? (
-        <div className="mt-3 bg-slate-50 border border-slate-200 rounded-xl p-4">
-          <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">Tus habilidades actuales</p>
-          <p className="text-xs text-slate-600 leading-relaxed whitespace-pre-line">{original}</p>
-        </div>
-      ) : null}
-    </div>
-  )
-}
-
-function SeccionResultado({ seccion, datos, original, editable, onEditableChange }) {
+function SeccionResultado({ seccion, datos }) {
   const [abierto, setAbierto] = useState(true)
   const color = colorPuntaje(datos.puntaje)
-  const esHabilidades = seccion.id === 'habilidades'
 
   return (
     <div className={`rounded-3xl border ${color.border} overflow-hidden bg-white shadow-sm hover:shadow-md transition-all duration-300`}>
@@ -320,7 +155,7 @@ function SeccionResultado({ seccion, datos, original, editable, onEditableChange
             </div>
           )}
 
-          {/* Ejemplo reescrito (recordatorio del análisis IA — sigue visible) */}
+          {/* Ejemplo reescrito */}
           {datos.ejemplo && (
             <div className="bg-teal-50 border border-teal-200 rounded-xl px-4 py-3">
               <p className="text-xs font-bold uppercase tracking-wider text-teal-600 mb-1.5 flex items-center gap-1.5">
@@ -328,23 +163,6 @@ function SeccionResultado({ seccion, datos, original, editable, onEditableChange
               </p>
               <p className="text-sm text-teal-800 leading-relaxed italic">"{datos.ejemplo}"</p>
             </div>
-          )}
-
-          {/* Bloque editable: el texto sugerido aplicado, listo para pegar en LinkedIn */}
-          {esHabilidades ? (
-            <BloqueHabilidades
-              habilidades={editable}
-              onChange={onEditableChange}
-              original={original}
-            />
-          ) : (
-            <BloqueEditable
-              seccion={seccion}
-              original={original}
-              valor={editable}
-              onChange={onEditableChange}
-              maxLength={seccion.maxLength}
-            />
           )}
         </div>
       )}
@@ -354,56 +172,35 @@ function SeccionResultado({ seccion, datos, original, editable, onEditableChange
 
 export default function LinkedinOptima() {
   const { user, isPaidPlan, trialExpired, jpData, perfil } = useAuth()
-  const navigate = useNavigate()
-
+  
   // Calcular progreso para el "Progress-based Unlock"
   const proyectoPct = calcularProgreso(jpData || {}, perfil || {})
   const isUnlockedByProgress = proyectoPct >= 100
 
-  // Ref al nodo off-screen del reporte PDF (capturado por html2pdf).
-  const reporteRef = useRef(null)
-  const [descargandoPDF, setDescargandoPDF] = useState(false)
-  const [pdfSaved, setPdfSaved] = useState(false)
-  // El modal disclaimer solo aparece en análisis nuevos (no al revisar historial).
-  const [showResultModal, setShowResultModal] = useState(false)
-
   const [campos, setCampos] = useState({ titular: '', extracto: '', experiencia: '', habilidades: '', educacion: '' })
-  const [importMode, setImportMode] = useState('pdf') // 'pdf' | 'manual'
+  const [importMode, setImportMode] = useState('pdf') // 'pdf' | 'paste' | 'manual'
   const [isExtracting, setIsExtracting] = useState(false)
   const [cargando, setCargando] = useState(false)
   const [resultado, setResultado] = useState(null)
-  // Snapshot del texto original que el usuario subió/escribió en el momento del análisis.
-  // Lo guardamos por separado para que el botón "Ver mi texto actual" siga funcionando aunque cambien `campos` después.
-  const [originalSnapshot, setOriginalSnapshot] = useState({ titular: '', extracto: '', experiencia: '', habilidades: '', educacion: '' })
-  // Textos editables que la IA sugirió por sección — el usuario los modifica antes de pegarlos en LinkedIn.
-  const [editables, setEditables] = useState({ titular: '', extracto: '', experiencia: '', habilidades: [], educacion: '' })
   const [error, setError] = useState('')
   const [historial, setHistorial] = useState([])
   const [historialAbierto, setHistorialAbierto] = useState(false)
-  // Contador de uso mensual (límite duro de análisis IA por mes calendario).
-  const [usoMes, setUsoMes] = useState({ usados: 0, restantes: 5, limite: 5, fecha_reset: null })
 
   useEffect(() => {
     if (!user) return
-    const loadHistorialYUso = async () => {
+    const loadHistorial = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession()
-        const headers = session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}
-        const [resH, resU] = await Promise.all([
-          fetch(`${API}/api/linkedin/historial`, { headers }),
-          fetch(`${API}/api/linkedin/uso-mes`, { headers }),
-        ])
-        if (resH.ok) {
-          const data = await resH.json()
+        const res = await fetch(`${API}/api/linkedin/historial`, {
+          headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {},
+        })
+        if (res.ok) {
+          const data = await res.json()
           setHistorial(Array.isArray(data) ? data : [])
         }
-        if (resU.ok) {
-          const u = await resU.json()
-          setUsoMes(u)
-        }
-      } catch { /* lectura inicial no es crítica */ }
+      } catch { /* historial es no-crítico */ }
     }
-    loadHistorialYUso()
+    loadHistorial()
   }, [user])
 
   // Bloqueo para usuarios que no han llegado al 100% de progreso (o plan pago)
@@ -421,7 +218,7 @@ export default function LinkedinOptima() {
     if (!file) return
     setIsExtracting(true)
     setError('')
-
+    
     try {
       const { data: { session } } = await supabase.auth.getSession()
       const formData = new FormData()
@@ -435,22 +232,43 @@ export default function LinkedinOptima() {
         body: formData,
       })
 
-      if (!res.ok) {
-        // Preferimos el mensaje exacto del backend (incluye instrucciones de descarga si el PDF no coincide).
-        let backendMsg = 'No se pudo extraer la información del PDF. Asegúrate de que sea el "Guardar en PDF" de LinkedIn.'
-        try {
-          const payload = await res.json()
-          if (payload?.error) backendMsg = payload.error
-        } catch { /* ignoramos parse error y usamos el mensaje por defecto */ }
-        throw new Error(backendMsg)
-      }
+      if (!res.ok) throw new Error('No se pudo extraer la información del PDF')
       const data = await res.json()
-
+      
       setCampos(data)
       setImportMode('manual') // Cambiar a manual para que vean los resultados
       toast.success('¡Perfil importado con éxito!')
     } catch (err) {
-      setError(err.message || 'Error al procesar el PDF. Asegúrate de que sea el "Guardar en PDF" de LinkedIn.')
+      setError('Error al procesar el PDF. Asegúrate de que sea el "Guardar en PDF" de LinkedIn.')
+    } finally {
+      setIsExtracting(false)
+    }
+  }
+
+  const handlePasteMagic = async (blob) => {
+    if (!blob || blob.length < 50) return
+    setIsExtracting(true)
+    setError('')
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const res = await fetch(`${API}/api/linkedin/extraer-texto`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+        },
+        body: JSON.stringify({ blob }),
+      })
+
+      if (!res.ok) throw new Error('La IA no pudo procesar este texto')
+      const data = await res.json()
+      
+      setCampos(data)
+      setImportMode('manual')
+      toast.success('¡Texto procesado e importado!')
+    } catch (err) {
+      setError('No logramos estructurar el texto. Prueba con el PDF o pega sección por sección.')
     } finally {
       setIsExtracting(false)
     }
@@ -485,36 +303,6 @@ export default function LinkedinOptima() {
 
       const data = await res.json()
       setResultado(data)
-
-      // Decremento optimista del contador (el backend ya validó antes del análisis).
-      setUsoMes(prev => ({
-        ...prev,
-        usados: (prev.usados || 0) + 1,
-        restantes: Math.max(0, (prev.restantes || 0) - 1),
-      }))
-
-      // Snapshot del texto original que el usuario tenía en el momento del análisis.
-      // Sirve para el botón "Ver mi texto actual" en cada sección editable.
-      setOriginalSnapshot({ ...campos })
-
-      // Inicializar editables desde sugerencias_aplicables. Si el backend no las envía
-      // (compatibilidad hacia atrás), caemos a `secciones[id].ejemplo` y luego al texto original.
-      const sa = data.sugerencias_aplicables || {}
-      const secs = data.secciones || {}
-      const habilidadesIniciales = (() => {
-        if (Array.isArray(sa.habilidades)) return sa.habilidades.filter(Boolean)
-        // Fallback: parsear el ejemplo o el texto original separado por coma
-        const fuente = sa.habilidades || secs.habilidades?.ejemplo || campos.habilidades || ''
-        return String(fuente).split(/[,\n;]+/).map(s => s.trim()).filter(Boolean)
-      })()
-      setEditables({
-        titular:     sa.titular     || secs.titular?.ejemplo     || campos.titular     || '',
-        extracto:    sa.extracto    || secs.extracto?.ejemplo    || campos.extracto    || '',
-        experiencia: sa.experiencia || secs.experiencia?.ejemplo || campos.experiencia || '',
-        habilidades: habilidadesIniciales,
-        educacion:   sa.educacion   || secs.educacion?.ejemplo   || campos.educacion   || '',
-      })
-
       // Agregar al historial local inmediatamente (sin esperar re-fetch)
       const camposUsados = Object.entries(campos).filter(([, v]) => v.trim().length > 0).map(([k]) => k)
       setHistorial(prev => [{
@@ -527,8 +315,6 @@ export default function LinkedinOptima() {
         created_at: new Date().toISOString(),
       }, ...prev.slice(0, 9)])
       window.scrollTo({ top: 0, behavior: 'smooth' })
-      // Mostrar modal disclaimer solo en análisis NUEVOS (no al revisar histórico).
-      setShowResultModal(true)
     } catch (err) {
       setError(err.message)
     } finally {
@@ -539,71 +325,7 @@ export default function LinkedinOptima() {
   const handleReset = () => {
     setResultado(null)
     setCampos({ titular: '', extracto: '', experiencia: '', habilidades: '', educacion: '' })
-    setEditables({ titular: '', extracto: '', experiencia: '', habilidades: [], educacion: '' })
-    setOriginalSnapshot({ titular: '', extracto: '', experiencia: '', habilidades: '', educacion: '' })
     setImportMode('pdf')
-    setPdfSaved(false)
-  }
-
-  // Genera y descarga el reporte PDF + lo persiste en cv_results para que aparezca en Mis Documentos.
-  const descargarPDF = async () => {
-    if (!reporteRef.current) {
-      toast.error('No se pudo preparar el reporte')
-      return
-    }
-    setDescargandoPDF(true)
-    try {
-      // Import dinámico para no inflar el bundle inicial.
-      const html2pdfModule = await import('html2pdf.js')
-      const html2pdf = html2pdfModule.default || html2pdfModule
-
-      const nombreUsuario = `${perfil?.nombre1 || ''} ${perfil?.apellido1 || ''}`.trim() || 'ELVIA'
-      const filename = `Analisis_LinkedIn_${nombreUsuario.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.pdf`
-
-      const opt = {
-        margin:      0,
-        filename,
-        image:       { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true, letterRendering: true, windowWidth: 816 },
-        jsPDF:       { unit: 'in', format: 'letter', orientation: 'portrait' },
-        pagebreak:   { mode: ['css', 'legacy'] },
-      }
-
-      await html2pdf().from(reporteRef.current).set(opt).save()
-
-      // Persistir el reporte en cv_results — best effort, no bloquea la descarga.
-      if (!pdfSaved && user) {
-        try {
-          const { data: { session } } = await supabase.auth.getSession()
-          const token = session?.access_token
-          if (token) {
-            await fetch(`${API}/api/linkedin/guardar-reporte`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}`,
-              },
-              body: JSON.stringify({
-                analisis: resultado,
-                editables,
-                original: originalSnapshot,
-                filename,
-              }),
-            })
-            setPdfSaved(true)
-          }
-        } catch {
-          // Fallar el save no debe romper la descarga
-        }
-      }
-
-      toast.success('Reporte descargado y guardado en Mis Documentos')
-    } catch (err) {
-      console.error('[descargarPDF] error:', err)
-      toast.error('No pudimos generar el PDF. Intenta de nuevo.')
-    } finally {
-      setDescargandoPDF(false)
-    }
   }
 
   // ─── Vista de resultados ─────────────────────────────────────────────────
@@ -653,53 +375,20 @@ export default function LinkedinOptima() {
             const datos = resultado.secciones?.[sec.id]
             const desdHistorial = !!resultado.campos_analizados
             if (!datos || (!desdHistorial && !campos[sec.id]?.trim())) return null
-            return (
-              <SeccionResultado
-                key={sec.id}
-                seccion={sec}
-                datos={datos}
-                original={originalSnapshot[sec.id] || ''}
-                editable={editables[sec.id]}
-                onEditableChange={(nuevo) => setEditables(prev => ({ ...prev, [sec.id]: nuevo }))}
-              />
-            )
+            return <SeccionResultado key={sec.id} seccion={sec} datos={datos} />
           })}
         </div>
 
-        {/* Acciones finales */}
-        <div className="space-y-3">
-          <button
-            onClick={descargarPDF}
-            disabled={descargandoPDF}
-            className="w-full py-4 rounded-2xl bg-[#019DF4] hover:bg-[#0288d1] text-white text-sm font-black uppercase tracking-wider shadow-lg shadow-blue-900/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-[0.98] flex items-center justify-center gap-3"
-          >
-            {descargandoPDF ? (
-              <>
-                <CircleNotch size={18} className="animate-spin" />
-                Generando informe PDF...
-              </>
-            ) : (
-              <>
-                <DownloadSimple size={18} weight="bold" />
-                Descargar informe PDF
-              </>
-            )}
-          </button>
-          <button
-            onClick={() => navigate('/mis-cvs?tab=linkedin')}
-            className="w-full py-4 rounded-2xl bg-white border border-slate-200 text-sm font-bold text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all shadow-sm active:scale-[0.98] flex items-center justify-center gap-2"
-          >
-            Ir a Mis Documentos
-            <ArrowRight size={16} weight="bold" />
-          </button>
+        {/* Botón para nuevo análisis */}
+        <div className="space-y-4">
           <button
             onClick={handleReset}
-            className="w-full py-3 rounded-2xl bg-transparent text-xs font-bold text-slate-500 hover:text-slate-700 transition-all"
+            className="w-full py-4 rounded-2xl bg-white border border-slate-200 text-sm font-bold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all shadow-sm active:scale-[0.98]"
           >
             Analizar otro perfil
           </button>
-
-          <div className="text-center opacity-40 grayscale hover:grayscale-0 transition-all duration-500 pt-4">
+          
+          <div className="text-center opacity-40 grayscale hover:grayscale-0 transition-all duration-500">
              <div className="flex items-center justify-center gap-2 mb-1">
                 <Sparkle size={12} weight="fill" className="text-amber-500" />
                 <p className="text-[9px] font-black uppercase tracking-widest text-slate-800">
@@ -711,31 +400,6 @@ export default function LinkedinOptima() {
              </p>
           </div>
         </div>
-
-        {/* Vista off-screen del PDF — html2pdf captura este nodo cuando el usuario descarga */}
-        <LinkedinReportePDF
-          reporteRef={reporteRef}
-          nombre={`${perfil?.nombre1 || ''} ${perfil?.apellido1 || ''}`.trim()}
-          resultado={resultado}
-          editables={editables}
-        />
-
-        {/* Modal disclaimer post-análisis (solo en análisis nuevos, no en historial) */}
-        <LinkedinResultModal
-          open={showResultModal}
-          onClose={() => setShowResultModal(false)}
-          puntajeGlobal={resultado?.puntaje_global}
-          restantes={usoMes?.restantes}
-          descargando={descargandoPDF}
-          onDescargarPDF={async () => {
-            await descargarPDF()
-            setShowResultModal(false)
-          }}
-          onIrMisDocumentos={() => {
-            setShowResultModal(false)
-            navigate('/mis-cvs?tab=linkedin')
-          }}
-        />
       </div>
     )
   }
@@ -779,23 +443,7 @@ export default function LinkedinOptima() {
                       {campos && <p className="text-[11px] text-slate-400 mt-0.5 truncate capitalize">{campos}</p>}
                     </div>
                     <button
-                      onClick={() => {
-                        setResultado(entry)
-                        // Para análisis del historial no tenemos snapshot del texto original ni sugerencias_aplicables.
-                        // Caemos al "ejemplo" del análisis IA — el usuario aún puede editar y copiar.
-                        const secs = entry.secciones || {}
-                        const habilidadesIniciales = String(secs.habilidades?.ejemplo || '')
-                          .split(/[,\n;]+/).map(s => s.trim()).filter(Boolean)
-                        setOriginalSnapshot({ titular: '', extracto: '', experiencia: '', habilidades: '', educacion: '' })
-                        setEditables({
-                          titular:     secs.titular?.ejemplo     || '',
-                          extracto:    secs.extracto?.ejemplo    || '',
-                          experiencia: secs.experiencia?.ejemplo || '',
-                          habilidades: habilidadesIniciales,
-                          educacion:   secs.educacion?.ejemplo   || '',
-                        })
-                        setHistorialAbierto(false)
-                      }}
+                      onClick={() => { setResultado(entry); setHistorialAbierto(false) }}
                       className="shrink-0 text-xs font-bold text-[#0077B5] border border-[#0077B5]/20 hover:bg-[#0077B5]/5 rounded-lg px-3 py-1.5 transition-colors flex items-center gap-1"
                     >
                       Ver <ArrowRight size={11} />
@@ -844,6 +492,7 @@ export default function LinkedinOptima() {
       <div className="flex items-center gap-1 bg-slate-100 p-1.5 rounded-2xl mb-10 border border-slate-200 shadow-sm transition-all">
         {[
           { id: 'pdf', label: 'Carga PDF', icon: PI.FilePdf },
+          { id: 'paste', label: 'Pegado Mágico', icon: PI.MagicWand },
           { id: 'manual', label: 'Manual', icon: PI.NotePencil },
         ].map(m => (
           <button
@@ -864,75 +513,71 @@ export default function LinkedinOptima() {
       {/* MODOS DE CARGA */}
       <div className="mb-10 min-h-[300px]">
         {importMode === 'pdf' && (
-          <div className="space-y-6">
-            {/* Instrucciones paso a paso */}
-            <div className="bg-indigo-50/50 border border-indigo-100 rounded-3xl p-6">
-              <p className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.25em] mb-4">
-                Cómo descargar TU perfil en PDF
-              </p>
-              <ol className="space-y-3 text-sm text-slate-700">
-                <li className="flex items-start gap-3">
-                  <span className="flex items-center justify-center w-6 h-6 rounded-full bg-indigo-600 text-white font-bold text-[11px] shrink-0">1</span>
-                  Entra a <strong>tu perfil principal</strong> en LinkedIn (no a otro perfil).
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="flex items-center justify-center w-6 h-6 rounded-full bg-indigo-600 text-white font-bold text-[11px] shrink-0">2</span>
-                  Haz clic en el botón <strong>"Recursos"</strong> (o "Más", según el idioma).
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="flex items-center justify-center w-6 h-6 rounded-full bg-indigo-600 text-white font-bold text-[11px] shrink-0">3</span>
-                  Selecciona <strong>"Guardar en PDF"</strong> y descarga el archivo.
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="flex items-center justify-center w-6 h-6 rounded-full bg-indigo-600 text-white font-bold text-[11px] shrink-0">4</span>
-                  Súbelo aquí — ELVIA valida que el perfil sea tuyo y analiza el contenido.
-                </li>
-              </ol>
-            </div>
-
-            {/* Zona de carga */}
-            <div className="bg-white border-2 border-dashed border-slate-200 rounded-[3rem] p-12 text-center hover:border-indigo-500/50 transition-all group relative overflow-hidden shadow-xl shadow-slate-200/40">
-              <div className="relative z-10">
-                <div className="w-20 h-20 bg-indigo-50 rounded-[2rem] flex items-center justify-center mx-auto mb-8 group-hover:scale-110 group-hover:rotate-6 transition-transform duration-500">
-                  <PI.UploadSimple size={36} className="text-indigo-600" weight="duotone" />
-                </div>
-                <h3 className="text-xl font-black text-slate-900 mb-3 italic">Importación Express de PDF</h3>
-                <p className="text-sm text-slate-500 mb-10 max-w-sm mx-auto leading-relaxed">
-                  Súbelo aquí y ELVIA hará el resto.
-                </p>
-
-                <input
-                  type="file"
-                  accept=".pdf"
-                  onChange={e => handlePDFUpload(e.target.files[0])}
-                  className="absolute inset-0 opacity-0 cursor-pointer z-20"
-                  disabled={isExtracting}
-                />
-
-                {isExtracting ? (
-                  <div className="flex flex-col items-center gap-4">
-                     <div className="w-12 h-12 border-[3px] border-indigo-600 border-t-transparent rounded-full animate-spin" />
-                     <p className="text-[11px] font-black text-indigo-600 uppercase tracking-widest animate-pulse">Decodificando Perfil...</p>
-                  </div>
-                ) : (
-                  <button className="px-10 py-4 bg-indigo-600 text-white text-[11px] font-black uppercase tracking-[0.25em] rounded-2xl shadow-2xl shadow-indigo-900/30 group-hover:bg-indigo-500 group-hover:-translate-y-1 transition-all duration-300">
-                    Seleccionar archivo PDF
-                  </button>
-                )}
+          <div className="bg-white border-2 border-dashed border-slate-200 rounded-[3rem] p-12 text-center hover:border-indigo-500/50 transition-all group relative overflow-hidden shadow-xl shadow-slate-200/40">
+            <div className="relative z-10">
+              <div className="w-20 h-20 bg-indigo-50 rounded-[2rem] flex items-center justify-center mx-auto mb-8 group-hover:scale-110 group-hover:rotate-6 transition-transform duration-500">
+                <PI.UploadSimple size={36} className="text-indigo-600" weight="duotone" />
               </div>
-              <div className="absolute -bottom-12 -right-12 w-48 h-48 bg-indigo-500/5 rounded-full blur-3xl" />
-            </div>
-
-            {/* Panel de error visible en modo PDF (validación de identidad o lectura) */}
-            {error && (
-              <div className="flex items-start gap-4 bg-rose-50 border border-rose-200 rounded-[2rem] px-6 py-5 shadow-inner">
-                <PI.WarningCircle size={24} className="text-rose-500 shrink-0" weight="fill" />
-                <div>
-                  <h4 className="text-[11px] font-black text-rose-800 uppercase tracking-widest mb-1">No pudimos procesar el PDF</h4>
-                  <p className="text-sm font-medium text-rose-700 leading-relaxed">{error}</p>
+              <h3 className="text-xl font-black text-slate-900 mb-3 italic">Importación Express de PDF</h3>
+              <p className="text-sm text-slate-500 mb-10 max-w-sm mx-auto leading-relaxed">
+                LinkedIn → Perfil → Botón 'Más' → <span className="font-bold text-slate-800">Guardar en PDF</span>.<br/>Súbelo aquí y ELVIA hará el resto.
+              </p>
+              
+              <input 
+                type="file" 
+                accept=".pdf"
+                onChange={e => handlePDFUpload(e.target.files[0])}
+                className="absolute inset-0 opacity-0 cursor-pointer z-20"
+                disabled={isExtracting}
+              />
+              
+              {isExtracting ? (
+                <div className="flex flex-col items-center gap-4">
+                   <div className="w-12 h-12 border-[3px] border-indigo-600 border-t-transparent rounded-full animate-spin" />
+                   <p className="text-[11px] font-black text-indigo-600 uppercase tracking-widest animate-pulse">Decodificando Perfil...</p>
                 </div>
+              ) : (
+                <button className="px-10 py-4 bg-indigo-600 text-white text-[11px] font-black uppercase tracking-[0.25em] rounded-2xl shadow-2xl shadow-indigo-900/30 group-hover:bg-indigo-500 group-hover:-translate-y-1 transition-all duration-300">
+                  Seleccionar archivo PDF
+                </button>
+              )}
+            </div>
+            {/* Decoración de fondo */}
+            <div className="absolute -bottom-12 -right-12 w-48 h-48 bg-indigo-500/5 rounded-full blur-3xl" />
+          </div>
+        )}
+
+        {importMode === 'paste' && (
+          <div className="bg-white border border-slate-200 rounded-[3rem] p-10 shadow-xl shadow-slate-200/30">
+            <div className="flex items-center gap-4 mb-8">
+               <div className="w-12 h-12 bg-violet-50 rounded-2xl flex items-center justify-center border border-violet-100">
+                 <PI.SelectionAll size={24} className="text-violet-600" weight="duotone" />
+               </div>
+               <div>
+                  <h3 className="text-base font-black text-slate-800 uppercase tracking-tight italic">Caja Mágica de Pegado</h3>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Extrae todo tu perfil en segundos</p>
+               </div>
+            </div>
+            
+            <textarea 
+              placeholder="Haz Ctrl+A en tu perfil de LinkedIn, copia y pega TODO aquí... la IA lo limpia por ti."
+              className="w-full bg-slate-50 border border-slate-200 rounded-[2rem] p-8 text-sm text-slate-700 h-56 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-white transition-all leading-relaxed placeholder:text-slate-300 shadow-inner"
+              onPaste={(e) => {
+                const text = e.clipboardData.getData('text')
+                handlePasteMagic(text)
+              }}
+            />
+            
+            {isExtracting && (
+              <div className="mt-6 flex items-center gap-3 justify-center">
+                 <PI.CircleNotch size={20} className="text-violet-500 animate-spin" />
+                 <span className="text-[11px] font-black text-violet-600 uppercase tracking-widest animate-pulse">IA Procesando Textos...</span>
               </div>
             )}
+            
+            <p className="mt-6 text-[10px] text-slate-400 italic text-center font-bold uppercase tracking-[0.2em] leading-relaxed">
+              No te preocupes por el formato o textos extra de la web,<br/>nuestra IA separa las secciones automáticamente.
+            </p>
           </div>
         )}
 
@@ -993,39 +638,19 @@ export default function LinkedinOptima() {
                 </div>
               )}
 
-              {/* Contador de análisis IA del mes — el usuario sabe cuánto le queda antes de presionar */}
-              <div className={`flex items-center justify-between gap-3 px-5 py-3 rounded-2xl border ${usoMes.restantes <= 1 ? 'bg-amber-50 border-amber-200' : 'bg-slate-50 border-slate-200'} mt-8`}>
-                <div className="flex items-center gap-2">
-                  <Sparkle size={16} weight="fill" className={usoMes.restantes <= 1 ? 'text-amber-500' : 'text-indigo-500'} />
-                  <span className="text-xs font-bold text-slate-700">
-                    Análisis IA restantes este mes: <span className={`font-black ${usoMes.restantes === 0 ? 'text-rose-600' : usoMes.restantes <= 1 ? 'text-amber-700' : 'text-indigo-700'}`}>{usoMes.restantes} / {usoMes.limite}</span>
-                  </span>
-                </div>
-                {usoMes.restantes === 0 && usoMes.fecha_reset ? (
-                  <span className="text-[10px] font-bold text-rose-700 uppercase tracking-wider">
-                    Se reinicia el {new Date(usoMes.fecha_reset).toLocaleDateString('es-CO', { day: '2-digit', month: 'short' })}
-                  </span>
-                ) : null}
-              </div>
-
               <button
                 type="submit"
-                disabled={!camposLlenos || cargando || usoMes.restantes === 0}
+                disabled={!camposLlenos || cargando}
                 className="w-full flex items-center justify-center gap-4 py-5 rounded-[2rem]
                            bg-gradient-to-r from-[#0077B5] to-[#00a0dc] text-white font-black text-xs uppercase tracking-[0.35em] shadow-2xl shadow-indigo-900/30
                            hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed
-                           transition-all active:scale-[0.97] mt-4 relative overflow-hidden group"
+                           transition-all active:scale-[0.97] mt-10 relative overflow-hidden group"
               >
                 <div className="absolute inset-0 bg-white/10 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
                 {cargando ? (
                   <>
                     <PI.CircleNotch size={20} className="animate-spin" />
                     Ejecutando Análisis Maestro...
-                  </>
-                ) : usoMes.restantes === 0 ? (
-                  <>
-                    <PI.WarningCircle size={20} weight="fill" />
-                    Límite mensual alcanzado
                   </>
                 ) : (
                   <>

@@ -15,7 +15,7 @@ import {
   CheckCircle, ChartLine, Briefcase,
   User, Lock, Sparkle, MicrophoneStage, Books, Kanban,
   BookmarkSimple, Folders, UsersThree, Globe,
-  UploadSimple, CheckFat, WarningCircle, X
+  UploadSimple, CheckFat, WarningCircle, X, CaretDown
 } from '@phosphor-icons/react'
 import HelpBadge from '../components/common/HelpBadge'
 
@@ -1512,6 +1512,123 @@ function DashboardResumen({ data, pct, onSelect, perfil, activePilar }) {
 
 // ─── Pilar 1: Autoconocimiento ───────────────────────────────────────────────
 
+// Selector compartido para Hard y Power Skills: acordeón categorizado con buscador,
+// checkboxes multi-select y contador "X / 4 recomendadas" que cambia de color cuando
+// el usuario excede la recomendación de mentoría.
+function SkillsAccordionPicker({ tema, categorias, seleccion, onToggle, icon, titulo, subtitulo }) {
+  const [query, setQuery] = useState('')
+  // Mantenemos el estado abierto/cerrado en memoria por categoría para evitar que cerrar una
+  // afecte a las demás. Por defecto todas inician cerradas para reducir saturación visual.
+  const [abiertas, setAbiertas] = useState({})
+  const esHard = tema === 'hard'
+
+  const paleta = esHard
+    ? { bg: 'bg-blue-50',    borde: 'border-blue-100',    chip: 'bg-blue-600',    chipText: 'text-blue-600',    badgeBg: 'bg-blue-100' }
+    : { bg: 'bg-emerald-50', borde: 'border-emerald-100', chip: 'bg-emerald-600', chipText: 'text-emerald-600', badgeBg: 'bg-emerald-100' }
+
+  const total = seleccion.length
+  const excedido = total > 4
+  const contadorClass = excedido
+    ? 'text-rose-600'
+    : total === 4
+      ? 'text-emerald-700'
+      : 'text-slate-600'
+
+  const queryNorm = query.trim().toLowerCase()
+
+  return (
+    <div className={`p-5 rounded-2xl ${paleta.bg} border ${paleta.borde}`}>
+      {/* Header */}
+      <div className="flex items-center gap-3 mb-3">
+        <div className={`w-8 h-8 rounded-lg ${paleta.badgeBg} border ${paleta.borde} flex items-center justify-center flex-shrink-0`}>
+          {icon}
+        </div>
+        <div className="flex-1">
+          <div className="font-bold text-slate-800 text-sm leading-tight">{titulo}</div>
+          <div className={`text-xs font-medium ${paleta.chipText}`}>{subtitulo}</div>
+        </div>
+        <div className={`text-xs font-black uppercase tracking-widest ${contadorClass}`}>
+          {total} / 4
+        </div>
+      </div>
+
+      {/* Buscador */}
+      <input
+        type="search"
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder="Buscar habilidad..."
+        className="w-full mb-3 rounded-xl bg-white border border-slate-200 px-4 py-2.5 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-300"
+      />
+
+      {/* Si el usuario excede la recomendación, lo avisamos con tono suave (no bloqueamos). */}
+      {excedido ? (
+        <div className="mb-3 text-[11px] font-semibold text-rose-700 bg-rose-50 border border-rose-100 rounded-lg px-3 py-2">
+          Llevas {total} seleccionadas. Lo ideal son 4 — prioriza las más alineadas a tu objetivo.
+        </div>
+      ) : null}
+
+      {/* Acordeón categorizado */}
+      <div className="space-y-2">
+        {Object.entries(categorias).map(([cat, items]) => {
+          const visibles = queryNorm
+            ? items.filter(it => it.toLowerCase().includes(queryNorm))
+            : items
+          if (visibles.length === 0) return null
+          const seleccionadasEnCat = items.filter(it => seleccion.includes(it)).length
+          // Si hay búsqueda activa, expandimos todas las categorías que tienen matches.
+          const expandida = queryNorm ? true : (abiertas[cat] || false)
+          return (
+            <div key={cat} className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+              <button
+                type="button"
+                onClick={() => setAbiertas(prev => ({ ...prev, [cat]: !prev[cat] }))}
+                className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-slate-50 transition-colors"
+              >
+                <span className="text-sm font-bold text-slate-800">{cat}</span>
+                <span className="flex items-center gap-3">
+                  <span className={`text-[10px] font-bold uppercase tracking-widest ${seleccionadasEnCat > 0 ? paleta.chipText : 'text-slate-400'}`}>
+                    {seleccionadasEnCat} / {items.length}
+                  </span>
+                  <CaretDown size={14} className={`text-slate-400 transition-transform ${expandida ? 'rotate-180' : ''}`} />
+                </span>
+              </button>
+              {expandida ? (
+                <div className="px-4 pb-3 pt-1 grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                  {visibles.map(item => {
+                    const sel = seleccion.includes(item)
+                    return (
+                      <label
+                        key={item}
+                        className={`flex items-start gap-2.5 cursor-pointer p-2 rounded-lg transition-colors ${sel ? `${paleta.bg}` : 'hover:bg-slate-50'}`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={sel}
+                          onChange={() => onToggle(item)}
+                          className={`mt-0.5 w-4 h-4 rounded ${esHard ? 'accent-blue-600' : 'accent-emerald-600'} cursor-pointer`}
+                        />
+                        <span className={`text-xs leading-snug ${sel ? 'text-slate-900 font-semibold' : 'text-slate-600'}`}>
+                          {item}
+                        </span>
+                      </label>
+                    )
+                  })}
+                </div>
+              ) : null}
+            </div>
+          )
+        })}
+        {queryNorm && Object.values(categorias).flat().filter(it => it.toLowerCase().includes(queryNorm)).length === 0 ? (
+          <div className="text-xs text-slate-400 italic text-center py-4">
+            Sin resultados para "{query}".
+          </div>
+        ) : null}
+      </div>
+    </div>
+  )
+}
+
 function PilarAutoconocimiento({ data, onChange, onSave, justSaved }) {
   const d = data || {}
   const up = function(key, val) { onChange(Object.assign({}, d, {[key]:val})) }
@@ -1529,51 +1646,91 @@ function PilarAutoconocimiento({ data, onChange, onSave, justSaved }) {
     if (f.length>0) { setModalIncompleto(f) } else { onSave() }
   }
 
-  const HARD_SKILLS = [
-    'Inteligencia Artificial (IA), Machine Learning e Ingeniería de Prompts',
-    'Ciencia de datos, ingeniería de datos y análisis estadístico',
-    'Diseño UX/UI y arquitectura de la información',
-    'Tecnología Blockchain y contratos inteligentes',
-    'Desarrollo de plataformas Low-Code / No-Code',
-    'Realidad Aumentada (AR), Realidad Virtual (VR) y computación espacial',
-    'Gestión de proyectos (Project Management) y metodologías ágiles',
-    'Sostenibilidad, reportes ESG, contabilidad de carbono y "Green Skills"',
-    'Modelado financiero, minería de datos financieros y gestión de inversiones',
-    'Cumplimiento normativo (Compliance)',
-    'Evaluación de riesgos',
-    'Ciencias actuariales y análisis crediticio',
-    'Estrategia de comercialización (Go-to-Market) y venta consultiva',
-    'Marketing digital avanzado (SEO, SEM y campañas de correo)',
-    'Logística: control de inventarios, compras y gestión de la cadena de suministro',
-    'Operación de equipos',
-  ]
-  const SOFT_SKILLS = [
-    'Adaptabilidad','Pensamiento analítico','Pensamiento creativo',
-    'Comunicación','Inteligencia emocional','Liderazgo',
-    'Resolución de problemas','Trabajo en equipo y colaboración','Resiliencia',
-    'Flexibilidad y agilidad','Curiosidad y aprendizaje continuo','Pensamiento sistémico',
-    'Resolución de conflictos','Gestión del estrés','Gestión y servicio al cliente',
-    'Influencia social','Motivación y autoconciencia','Empatía y escucha activa',
-    'Hablar en público y presentaciones',
-  ]
-  const POWER_SKILLS = [
-    'Inteligencia Artificial (IA), Machine Learning e Ingeniería de Prompts',
-    'Ciencia de datos, ingeniería de datos y análisis estadístico',
-    'Diseño UX/UI y arquitectura de la información',
-    'Tecnología Blockchain y contratos inteligentes',
-    'Desarrollo de plataformas Low-Code / No-Code',
-    'Realidad Aumentada (AR), Realidad Virtual (VR) y computación espacial',
-    'Gestión de proyectos (Project Management) y metodologías ágiles',
-    'Sostenibilidad, reportes ESG, contabilidad de carbono y "Green Skills"',
-    'Modelado financiero, minería de datos financieros y gestión de inversiones',
-    'Cumplimiento normativo (Compliance)',
-    'Evaluación de riesgos',
-    'Ciencias actuariales y análisis crediticio',
-    'Estrategia de comercialización (Go-to-Market) y venta consultiva',
-    'Marketing digital avanzado (SEO, SEM y campañas de correo)',
-    'Logística: control de inventarios, compras y gestión de la cadena de suministro',
-    'Operación de equipos',
-  ]
+  // ─── Catálogos de skills categorizados (LinkedIn Top-50 2026 + nuestro inventario fusionado) ───
+  // BD sigue guardando arrays planos `hard_skills` y `soft_skills` (el campo soft_skills mantiene
+  // su nombre histórico aunque la UI muestre "Power Skills" — decisión documentada en memoria).
+  const HARD_SKILLS_CATEGORIAS = {
+    'IA y Tecnología': [
+      'Inteligencia Artificial, Machine Learning e Ingeniería de Prompts',
+      'Computación en la nube (Cloud Computing)',
+      'Ciberseguridad',
+      'Desarrollo de software / SaaS',
+      'Automatización de procesos',
+      'Tecnología Blockchain y contratos inteligentes',
+      'Plataformas Low-Code / No-Code',
+      'Diseño UX/UI y arquitectura de la información',
+      'Realidad Aumentada, Realidad Virtual y computación espacial',
+    ],
+    'Datos y Operaciones': [
+      'Ciencia de datos e ingeniería de datos',
+      'Análisis de datos (Data Analytics)',
+      'Alfabetización de datos (Data Literacy)',
+      'Optimización de procesos',
+      'KPIs y métricas de negocio',
+    ],
+    'Gestión y Finanzas': [
+      'Gestión de proyectos (Agile, Scrum, Kanban, PRINCE2)',
+      'Gestión de riesgos y compliance',
+      'Análisis financiero y contabilidad',
+      'Gestión de presupuestos',
+      'Modelado financiero y gestión de inversiones',
+      'Ciencias actuariales y análisis crediticio',
+      'Sostenibilidad, reportes ESG y "Green Skills"',
+    ],
+    'Ventas y Marketing': [
+      'Estrategia Go-to-Market y venta consultiva',
+      'Marketing digital (SEO, SEM, email)',
+      'Estrategia de redes sociales y contenido digital',
+      'CRM (Salesforce / HubSpot)',
+      'Customer Success',
+    ],
+    'Industrias y Operación': [
+      'Recursos Humanos: reclutamiento, compensación, cultura',
+      'Ciencias de la salud y productos médicos',
+      'Logística y cadena de suministro',
+    ],
+  }
+  const POWER_SKILLS_CATEGORIAS = {
+    'Carácter y Mentalidad': [
+      'Adaptabilidad y flexibilidad',
+      'Resiliencia y gestión del estrés',
+      'Aprendizaje continuo y curiosidad',
+      'Inteligencia emocional',
+      'Motivación y autoconciencia',
+    ],
+    'Pensamiento': [
+      'Pensamiento crítico y analítico',
+      'Pensamiento creativo',
+      'Pensamiento estratégico',
+      'Pensamiento sistémico',
+      'Resolución de problemas complejos',
+      'Toma de decisiones basada en evidencia',
+    ],
+    'Comunicación e Interacción': [
+      'Comunicación asertiva',
+      'Hablar en público y presentaciones',
+      'Empatía y escucha activa',
+      'Negociación',
+      'Resolución de conflictos',
+      'Influencia social',
+    ],
+    'Liderazgo y Equipos': [
+      'Liderazgo de equipos',
+      'Mentoría y desarrollo de talento',
+      'Gestión de stakeholders',
+      'Gestión del cambio organizativo',
+      'Trabajo en equipo y colaboración transversal',
+    ],
+    'Productividad': [
+      'Gestión del tiempo',
+      'Servicio y gestión al cliente',
+    ],
+  }
+  // Arrays planos derivados — usados para validación, búsqueda y compatibilidad.
+  const HARD_SKILLS  = Object.values(HARD_SKILLS_CATEGORIAS).flat()
+  const SOFT_SKILLS  = Object.values(POWER_SKILLS_CATEGORIAS).flat()
+  const POWER_SKILLS = SOFT_SKILLS // alias para futuras refactorizaciones; no se usa en UI ya
+  void HARD_SKILLS; void POWER_SKILLS  // referenciados como compat; eslint-no-unused-vars
   const INDUSTRIAS = ['Tecnología','Finanzas / Banca','Salud','Retail / FMCG','Manufactura','Consultoría','Educación','Gobierno','Startups','Energía']
   const MOVILIDAD = ['Presencial','Remoto','Híbrido']
   const toggle = function(key,val){
@@ -1592,53 +1749,36 @@ function PilarAutoconocimiento({ data, onChange, onSave, justSaved }) {
           <p className="text-xs text-slate-500">Selecciona tus habilidades reales en cada categoría.</p>
         </div>
 
-        {/* Hard Skills */}
-        <div className="p-5 rounded-2xl bg-blue-50 border border-blue-100">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-8 h-8 rounded-lg bg-blue-100 border border-blue-200 flex items-center justify-center flex-shrink-0">
-              <Toolbox size={15} className="text-blue-600" weight="duotone"/>
-            </div>
-            <div>
-              <div className="font-bold text-slate-800 text-sm leading-tight">Hard Skills</div>
-              <div className="text-xs text-blue-600 font-medium">El "Saber hacer" · Competencias técnicas medibles · <strong>Debes seleccionar al menos 3</strong></div>
-            </div>
-          </div>
-          <div className="space-y-2">
-            {HARD_SKILLS.map(function(a){
-              const sel = Array.isArray(d.hard_skills)&&d.hard_skills.includes(a)
-              return (
-                <button key={a} onClick={function(){toggle('hard_skills',a)}}
-                  className={'w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left text-sm border-2 transition-all cursor-pointer '+(sel?'bg-blue-600 text-white border-blue-600 font-semibold shadow-sm':'bg-white border-blue-100 text-slate-700 font-medium hover:border-blue-300 hover:bg-blue-50/60')}
-                >
-                  <span className={'w-5 h-5 rounded-full border-2 shrink-0 flex items-center justify-center transition-colors '+(sel?'border-white bg-white/20':'border-blue-300')}>
-                    {sel && <span className="w-2.5 h-2.5 rounded-full bg-white"/>}
-                  </span>
-                  {a}
-                </button>
-              )
-            })}
-          </div>
+        {/* Tip recomendado por mentores ELVIA */}
+        <div className="bg-amber-50 border-l-4 border-amber-400 rounded-r-xl px-4 py-3">
+          <div className="text-xs font-black text-amber-900 uppercase tracking-wider mb-1">Recomendación de mentoría</div>
+          <p className="text-xs text-amber-900 leading-relaxed">
+            Lo ideal es seleccionar <strong>máximo 4 Hard Skills + 4 Power Skills</strong> — las que mejor te
+            representen y estén alineadas a tu objetivo. Menos es más: 4 + 4 enfocadas comunican más que 20 dispersas.
+          </p>
         </div>
 
-        {/* Soft Skills */}
-        <div className="p-5 rounded-2xl bg-emerald-50 border border-emerald-100">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-8 h-8 rounded-lg bg-emerald-100 border border-emerald-200 flex items-center justify-center flex-shrink-0">
-              <Heart size={15} className="text-emerald-600" weight="duotone"/>
-            </div>
-            <div>
-              <div className="font-bold text-slate-800 text-sm leading-tight">Power Skills</div>
-              <div className="text-xs text-emerald-600 font-medium">El "Saber lograr" · Habilidades de liderazgo e impacto · <strong>Debes seleccionar al menos 3</strong></div>
-            </div>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {SOFT_SKILLS.map(function(a){
-              const sel = Array.isArray(d.soft_skills)&&d.soft_skills.includes(a)
-              return <button key={a} onClick={function(){toggle('soft_skills',a)}}
-                className={'px-3 py-1.5 rounded-lg text-sm font-semibold border transition-colors cursor-pointer '+(sel?'bg-emerald-600 text-white border-emerald-600':'border-emerald-200 text-slate-600 hover:border-emerald-400 hover:text-emerald-700')}>{a}</button>
-            })}
-          </div>
-        </div>
+        {/* Hard Skills — acordeón categorizado con buscador */}
+        <SkillsAccordionPicker
+          tema="hard"
+          categorias={HARD_SKILLS_CATEGORIAS}
+          seleccion={Array.isArray(d.hard_skills) ? d.hard_skills : []}
+          onToggle={(val) => toggle('hard_skills', val)}
+          icon={<Toolbox size={15} className="text-blue-600" weight="duotone"/>}
+          titulo="Hard Skills"
+          subtitulo="El “Saber hacer” · Competencias técnicas medibles · Recomendado máximo 4"
+        />
+
+        {/* Power Skills — mismo patrón visual, paleta esmeralda */}
+        <SkillsAccordionPicker
+          tema="power"
+          categorias={POWER_SKILLS_CATEGORIAS}
+          seleccion={Array.isArray(d.soft_skills) ? d.soft_skills : []}
+          onToggle={(val) => toggle('soft_skills', val)}
+          icon={<Heart size={15} className="text-emerald-600" weight="duotone"/>}
+          titulo="Power Skills"
+          subtitulo="El “Saber lograr” · Habilidades humanas de impacto · Recomendado máximo 4"
+        />
 
 
       </div>
