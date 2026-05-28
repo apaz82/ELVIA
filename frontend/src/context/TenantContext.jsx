@@ -6,7 +6,7 @@
 // Aplica los colores como CSS variables en :root para uso vía Tailwind arbitrary
 // values (ej. bg-[var(--tenant-primary)]) o styles inline.
 
-import { createContext, useContext, useEffect, useMemo, useState } from 'react'
+import { createContext, useContext, useEffect, useLayoutEffect, useMemo, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { useAuth } from './AuthContext'
 
@@ -87,10 +87,25 @@ function clearCache(key) {
 }
 
 export function TenantProvider({ children }) {
-  const { user, session, perfil } = useAuth()
+  const { user, session, perfil, loading: authLoading, perfilCargado } = useAuth()
   const location = useLocation()
 
-  const [tenant, setTenant]         = useState(DEFAULT_TENANT)
+  const [tenant, setTenant]         = useState(() => {
+    // 1. Si hay slug en la URL (/empresas/:slug o /universidades/:slug), resolver síncronamente desde caché
+    const match = window.location.pathname.match(URL_SLUG_REGEX)
+    const slug = match?.[2] || null
+    if (slug) {
+      const cached = readCache('slug_' + slug)
+      if (cached) return cached
+    }
+    
+    // 2. Si no hay slug, intentar usar el último tenant B2B activo en esta pestaña
+    const lastActive = readCache('last_active_tenant')
+    if (lastActive) return lastActive
+
+    // 3. Fallback al default B2C
+    return DEFAULT_TENANT
+  })
   const [tenantRole, setTenantRole] = useState('user')
   const [cohort, setCohort]         = useState(null)
   const [loading, setLoading]       = useState(false)
@@ -106,6 +121,12 @@ export function TenantProvider({ children }) {
     let cancelled = false
 
     async function resolveTenant() {
+      // Si la sesión de Supabase o el perfil del usuario están cargando,
+      // no tomamos ninguna decisión de fallback a B2C aún, para evitar parpadeos.
+      if (authLoading || (user && !perfilCargado)) {
+        return
+      }
+
       // PRIORIDAD 1: slug en URL (landing público pre-login)
       if (urlSlug) {
         const cached = readCache('slug_' + urlSlug)
@@ -114,6 +135,7 @@ export function TenantProvider({ children }) {
             setTenant(cached)
             setTenantRole('user')
             setCohort(null)
+            writeCache('last_active_tenant', cached)
           }
           return
         }
@@ -127,12 +149,17 @@ export function TenantProvider({ children }) {
               setTenantRole('user')
               writeCache('slug_' + urlSlug, data.company)
               writeCache('last_slug', urlSlug)
+              writeCache('last_active_tenant', data.company)
             }
           } else if (!cancelled) {
             setTenant(DEFAULT_TENANT)
+            clearCache('last_active_tenant')
           }
         } catch {
-          if (!cancelled) setTenant(DEFAULT_TENANT)
+          if (!cancelled) {
+            setTenant(DEFAULT_TENANT)
+            clearCache('last_active_tenant')
+          }
         } finally {
           if (!cancelled) setLoading(false)
         }
@@ -148,9 +175,15 @@ export function TenantProvider({ children }) {
         const cacheIsValid = cached?.tenant?.id === perfil.company_id
         if (cacheIsValid) {
           if (!cancelled) {
-            setTenant(cached.tenant || DEFAULT_TENANT)
+            const t = cached.tenant || DEFAULT_TENANT
+            setTenant(t)
             setTenantRole(cached.role || 'user')
             setCohort(cached.cohort || null)
+            if (t && t.id) {
+              writeCache('last_active_tenant', t)
+            } else {
+              clearCache('last_active_tenant')
+            }
           }
           return
         }
@@ -169,12 +202,21 @@ export function TenantProvider({ children }) {
               setTenantRole(data.role || 'user')
               setCohort(data.cohort || null)
               writeCache('user_' + user.id, { tenant: t, role: data.role, cohort: data.cohort })
+              if (t && t.id) {
+                writeCache('last_active_tenant', t)
+              } else {
+                clearCache('last_active_tenant')
+              }
             }
           } else if (!cancelled) {
             setTenant(DEFAULT_TENANT)
+            clearCache('last_active_tenant')
           }
         } catch {
-          if (!cancelled) setTenant(DEFAULT_TENANT)
+          if (!cancelled) {
+            setTenant(DEFAULT_TENANT)
+            clearCache('last_active_tenant')
+          }
         } finally {
           if (!cancelled) setLoading(false)
         }
@@ -187,6 +229,7 @@ export function TenantProvider({ children }) {
         const cached = readCache('slug_' + lastSlug)
         if (cached && !cancelled) {
           setTenant(cached)
+          writeCache('last_active_tenant', cached)
           return
         }
       }
@@ -196,15 +239,16 @@ export function TenantProvider({ children }) {
         setTenant(DEFAULT_TENANT)
         setTenantRole('user')
         setCohort(null)
+        clearCache('last_active_tenant')
       }
     }
 
     resolveTenant()
     return () => { cancelled = true }
-  }, [urlSlug, user, session, perfil])
+  }, [urlSlug, user, session, perfil, authLoading, perfilCargado])
 
   // ── Aplicar variables CSS para colores del tenant ───────────────────────
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!tenant) return
     const root = document.documentElement
     root.style.setProperty('--tenant-primary',   tenant.primary_color   || DEFAULT_TENANT.primary_color)

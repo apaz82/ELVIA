@@ -896,15 +896,35 @@ const parsearRespuestaMatch = (text) => {
   let keywords = null;
   if (kwMatch) {
     const raw = kwMatch[1].trim();
-    const parseKwList = (pattern) => {
-      const m = raw.match(pattern);
-      if (!m) return [];
-      return m[1].split(',').map(s => s.trim().replace(/^["'\[\]]+|["'\[\]]+$/g, '')).filter(Boolean);
+    // Regex robusto: acepta tanto [kw1, kw2] como kw1, kw2 (sin corchetes)
+    // Captura todo lo que está después del label hasta el siguiente label o fin de string
+    const parseKwList = (label) => {
+      // Intenta primero con corchetes
+      const withBrackets = raw.match(new RegExp(`${label}:\\s*\\[([^\\]]*)\\]`, 'i'));
+      if (withBrackets) {
+        return withBrackets[1].split(',').map(s => s.trim().replace(/^["'\[\]]+|["'\[\]]+$/g, '')).filter(Boolean);
+      }
+      // Fallback: captura hasta el siguiente label o fin de bloque
+      const withoutBrackets = raw.match(new RegExp(`${label}:\\s*([^\\n]+)`, 'i'));
+      if (withoutBrackets) {
+        return withoutBrackets[1].split(',').map(s => s.trim().replace(/^["'\[\]]+|["'\[\]]+$/g, '')).filter(Boolean);
+      }
+      return [];
     };
     keywords = {
-      criticas: { presentes: parseKwList(/CRITICAS_PRESENTES:\s*\[([^\]]*)\]/i), ausentes: parseKwList(/CRITICAS_AUSENTES:\s*\[([^\]]*)\]/i) },
-      complementarias: { presentes: parseKwList(/COMPLEMENTARIAS_PRESENTES:\s*\[([^\]]*)\]/i), ausentes: parseKwList(/COMPLEMENTARIAS_AUSENTES:\s*\[([^\]]*)\]/i) },
+      criticas: {
+        presentes: parseKwList('CRITICAS_PRESENTES'),
+        ausentes:  parseKwList('CRITICAS_AUSENTES'),
+      },
+      complementarias: {
+        presentes: parseKwList('COMPLEMENTARIAS_PRESENTES'),
+        ausentes:  parseKwList('COMPLEMENTARIAS_AUSENTES'),
+      },
     };
+    // Si todas las listas quedan vacías, marcar keywords como null para que el frontend muestre el mensaje
+    const total = keywords.criticas.presentes.length + keywords.criticas.ausentes.length +
+                  keywords.complementarias.presentes.length + keywords.complementarias.ausentes.length;
+    if (total === 0) keywords = null;
   }
 
   let dimensiones = null;
@@ -1111,11 +1131,13 @@ ubicacion: [ciudad o región]
 pais: [país]
 </VACANTE>
 <KEYWORDS>
-CRITICAS_PRESENTES: [lista de máx 8 keywords CRÍTICAS que SÍ aparecen en el CV]
-CRITICAS_AUSENTES: [lista de máx 8 keywords CRÍTICAS que NO aparecen en el CV]
-COMPLEMENTARIAS_PRESENTES: [lista de máx 6 complementarias que SÍ están]
-COMPLEMENTARIAS_AUSENTES: [lista de máx 6 complementarias que faltan]
+CRITICAS_PRESENTES: [keyword1, keyword2, keyword3]
+CRITICAS_AUSENTES: [keyword4, keyword5, keyword6]
+COMPLEMENTARIAS_PRESENTES: [keyword7, keyword8]
+COMPLEMENTARIAS_AUSENTES: [keyword9, keyword10]
 </KEYWORDS>
+
+Instrucción KEYWORDS: Usa el formato exacto de arriba. CRITICAS son las habilidades, herramientas o requisitos que la vacante exige como obligatorios. COMPLEMENTARIAS son las deseables o de valor agregado. Indica en cada lista cuáles SÍ aparecen en el CV y cuáles NO. Mínimo 3 keywords por lista si existen en la vacante.
 <DIMENSIONES>
 hard_skills: [0-100]
 soft_skills: [0-100]

@@ -5,58 +5,65 @@ import { useCV } from '../context/CVContext'
 import { matchCVVacante, descargarCV, obtenerInfografia } from '../services/cvService'
 import CVInfographic from '../components/cv/CVInfographic'
 import { supabase } from '../services/authService'
-import FileUpload from '../components/common/FileUpload'
+import { api } from '../services/api'
 import LanguageSelector from '../components/common/LanguageSelector'
-import EmailField from '../components/common/EmailField'
 import Button from '../components/common/Button'
 import FeatureLocked from '../components/common/FeatureLocked'
 import HelpBadge from '../components/common/HelpBadge'
-import { MagnifyingGlass, CaretDown } from '@phosphor-icons/react'
+import { MagnifyingGlass, CaretDown, FileText, ArrowRight } from '@phosphor-icons/react'
 
 export default function CVvsJob() {
   const { user, refreshUsage, featuresDesbloqueadas } = useAuth()
-  const { cvArchivo, setCvArchivo, resultadoOptimize, resultadoMatch, setResultadoMatch } = useCV()
+  const { resultadoOptimize, resultadoMatch, setResultadoMatch } = useCV()
   const navigate = useNavigate()
 
   const [cvsExistentes, setCvsExistentes] = useState([])
   const [selectedCvId, setSelectedCvId] = useState(null)
-  const [cvDecision, setCvDecision] = useState(null) // 'perfil' | 'archivo' | 'texto' | null
-  const [cvText, setCvText] = useState('') // Para pegado directo de CV
+  const [userNombre, setUserNombre] = useState('')
 
   if (!featuresDesbloqueadas) {
     return (
-      <FeatureLocked 
-        titulo="CV vs Vacante" 
+      <FeatureLocked
+        titulo="CV vs Vacante"
         descripcion="Mide qué tan compatible es tu CV con una vacante real y recibe sugerencias de optimización inmediata."
         icono={<MagnifyingGlass size={44} weight="light" />}
       />
     )
   }
 
-  // Cargar CVs optimizados históricos
+  // Cargar CVs optimizados históricos + nombre del usuario en paralelo
   useEffect(() => {
     if (!user) return
-    supabase
-      .from('cv_results')
-      .select('id, contenido, metadata, created_at')
-      .eq('user_id', user.id)
-      .eq('tipo', 'optimize')
-      .not('contenido', 'like', '{%')
-      .order('created_at', { ascending: false })
-      .then(({ data }) => {
-        const results = data || []
-        setCvsExistentes(results)
-        if (results.length > 0 && !cvArchivo && !selectedCvId) {
-          setCvDecision('perfil')
-          setSelectedCvId(results[0].id)
-        }
-      })
+    Promise.all([
+      supabase
+        .from('profiles')
+        .select('nombre1, apellido1')
+        .eq('id', user.id)
+        .single(),
+      supabase
+        .from('cv_results')
+        .select('id, metadata, created_at')
+        .eq('user_id', user.id)
+        .eq('tipo', 'optimize')
+        .not('contenido', 'like', '{%')
+        .order('created_at', { ascending: false }),
+    ]).then(([{ data: profileData }, { data: cvData }]) => {
+      if (profileData) {
+        const nombre = `${profileData.nombre1 || ''} ${profileData.apellido1 || ''}`.trim()
+        setUserNombre(nombre)
+      }
+      const results = cvData || []
+      setCvsExistentes(results)
+      if (results.length > 0 && !selectedCvId) {
+        setSelectedCvId(results[0].id)
+      }
+    })
   }, [user])
 
+  // Si viene un CV recién optimizado desde CVOptimizer, preseleccionarlo
   useEffect(() => {
     if (resultadoOptimize?.id) {
       setSelectedCvId(resultadoOptimize.id)
-      setCvDecision('perfil')
     }
   }, [resultadoOptimize])
 
@@ -135,17 +142,13 @@ export default function CVvsJob() {
     setLoadingUrl(true)
     setError('')
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/jobs/fetch-url`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: jobUrl }),
-      })
-      const data = await res.json()
+      // Usa api.post() para incluir el JWT automáticamente — fetch nativo causaba 401
+      const data = await api.post('/api/jobs/fetch-url', { url: jobUrl })
       if (data.error) return setError(data.error)
       setJobText(data.text)
       setModoInput('descripcion')
-    } catch {
-      setError('No se pudo cargar la URL. Pega la descripción manualmente.')
+    } catch (err) {
+      setError(err.message || 'No se pudo cargar la URL. Pega la descripción manualmente.')
     } finally {
       setLoadingUrl(false)
     }
@@ -153,10 +156,10 @@ export default function CVvsJob() {
 
   useEffect(() => {
     setError('')
-  }, [modoInput, jobUrl, jobText, selectedCvId, cvArchivo, cvText])
+  }, [modoInput, jobUrl, jobText, selectedCvId])
 
   const analizar = async () => {
-    if (!selectedCvId && !cvArchivo && !cvText.trim()) return setError('Selecciona un CV, sube uno o pega el texto directamente.')
+    if (!selectedCvId) return setError('Selecciona un CV optimizado para continuar.')
     if (!jobText.trim()) return setError('Pega la descripción de la vacante')
 
     setError('')
@@ -176,8 +179,7 @@ export default function CVvsJob() {
     }
 
     try {
-      // El service matchCVVacante puede recibir file, string (id) o string (texto directo)
-      const data = await matchCVVacante(selectedCvId || cvArchivo || cvText, jobText, language)
+      const data = await matchCVVacante(selectedCvId, jobText, language)
       if (data.error) {
         if (data.error === 'LIMIT_REACHED') setError('Agotaste tus análisis gratuitos. Suscríbete para continuar.')
         else if (data.error === 'ACCOUNT_SUSPENDED') setError('Tu cuenta ha sido suspendida. Contacta a soporte.')
@@ -214,98 +216,91 @@ export default function CVvsJob() {
         </div>
 
         <div className="bg-white rounded-2xl border border-gray-200 p-6 mb-6">
-          <div className="flex items-center justify-between mb-4">
-             <h2 className="text-lg font-semibold text-gray-800">1. Tu CV</h2>
-             <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
-                {[
-                  { key: 'archivo', label: 'Archivo / Guardado' },
-                  { key: 'texto',   label: 'Pegar Texto' },
-                ].map(m => (
-                  <button
-                    key={m.key}
-                    onClick={() => setCvDecision(m.key)}
-                    className={`text-[10px] font-bold uppercase tracking-wider py-1.5 px-3 rounded-md transition-all ${
-                      cvDecision === m.key || (m.key === 'archivo' && cvDecision === 'perfil')
-                        ? 'bg-white text-primary shadow-sm' 
-                        : 'text-gray-400 hover:text-gray-600'
-                    }`}
-                  >
-                    {m.label}
-                  </button>
-                ))}
-             </div>
-          </div>
+          {/* ── Sección 1: Tu CV ── */}
+          <h2 className="text-lg font-semibold text-gray-800 mb-4">1. Tu CV</h2>
 
-          {(cvDecision === 'archivo' || cvDecision === 'perfil' || cvDecision === null) ? (
-            <>
-              {cvsExistentes.length > 0 && cvDecision !== 'archivo' ? (
-                <div className="bg-blue-50/50 border border-blue-100 rounded-xl p-4 sm:p-5">
-                  <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-                    <div className="flex gap-3">
-                      <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center shrink-0">
-                        <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                      </div>
-                      <div>
-                        <h3 className="text-sm font-bold text-blue-900 leading-tight">Tu CV Inicial Optimizado</h3>
-                        <p className="text-xs text-blue-700 mt-0.5">
-                          Para medir la compatibilidad, utilizaremos tu CV inicial optimizado por nuestra IA:
-                        </p>
-                      </div>
-                    </div>
-                    <button 
-                      onClick={() => { setCvDecision('archivo'); setSelectedCvId(null); setCvArchivo(null); }}
-                      className="text-xs font-semibold text-blue-600 hover:text-blue-800 transition-colors px-3 py-1.5 rounded-lg hover:bg-blue-100/50"
-                    >
-                      Subir archivo
-                    </button>
-                  </div>
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    {cvsExistentes.map((cv) => {
-                      const isSelected = selectedCvId === cv.id
-                      const lang = cv.metadata?.language || 'es'
-                      const fecha = new Date(cv.created_at).toLocaleDateString('es-MX', { day: '2-digit', month: 'short' })
-                      return (
-                        <button
-                          key={cv.id}
-                          onClick={() => { setSelectedCvId(cv.id); setCvDecision('perfil'); }}
-                          className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs font-medium border transition-all ${
-                            isSelected 
-                              ? 'bg-blue-600 border-blue-600 text-white shadow-md shadow-blue-200' 
-                              : 'bg-white border-gray-200 text-gray-600 hover:border-blue-300 hover:bg-slate-50'
-                          }`}
-                        >
-                          <span className="font-bold">CV inicial optimizado ({lang.toUpperCase()})</span>
-                          <span className="opacity-40">•</span>
-                          <span>{fecha}</span>
-                          {isSelected && <span className="ml-1">✓</span>}
-                        </button>
-                      )
-                    })}
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {cvDecision === 'archivo' && cvsExistentes.length > 0 && (
-                    <button onClick={() => setCvDecision('perfil')} className="text-xs text-blue-600 hover:underline flex items-center gap-1">← Volver a mis documentos guardados</button>
-                  )}
-                  <FileUpload onFileSelect={(file) => { setCvArchivo(file); setCvDecision('archivo'); setSelectedCvId(null); }} archivoActual={cvArchivo} />
-                </div>
-              )}
-            </>
+          {cvsExistentes.length === 0 ? (
+            /* Estado vacío — sin CVs optimizados */
+            <div className="bg-slate-50 border-2 border-dashed border-slate-200 rounded-xl p-8 text-center">
+              <FileText size={42} className="text-slate-300 mx-auto mb-3" weight="light" />
+              <p className="text-sm font-semibold text-slate-700 mb-1">
+                Aún no tienes un CV optimizado
+              </p>
+              <p className="text-xs text-slate-500 mb-5 max-w-xs mx-auto">
+                Para medir tu compatibilidad con vacantes, primero sube y optimiza tu CV con nuestra IA.
+              </p>
+              <button
+                onClick={() => navigate('/cv-optimizer')}
+                className="inline-flex items-center gap-2 bg-primary text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-primary/90 transition-colors"
+              >
+                Ir al Optimizador de CV
+                <ArrowRight size={16} weight="bold" />
+              </button>
+            </div>
           ) : (
-            <div className="space-y-3">
-               <textarea
-                 value={cvText}
-                 onChange={(e) => setCvText(e.target.value)}
-                 placeholder="Pega aquí el contenido completo de tu CV actual..."
-                 className="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary h-48 resize-none"
-               />
-               <p className="text-[10px] text-gray-400 italic">Nuestra IA extraerá tu experiencia, educación y habilidades automáticamente.</p>
+            /* Lista de CVs optimizados disponibles */
+            <div className="bg-blue-50/50 border border-blue-100 rounded-xl p-4 sm:p-5">
+              <div className="flex gap-3 mb-4">
+                <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center shrink-0">
+                  <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-blue-900 leading-tight">Selecciona tu CV optimizado</h3>
+                  <p className="text-xs text-blue-700 mt-0.5">
+                    ELVIA usará este CV para calcular tu compatibilidad con la vacante.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                {cvsExistentes.map((cv) => {
+                  const isSelected = selectedCvId === cv.id
+                  const lang = cv.metadata?.language || 'es'
+                  const subtipo = cv.metadata?.subtipo
+                  const tipo = subtipo === 'original' ? 'CV Subido' : 'CV Optimizado'
+
+                  const now = new Date()
+                  const created = new Date(cv.created_at)
+                  const isToday = created.toDateString() === now.toDateString()
+                  const fecha = isToday
+                    ? `Hoy ${created.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}`
+                    : created.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })
+
+                  return (
+                    <button
+                      key={cv.id}
+                      onClick={() => setSelectedCvId(cv.id)}
+                      className={`flex flex-col items-start px-4 py-3 rounded-xl border transition-all text-left ${
+                        isSelected
+                          ? 'bg-blue-600 border-blue-600 text-white shadow-md shadow-blue-200'
+                          : 'bg-white border-gray-200 text-gray-700 hover:border-blue-300 hover:bg-slate-50'
+                      }`}
+                    >
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <span className="font-bold text-sm leading-none">
+                          {userNombre || 'Mi CV'}
+                        </span>
+                        {isSelected && (
+                          <span className="text-xs bg-white/20 rounded-full px-1.5 py-0.5 leading-none">✓</span>
+                        )}
+                      </div>
+                      <div className={`flex items-center gap-1 text-xs ${isSelected ? 'text-blue-200' : 'text-gray-400'}`}>
+                        <span>{tipo}</span>
+                        <span>·</span>
+                        <span>{lang.toUpperCase()}</span>
+                        <span>·</span>
+                        <span>{fecha}</span>
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
             </div>
           )}
 
+          {/* ── Sección 2: Vacante ── */}
           <div className="mt-6">
             <div className="flex items-center justify-between mb-2">
               <h2 className="text-lg font-semibold text-gray-800">2. Vacante</h2>
@@ -328,7 +323,12 @@ export default function CVvsJob() {
 
           <div className="mt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <LanguageSelector value={language} onChange={setLanguage} />
-            <Button className="w-full sm:w-auto" onClick={analizar} loading={loading} disabled={(!cvArchivo && !selectedCvId && !cvText.trim()) || !jobText.trim()}>
+            <Button
+              className="w-full sm:w-auto"
+              onClick={analizar}
+              loading={loading}
+              disabled={!selectedCvId || !jobText.trim()}
+            >
               {loading ? (loadingText || 'Analizando...') : 'Analizar compatibilidad'}
             </Button>
           </div>
@@ -340,7 +340,7 @@ export default function CVvsJob() {
             <div className="bg-white p-8 rounded-3xl shadow-2xl max-w-lg w-full mx-auto">
               <h3 className="text-2xl font-black text-gray-900 mb-3">¡Análisis finalizado!</h3>
               <p className="text-gray-600 mb-8 text-sm">Regístrate gratis para ver tus resultados detallados.</p>
-              <button onClick={() => navigate('/auth')} className="w-full bg-[#1A91F0] text-white font-bold py-3.5 rounded-xl">Revelar mis resultados</button>
+              <button onClick={() => navigate('/auth')} className="w-full bg-[#1A91F0] text-white font-bold py-3.5 rounded-xl">Revelarmis resultados</button>
             </div>
           </div>
         )}
