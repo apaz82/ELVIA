@@ -2,8 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useCV } from '../context/CVContext'
-import { matchCVVacante, descargarCV, obtenerInfografia } from '../services/cvService'
-import CVInfographic from '../components/cv/CVInfographic'
+import { matchCVVacante, descargarCV } from '../services/cvService'
 import { supabase } from '../services/authService'
 import LanguageSelector from '../components/common/LanguageSelector'
 import Button from '../components/common/Button'
@@ -20,6 +19,7 @@ export default function CVvsJob() {
   const [selectedCvId, setSelectedCvId] = useState(null)
   const [userNombre, setUserNombre] = useState('')
   const [mostrarOtrosCVs, setMostrarOtrosCVs] = useState(false)
+  const [cvDesvelado, setCvDesvelado] = useState(false)
 
   if (!featuresDesbloqueadas) {
     return (
@@ -84,30 +84,11 @@ export default function CVvsJob() {
   const [showAuthWall, setShowAuthWall] = useState(false)
   const [error, setError] = useState('')
   const [tabActiva, setTabActiva] = useState('cv')
-  const [vistaInfografia, setVistaInfografia] = useState(false)
-  const [datosInfografia, setDatosInfografia] = useState(null)
-  const [cargandoInfografia, setCargandoInfografia] = useState(false)
   const [brechaAbierta, setBrechaAbierta] = useState(null)
   const [showSaveForm, setShowSaveForm] = useState(false)
   const [saveForm, setSaveForm] = useState({ empresa: '', posicion: '', etapa: 'Descubierto' })
   const [savingPipeline, setSavingPipeline] = useState(false)
   const [savedToPipeline, setSavedToPipeline] = useState(false)
-
-  const toggleInfografia = async () => {
-    if (vistaInfografia) { setVistaInfografia(false); return }
-    if (!datosInfografia && resultadoMatch?.id) {
-      setCargandoInfografia(true)
-      try {
-        const datos = await obtenerInfografia(resultadoMatch.id)
-        setDatosInfografia(datos)
-      } catch {
-        // no bloqueamos el flujo
-      } finally {
-        setCargandoInfografia(false)
-      }
-    }
-    setVistaInfografia(true)
-  }
 
   const guardarEnPipeline = async () => {
     if (!resultadoMatch || !user) return
@@ -173,7 +154,8 @@ export default function CVvsJob() {
         return
       }
       setResultadoMatch(data)
-      setTabActiva('cv')
+      setTabActiva('analisis')
+      setCvDesvelado(false)
       refreshUsage()
     } catch (err) {
       setError(err.message || 'Error al conectar con el servidor')
@@ -358,47 +340,65 @@ export default function CVvsJob() {
           </div>
         )}
 
-        {resultadoMatch && (
+        {resultadoMatch && (() => {
+          const score = resultadoMatch.matchScore
+          const puedeAdaptar = score >= 80
+          const empresa = resultadoMatch.jobData?.company || ''
+          const tabs = [
+            { key: 'analisis', label: 'Análisis' },
+            { key: 'keywords', label: 'Keywords' },
+            ...(puedeAdaptar ? [{ key: 'cv', label: 'CV Adaptado' }] : []),
+          ]
+          return (
           <div className="bg-white rounded-2xl border border-gray-200 p-6">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+            {/* Cabecera con score */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-5">
               <div>
                 <h2 className="text-lg font-semibold text-gray-800">3. Resultado</h2>
-                {resultadoMatch.jobData?.title && <p className="text-sm text-gray-500 mt-0.5">{resultadoMatch.jobData.title}</p>}
+                {resultadoMatch.jobData?.title && <p className="text-sm text-gray-500 mt-0.5">{resultadoMatch.jobData.title}{empresa ? ` · ${empresa}` : ''}</p>}
               </div>
-              <div className="text-center">
-                <div className={`text-3xl font-bold ${colorScore(resultadoMatch.matchScore)}`}>{resultadoMatch.matchScore}%</div>
+              <div className="text-center shrink-0">
+                <div className={`text-3xl font-bold ${colorScore(score)}`}>{score}%</div>
                 <div className="text-xs text-gray-400">compatibilidad</div>
               </div>
             </div>
-            {!vistaInfografia && (
-              <div className="w-full bg-gray-100 rounded-full h-2 mb-6">
-                <div className={`h-2 rounded-full transition-all duration-500 ${resultadoMatch.matchScore >= 75 ? 'bg-green-500' : resultadoMatch.matchScore >= 50 ? 'bg-amber-400' : 'bg-red-400'}`} style={{ width: `${resultadoMatch.matchScore}%` }} />
-              </div>
-            )}
-            <div className="flex gap-2 mb-4">
-              <Button variant="outline" onClick={() => descargarCV(resultadoMatch.id, 'pdf')}>↓ PDF</Button>
-              <Button variant="outline" onClick={() => descargarCV(resultadoMatch.id, 'word')}>↓ Word</Button>
-              <Button onClick={toggleInfografia}>{vistaInfografia ? '📄 Vista Texto' : '🎨 Vista Infográfica'}</Button>
+
+            {/* Barra de progreso */}
+            <div className="w-full bg-gray-100 rounded-full h-2 mb-5">
+              <div className={`h-2 rounded-full transition-all duration-500 ${score >= 80 ? 'bg-emerald-500' : score >= 50 ? 'bg-amber-400' : 'bg-red-400'}`} style={{ width: `${score}%` }} />
             </div>
-            {vistaInfografia && datosInfografia && (
-              <CVInfographic datos={datosInfografia} matchScore={resultadoMatch.matchScore} jobData={resultadoMatch.jobData} analisis={resultadoMatch.analisis} />
-            )}
-            {!vistaInfografia && (
-              <div className="flex gap-1 mb-4 bg-gray-100 rounded-lg p-1">
-                {[
-                  { key: 'cv',       label: 'CV Adaptado' },
-                  { key: 'analisis', label: 'Análisis' },
-                  { key: 'keywords', label: 'Keywords' },
-                ].map(tab => (
-                  <button key={tab.key} onClick={() => setTabActiva(tab.key)}
-                    className={`flex-1 text-sm font-medium py-2 rounded-md transition-all ${tabActiva === tab.key ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}>
-                    {tab.label}
-                  </button>
-                ))}
+
+            {/* Banner contextual según score */}
+            {puedeAdaptar ? (
+              <div className="flex items-start gap-3 bg-emerald-50 border border-emerald-200 rounded-2xl px-4 py-3 mb-5">
+                <span className="text-emerald-600 text-lg shrink-0">✓</span>
+                <div>
+                  <p className="text-sm font-bold text-emerald-800">¡Buena compatibilidad con esta vacante!</p>
+                  <p className="text-xs text-emerald-700 mt-0.5">Puedes revisar el análisis y luego generar un CV adaptado partiendo de tu CV optimizado. Revisa las tabs a continuación.</p>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-start gap-3 bg-red-50 border border-red-200 rounded-2xl px-4 py-3 mb-5">
+                <span className="text-red-500 text-lg shrink-0">✕</span>
+                <div>
+                  <p className="text-sm font-bold text-red-800">Esta vacante no se alinea con tu perfil actual</p>
+                  <p className="text-xs text-red-700 mt-0.5">Los requerimientos de la vacante no coinciden suficientemente con tu CV (compatibilidad {score}% — se requiere mínimo 80%). Revisa el análisis y las keywords faltantes para entender las brechas.</p>
+                </div>
               </div>
             )}
-            {!vistaInfografia && tabActiva === 'cv' && <pre className="whitespace-pre-wrap font-mono text-xs bg-gray-50 p-4 rounded-xl">{resultadoMatch.tailoredCV}</pre>}
-            {!vistaInfografia && tabActiva === 'analisis' && (
+
+            {/* Tabs — CV Adaptado solo si score ≥ 80 */}
+            <div className="flex gap-1 mb-4 bg-gray-100 rounded-lg p-1">
+              {tabs.map(tab => (
+                <button key={tab.key} onClick={() => setTabActiva(tab.key)}
+                  className={`flex-1 text-sm font-medium py-2 rounded-md transition-all ${tabActiva === tab.key ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}>
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Tab: Análisis */}
+            {tabActiva === 'analisis' && (
               <div className="space-y-4">
                 {resultadoMatch.dimensiones && (() => {
                   const dims = [
@@ -428,7 +428,14 @@ export default function CVvsJob() {
                     </div>
                   )
                 })()}
-                <div><h3 className="text-sm font-semibold text-green-700 mb-1.5">Fortalezas</h3><ul className="text-xs space-y-1 text-gray-700">{resultadoMatch.analisis.fortalezas.map((f, i) => <li key={i} className="flex items-start gap-1.5"><span className="text-green-500 shrink-0 mt-0.5">✓</span>{f}</li>)}</ul></div>
+                <div>
+                  <h3 className="text-sm font-semibold text-green-700 mb-1.5">Fortalezas</h3>
+                  <ul className="text-xs space-y-1 text-gray-700">
+                    {resultadoMatch.analisis.fortalezas.map((f, i) => (
+                      <li key={i} className="flex items-start gap-1.5"><span className="text-green-500 shrink-0 mt-0.5">✓</span>{f}</li>
+                    ))}
+                  </ul>
+                </div>
                 <div>
                   <h3 className="text-sm font-semibold text-red-600 mb-2">Brechas</h3>
                   <ul className="space-y-2">
@@ -464,7 +471,9 @@ export default function CVvsJob() {
                 )}
               </div>
             )}
-            {!vistaInfografia && tabActiva === 'keywords' && (
+
+            {/* Tab: Keywords */}
+            {tabActiva === 'keywords' && (
               <div className="space-y-5">
                 {resultadoMatch.keywords ? (
                   <>
@@ -472,7 +481,7 @@ export default function CVvsJob() {
                       <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Keywords Críticas</h3>
                       {resultadoMatch.keywords.criticas.presentes.length > 0 && (
                         <div className="mb-3">
-                          <p className="text-[11px] font-semibold text-emerald-600 mb-2 flex items-center gap-1">✓ Presentes en tu CV ({resultadoMatch.keywords.criticas.presentes.length})</p>
+                          <p className="text-[11px] font-semibold text-emerald-600 mb-2">✓ Presentes en tu CV ({resultadoMatch.keywords.criticas.presentes.length})</p>
                           <div className="flex flex-wrap gap-2">
                             {resultadoMatch.keywords.criticas.presentes.map((kw, i) => (
                               <span key={i} className="px-2.5 py-1 bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-medium rounded-full">{kw}</span>
@@ -482,7 +491,7 @@ export default function CVvsJob() {
                       )}
                       {resultadoMatch.keywords.criticas.ausentes.length > 0 && (
                         <div>
-                          <p className="text-[11px] font-semibold text-red-500 mb-2 flex items-center gap-1">✗ Faltan en tu CV ({resultadoMatch.keywords.criticas.ausentes.length})</p>
+                          <p className="text-[11px] font-semibold text-red-500 mb-2">✗ Faltan en tu CV ({resultadoMatch.keywords.criticas.ausentes.length})</p>
                           <div className="flex flex-wrap gap-2">
                             {resultadoMatch.keywords.criticas.ausentes.map((kw, i) => (
                               <span key={i} className="px-2.5 py-1 bg-red-50 border border-red-200 text-red-600 text-xs font-medium rounded-full">{kw}</span>
@@ -495,7 +504,7 @@ export default function CVvsJob() {
                       <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Skills Complementarios</h3>
                       {resultadoMatch.keywords.complementarias.presentes.length > 0 && (
                         <div className="mb-3">
-                          <p className="text-[11px] font-semibold text-blue-600 mb-2 flex items-center gap-1">✓ Presentes ({resultadoMatch.keywords.complementarias.presentes.length})</p>
+                          <p className="text-[11px] font-semibold text-blue-600 mb-2">✓ Presentes ({resultadoMatch.keywords.complementarias.presentes.length})</p>
                           <div className="flex flex-wrap gap-2">
                             {resultadoMatch.keywords.complementarias.presentes.map((kw, i) => (
                               <span key={i} className="px-2.5 py-1 bg-blue-50 border border-blue-200 text-blue-700 text-xs font-medium rounded-full">{kw}</span>
@@ -505,7 +514,7 @@ export default function CVvsJob() {
                       )}
                       {resultadoMatch.keywords.complementarias.ausentes.length > 0 && (
                         <div>
-                          <p className="text-[11px] font-semibold text-amber-600 mb-2 flex items-center gap-1">→ Para agregar ({resultadoMatch.keywords.complementarias.ausentes.length})</p>
+                          <p className="text-[11px] font-semibold text-amber-600 mb-2">→ Para agregar ({resultadoMatch.keywords.complementarias.ausentes.length})</p>
                           <div className="flex flex-wrap gap-2">
                             {resultadoMatch.keywords.complementarias.ausentes.map((kw, i) => (
                               <span key={i} className="px-2.5 py-1 bg-amber-50 border border-amber-200 text-amber-700 text-xs font-medium rounded-full">{kw}</span>
@@ -519,6 +528,42 @@ export default function CVvsJob() {
                   <p className="text-sm text-gray-400 text-center py-6">Keywords no disponibles para este análisis.</p>
                 )}
               </div>
+            )}
+
+            {/* Tab: CV Adaptado — solo visible si score ≥ 80 */}
+            {tabActiva === 'cv' && puedeAdaptar && (
+              cvDesvelado ? (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Button variant="outline" onClick={() => descargarCV(resultadoMatch.id, 'pdf')}>↓ Descargar PDF</Button>
+                    <Button variant="outline" onClick={() => descargarCV(resultadoMatch.id, 'word')}>↓ Descargar Word</Button>
+                  </div>
+                  <p className="text-[11px] text-gray-400">
+                    Guardado en Mis Documentos como: <span className="font-medium text-gray-600">{empresa || 'Confidencial'} — CV Adaptado — {new Date().toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                  </p>
+                  <pre className="whitespace-pre-wrap font-mono text-xs bg-gray-50 p-4 rounded-xl">{resultadoMatch.tailoredCV}</pre>
+                </div>
+              ) : (
+                <div className="bg-blue-50 border border-blue-200 rounded-2xl p-7 text-center space-y-4">
+                  <div className="w-14 h-14 rounded-2xl bg-blue-100 flex items-center justify-center mx-auto">
+                    <FileText size={28} weight="duotone" className="text-blue-600" />
+                  </div>
+                  <div>
+                    <p className="font-bold text-gray-800 text-base">Esta posición es susceptible para un CV adaptado</p>
+                    <p className="text-sm text-gray-600 mt-2 max-w-sm mx-auto leading-relaxed">
+                      ELVIA generará tu CV adaptado partiendo de tu <strong>CV optimizado</strong> — no de cualquier versión. Este CV incorpora los keywords críticos de la vacante manteniendo tu narrativa profesional.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setCvDesvelado(true)}
+                    className="inline-flex items-center gap-2 bg-primary text-white font-bold px-6 py-3 rounded-xl hover:bg-primary/90 transition-colors text-sm"
+                  >
+                    <ArrowRight size={16} weight="bold" />
+                    Ver mi CV adaptado
+                  </button>
+                  <p className="text-[11px] text-gray-400">Se guardará automáticamente en Mis Documentos</p>
+                </div>
+              )
             )}
 
             {/* Guardar en Pipeline */}
@@ -573,7 +618,8 @@ export default function CVvsJob() {
               </div>
             )}
           </div>
-        )}
+        )
+      })()}
       </div>
     </div>
   )
