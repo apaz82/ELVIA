@@ -90,13 +90,13 @@ const LinkedinReportePDF = forwardRef(function LinkedinReportePDF({ analisis, ed
         return (
           <div key={secId} style={{ border: `1px solid ${c.border}`, borderRadius: '10px', marginBottom: '16px', overflow: 'hidden', pageBreakInside: 'avoid' }}>
             {/* Header sección */}
-            <div style={{ background: c.bg, padding: '10px 16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: '#fff', border: `1px solid ${c.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '900', fontSize: '13px', color: c.color, flexShrink: 0 }}>
+            <div style={{ background: c.bg, padding: '10px 16px' }}>
+              <div style={{ display: 'inline-block', verticalAlign: 'middle', width: '38px', height: '38px', borderRadius: '8px', background: '#fff', border: `1px solid ${c.border}`, textAlign: 'center', lineHeight: '38px', fontWeight: '900', fontSize: '13px', color: c.color }}>
                 {datos.puntaje}
               </div>
-              <div>
-                <div style={{ fontWeight: '800', fontSize: '13px', color: '#0f172a' }}>{label}</div>
-                <span style={{ fontSize: '10px', fontWeight: '700', color: c.color, background: '#fff', border: `1px solid ${c.border}`, padding: '1px 8px', borderRadius: '20px' }}>{c.label}</span>
+              <div style={{ display: 'inline-block', verticalAlign: 'middle', marginLeft: '12px' }}>
+                <div style={{ fontWeight: '800', fontSize: '13px', color: '#0f172a', lineHeight: '1.3' }}>{label}</div>
+                <span style={{ fontSize: '10px', fontWeight: '700', color: c.color, background: '#fff', border: `1px solid ${c.border}`, padding: '1px 8px', borderRadius: '20px', display: 'inline-block' }}>{c.label}</span>
               </div>
             </div>
 
