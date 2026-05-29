@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../services/authService'
@@ -6,7 +6,7 @@ import PlanBanner from '../components/common/PlanBanner'
 import FeatureLocked from '../components/common/FeatureLocked'
 import HelpBadge from '../components/common/HelpBadge'
 import DetalleVacanteDrawer from '../components/common/DetalleVacanteDrawer'
-import { Kanban, FileText, Headphones, Trash } from '@phosphor-icons/react'
+import { Kanban, Headphones, Trash } from '@phosphor-icons/react'
 import BarraEtapas, { ETAPAS, ETAPA_PERDIDA, colorEtapa, formatFechaCorta } from '../components/pipeline/BarraEtapas'
 
 const badgeScore = (score) => {
@@ -58,7 +58,7 @@ function VacanteCard({ item, onMover, onEliminar, onGuardarNota, onGuardarContac
           onClick={() => !perdida && onAbrirDetalle(item.id)}
         >
           <div className="flex items-center gap-2 flex-wrap">
-            <h3 className="font-semibold text-gray-900 text-base leading-snug">{job.title || '—'}</h3>
+            <h3 className={`font-semibold text-base leading-snug ${!perdida ? 'text-primary hover:underline cursor-pointer' : 'text-gray-900'}`}>{job.title || '—'}</h3>
             {check ? (
               <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${badgeScore(check.score)}`}>
                 {check.score}% · {check.score >= 75 ? 'Top Match' : check.score >= 50 ? 'Good Match' : 'Low Match'}
@@ -415,28 +415,36 @@ export default function Pipeline() {
       </div>
 
       {!loading && activas.length > 0 && (
-        <div className="flex gap-2 mb-6 overflow-x-auto pb-1">
-          <button onClick={() => setFiltro(false)}
-            className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-xs font-medium shrink-0 transition-colors
-              ${!filtroPerdidas ? 'bg-primary text-white border-primary' : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'}`}>
-            Activas ({activas.length})
-          </button>
-          {ETAPAS.map(etapa => {
-            const c = colorEtapa(etapa)
-            return (
-              <div key={etapa} className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-gray-200 bg-white text-xs shrink-0">
-                <div className={`w-2 h-2 rounded-full ${c.bg}`} />
-                <span className="text-gray-500">{etapa}</span>
-                <span className={`font-bold ${c.text}`}>{conteo[etapa]}</span>
-              </div>
-            )
-          })}
-          {perdidas.length > 0 && (
-            <button onClick={() => setFiltro(true)}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-medium shrink-0 transition-colors
-                ${filtroPerdidas ? 'bg-red-500 text-white border-red-500' : 'bg-white text-red-500 border-red-200 hover:border-red-300'}`}>
-              No avanzó ({perdidas.length})
+        <div className="mb-6 space-y-2">
+          {/* Fila 1: filtros Activas / No avanzó */}
+          <div className="flex gap-2 flex-wrap">
+            <button onClick={() => setFiltro(false)}
+              className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-xs font-medium transition-colors
+                ${!filtroPerdidas ? 'bg-primary text-white border-primary' : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'}`}>
+              Activas ({activas.length})
             </button>
+            {perdidas.length > 0 && (
+              <button onClick={() => setFiltro(true)}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-medium transition-colors
+                  ${filtroPerdidas ? 'bg-red-500 text-white border-red-500' : 'bg-white text-red-500 border-red-200 hover:border-red-300'}`}>
+                No avanzó ({perdidas.length})
+              </button>
+            )}
+          </div>
+          {/* Fila 2: contadores por etapa (wrap, no scroll) */}
+          {!filtroPerdidas && (
+            <div className="flex gap-2 flex-wrap">
+              {ETAPAS.map(etapa => {
+                const c = colorEtapa(etapa)
+                return (
+                  <div key={etapa} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-gray-200 bg-white text-xs">
+                    <div className={`w-2 h-2 rounded-full ${c.bg}`} />
+                    <span className="text-gray-500">{etapa}</span>
+                    <span className={`font-bold ${c.text}`}>{conteo[etapa]}</span>
+                  </div>
+                )
+              })}
+            </div>
           )}
         </div>
       )}

@@ -152,7 +152,7 @@ export default function Entrevista() {
     }
   }, [jpData])
 
-  // 6.1 — Auto-load job description from Pipeline
+  // 6.1 — Auto-load job description from Pipeline (runs on every mount AND on location change)
   useEffect(() => {
     const prefill = sessionStorage.getItem('entrevista_prefill')
     if (prefill) {
@@ -166,10 +166,10 @@ export default function Entrevista() {
         }
         sessionStorage.removeItem('entrevista_prefill')
       } catch {
-        // silently ignore if JSON parsing fails
+        // silently ignore
       }
     }
-  }, [])
+  }) // sin dependencias → corre en cada render; sessionStorage.removeItem garantiza 1 sola ejecución efectiva
 
   // Seleccionar vacante guardada
   const seleccionarVacante = (v) => {
