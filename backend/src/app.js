@@ -43,6 +43,8 @@ const PRODUCTION_ORIGINS = [
 // En desarrollo, permitir cualquier puerto localhost (Vite elige el puerto dinámicamente)
 const IS_DEV = process.env.NODE_ENV !== 'production';
 const LOCALHOST_REGEX = /^http:\/\/localhost:\d+$/;
+// Netlify deploy previews y branch deploys (*.netlify.app)
+const NETLIFY_PREVIEW_REGEX = /^https:\/\/[a-z0-9-]+\.netlify\.app$/;
 
 app.use(cors({
   origin: function (origin, callback) {
@@ -51,6 +53,9 @@ app.use(cors({
 
     // Producción: solo orígenes explícitos
     if (PRODUCTION_ORIGINS.includes(origin)) return callback(null, true);
+
+    // Netlify previews y branch deploys
+    if (NETLIFY_PREVIEW_REGEX.test(origin)) return callback(null, true);
 
     // Desarrollo: cualquier localhost
     if (IS_DEV && LOCALHOST_REGEX.test(origin)) return callback(null, true);
@@ -67,6 +72,7 @@ app.use(cors({
 const isAllowedOrigin = (origin) =>
   !origin ||
   PRODUCTION_ORIGINS.includes(origin) ||
+  NETLIFY_PREVIEW_REGEX.test(origin) ||
   (IS_DEV && LOCALHOST_REGEX.test(origin));
 
 // --- Ruta de salud (health check) ---
