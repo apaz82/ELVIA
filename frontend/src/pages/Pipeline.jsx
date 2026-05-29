@@ -92,14 +92,14 @@ function VacanteCard({ item, onMover, onEliminar, onGuardarNota, onGuardarContac
             <>
               {!check && (
                 <button
-                  onClick={(e) => { e.stopPropagation(); sessionStorage.setItem('vacante_prefill', JSON.stringify({ texto: job.description || job.snippet || '' })); onNavigate('/cv-vs-job') }}
+                  onClick={(e) => { e.stopPropagation(); sessionStorage.setItem('vacante_prefill', JSON.stringify({ texto: job.full_description || job.description || job.snippet || '' })); onNavigate('/cv-vs-job') }}
                   className="text-xs text-gray-600 border border-gray-200 rounded-lg px-2.5 py-1.5 hover:bg-gray-50 transition-colors whitespace-nowrap"
                 >
                   Ver compatibilidad
                 </button>
               )}
               <button
-                onClick={(e) => { e.stopPropagation(); sessionStorage.setItem('entrevista_prefill', JSON.stringify({ empresa: job.company, cargo: job.title, descripcion: job.snippet || job.description, jobId: item.id })); onNavigate('/entrevista') }}
+                onClick={(e) => { e.stopPropagation(); sessionStorage.setItem('entrevista_prefill', JSON.stringify({ empresa: job.company, cargo: job.title, descripcion: job.full_description || job.description || job.snippet || '', jobId: item.id })); onNavigate('/entrevista') }}
                 className="text-xs text-gray-600 border border-gray-200 rounded-lg px-2.5 py-1.5 hover:bg-gray-50 transition-colors whitespace-nowrap flex items-center gap-1"
               >
                 <Headphones size={12} /> Entrevista

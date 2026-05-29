@@ -224,6 +224,7 @@ export default function JobMatches() {
   const jobDataDe = (v) => ({
     title: v.title, company: v.company, location: v.location,
     link: v.link, snippet: v.snippet, via: v.via, salary: v.salary,
+    full_description: [v.title, v.company, v.location, v.snippet].filter(Boolean).join('\n\n'),
   })
 
   const toggleLike = async (v) => {

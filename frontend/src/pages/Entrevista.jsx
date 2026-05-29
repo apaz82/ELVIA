@@ -117,11 +117,39 @@ export default function Entrevista() {
   const [respuestaCorta, setRespuestaCorta] = useState(false)
   const [confirmSalir, setConfirmSalir]     = useState(false)
   const [activeBrowserTab, setActiveBrowserTab] = useState('chrome')
+  const [cvBase, setCvBase]                 = useState('')
   // Brave bloquea Speech Recognition por política de privacidad
   const esBrave = typeof navigator !== 'undefined' && navigator.brave?.isBrave != null
   const recognitionRef = useRef(null)
   const textareaRef    = useRef(null)
   const vocesRef       = useRef([])
+
+  // Cargar CV Base (tipo=optimize sin subtipo especial) para contexto de entrevista
+  useEffect(() => {
+    if (!user) return
+    const SUBTIPOS_EXCLUIDOS = ['infografia_proyecto', 'linkedin_analysis', 'entrevista_simulada', 'desde_cero']
+    supabase.from('cv_results')
+      .select('id, contenido, tipo, metadata')
+      .eq('user_id', user.id)
+      .in('tipo', ['optimize', 'original'])
+      .order('created_at', { ascending: false })
+      .limit(20)
+      .then(({ data }) => {
+        const base = (data || []).find(r => {
+          const subtipo = (typeof r.metadata === 'string' ? JSON.parse(r.metadata) : r.metadata)?.subtipo
+          return !SUBTIPOS_EXCLUIDOS.includes(subtipo) && r.tipo !== 'match'
+        })
+        if (base?.contenido) {
+          try {
+            const parsed = typeof base.contenido === 'string' ? JSON.parse(base.contenido) : base.contenido
+            const texto = parsed?.contenido_cv || parsed?.cv_text || parsed?.texto || ''
+            setCvBase(typeof texto === 'string' ? texto : JSON.stringify(texto))
+          } catch {
+            if (typeof base.contenido === 'string') setCvBase(base.contenido)
+          }
+        }
+      })
+  }, [user])
 
   // Cargar vacantes guardadas con score ≥ 75 y título disponible
   useEffect(() => {
@@ -160,7 +188,7 @@ export default function Entrevista() {
         const data = JSON.parse(prefill)
         setEmpresa(data.empresa || '')
         setCargo(data.cargo || '')
-        setDescripcion(data.descripcion || data.job_data?.description || '')
+        setDescripcion(data.descripcion || data.job_data?.full_description || data.job_data?.description || '')
         if (data.jobId) {
           setVacanteSel({ id: data.jobId })
         }
@@ -176,7 +204,7 @@ export default function Entrevista() {
     setVacanteSel(v)
     setEmpresa(v.job_data?.company || '')
     setCargo(v.job_data?.title || '')
-    setDescripcion(v.job_data?.snippet || v.job_data?.description || '')
+    setDescripcion(v.job_data?.full_description || v.job_data?.description || v.job_data?.snippet || '')
   }
 
   // ── Cargar voces disponibles ───────────────────────────────────────────
@@ -318,6 +346,7 @@ export default function Entrevista() {
     try {
       const { preguntas: qs } = await api.post('/api/interview/preguntas', {
         empresa, cargo, entrevistador, descripcion, numPreguntas,
+        ...(cvBase ? { cv_base: cvBase } : {}),
       })
       setPreguntas(qs)
       setRespuestas(new Array(qs.length).fill(''))

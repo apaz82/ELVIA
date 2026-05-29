@@ -99,10 +99,10 @@ export default function CVvsJob() {
     setError('')
     try {
       const jobData = {
-        title:       saveForm.posicion || resultadoMatch.jobData?.title || '',
-        company:     saveForm.empresa  || resultadoMatch.jobData?.company || '',
-        description: jobText || '',
-        link:        saveForm.link     || resultadoMatch.jobData?.link || '',
+        title:            saveForm.posicion || resultadoMatch.jobData?.title || '',
+        company:          saveForm.empresa  || resultadoMatch.jobData?.company || '',
+        full_description: jobText || '',
+        link:             saveForm.link     || resultadoMatch.jobData?.link || '',
       }
 
       // job_key consistente (titulo|empresa en minúsculas)

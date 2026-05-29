@@ -71,16 +71,20 @@ Contexto actual: ${context || 'Navegando en la plataforma'}`;
 // ─────────────────────────────────────────────────────────────────────────────
 // Generar preguntas de entrevista — Reemplaza generarPreguntasEntrevista (Haiku)
 // ─────────────────────────────────────────────────────────────────────────────
-const generarPreguntasEntrevista = async ({ empresa, cargo, entrevistador, descripcion, numPreguntas }) => {
+const generarPreguntasEntrevista = async ({ empresa, cargo, entrevistador, descripcion, numPreguntas, cv_base }) => {
   const tecnicas = Math.ceil(numPreguntas * 0.5);
   const soft = numPreguntas - tecnicas;
+
+  const cvSection = cv_base
+    ? `\nCV del candidato (úsalo para personalizar las preguntas a su experiencia real):\n${cv_base.substring(0, 3000)}\n`
+    : '';
 
   const prompt = `Eres un experto en procesos de selección en LATAM. Genera exactamente ${numPreguntas} preguntas de entrevista para el siguiente perfil:
 
 Empresa: ${empresa}
 Cargo: ${cargo}
 Tipo de entrevistador: ${entrevistador}
-Descripción de la vacante: ${descripcion || 'No proporcionada'}
+Descripción de la vacante: ${descripcion || 'No proporcionada'}${cvSection}
 
 DISTRIBUCIÓN OBLIGATORIA:
 - ${tecnicas} preguntas técnicas (conocimientos, experiencia, habilidades del cargo)

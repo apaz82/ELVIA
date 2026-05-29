@@ -3,7 +3,7 @@ const { generarPreguntasEntrevista, evaluarEntrevista } = require('../services/d
 // POST /api/interview/preguntas
 const generarPreguntas = async (req, res, next) => {
   try {
-    const { empresa, cargo, entrevistador, descripcion, numPreguntas } = req.body
+    const { empresa, cargo, entrevistador, descripcion, numPreguntas, cv_base } = req.body
     if (!cargo) return res.status(400).json({ error: 'El campo cargo es requerido' })
 
     const preguntas = await generarPreguntasEntrevista({
@@ -12,6 +12,7 @@ const generarPreguntas = async (req, res, next) => {
       entrevistador: entrevistador || 'HR',
       descripcion: descripcion || '',
       numPreguntas: Math.min(Math.max(parseInt(numPreguntas) || 10, 5), 20),
+      cv_base: cv_base || '',
     })
 
     return res.json({ preguntas })
