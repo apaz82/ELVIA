@@ -211,8 +211,9 @@ export default function ReporteLaboral() {
 
           {/* ── HEADER ─────────────────────────────────────────────────────────── */}
           <div style={{
-            background: C.navy,
-            padding: '28px 36px',
+            background: '#f1f5f9',
+            borderBottom: `3px solid ${C.blue}`,
+            padding: '24px 36px',
             display: 'grid',
             gridTemplateColumns: 'auto 1fr auto',
             gap: 20,
@@ -220,11 +221,10 @@ export default function ReporteLaboral() {
           }}>
             {/* Avatar */}
             <div style={{
-              width: 72, height: 72, borderRadius: '50%',
-              background: C.blue,
+              width: 68, height: 68, borderRadius: '50%',
+              background: C.navy,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 26, fontWeight: 800, color: C.white,
-              border: '3px solid rgba(255,255,255,0.2)',
+              fontSize: 24, fontWeight: 800, color: C.white,
               flexShrink: 0,
             }}>
               {initials}
@@ -235,10 +235,10 @@ export default function ReporteLaboral() {
               <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.22em', textTransform: 'uppercase', color: C.blue, marginBottom: 4 }}>
                 Resumen de Autoconocimiento
               </div>
-              <div style={{ fontSize: 26, fontWeight: 800, color: C.white, letterSpacing: '-0.02em', lineHeight: 1.1, marginBottom: 4 }}>
+              <div style={{ fontSize: 26, fontWeight: 800, color: C.slate, letterSpacing: '-0.02em', lineHeight: 1.1, marginBottom: 4 }}>
                 {nombre}
               </div>
-              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)', fontWeight: 500 }}>
+              <div style={{ fontSize: 12, color: C.muted, fontWeight: 500 }}>
                 {cargo}{ubicacion ? ` · ${ubicacion}` : ''}
               </div>
             </div>
@@ -248,9 +248,9 @@ export default function ReporteLaboral() {
               <img
                 src="/LOGOS/ELVIA_logo_fondo_transparente.png"
                 alt="ELVIA"
-                style={{ height: 28, objectFit: 'contain' }}
+                style={{ height: 28, objectFit: 'contain', filter: 'brightness(0) saturate(100%) invert(13%) sepia(50%) saturate(700%) hue-rotate(192deg) brightness(90%)' }}
               />
-              <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', marginTop: 6, letterSpacing: '0.1em' }}>
+              <div style={{ fontSize: 9, color: C.muted2, marginTop: 6, letterSpacing: '0.1em' }}>
                 {fecha}
               </div>
             </div>

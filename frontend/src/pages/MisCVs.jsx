@@ -513,9 +513,10 @@ export default function MisCVs() {
                               {formatFecha(item.created_at)}
                             </p>
                           </div>
-                          <button onClick={() => navigate('/proyecto-laboral')}
-                            className="px-6 py-2.5 text-sm font-bold text-primary border border-primary/30 hover:bg-primary hover:text-white rounded-xl flex items-center justify-center min-w-[160px] transition-all">
-                            Ver en Gerente →
+                          <button onClick={() => navigate(`/reporte/${item.id}`)}
+                            className="px-6 py-2.5 text-sm font-bold text-white bg-primary hover:bg-primary/90 rounded-xl flex items-center justify-center gap-2 min-w-[160px] transition-all shadow-sm">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                            Descargar PDF
                           </button>
                         </div>
                       )
