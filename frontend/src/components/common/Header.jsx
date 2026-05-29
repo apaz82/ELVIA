@@ -14,7 +14,7 @@ const PLAN_CONFIG = {
 
 export default function Header({ onMenuToggle }) {
   const { user, perfil, logout } = useAuth()
-  const { tenant, isB2B, showTenantLogo, showElviaLogo, elviaProminent, showProgramBadge, programBadgeText } = useTenant()
+  const { tenant, isB2B, showTenantLogo, showElviaLogo, elviaProminent, showProgramBadge, programBadgeText, tenantResolved } = useTenant()
   const navigate = useNavigate()
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const dropdownRef = useRef(null)
@@ -45,6 +45,11 @@ export default function Header({ onMenuToggle }) {
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
   }, [])
+
+  // Evita flash B2C→B2B: mostrar header neutro hasta que el tenant esté resuelto
+  if (!tenantResolved) {
+    return <header className="sticky top-0 z-20 h-24 bg-slate-900 shadow-md" />
+  }
 
   return (
     <header className={headerClass} style={headerStyle}>
