@@ -1800,7 +1800,7 @@ function PilarAutoconocimiento({ data, onChange, onSave, justSaved }) {
           onToggle={(val) => toggle('hard_skills', val)}
           icon={<Toolbox size={15} className="text-blue-600" weight="duotone"/>}
           titulo="Hard Skills"
-          subtitulo=”El “Saber hacer” · Competencias técnicas medibles · Recomendado máximo 6”
+          subtitulo='El “Saber hacer” · Competencias técnicas medibles · Recomendado máximo 6'
         />
 
         {/* Power Skills — mismo patrón visual, paleta esmeralda */}
@@ -1811,7 +1811,7 @@ function PilarAutoconocimiento({ data, onChange, onSave, justSaved }) {
           onToggle={(val) => toggle('soft_skills', val)}
           icon={<Heart size={15} className="text-emerald-600" weight="duotone"/>}
           titulo="Power Skills"
-          subtitulo=”El “Saber lograr” · Habilidades humanas de impacto · Recomendado máximo 6”
+          subtitulo='El “Saber lograr” · Habilidades humanas de impacto · Recomendado máximo 6'
         />
 
 
