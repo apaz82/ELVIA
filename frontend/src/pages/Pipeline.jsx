@@ -59,21 +59,10 @@ function VacanteCard({ item, onMover, onEliminar, onGuardarNota, onGuardarContac
         >
           <div className="flex items-center gap-2 flex-wrap">
             <h3 className={`font-semibold text-base leading-snug ${!perdida ? 'text-primary hover:underline cursor-pointer' : 'text-gray-900'}`}>{job.title || '—'}</h3>
-            {check ? (
+            {check && (
               <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${badgeScore(check.score)}`}>
                 {check.score}% · {check.score >= 75 ? 'Top Match' : check.score >= 50 ? 'Buen Match' : 'Bajo Match'}
               </span>
-            ) : !perdida && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  sessionStorage.setItem('vacante_prefill', JSON.stringify({ texto: job.description || job.snippet || '' }))
-                  onNavigate('/cv-vs-job')
-                }}
-                className="text-xs font-medium text-primary border border-primary/30 rounded-full px-2 py-0.5 hover:bg-primary/5 transition-colors"
-              >
-                Ver compatibilidad →
-              </button>
             )}
             {perdida && (
               <span className="text-xs bg-red-50 text-red-500 border border-red-200 rounded-full px-2 py-0.5 font-medium">No avanzó</span>
@@ -101,12 +90,14 @@ function VacanteCard({ item, onMover, onEliminar, onGuardarNota, onGuardarContac
           {mostrarMenu && !perdida ? (
             /* Hover quick actions — inline in header */
             <>
-              <button
-                onClick={(e) => { e.stopPropagation(); sessionStorage.setItem('vacante_prefill', JSON.stringify({ texto: job.description || job.snippet || '' })); onNavigate('/cv-vs-job') }}
-                className="text-xs text-gray-600 border border-gray-200 rounded-lg px-2.5 py-1.5 hover:bg-gray-50 transition-colors whitespace-nowrap"
-              >
-                Ver compatibilidad
-              </button>
+              {!check && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); sessionStorage.setItem('vacante_prefill', JSON.stringify({ texto: job.description || job.snippet || '' })); onNavigate('/cv-vs-job') }}
+                  className="text-xs text-gray-600 border border-gray-200 rounded-lg px-2.5 py-1.5 hover:bg-gray-50 transition-colors whitespace-nowrap"
+                >
+                  Ver compatibilidad
+                </button>
+              )}
               <button
                 onClick={(e) => { e.stopPropagation(); sessionStorage.setItem('entrevista_prefill', JSON.stringify({ empresa: job.company, cargo: job.title, descripcion: job.snippet || job.description, jobId: item.id })); onNavigate('/entrevista') }}
                 className="text-xs text-gray-600 border border-gray-200 rounded-lg px-2.5 py-1.5 hover:bg-gray-50 transition-colors whitespace-nowrap flex items-center gap-1"
