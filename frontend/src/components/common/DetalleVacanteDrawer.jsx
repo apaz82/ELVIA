@@ -25,6 +25,7 @@ export default function DetalleVacanteDrawer({
   const [contacto, setContacto] = useState(item.contacto || {})
   const [guardandoNota, setGuardandoNota] = useState(false)
   const [guardandoContacto, setGuardandoContacto] = useState(false)
+  const [verDescripcion, setVerDescripcion] = useState(false)
 
   // 3.3 — Optimizar CV para esta vacante
   const [generandoCV, setGenerandoCV] = useState(false)
@@ -148,24 +149,40 @@ export default function DetalleVacanteDrawer({
         <div className="p-5 space-y-6">
           {/* Job details section */}
           <section>
-            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">
-              Detalles
-            </h3>
-            <div className="space-y-2 text-sm">
-              {job.company && <p><strong>Empresa:</strong> {job.company}</p>}
-              {job.location && <p><strong>Ubicación:</strong> {job.location}</p>}
-              {job.via && <p><strong>Vía:</strong> {job.via}</p>}
+            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Detalles</h3>
+            <div className="space-y-1.5 text-sm">
+              {job.company  && <p><span className="font-semibold text-gray-500">Empresa:</span> {job.company}</p>}
+              {job.location && <p><span className="font-semibold text-gray-500">Ubicación:</span> {job.location}</p>}
+              {job.via      && <p><span className="font-semibold text-gray-500">Vía:</span> {job.via}</p>}
               {job.link && (
-                <a
-                  href={job.link}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-primary font-medium hover:underline text-sm block"
-                >
+                <a href={job.link} target="_blank" rel="noopener noreferrer"
+                  className="text-primary font-medium hover:underline text-sm block mt-1">
                   Ver vacante →
                 </a>
               )}
             </div>
+
+            {/* Descripción colapsable */}
+            {(job.description || job.snippet) && (
+              <div className="mt-3">
+                <button
+                  onClick={() => setVerDescripcion(v => !v)}
+                  className="flex items-center gap-1.5 text-xs font-semibold text-gray-400 hover:text-gray-700 transition-colors"
+                >
+                  <svg className={`w-3.5 h-3.5 transition-transform ${verDescripcion ? 'rotate-90' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/>
+                  </svg>
+                  {verDescripcion ? 'Ocultar descripción' : 'Ver descripción de la vacante'}
+                </button>
+                {verDescripcion && (
+                  <div className="mt-2 bg-gray-50 border border-gray-200 rounded-xl p-3 max-h-60 overflow-y-auto">
+                    <p className="text-xs text-gray-600 whitespace-pre-wrap leading-relaxed">
+                      {job.description || job.snippet}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
           </section>
 
           {/* Stage management */}
@@ -187,69 +204,44 @@ export default function DetalleVacanteDrawer({
           {/* Match score if exists */}
           {check && (
             <section>
-              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">
-                Compatibilidad
-              </h3>
+              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Compatibilidad</h3>
               <div className="flex items-center gap-3">
-                <div
-                  className={`w-16 h-16 rounded-full flex items-center justify-center font-black text-lg shrink-0 ${
-                    check.score >= 75
-                      ? 'bg-green-100 text-green-700'
-                      : check.score >= 50
-                      ? 'bg-amber-100 text-amber-700'
-                      : 'bg-red-100 text-red-600'
-                  }`}
-                >
+                <div className={`w-16 h-16 rounded-full flex items-center justify-center font-black text-lg shrink-0 ${
+                  check.score >= 75 ? 'bg-green-100 text-green-700'
+                  : check.score >= 50 ? 'bg-amber-100 text-amber-700'
+                  : 'bg-red-100 text-red-600'
+                }`}>
                   {check.score}%
                 </div>
                 <div>
                   <p className="text-sm font-semibold">
-                    {check.score >= 75
-                      ? 'Top Match'
-                      : check.score >= 50
-                      ? 'Good Match'
-                      : 'Low Match'}
+                    {check.score >= 75 ? 'Top Match' : check.score >= 50 ? 'Buen Match' : 'Bajo Match'}
                   </p>
-                  <Link
-                    to="/cv-vs-job"
-                    className="text-xs text-primary hover:underline"
-                  >
-                    Ver análisis →
-                  </Link>
+                  {check.motivos?.length > 0 && (
+                    <p className="text-xs text-gray-400 mt-0.5 line-clamp-2">{check.motivos[0]}</p>
+                  )}
                 </div>
               </div>
             </section>
           )}
 
-          {/* Quick action buttons */}
-          <section className="space-y-2">
+          {/* Quick action: solo Preparar entrevista (Analizar CV vive en sección CV Adaptado abajo) */}
+          <section>
             <button
               onClick={() => {
-                sessionStorage.setItem(
-                  'vacante_prefill',
-                  JSON.stringify({ texto: job.description || '' })
-                )
-                onNavigate('/cv-vs-job')
-              }}
-              className="w-full text-sm bg-primary text-white font-semibold py-2.5 rounded-lg hover:bg-primary/90 transition-colors"
-            >
-              Analizar CV
-            </button>
-            <button
-              onClick={() => {
-                sessionStorage.setItem(
-                  'entrevista_prefill',
-                  JSON.stringify({
-                    empresa: job.company,
-                    cargo: job.title,
-                    descripcion: job.description,
-                    jobId: item.id
-                  })
-                )
+                sessionStorage.setItem('entrevista_prefill', JSON.stringify({
+                  empresa: job.company,
+                  cargo: job.title,
+                  descripcion: job.description || job.snippet || '',
+                  jobId: item.id
+                }))
                 onNavigate('/entrevista')
               }}
-              className="w-full text-sm bg-blue-500 text-white font-semibold py-2.5 rounded-lg hover:bg-blue-600 transition-colors"
+              className="w-full text-sm bg-blue-600 text-white font-semibold py-2.5 rounded-xl hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
             >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/>
+              </svg>
               Preparar entrevista
             </button>
           </section>
