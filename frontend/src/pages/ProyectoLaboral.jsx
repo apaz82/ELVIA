@@ -254,6 +254,8 @@ function PilarMiPerfil({ perfil, extraData, onChange, onSavePerfil, saving, isPa
   const [cvForceApply, setCvForceApply] = useState(false) // usuario confirma que es su CV a pesar de discrepancia
   const lpLoaded = useRef(false)   // evita auto-save en la carga inicial
   const autoSaveTimer = useRef(null)
+  const onChangeRef = useRef(onChange)
+  useEffect(() => { onChangeRef.current = onChange }, [onChange])
   const [originalCvId, setOriginalCvId] = useState(null)
   const [descargandoOriginal, setDescargandoOriginal] = useState(null)
   const [justSaved, setJustSaved] = useState(false) // Feedback visual para botones
@@ -390,13 +392,15 @@ function PilarMiPerfil({ perfil, extraData, onChange, onSavePerfil, saving, isPa
   }
 
   // Auto-save con debounce de 1.5s — solo después de que el usuario haya editado
+  // Usamos refs para onSavePerfil y onChange para evitar que el cambio de referencia
+  // de esas props cause re-renders del padre mientras el usuario está tipeando.
   useEffect(() => {
     if (!lpLoaded.current) return
     if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current)
     autoSaveTimer.current = setTimeout(() => {
-      onSavePerfil(lp)
-      // Propagar al parent en debounce
-      onChange({
+      onSavePerfilRef.current(lp)
+      // Propagar al parent — usa ref para no disparar re-render por cambio de prop
+      onChangeRef.current({
         ...d,
         fondo_ahorro_monto: lp.fondo_ahorro_monto,
         bonos_extra: lp.bonos_extra,
@@ -418,7 +422,7 @@ function PilarMiPerfil({ perfil, extraData, onChange, onSavePerfil, saving, isPa
           // Guardar en sessionStorage de forma síncrona para carga instantánea al volver
           if (userId) sessionStorage.setItem(`perfil_lp_${userId}`, JSON.stringify(lpRef.current))
           onSavePerfilRef.current(lpRef.current)
-          onChange({
+          onChangeRef.current({
             ...d,
             fondo_ahorro_monto: lpRef.current.fondo_ahorro_monto,
             bonos_extra: lpRef.current.bonos_extra,
