@@ -117,13 +117,14 @@ export default function MisCVs() {
   const [cvsOriginal,    setCvsOriginal]    = useState([])
   const [cvsMatch,       setCvsMatch]       = useState([])
   const [cvsReportes,    setCvsReportes]    = useState([])
-  // Reportes guardados desde LinkedIn Pro (metadata.subtipo === 'linkedin_analysis')
   const [cvsLinkedin,    setCvsLinkedin]    = useState([])
+  const [cvsEntrevistas, setCvsEntrevistas] = useState([])
   const [checks, setChecks]                 = useState([])
   const [loading, setLoading]               = useState(true)
   const [descargando, setDescargando]       = useState({})
-  // Tab inicial respeta ?tab=linkedin del query string (lo usa LinkedinPro tras descargar PDF).
-  const tabInicial = searchParams.get('tab') === 'linkedin' ? 'linkedin' : 'optimizados'
+  // Tab inicial desde query string (?tab=reportes lo usa Entrevista, ?tab=linkedin lo usa LinkedinPro)
+  const tabParam = searchParams.get('tab')
+  const tabInicial = ['linkedin','reportes','match','compatibilidades','original'].includes(tabParam) ? tabParam : 'optimizados'
   const [tab, setTab]                       = useState(tabInicial)
   const [filtroCompatibilidad, setFiltroCompatibilidad] = useState('todos')
   const [seleccionados, setSeleccionados]   = useState(new Set())
@@ -175,10 +176,20 @@ export default function MisCVs() {
     // - Reportes: subtipo 'infografia' o tipo 'infografia_proyecto' (legacy)
     
     // Optimizados: excluir infografía Y análisis LinkedIn (que tienen su propia tab)
-    setCvsOptimizados(todos.filter(c => c.tipo === 'optimize' && c.subtipo !== 'infografia_proyecto' && c.subtipo !== 'linkedin_analysis'))
+    const SUBTIPOS_REPORTE = ['infografia_proyecto', 'linkedin_analysis', 'entrevista_simulada']
+    setCvsOptimizados(todos.filter(c => c.tipo === 'optimize' && !SUBTIPOS_REPORTE.includes(c.subtipo)))
     setCvsOriginal(todos.filter(c => c.tipo === 'original'))
-    setCvsReportes(todos.filter(c => c.tipo === 'infografia_proyecto' || c.subtipo === 'infografia_proyecto'))
-    // Análisis LinkedIn — guardados desde LinkedinPro al descargar el PDF del informe
+    // Reportes: infografías + LinkedIn + entrevistas (todo lo que no es CV)
+    const ahora = new Date()
+    const entrevistas = todos.filter(c => c.subtipo === 'entrevista_simulada').map(c => ({
+      ...c,
+      expirado: c.metadata?.expires_at ? new Date(c.metadata.expires_at) < ahora : false,
+      diasRestantes: c.metadata?.expires_at
+        ? Math.max(0, Math.ceil((new Date(c.metadata.expires_at) - ahora) / (1000 * 60 * 60 * 24)))
+        : null,
+    }))
+    setCvsEntrevistas(entrevistas)
+    setCvsReportes(todos.filter(c => c.subtipo === 'infografia_proyecto'))
     setCvsLinkedin(todos.filter(c => c.subtipo === 'linkedin_analysis'))
     
     setCvsMatch(todos.filter(c => c.tipo === 'match').map(cv => {
@@ -294,13 +305,13 @@ export default function MisCVs() {
   const checksAlto = checks.filter(c => c.score >= 70).length
   const checksBajo = checks.filter(c => c.score < 70).length
 
+  const totalReportes = cvsReportes.length + cvsLinkedin.length + cvsEntrevistas.length
   const tabs = [
-    { key: 'optimizados',     label: `CV Optimizado (${cvsOptimizados.length})` },
-    { key: 'original',        label: `CV Inicial (${cvsOriginal.length})` },
-    { key: 'reportes',        label: `Reportes (${cvsReportes.length})` },
-    { key: 'linkedin',        label: `LinkedIn® (${cvsLinkedin.length})` },
-    { key: 'compatibilidades', label: `Compatibilidad (${checks.length})` },
-    { key: 'match',           label: `CV vs Vacante (${cvsMatch.length})` },
+    { key: 'optimizados',      label: `CV Optimizado (${cvsOptimizados.length})` },
+    { key: 'original',         label: `CV Inicial (${cvsOriginal.length})` },
+    { key: 'reportes',         label: `Reportes (${totalReportes})` },
+    { key: 'compatibilidades', label: `Análisis Rápidos (${checks.length})` },
+    { key: 'match',            label: `CV Adaptados (${cvsMatch.length})` },
   ]
 
   return (
@@ -372,80 +383,122 @@ export default function MisCVs() {
             </div>
           )}
 
-          {/* Tab 1.2: Reportes (Infografías) */}
+          {/* Tab Reportes: Infografías + LinkedIn + Entrevistas */}
           {tab === 'reportes' && (
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 border-b border-gray-100 pb-3 mb-2">
-                <h3 className="text-sm font-bold text-gray-800">Planes de Carrera / Infografías</h3>
-                <HelpBadge id="miscvs.reportes" />
-              </div>
-              {cvsReportes.length === 0
-              ? <EmptyState mensaje="No has generado tu Plan de Carrera Ejecutivo." cta="Definir mi Proyecto" ruta="/proyecto-laboral" />
-              : <div className="space-y-4">
-                  {cvsReportes.map(item => (
-                    <div key={item.id} className="group flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 bg-white border border-gray-100 rounded-2xl hover:border-purple-300 hover:shadow-xl hover:shadow-purple-50 transition-all duration-300">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap mb-2">
-                          <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-lg bg-purple-50 text-purple-600 border border-purple-100">Plan de Carrera</span>
-                        </div>
-                        <p className="text-lg font-bold text-gray-800 truncate group-hover:text-purple-600 transition-colors">
-                          Reporte: {item.metadata?.filename || 'Infografía Visual Executive'}
-                        </p>
-                        <p className="text-sm text-gray-400 mt-1 flex items-center gap-1.5 font-medium">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                          </svg>
-                          {formatFecha(item.created_at)}
-                        </p>
-                      </div>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => navigate(`/reporte-visual/${item.id}`)}
-                          className="px-6 py-2.5 text-sm font-bold text-white bg-purple-600 hover:bg-purple-700 rounded-xl flex items-center justify-center min-w-[160px] transition-all shadow-lg shadow-purple-200"
-                        >
-                          Ver Infografía →
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              }
-            </div>
-          )}
+            <div className="space-y-8">
 
-          {/* Tab LinkedIn — análisis guardados desde LinkedIn Pro */}
-          {tab === 'linkedin' && (
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 border-b border-gray-100 pb-3 mb-2">
-                <LinkedinLogo size={18} weight="fill" className="text-[#0077B5]" />
-                <h3 className="text-sm font-bold text-gray-800">Análisis de LinkedIn®</h3>
-                <HelpBadge id="miscvs.linkedin" />
+              {/* Sección: Entrevistas simuladas */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 border-b border-gray-100 pb-3">
+                  <h3 className="text-sm font-bold text-gray-800">Simulaciones de Entrevista</h3>
+                  <span className="text-[10px] text-gray-400 font-medium">· disponibles 14 días</span>
+                </div>
+                {cvsEntrevistas.length === 0
+                ? <EmptyState mensaje="Aún no tienes reportes de entrevista." cta="Practicar entrevista" ruta="/entrevista" />
+                : <div className="space-y-3">
+                    {cvsEntrevistas.map(item => {
+                      const meta = item.metadata || {}
+                      const score = meta.puntuacion
+                      const scoreColor = score >= 80 ? 'bg-green-50 text-green-700 border-green-200'
+                        : score >= 60 ? 'bg-amber-50 text-amber-700 border-amber-200'
+                        : 'bg-red-50 text-red-600 border-red-200'
+                      return (
+                        <div key={item.id} className={`group flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 border rounded-2xl transition-all duration-300 ${item.expirado ? 'opacity-50 bg-gray-50 border-gray-200' : 'bg-white border-gray-100 hover:border-primary/30 hover:shadow-lg'}`}>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap mb-2">
+                              <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-lg bg-primary/5 text-primary border border-primary/10">
+                                Entrevista — {meta.entrevistador || 'HR'}
+                              </span>
+                              {typeof score === 'number' && (
+                                <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-lg border ${scoreColor}`}>
+                                  {score} / 100
+                                </span>
+                              )}
+                              {item.expirado
+                                ? <span className="text-[10px] font-bold text-gray-400 bg-gray-100 border border-gray-200 px-2 py-0.5 rounded-full">Expirado</span>
+                                : item.diasRestantes !== null && (
+                                  <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+                                    {item.diasRestantes}d restantes
+                                  </span>
+                                )
+                              }
+                            </div>
+                            <p className="text-base font-bold text-gray-800 truncate">{meta.filename || `Entrevista ${meta.cargo}`}</p>
+                            {meta.resumen && <p className="text-xs text-gray-400 mt-1 line-clamp-2">{meta.resumen}</p>}
+                            <p className="text-sm text-gray-400 mt-1.5 flex items-center gap-1.5 font-medium">
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                              </svg>
+                              {formatFecha(item.created_at)}
+                            </p>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                }
               </div>
-              {cvsLinkedin.length === 0
-              ? <EmptyState mensaje="Aún no has guardado un análisis de LinkedIn." cta="Analizar mi LinkedIn ahora" ruta="/linkedin-pro" />
-              : <div className="space-y-4">
-                  {cvsLinkedin.map(item => {
-                    const meta = item.metadata || {}
-                    const puntaje = meta.puntaje_global
-                    const puntajeColor = puntaje >= 80 ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                      : puntaje >= 60 ? 'bg-blue-50 text-blue-700 border-blue-200'
-                      : puntaje >= 40 ? 'bg-amber-50 text-amber-700 border-amber-200'
-                      : 'bg-rose-50 text-rose-700 border-rose-200'
-                    return (
-                      <div key={item.id} className="group flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 bg-white border border-gray-100 rounded-2xl hover:border-[#0077B5]/40 hover:shadow-xl hover:shadow-blue-50 transition-all duration-300">
+
+              {/* Sección: Análisis LinkedIn */}
+              {cvsLinkedin.length > 0 && (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 border-b border-gray-100 pb-3">
+                    <LinkedinLogo size={16} weight="fill" className="text-[#0077B5]" />
+                    <h3 className="text-sm font-bold text-gray-800">Análisis de LinkedIn®</h3>
+                  </div>
+                  <div className="space-y-4">
+                    {cvsLinkedin.map(item => {
+                      const meta = item.metadata || {}
+                      const puntaje = meta.puntaje_global
+                      const puntajeColor = puntaje >= 80 ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                        : puntaje >= 60 ? 'bg-blue-50 text-blue-700 border-blue-200'
+                        : puntaje >= 40 ? 'bg-amber-50 text-amber-700 border-amber-200'
+                        : 'bg-rose-50 text-rose-700 border-rose-200'
+                      return (
+                        <div key={item.id} className="group flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 bg-white border border-gray-100 rounded-2xl hover:border-[#0077B5]/40 hover:shadow-xl hover:shadow-blue-50 transition-all duration-300">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap mb-2">
+                              <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-lg bg-[#0077B5]/5 text-[#0077B5] border border-[#0077B5]/15">Análisis LinkedIn</span>
+                              {typeof puntaje === 'number' && (
+                                <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-lg border ${puntajeColor}`}>{puntaje} / 100</span>
+                              )}
+                            </div>
+                            <p className="text-lg font-bold text-gray-800 truncate group-hover:text-[#0077B5] transition-colors">
+                              {(meta.filename || 'Informe LinkedIn').replace(/_/g, ' ').replace(/\.pdf$/i, '')}
+                            </p>
+                            <p className="text-sm text-gray-400 mt-1 flex items-center gap-1.5 font-medium">
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                              </svg>
+                              {formatFecha(item.created_at)}
+                            </p>
+                          </div>
+                          <button onClick={() => descargarLinkedinPDF(item)}
+                            className="px-6 py-2.5 text-sm font-bold text-white bg-[#0077B5] hover:bg-[#005e8d] rounded-xl flex items-center justify-center min-w-[160px] transition-all shadow-lg shadow-blue-100">
+                            Descargar PDF
+                          </button>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Sección: Infografías de Proyecto Laboral */}
+              {cvsReportes.length > 0 && (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 border-b border-gray-100 pb-3">
+                    <h3 className="text-sm font-bold text-gray-800">Planes de Carrera / Infografías</h3>
+                  </div>
+                  <div className="space-y-4">
+                    {cvsReportes.map(item => (
+                      <div key={item.id} className="group flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 bg-white border border-gray-100 rounded-2xl hover:border-purple-300 hover:shadow-xl hover:shadow-purple-50 transition-all duration-300">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap mb-2">
-                            <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-lg bg-[#0077B5]/5 text-[#0077B5] border border-[#0077B5]/15">
-                              Análisis LinkedIn
-                            </span>
-                            {typeof puntaje === 'number' ? (
-                              <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-lg border ${puntajeColor}`}>
-                                {puntaje} / 100
-                              </span>
-                            ) : null}
+                            <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-lg bg-purple-50 text-purple-600 border border-purple-100">Plan de Carrera</span>
                           </div>
-                          <p className="text-lg font-bold text-gray-800 truncate group-hover:text-[#0077B5] transition-colors">
-                            {(meta.filename || 'Informe LinkedIn').replace(/_/g, ' ').replace(/\.pdf$/i, '')}
+                          <p className="text-lg font-bold text-gray-800 truncate group-hover:text-purple-600 transition-colors">
+                            {item.metadata?.filename || 'Infografía Visual Executive'}
                           </p>
                           <p className="text-sm text-gray-400 mt-1 flex items-center gap-1.5 font-medium">
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -454,19 +507,19 @@ export default function MisCVs() {
                             {formatFecha(item.created_at)}
                           </p>
                         </div>
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => descargarLinkedinPDF(item)}
-                            className="px-6 py-2.5 text-sm font-bold text-white bg-[#0077B5] hover:bg-[#005e8d] rounded-xl flex items-center justify-center min-w-[160px] transition-all shadow-lg shadow-blue-100"
-                          >
-                            Descargar PDF
-                          </button>
-                        </div>
+                        <button onClick={() => navigate(`/reporte-visual/${item.id}`)}
+                          className="px-6 py-2.5 text-sm font-bold text-white bg-purple-600 hover:bg-purple-700 rounded-xl flex items-center justify-center min-w-[160px] transition-all shadow-lg shadow-purple-200">
+                          Ver Infografía →
+                        </button>
                       </div>
-                    )
-                  })}
+                    ))}
+                  </div>
                 </div>
-              }
+              )}
+
+              {totalReportes === 0 && (
+                <EmptyState mensaje="Aún no tienes reportes generados." cta="Ir al simulador de entrevista" ruta="/entrevista" />
+              )}
             </div>
           )}
 

@@ -37,6 +37,34 @@ const evaluar = async (req, res, next) => {
       feedbackPorPregunta: !!feedbackPorPregunta,
     })
 
+    // Guardar reporte en cv_results con TTL soft de 14 días
+    // Solo para evaluaciones finales (no feedback por pregunta)
+    if (!feedbackPorPregunta && req.user?.id) {
+      try {
+        const db = req.supabase
+        const expiresAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString()
+
+        await db.from('cv_results').insert({
+          user_id: req.user.id,
+          tipo: 'optimize',
+          contenido: JSON.stringify({ resultado, preguntas, respuestas }),
+          metadata: {
+            subtipo: 'entrevista_simulada',
+            cargo,
+            empresa: empresa || '',
+            entrevistador: entrevistador || 'HR',
+            puntuacion: resultado.puntuacion,
+            resumen: resultado.resumen,
+            expires_at: expiresAt,
+            filename: `Entrevista ${cargo}${empresa ? ' — ' + empresa : ''} ${new Date().toISOString().slice(0, 10)}`,
+          },
+        })
+      } catch (saveErr) {
+        // No bloquear la respuesta si falla el guardado
+        console.error('[interviewController] Error guardando reporte:', saveErr)
+      }
+    }
+
     return res.json(resultado)
   } catch (err) {
     next(err)
