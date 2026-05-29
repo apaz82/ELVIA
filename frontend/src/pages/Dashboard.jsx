@@ -274,7 +274,7 @@ export default function Dashboard() {
   // Fórmulas para círculo de progreso
   const radioGauge = 55
   const circunferenciaGauge = 2 * Math.PI * radioGauge
-  const strokeOffset = circunferenciaGauge - (circunferenciaGauge * (isDemoGauge ? 85 : matchScore)) / 100
+  const strokeOffset = circunferenciaGauge - (circunferenciaGauge * (isDemoGauge ? 0 : matchScore)) / 100
 
   const val = (v, suffix = '') => loadingMetricas ? '—' : `${v ?? 0}${suffix}`
 
@@ -480,7 +480,7 @@ export default function Dashboard() {
 
                 {/* Texto Central */}
                 <text x="100" y="102" textAnchor="middle" fill="#1e293b" fontSize="24" fontWeight="900" letterSpacing="-1">
-                  {val(isDemoGauge ? 85 : matchScore, '%')}
+                  {val(isDemoGauge ? 0 : matchScore, '%')}
                 </text>
                 <text x="100" y="120" textAnchor="middle" fill="#94a3b8" fontSize="8" fontWeight="black" letterSpacing="1" className="uppercase">
                   {isDemoGauge ? 'Simulado' : 'Match Promedio'}
