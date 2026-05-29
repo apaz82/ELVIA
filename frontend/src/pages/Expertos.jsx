@@ -205,7 +205,6 @@ export default function Expertos() {
                   playsInline
                   webkit-playsinline="true"
                   className="w-full h-auto object-cover"
-                  poster="/mentor_hero_human.png"
                 />
                 
                 {/* Brand Overlay */}
