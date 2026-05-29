@@ -83,6 +83,7 @@ export default function CVvsJob() {
   const [loadingText, setLoadingText] = useState('')
   const [showAuthWall, setShowAuthWall] = useState(false)
   const [error, setError] = useState('')
+  const [duplicadoDetectado, setDuplicadoDetectado] = useState(null)
   const [tabActiva, setTabActiva] = useState('cv')
   const [brechaAbierta, setBrechaAbierta] = useState(null)
   const [showSaveForm, setShowSaveForm] = useState(false)
@@ -126,11 +127,21 @@ export default function CVvsJob() {
   useEffect(() => {
     setError('')
     setResultadoMatch(null)
+    setDuplicadoDetectado(null)
   }, [jobText, selectedCvId])
 
   const analizar = async () => {
     if (!selectedCvId) return setError('Selecciona un CV optimizado para continuar.')
     if (!jobText.trim()) return setError('Pega la descripción de la vacante')
+
+    // Detectar vacante duplicada antes de llamar a la IA
+    const fingerprint = jobText.trim().toLowerCase().slice(0, 300)
+    const duplicado = historialAnalisis.find(h => h.metadata?.job_fingerprint === fingerprint)
+    if (duplicado && !duplicadoDetectado) {
+      setDuplicadoDetectado(duplicado)
+      return
+    }
+    setDuplicadoDetectado(null)
 
     setError('')
     setLoading(true)
@@ -349,6 +360,41 @@ export default function CVvsJob() {
             </Button>
           </div>
           {error && <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">{error}</div>}
+          {duplicadoDetectado && (
+            <div className="mt-4 bg-amber-50 border border-amber-200 rounded-xl p-4">
+              <p className="text-sm font-bold text-amber-800 mb-1">Ya analizaste esta vacante</p>
+              <p className="text-xs text-amber-700 mb-3">
+                Tienes un análisis del {new Date(duplicadoDetectado.created_at).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })} para esta misma vacante. ¿Qué deseas hacer?
+              </p>
+              <div className="flex gap-2 flex-wrap">
+                <button
+                  onClick={() => {
+                    const meta = duplicadoDetectado.metadata || {}
+                    setResultadoMatch({ id: duplicadoDetectado.id, matchScore: meta.matchScore ?? 0, analisis: meta.analisis || { fortalezas: [], brechas: [], conclusion: '' }, jobData: meta.jobData || {}, keywords: meta.keywords || null, dimensiones: meta.dimensiones || null, tailoredCV: null, changes: meta.changes || [] })
+                    setCvDesvelado(false)
+                    setTabActiva('analisis')
+                    setDuplicadoDetectado(null)
+                    window.scrollTo({ top: 0, behavior: 'smooth' })
+                  }}
+                  className="text-xs font-bold px-3 py-2 bg-white border border-amber-300 text-amber-800 rounded-lg hover:bg-amber-100 transition-colors"
+                >
+                  Ver análisis anterior
+                </button>
+                <button
+                  onClick={analizar}
+                  className="text-xs font-bold px-3 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors"
+                >
+                  Analizar de nuevo
+                </button>
+                <button
+                  onClick={() => setDuplicadoDetectado(null)}
+                  className="text-xs text-amber-600 hover:text-amber-800 px-2 py-2 transition-colors"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {showAuthWall && (
