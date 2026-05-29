@@ -104,99 +104,47 @@ export default function CVvsJob() {
         description: jobText || '',
         link:        saveForm.link     || resultadoMatch.jobData?.link || '',
       }
-      
-      // Generar un job_key consistente (titulo|empresa en minúsculas)
+
+      // job_key consistente (titulo|empresa en minúsculas)
       const key = `${(jobData.title || '').toLowerCase().trim()}|${(jobData.company || '').toLowerCase().trim()}`
-      console.log('Intentando guardar vacante con job_key consistente:', key)
+      console.log('Guardando vacante — job_key:', key)
 
-      let savedRows = null
-      let errJob = null
-
-      // Intento 1: Inserción completa con todos los campos (B2B multi-tenant) y job_key, omitiendo 'descripcion' plana
-      const res1 = await supabase
+      // Insert alineado al schema real de saved_jobs (sin columnas fantasma)
+      const { data: savedRows, error: errJob } = await supabase
         .from('saved_jobs')
         .insert({
-          user_id: user.id,
+          user_id:    user.id,
           company_id: companyId || null,
-          job_key: key,
-          titulo: jobData.title,
-          empresa: jobData.company,
-          job_data: jobData,
-          estado: saveForm.etapa,
-          notas: '',
+          job_key:    key,
+          job_data:   jobData,
+          estado:     saveForm.etapa,
+          notas:      '',
         })
         .select('id')
 
-      savedRows = res1.data
-      errJob = res1.error
-
-      // Si el intento 1 falla por un error de bad request (código 400 o columnas faltantes/incompatibles)
-      if (errJob && (errJob.code === 'PGRST204' || errJob.code === 'PGRST220' || errJob.status === 400 || errJob.message?.includes('column'))) {
-        console.warn('Fallo intento 1 (posible columna faltante o restricción RLS). Ejecutando fallback seguro...', errJob)
-        
-        // Fallback: Inserción limpia con los campos básicos e históricos que existen garantizadamente
-        const resFallback = await supabase
-          .from('saved_jobs')
-          .insert({
-            user_id: user.id,
-            titulo: jobData.title,
-            empresa: jobData.company,
-            job_data: jobData,
-            estado: saveForm.etapa,
-            notas: '',
-          })
-          .select('id')
-        
-        savedRows = resFallback.data
-        errJob = resFallback.error
-      }
-
       if (errJob) {
-        console.error('Error insertando en saved_jobs después de intentos:', errJob)
+        console.error('Error insertando en saved_jobs:', errJob)
         throw errJob
       }
 
       const saved = savedRows?.[0]
-      if (!saved?.id) {
-        const noSavedErr = new Error('No se recibió el ID de la vacante guardada')
-        console.error(noSavedErr)
-        throw noSavedErr
-      }
+      if (!saved?.id) throw new Error('No se recibió el ID de la vacante guardada')
 
-      console.log('Vacante guardada exitosamente en saved_jobs con ID:', saved.id)
+      console.log('Vacante guardada en saved_jobs con ID:', saved.id)
 
-      // Upsert en job_checks con resiliencia
-      let errCheck = null
-      
-      // Intento 1: con job_key consistente y company_id
-      const resCheck1 = await supabase.from('job_checks').upsert({
-        job_key:  key,
-        user_id:  user.id,
+      // Upsert en job_checks para vincular el score
+      const { error: errCheck } = await supabase.from('job_checks').upsert({
+        job_key:    key,
+        user_id:    user.id,
         company_id: companyId || null,
-        score:    resultadoMatch.matchScore,
-        motivos:  resultadoMatch.analisis?.fortalezas ?? [],
+        score:      resultadoMatch.matchScore,
+        motivos:    resultadoMatch.analisis?.fortalezas ?? [],
       })
-      errCheck = resCheck1.error
-
-      // Si falla por problemas de columna/restricción
-      if (errCheck && (errCheck.code === 'PGRST204' || errCheck.code === 'PGRST220' || errCheck.status === 400 || errCheck.message?.includes('column'))) {
-        console.warn('Fallo intento 1 en job_checks. Ejecutando fallback seguro...', errCheck)
-        
-        // Fallback: Upsert clásico usando el ID de la vacante como job_key y omitiendo company_id
-        const resCheckFallback = await supabase.from('job_checks').upsert({
-          job_key:  saved.id,
-          user_id:  user.id,
-          score:    resultadoMatch.matchScore,
-          motivos:  resultadoMatch.analisis?.fortalezas ?? [],
-        })
-        errCheck = resCheckFallback.error
-      }
 
       if (errCheck) {
-        console.error('Error insertando/actualizando job_checks:', errCheck)
-        // No bloqueamos al usuario si la vacante principal saved_jobs se guardó con éxito
+        console.warn('Error en job_checks (no bloquea):', errCheck)
       } else {
-        console.log('Compatibilidad guardada exitosamente en job_checks')
+        console.log('Score guardado en job_checks')
       }
 
       setSavedToPipeline(true)
