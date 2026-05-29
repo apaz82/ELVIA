@@ -30,9 +30,9 @@ export default function Auth() {
   const turnstileRef = useRef(null)
 
   const [searchParams] = useSearchParams()
+  // /auth solo muestra login — registro B2C deshabilitado en modo comercial B2B
   const [modo, setModo]         = useState(
-    searchParams.get('register') ? 'register' :
-    searchParams.get('forgot')   ? 'forgot'   : 'login'
+    searchParams.get('forgot') ? 'forgot' : 'login'
   )
   const [email, setEmail]         = useState('')
   const [password, setPassword]   = useState('')
@@ -113,9 +113,14 @@ export default function Auth() {
 
     try {
       if (modo === 'login') {
-        const { error } = await login(email, password)
-        if (error) setError(traducirError(error.message))
-        else setLoginSuccess(true)
+        const { error } = await login(email, password, turnstileToken)
+        if (error) {
+          setError(traducirError(error.message))
+          if (turnstileRef.current) turnstileRef.current.reset()
+          setTurnstileToken(null)
+        } else {
+          setLoginSuccess(true)
+        }
       } else {
         // Validaciones de registro
         if (!nombre.trim())    { setError('El nombre es requerido.'); setLoading(false); return }
@@ -289,21 +294,33 @@ export default function Auth() {
         <div className="bg-white rounded-2xl border border-gray-200 p-8 shadow-sm">
 
           {/* Logo + título */}
-          <div className="text-center mb-7">
+          <div className="text-center mb-6">
             <Link to="/">
               <img src="/LOGOS/ELVIA_logo_fondo_transparente.png" alt="ELVIA" className="h-10 mx-auto mb-6" />
             </Link>
             <h1 className="text-2xl font-bold text-gray-900">
-              {modo === 'login'    ? 'Iniciar sesión'
-               : modo === 'register' ? 'Crear cuenta gratis'
-               : 'Recuperar contraseña'}
+              {modo === 'login' ? 'Iniciar sesión' : modo === 'register' ? 'Crear cuenta' : 'Recuperar contraseña'}
             </h1>
             <p className="text-sm text-gray-500 mt-1">
-              {modo === 'login'    ? 'Bienvenido de nuevo'
-               : modo === 'register' ? 'Únete a nuestra comunidad'
-               : 'Te enviaremos un enlace por email'}
+              {modo === 'login' ? 'Accede a tu cuenta ELVIA' : modo === 'register' ? 'Crea tu cuenta' : 'Te enviaremos un enlace por email'}
             </p>
           </div>
+
+          {/* Banner informativo — solo en login */}
+          {modo === 'login' && (
+            <div className="mb-5 bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 flex gap-3 items-start">
+              <svg className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div>
+                <p className="text-xs font-semibold text-blue-800 mb-0.5">Acceso exclusivo para participantes</p>
+                <p className="text-xs text-blue-700 leading-relaxed">
+                  Este portal es para usuarios registrados en un programa corporativo ELVIA.
+                  Si tu empresa aún no hace parte, <a href="/#contacto-comercial" className="underline font-semibold hover:text-blue-900">solicita información aquí</a>.
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* ── Formulario olvidé contraseña ── */}
           {modo === 'forgot' ? (
@@ -524,37 +541,31 @@ export default function Auth() {
                 </label>
               )}
 
-              {/* Validación de robot (Cloudflare Turnstile) — solo en registro */}
-              {modo === 'register' && (
-                <div className="flex justify-center py-2">
-                  <Turnstile
-                    ref={turnstileRef}
-                    siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY || '1x00000000000000000000AA'}
-                    onSuccess={(token) => setTurnstileToken(token)}
-                    onExpire={() => setTurnstileToken(null)}
-                    onError={() => {
-                      setError('Error en la validación de seguridad. Intenta de nuevo.')
-                      if (turnstileRef.current) turnstileRef.current.reset()
-                      setTurnstileToken(null)
-                    }}
-                  />
-                </div>
-              )}
+              {/* Validación de robot (Cloudflare Turnstile) — login y registro */}
+              <div className="flex justify-center py-2">
+                <Turnstile
+                  ref={turnstileRef}
+                  siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY || '1x00000000000000000000AA'}
+                  onSuccess={(token) => setTurnstileToken(token)}
+                  onExpire={() => setTurnstileToken(null)}
+                  onError={() => {
+                    setError('Error en la validación de seguridad. Intenta de nuevo.')
+                    if (turnstileRef.current) turnstileRef.current.reset()
+                    setTurnstileToken(null)
+                  }}
+                />
+              </div>
 
               {error && (
                 <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600">
                   {error === '__NO_REGISTRADO__' ? (
                     <span>
                       No encontramos una cuenta con ese correo y contraseña.{' '}
-                      <button type="button" onClick={() => cambiarModo('register')}
-                        className="underline font-semibold hover:text-red-800 cursor-pointer">
-                        ¿Quieres crear una cuenta?
-                      </button>
-                      {' '}o{' '}
                       <button type="button" onClick={() => cambiarModo('forgot')}
                         className="underline font-semibold hover:text-red-800 cursor-pointer">
-                        recuperar tu contraseña
-                      </button>.
+                        ¿Olvidaste tu contraseña?
+                      </button>
+                      {' '}Si no tienes acceso, contacta al administrador de tu programa.
                     </span>
                   ) : error}
                 </div>
@@ -562,7 +573,7 @@ export default function Auth() {
 
               <button
                 type="submit"
-                disabled={loading || (modo === 'register' && (!aceptaPolitica || !pwdStrong || !turnstileToken))}
+                disabled={loading || !turnstileToken || (modo === 'register' && (!aceptaPolitica || !pwdStrong))}
                 className="btn-primary w-full disabled:opacity-60"
               >
                 {loading
@@ -576,15 +587,20 @@ export default function Auth() {
             </form>
           )}
 
-          {/* Cambiar entre login y registro */}
-          {modo !== 'forgot' && (
+          {/* Volver al login desde registro (B2B) */}
+          {modo === 'register' && (
             <p className="mt-5 text-center text-sm text-gray-500">
-              {modo === 'login' ? '¿No tienes cuenta?' : '¿Ya tienes cuenta?'}{' '}
-              <button
-                onClick={() => cambiarModo(modo === 'login' ? 'register' : 'login')}
-                className="text-teal-600 font-semibold hover:underline"
-              >
-                {modo === 'login' ? 'Regístrate gratis' : 'Inicia sesión'}
+              ¿Ya tienes cuenta?{' '}
+              <button onClick={() => cambiarModo('login')} className="text-teal-600 font-semibold hover:underline">
+                Inicia sesión
+              </button>
+            </p>
+          )}
+          {/* Olvidaste contraseña — volver desde forgot */}
+          {modo === 'forgot' && (
+            <p className="mt-5 text-center text-sm text-gray-500">
+              <button onClick={() => cambiarModo('login')} className="text-teal-600 font-semibold hover:underline">
+                ← Volver al inicio de sesión
               </button>
             </p>
           )}
