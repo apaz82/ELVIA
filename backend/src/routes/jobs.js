@@ -195,16 +195,49 @@ const searchJooble = async ({ title, location, datecreated, employment_type, exp
   } catch { return []; }
 };
 
+// Mapea texto de ubicación a country code para Google Jobs (gl param)
+const detectarGL = (location) => {
+  if (!location) return 'mx';
+  const loc = location.toLowerCase();
+  const map = [
+    [['méxico', 'mexico', 'cdmx', 'ciudad de méxico', 'monterrey', 'guadalajara', 'puebla', 'querétaro'], 'mx'],
+    [['colombia', 'bogotá', 'bogota', 'medellín', 'medellin', 'cali', 'barranquilla'], 'co'],
+    [['argentina', 'buenos aires', 'córdoba', 'rosario'], 'ar'],
+    [['chile', 'santiago', 'valparaíso'], 'cl'],
+    [['perú', 'peru', 'lima', 'arequipa'], 'pe'],
+    [['españa', 'spain', 'madrid', 'barcelona', 'valencia'], 'es'],
+    [['colombia'], 'co'],
+    [['ecuador', 'quito', 'guayaquil'], 'ec'],
+    [['panamá', 'panama'], 'pa'],
+    [['costa rica', 'san josé'], 'cr'],
+    [['uruguay', 'montevideo'], 'uy'],
+    [['united states', 'usa', 'new york', 'california', 'texas', 'florida'], 'us'],
+    [['brasil', 'brazil', 'são paulo', 'rio de janeiro'], 'br'],
+  ];
+  for (const [keywords, gl] of map) {
+    if (keywords.some(k => loc.includes(k))) return gl;
+  }
+  return 'mx';
+};
+
+// Palabras/patrones que identifican resultados claramente de USA
+const ES_USA_REGEX = /\b(united states|u\.s\.|usa|\bCA\b|\bNY\b|\bTX\b|\bFL\b|\bIL\b|new york|california|texas|florida|illinois|georgia|washington,? d\.?c|chicago|los angeles|san francisco|houston|dallas|austin|seattle|boston|denver|atlanta|phoenix|san diego|las vegas|nashville|charlotte|portland|minneapolis)\b/i;
+const esResultadoUSA = (v) => ES_USA_REGEX.test(v.location || '');
+
 // Busca en Google Jobs via SerpApi
 const searchGoogleJobs = async ({ title, location, datecreated }) => {
   const apiKey = process.env.SERPAPI_KEY;
   if (!apiKey) return [];
   try {
+    const gl = detectarGL(location);
+    // Incluir ubicación en la query para que Google la priorice (más efectivo que solo el parámetro location)
+    const queryConUbicacion = location ? `${title} ${location}` : title;
     const params = new URLSearchParams({
       engine:   'google_jobs',
-      q:        title,
+      q:        queryConUbicacion,
       location: location || '',
       hl:       'es',
+      gl,
       api_key:  apiKey,
     });
     if (datecreated) {
@@ -230,20 +263,19 @@ const searchGoogleJobs = async ({ title, location, datecreated }) => {
   } catch { return []; }
 };
 
-// Expande el título del cargo con sinónimos usando DeepSeek
+// Expande el título del cargo con sinónimos usando DeepSeek (solo español LATAM)
 const expandirCargo = async (title) => {
   if (!client) return title;
   try {
     const resp = await client.chat.completions.create({
       model: DS_MODEL,
-      max_tokens: 150,
+      max_tokens: 120,
       messages: [{
         role: 'user',
-        content: `Para el cargo "${title}", genera una lista de 4-6 títulos sinónimos o equivalentes en el mercado laboral de LATAM y USA (en español e inglés). Responde SOLO con los títulos separados por comas, sin explicaciones. Ejemplo para "Country Manager": Director General, General Manager, Managing Director, CEO, Gerente General, Country Director`,
+        content: `Para el cargo "${title}", genera 3-4 títulos equivalentes en español usados en el mercado laboral de LATAM. SOLO en español, sin inglés. Responde ÚNICAMENTE con los títulos separados por comas, sin explicaciones. Ejemplo para "Director General": Gerente General, Director Ejecutivo, CEO, Director Corporativo`,
       }],
     });
     const sinonimos = resp.choices[0].message.content.trim().split(',').map(s => s.trim()).filter(Boolean);
-    // Combinar cargo original con sinónimos, máx 4 términos para no saturar la búsqueda
     return [title, ...sinonimos.slice(0, 3)].join(' OR ');
   } catch {
     return title;
@@ -289,12 +321,20 @@ router.get('/similar', auth, async (req, res) => {
         return true;
       });
 
+      // Post-filtro anti-USA para búsqueda en LATAM
+      const glEmpresas = detectarGL(location);
+      let resultadosEmpresas = rawVacantes;
+      if (glEmpresas !== 'us' && location) {
+        const sinUSA = rawVacantes.filter(v => !esResultadoUSA(v));
+        if (sinUSA.length > 0) resultadosEmpresas = sinUSA;
+      }
+
       // Ordenar: primero los que coinciden explícitamente con alguna empresa objetivo
       const normalizeEmpresa = s => (s || '').toLowerCase().trim();
       const estaEnObjetivo = v => companies.some(e => normalizeEmpresa(v.company).includes(normalizeEmpresa(e)));
-      rawVacantes.sort((a, b) => (estaEnObjetivo(b) ? 1 : 0) - (estaEnObjetivo(a) ? 1 : 0));
+      resultadosEmpresas.sort((a, b) => (estaEnObjetivo(b) ? 1 : 0) - (estaEnObjetivo(a) ? 1 : 0));
 
-      return res.json({ vacantes: rawVacantes, total: rawVacantes.length, modoEmpresas: true });
+      return res.json({ vacantes: resultadosEmpresas, total: resultadosEmpresas.length, modoEmpresas: true });
     }
 
     // Modo cargo: expandir con sinónimos. Modo keywords: usar directo.
@@ -325,16 +365,33 @@ router.get('/similar', auth, async (req, res) => {
       return res.json({ vacantes: rawVacantes, total: rawVacantes.length, sinFiltroIA: true });
     }
 
-    // Filtrar con DeepSeek según el modo de búsqueda
-    const listaParaFiltrar = rawVacantes
-      .map((v, i) => `${i}. ${v.title} | ${v.company || ''}`)
+    // Post-filtro determinístico: excluir resultados claramente de USA cuando se busca en LATAM/España
+    const gl = detectarGL(location);
+    let filtrados = rawVacantes;
+    if (gl !== 'us' && location) {
+      filtrados = rawVacantes.filter(v => !esResultadoUSA(v));
+      if (filtrados.length === 0) filtrados = rawVacantes; // fallback: no eliminar todo
+    }
+
+    if (filtrados.length === 0) return res.json({ vacantes: [], total: 0 });
+
+    // Si DeepSeek no está disponible, devolver resultados sin filtrar (degrade graceful)
+    if (!client) {
+      console.warn('[jobs/similar] DeepSeek no disponible — devolviendo sin filtrar IA');
+      return res.json({ vacantes: filtrados, total: filtrados.length, sinFiltroIA: true });
+    }
+
+    // Filtrar con DeepSeek: relevancia de cargo + ubicación
+    const ubicacionCtx = location || 'LATAM';
+    const listaParaFiltrar = filtrados
+      .map((v, i) => `${i}. ${v.title} | ${v.company || ''} | ${v.location || ''}`)
       .join('\n');
 
     const promptFiltro = modoKeywords
-      ? `Se buscó con las palabras clave: "${queryOriginal}". De esta lista, devuelve los índices de vacantes que estén relacionadas con estas palabras clave. Incluye vacantes que coincidan aunque sea parcialmente. Responde únicamente con los índices separados por comas.\n\n${listaParaFiltrar}`
-      : `Se buscó el cargo: "${title}". De esta lista, devuelve SOLO los índices de vacantes relevantes para ese cargo. Excluye solo las que sean de un área completamente distinta. Responde únicamente con los índices separados por comas.\n\n${listaParaFiltrar}`;
+      ? `Se buscó con palabras clave: "${queryOriginal}", ubicación: "${ubicacionCtx}". De esta lista devuelve los índices de vacantes relacionadas con esas palabras clave y cuya ubicación sea compatible con "${ubicacionCtx}" (excluir si claramente son de un país diferente al solicitado). Responde únicamente con los índices separados por comas.\n\n${listaParaFiltrar}`
+      : `Se buscó el cargo: "${title}", ubicación: "${ubicacionCtx}". De esta lista devuelve SOLO los índices de vacantes que:\n1. Sean relevantes para ese cargo\n2. Cuya ubicación sea compatible con "${ubicacionCtx}" (excluir si claramente son de otro país)\nResponde únicamente con los índices separados por comas.\n\n${listaParaFiltrar}`;
 
-    let vacantes = rawVacantes;
+    let vacantes = filtrados;
     try {
       const filtroResp = await client.chat.completions.create({
         model: DS_MODEL,
@@ -348,7 +405,7 @@ router.get('/similar', auth, async (req, res) => {
       );
 
       if (indicesValidos.size > 0) {
-        vacantes = rawVacantes.filter((_, i) => indicesValidos.has(i));
+        vacantes = filtrados.filter((_, i) => indicesValidos.has(i));
       }
     } catch (filtroErr) {
       console.warn('[jobs/similar] Filtro DeepSeek falló, devolviendo sin filtrar:', filtroErr.message);
