@@ -1,12 +1,13 @@
 // Página de activación de cuenta B2B
 // Ruta: /empresas/:slug/activar  y  /universidades/:slug/activar
 // Llega aquí desde el email de invitación con hash de tipo 'recovery'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../services/authService'
 import { useTenant, DEFAULT_TENANT } from '../context/TenantContext'
 import { useAuth } from '../context/AuthContext'
 import { CheckCircle, LockKey, Eye, EyeSlash, Warning, ShieldCheck } from '@phosphor-icons/react'
+import { Turnstile } from '@marsidev/react-turnstile'
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:3001'
 
@@ -45,6 +46,8 @@ export default function ActivarCuenta() {
   const [tokenValido, setTokenValido] = useState(false)
   const [tokenExpirado, setTokenExpirado] = useState(false)
   const [candidateName, setCandidateName] = useState('')
+  const [turnstileToken, setTurnstileToken] = useState(null)
+  const turnstileRef = useRef(null)
   // Capturar el hash UNA vez al montar (no leer window.location.hash en render)
   const [initialHash] = useState(() => (typeof window !== 'undefined' ? window.location.hash : ''))
 
@@ -107,6 +110,8 @@ export default function ActivarCuenta() {
     if (err) {
       setLoading(false)
       setError(err.message || 'Error al configurar la contraseña. El enlace puede haber expirado.')
+      if (turnstileRef.current) turnstileRef.current.reset()
+      setTurnstileToken(null)
       return
     }
 
@@ -225,14 +230,14 @@ export default function ActivarCuenta() {
     <div className="min-h-screen bg-white flex flex-col">
       {/* Header minimal con logos */}
       <header className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-4">
           {logo && (
-            <img src={logo} alt={tenant?.name || ''} className="h-10 object-contain max-w-[160px]" />
+            <img src={logo} alt={tenant?.name || ''} className="h-20 object-contain max-w-[220px]" />
           )}
           {logo && (
-            <div className="h-5 w-px bg-gray-200" />
+            <div className="h-6 w-px bg-gray-200" />
           )}
-          <img src="/LOGOS/ELVIA_logo_fondo_transparente.png" alt="ELVIA" className="h-7 object-contain opacity-75" />
+          <img src="/LOGOS/ELVIA_logo_fondo_transparente.png" alt="ELVIA" className="h-8 object-contain opacity-75" />
         </div>
       </header>
 
@@ -318,9 +323,23 @@ export default function ActivarCuenta() {
                 </div>
               )}
 
+              <div className="flex justify-center">
+                <Turnstile
+                  ref={turnstileRef}
+                  siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY || '1x00000000000000000000AA'}
+                  onSuccess={(token) => setTurnstileToken(token)}
+                  onExpire={() => setTurnstileToken(null)}
+                  onError={() => {
+                    setError('Error en la validación de seguridad. Intenta de nuevo.')
+                    if (turnstileRef.current) turnstileRef.current.reset()
+                    setTurnstileToken(null)
+                  }}
+                />
+              </div>
+
               <button
                 type="submit"
-                disabled={loading || !pwdStrong || password !== confirmar}
+                disabled={loading || !pwdStrong || password !== confirmar || !turnstileToken}
                 className="w-full py-3.5 text-sm font-bold text-white rounded-xl shadow-sm hover:opacity-90 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 style={{ backgroundColor: primary }}
               >
