@@ -11,7 +11,7 @@ import HelpBadge from '../components/common/HelpBadge'
 import { MagnifyingGlass, CaretDown, FileText, ArrowRight, Lightbulb } from '@phosphor-icons/react'
 
 export default function CVvsJob() {
-  const { user, refreshUsage, featuresDesbloqueadas } = useAuth()
+  const { user, refreshUsage, featuresDesbloqueadas, companyId } = useAuth()
   const { resultadoOptimize, resultadoMatch, setResultadoMatch } = useCV()
   const navigate = useNavigate()
 
@@ -104,7 +104,16 @@ export default function CVvsJob() {
       }
       const { data: saved, error: errJob } = await supabase
         .from('saved_jobs')
-        .insert({ user_id: user.id, job_data: jobData, estado: saveForm.etapa, notas: '' })
+        .insert({
+          user_id: user.id,
+          company_id: companyId || null,
+          titulo: jobData.title,
+          empresa: jobData.company,
+          descripcion: jobData.description,
+          job_data: jobData,
+          estado: saveForm.etapa,
+          notas: '',
+        })
         .select('id')
         .single()
       if (errJob) throw errJob

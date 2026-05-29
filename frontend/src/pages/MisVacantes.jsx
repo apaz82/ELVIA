@@ -87,7 +87,7 @@ export default function MisVacantes() {
     ])
     const checkMap = {}
     ;(checks || []).forEach(c => { checkMap[c.job_key] = c })
-    setVacantes((saved || []).map(s => ({ ...s, check: checkMap[s.job_key] || null })))
+    setVacantes((saved || []).map(s => ({ ...s, check: checkMap[s.job_key] || checkMap[s.id] || null })))
     setLoading(false)
   }
 
