@@ -201,14 +201,16 @@ Devuelve exactamente esta estructura:
   "titular": "Frase debajo del nombre",
   "extracto": "Sección 'Acerca de' completa",
   "experiencia": "Lista detallada de cargos, empresas, fechas y logros",
-  "habilidades": "Lista de habilidades separadas por coma",
+  "habilidades": "Lista de aptitudes profesionales separadas por coma (NO incluir idiomas aquí)",
+  "idiomas": "Idiomas y niveles (ej: Español (Nativo), Inglés (B2 – Avanzado))",
   "educacion": "Instituciones y títulos obtenidos"
 }
 
 REGLAS:
 - Si una sección no se encuentra o está vacía, usa string vacío "".
 - Limpia ruidos del PDF (como 'Página 1 de 2', 'LinkedIn', etc.) pero mantén el contenido profesional intacto.
-- En 'experiencia', trata de mantener el formato descriptivo original.`;
+- En 'experiencia', trata de mantener el formato descriptivo original.
+- Para 'idiomas': busca sección titulada 'Idiomas', 'Languages', 'Lenguajes', 'Idioma' o equivalente. Si no existe como sección separada pero aparecen menciones de idiomas en el texto (Inglés/English, Español/Spanish, Francés/French, Portugués/Portuguese, Alemán/German, etc.), extráelos aquí con sus niveles si los hay. NUNCA pongas idiomas en 'habilidades'.`;
 
   if (!deepseek) throw new Error('[DeepSeek] DEEPSEEK_API_KEY no configurada');
   const response = await deepseek.chat.completions.create({
@@ -234,6 +236,7 @@ REGLAS:
       extracto:   typeof rawData.extracto   === 'string' ? rawData.extracto   : formatEntry(rawData.extracto   || ''),
       experiencia: Array.isArray(rawData.experiencia) ? rawData.experiencia.map(formatEntry).join('\n\n') : formatEntry(rawData.experiencia || ''),
       habilidades: Array.isArray(rawData.habilidades) ? rawData.habilidades.join(', ') : String(rawData.habilidades || ''),
+      idiomas:    typeof rawData.idiomas    === 'string' ? rawData.idiomas    : (Array.isArray(rawData.idiomas) ? rawData.idiomas.join(', ') : ''),
       educacion:  Array.isArray(rawData.educacion) ? rawData.educacion.map(formatEntry).join('\n\n') : formatEntry(rawData.educacion || ''),
     };
   } catch (error) {
@@ -343,6 +346,7 @@ const analizarLinkedin = async ({
   extracto,
   experiencia,
   habilidades,
+  idiomas,
   educacion,
   contextoLaboral,
   gerenteContext, // { oferta_valor, hard_skills[], soft_skills[] }
@@ -352,7 +356,8 @@ const analizarLinkedin = async ({
   if (titular?.trim())    secciones.push(`TITULAR:\n${titular}`)
   if (extracto?.trim())   secciones.push(`EXTRACTO:\n${extracto}`)
   if (experiencia?.trim()) secciones.push(`EXPERIENCIA:\n${experiencia}`)
-  if (habilidades?.trim()) secciones.push(`HABILIDADES:\n${habilidades}`)
+  if (habilidades?.trim()) secciones.push(`HABILIDADES (Aptitudes):\n${habilidades}`)
+  if (idiomas?.trim())    secciones.push(`IDIOMAS:\n${idiomas}`)
   if (educacion?.trim())  secciones.push(`EDUCACION:\n${educacion}`)
 
   // Bloque opcional con datos declarados por el usuario en Gerente de Proyecto.
@@ -404,7 +409,8 @@ CRITERIOS DE EVALUACIÓN 2026:
 - Titular: debe contener cargo (alineado al objetivo si hay), industria/nicho, propuesta de valor, keywords de ATS. Máx 220 chars.
 - Extracto: primera línea con gancho, historia profesional acorde al objetivo, logros cuantificados, CTA. Debe tener 3+ párrafos.
 - Experiencia: verbos de acción, logros con métricas, descripciones enfocadas en habilidades transferibles al rol objetivo.
-- Habilidades: mix de hard skills + power skills, priorizando las relevantes para el sector objetivo.
+- Habilidades: mix de hard skills + power skills, priorizando las relevantes para el sector objetivo. NUNCA incluir idiomas aquí.
+- Idiomas: evalúa si el nivel declarado es creíble y suficiente para el objetivo laboral. La sección Idiomas en LinkedIn es DIFERENTE de Aptitudes/Habilidades.
 
 REGLAS ESTRICTAS DE ÉTICA Y CALIDAD:
 1. NO inventes ni asumas experiencia laboral, títulos o habilidades que no estén explícitamente en el perfil.
@@ -430,6 +436,7 @@ Responde ÚNICAMENTE con un JSON con esta estructura exacta (sin texto extra):
     "extracto": { "puntaje": <0-100 o null>, "diagnostico": "...", "fortalezas": [], "mejoras": [], "ejemplo": "..." },
     "experiencia": { "puntaje": <0-100 o null>, "diagnostico": "...", "fortalezas": [], "mejoras": [], "ejemplo": "..." },
     "habilidades": { "puntaje": <0-100 o null>, "diagnostico": "...", "fortalezas": [], "mejoras": [], "ejemplo": "..." },
+    "idiomas": { "puntaje": <0-100 o null>, "diagnostico": "...", "fortalezas": [], "mejoras": [], "ejemplo": "..." },
     "educacion": { "puntaje": <0-100 o null>, "diagnostico": "...", "fortalezas": [], "mejoras": [], "ejemplo": "..." }
   },
   "sugerencias_aplicables": {
@@ -437,6 +444,7 @@ Responde ÚNICAMENTE con un JSON con esta estructura exacta (sin texto extra):
     "extracto": "<texto final listo para pegar, max 2600 chars, 3+ párrafos>",
     "experiencia": "<texto final listo para pegar en la sección Experiencia>",
     "habilidades": ["<skill 1>", "<skill 2>", "<skill 3>", "..."],
+    "idiomas": "<texto final listo para pegar en la sección Idiomas, ej: Español (Nativo), Inglés (B2 – Avanzado)>",
     "educacion": "<texto final listo para pegar en la sección Educación>"
   }
 }
