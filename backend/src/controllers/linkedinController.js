@@ -230,9 +230,34 @@ const extraerPerfilPDF = async (req, res, next) => {
   }
 }
 
+// GET /api/linkedin/ultimo-analisis
+// Devuelve el análisis LinkedIn más reciente del usuario (para precargar el formulario).
+const getUltimoAnalisis = async (req, res, next) => {
+  try {
+    if (!req.supabase || !req.user?.id) return res.json({ analisis: null })
+    const { data, error } = await req.supabase
+      .from('cv_results')
+      .select('id, contenido, metadata, created_at')
+      .eq('user_id', req.user.id)
+      .filter('metadata->>subtipo', 'eq', 'linkedin_analysis')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+    if (error || !data) return res.json({ analisis: null })
+    let payload = {}
+    try { payload = typeof data.contenido === 'string' ? JSON.parse(data.contenido) : (data.contenido || {}) } catch { /* vacío */ }
+    return res.json({
+      id: data.id,
+      created_at: data.created_at,
+      analisis:  payload.analisis  || null,
+      editables: payload.editables || null,
+      original:  payload.original  || null,
+    })
+  } catch (err) { next(err) }
+}
+
 // POST /api/linkedin/guardar-reporte
-// Persiste el reporte LinkedIn (análisis + textos editables del usuario) en cv_results
-// para que aparezca en "Mis Documentos". Patrón replicado de generarInfografiaProyecto.
+// UPSERT: elimina el análisis anterior y guarda el nuevo — un solo registro por usuario.
 const guardarReporte = async (req, res, next) => {
   try {
     if (!req.supabase || !req.user?.id) {
@@ -242,6 +267,13 @@ const guardarReporte = async (req, res, next) => {
     if (!analisis || typeof analisis !== 'object') {
       return res.status(400).json({ error: 'Falta el análisis a guardar' })
     }
+
+    // Borrar análisis anterior (best-effort)
+    await req.supabase
+      .from('cv_results')
+      .delete()
+      .eq('user_id', req.user.id)
+      .filter('metadata->>subtipo', 'eq', 'linkedin_analysis')
 
     const payload = {
       analisis,
@@ -254,7 +286,7 @@ const guardarReporte = async (req, res, next) => {
       .from('cv_results')
       .insert({
         user_id: req.user.id,
-        tipo: 'optimize', // requerido por el constraint existente; discriminamos vía metadata.subtipo
+        tipo: 'optimize',
         contenido: JSON.stringify(payload),
         metadata: {
           filename: filename || `Analisis LinkedIn ${new Date().toISOString().slice(0,10)}`,
@@ -276,4 +308,4 @@ const guardarReporte = async (req, res, next) => {
   }
 }
 
-module.exports = { analizarPerfil, extraerPerfilPDF, getHistorial, guardarReporte, getUsoMes }
+module.exports = { analizarPerfil, extraerPerfilPDF, getHistorial, guardarReporte, getUsoMes, getUltimoAnalisis }

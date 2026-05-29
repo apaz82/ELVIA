@@ -401,6 +401,8 @@ export default function LinkedinOptima() {
   const [historial, setHistorial] = useState([])
   const [historialAbierto, setHistorialAbierto] = useState(false)
   const [generandoInforme, setGenerandoInforme] = useState(false)
+  const [analisisPrevio, setAnalisisPrevio] = useState(null) // { created_at } del análisis guardado
+  const [modalReemplazar, setModalReemplazar] = useState(false)
   // Contador de uso mensual (límite duro de análisis IA por mes calendario).
   const [usoMes, setUsoMes] = useState({ usados: 0, restantes: 10, limite: 10, fecha_reset: null })
 
@@ -410,9 +412,10 @@ export default function LinkedinOptima() {
       try {
         const { data: { session } } = await supabase.auth.getSession()
         const headers = session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}
-        const [resH, resU] = await Promise.all([
+        const [resH, resU, resA] = await Promise.all([
           fetch(`${API}/api/linkedin/historial`, { headers }),
           fetch(`${API}/api/linkedin/uso-mes`, { headers }),
+          fetch(`${API}/api/linkedin/ultimo-analisis`, { headers }),
         ])
         if (resH.ok) {
           const data = await resH.json()
@@ -421,6 +424,15 @@ export default function LinkedinOptima() {
         if (resU.ok) {
           const u = await resU.json()
           setUsoMes(u)
+        }
+        if (resA.ok) {
+          const a = await resA.json()
+          if (a?.original && Object.values(a.original).some(v => v?.trim?.().length > 0)) {
+            // Precargar los campos con el último texto original guardado (silencioso)
+            setCampos({ titular: '', extracto: '', experiencia: '', habilidades: '', idiomas: '', educacion: '', ...a.original })
+            setImportMode('manual')
+            setAnalisisPrevio({ created_at: a.created_at })
+          }
         }
       } catch { /* lectura inicial no es crítica */ }
     }
@@ -481,6 +493,16 @@ export default function LinkedinOptima() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    // Si hay análisis anterior guardado, pedir confirmación antes de gastar un cupo
+    if (analisisPrevio) {
+      setModalReemplazar(true)
+      return
+    }
+    return handleLanzarAnalisis()
+  }
+
+  const handleLanzarAnalisis = async () => {
+    setModalReemplazar(false)
     if (!camposLlenos) return
     setCargando(true)
     setError('')
@@ -626,6 +648,7 @@ export default function LinkedinOptima() {
     setCampos({ titular: '', extracto: '', experiencia: '', habilidades: '', idiomas: '', educacion: '' })
     setEditables({ titular: '', extracto: '', experiencia: '', habilidades: [], idiomas: '', educacion: '' })
     setOriginalSnapshot({ titular: '', extracto: '', experiencia: '', habilidades: '', idiomas: '', educacion: '' })
+    setAnalisisPrevio(null)
     setImportMode('pdf')
   }
 
@@ -732,6 +755,39 @@ export default function LinkedinOptima() {
   // ─── Vista del formulario ────────────────────────────────────────────────
   return (
     <div className="max-w-2xl mx-auto px-4 py-8">
+
+      {/* Modal: confirmar reemplazo del análisis anterior */}
+      {modalReemplazar && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 space-y-5">
+            <div className="flex flex-col items-center text-center gap-3">
+              <div className="w-14 h-14 rounded-2xl bg-amber-100 flex items-center justify-center">
+                <WarningCircle size={32} weight="duotone" className="text-amber-600" />
+              </div>
+              <h3 className="text-xl font-black text-slate-900">Ya tienes un análisis guardado</h3>
+              <p className="text-sm text-slate-600 leading-relaxed">
+                Tu análisis del{' '}
+                <strong>{new Date(analisisPrevio?.created_at).toLocaleDateString('es-CO', { day: '2-digit', month: 'long', year: 'numeric' })}</strong>{' '}
+                será reemplazado por este nuevo. Esta acción usará uno de tus análisis del mes.
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setModalReemplazar(false)}
+                className="flex-1 py-3 rounded-2xl border border-slate-200 text-slate-700 text-sm font-bold hover:bg-slate-50 transition-all"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleLanzarAnalisis}
+                className="flex-1 py-3 rounded-2xl bg-gradient-to-r from-[#0077B5] to-[#019DF4] text-white text-sm font-black uppercase tracking-wider hover:brightness-110 transition-all"
+              >
+                Sí, reemplazar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Historial de análisis */}
       {historial.length > 0 && (

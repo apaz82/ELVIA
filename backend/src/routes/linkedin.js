@@ -5,7 +5,7 @@ const auth    = require('../middleware/auth')
 const { planContext }    = require('../middleware/planContext')
 const requirePaidPlan    = require('../middleware/requirePaidPlan')
 const { limiterOptimize } = require('../middleware/rateLimiter')
-const { analizarPerfil, extraerPerfilPDF, getHistorial, guardarReporte, getUsoMes } = require('../controllers/linkedinController')
+const { analizarPerfil, extraerPerfilPDF, getHistorial, guardarReporte, getUsoMes, getUltimoAnalisis } = require('../controllers/linkedinController')
 
 // Configuración de Multer para recibir PDF en memoria
 const storage = multer.memoryStorage()
@@ -30,7 +30,10 @@ router.get('/uso-mes',        auth, planContext, getUsoMes)
 // Extracción de PDF de LinkedIn
 router.post('/extraer-pdf',   auth, planContext, requirePaidPlan, limiterOptimize, upload.single('pdf'), extraerPerfilPDF)
 
-// Guardar reporte LinkedIn en Mis Documentos (cv_results con subtipo='linkedin_analysis')
+// Guardar reporte LinkedIn en Mis Documentos — UPSERT (un registro por usuario)
 router.post('/guardar-reporte', auth, planContext, requirePaidPlan, guardarReporte)
+
+// Último análisis guardado — para precargar el formulario
+router.get('/ultimo-analisis', auth, planContext, getUltimoAnalisis)
 
 module.exports = router
