@@ -77,11 +77,15 @@ const LinkedinReportePDF = forwardRef(function LinkedinReportePDF({ analisis, ed
       {secciones.map(([secId, datos]) => {
         const c = colorLabel(datos.puntaje || 0)
         const label = SECCIONES_LABELS[secId] || secId
-        const textoEditable = secId === 'habilidades'
-          ? (Array.isArray(editables?.[secId]) ? editables[secId].join(', ') : (editables?.[secId] || ''))
-          : (editables?.[secId] || '')
-        const textoOriginal = original?.[secId] || ''
+        const esHabilidades = secId === 'habilidades'
         const esIdiomas = secId === 'idiomas'
+        const habilidadesArray = esHabilidades
+          ? (Array.isArray(editables?.[secId])
+              ? editables[secId].filter(Boolean)
+              : String(editables?.[secId] || '').split(/[,\n;]+/).map(s => s.trim()).filter(Boolean))
+          : []
+        const textoEditable = esHabilidades ? '' : (editables?.[secId] || '')
+        const textoOriginal = original?.[secId] || ''
 
         return (
           <div key={secId} style={{ border: `1px solid ${c.border}`, borderRadius: '10px', marginBottom: '16px', overflow: 'hidden', pageBreakInside: 'avoid' }}>
@@ -130,10 +134,22 @@ const LinkedinReportePDF = forwardRef(function LinkedinReportePDF({ analisis, ed
                 </div>
               )}
 
-              {/* Sugerencia ELVIA */}
-              {textoEditable && (
+              {/* Sugerencia — habilidades como chips */}
+              {esHabilidades && habilidadesArray.length > 0 && (
                 <div style={{ background: '#f0fdf4', border: '2px solid #86efac', borderRadius: '8px', padding: '10px 12px', marginBottom: '8px' }}>
-                  <div style={{ fontSize: '10px', fontWeight: '800', color: '#166534', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>✏️ Sugerencia ELVIA (texto listo para pegar)</div>
+                  <div style={{ fontSize: '10px', fontWeight: '800', color: '#166534', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>Sugerencia</div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                    {habilidadesArray.map((s, i) => (
+                      <span key={i} style={{ background: '#dcfce7', border: '1px solid #86efac', borderRadius: '20px', padding: '2px 10px', fontSize: '10px', color: '#15803d', fontWeight: '600' }}>{s}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Sugerencia — texto largo para las demás secciones */}
+              {!esHabilidades && textoEditable && (
+                <div style={{ background: '#f0fdf4', border: '2px solid #86efac', borderRadius: '8px', padding: '10px 12px', marginBottom: '8px' }}>
+                  <div style={{ fontSize: '10px', fontWeight: '800', color: '#166534', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>Sugerencia</div>
                   <div style={{ fontSize: '11px', color: '#15803d', lineHeight: '1.6', whiteSpace: 'pre-line' }}>{textoEditable}</div>
                 </div>
               )}
