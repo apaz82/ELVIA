@@ -236,7 +236,7 @@ export default function Entrevista() {
   }
 
   // ── STT: escuchar respuesta del usuario ────────────────────────────────
-  const toggleEscucha = () => {
+  const toggleEscucha = async () => {
     if (escuchando) {
       recognitionRef.current?.stop()
       setEscuchando(false)
@@ -244,6 +244,17 @@ export default function Entrevista() {
     }
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition
     if (!SR) { setError('Tu navegador no soporta reconocimiento de voz. Usa Chrome o Edge.'); return }
+
+    // Verificar permiso antes de intentar (solo en browsers que soporten Permissions API)
+    if (navigator.permissions) {
+      try {
+        const perm = await navigator.permissions.query({ name: 'microphone' })
+        if (perm.state === 'denied') {
+          setError('El micrófono está bloqueado para este sitio. Haz clic en el ícono del candado en la barra de dirección → Micrófono → Permitir, y recarga la página.')
+          return
+        }
+      } catch { /* algunos navegadores no soportan query de micrófono, continuar */ }
+    }
 
     // Detener TTS antes de escuchar
     window.speechSynthesis.cancel()
@@ -281,8 +292,19 @@ export default function Entrevista() {
         setError(`Error de micrófono (${e.error}). Usa Chrome o Edge para mejor compatibilidad.`)
       }
     }
-    rec.start()
-    recognitionRef.current = rec
+    try {
+      rec.start()
+      recognitionRef.current = rec
+    } catch (err) {
+      setEscuchando(false)
+      // InvalidStateError: ya había una sesión activa
+      if (err?.name === 'InvalidStateError') {
+        recognitionRef.current?.stop()
+        setError('El micrófono ya estaba activo. Intenta de nuevo.')
+      } else {
+        setError(`No se pudo iniciar el micrófono: ${err?.message || err}. Verifica los permisos del sitio en el candado de la barra de dirección.`)
+      }
+    }
   }
 
   // ── Generar preguntas ──────────────────────────────────────────────────
