@@ -19,6 +19,7 @@ export default function CVvsJob() {
   const [cvsExistentes, setCvsExistentes] = useState([])
   const [selectedCvId, setSelectedCvId] = useState(null)
   const [userNombre, setUserNombre] = useState('')
+  const [mostrarOtrosCVs, setMostrarOtrosCVs] = useState(false)
 
   if (!featuresDesbloqueadas) {
     return (
@@ -51,10 +52,16 @@ export default function CVvsJob() {
         const nombre = `${profileData.nombre1 || ''} ${profileData.apellido1 || ''}`.trim()
         setUserNombre(nombre)
       }
-      const results = cvData || []
-      setCvsExistentes(results)
-      if (results.length > 0 && !selectedCvId) {
-        setSelectedCvId(results[0].id)
+      // Ordenar: CVs optimizados primero, luego subidos; dentro de cada grupo, más reciente primero.
+      const sorted = [...(cvData || [])].sort((a, b) => {
+        const aOrig = a.metadata?.subtipo === 'original' ? 1 : 0
+        const bOrig = b.metadata?.subtipo === 'original' ? 1 : 0
+        if (aOrig !== bOrig) return aOrig - bOrig
+        return new Date(b.created_at) - new Date(a.created_at)
+      })
+      setCvsExistentes(sorted)
+      if (sorted.length > 0 && !selectedCvId) {
+        setSelectedCvId(sorted[0].id)
       }
     })
   }, [user])
@@ -199,12 +206,10 @@ export default function CVvsJob() {
           <h2 className="text-lg font-semibold text-gray-800 mb-4">1. Tu CV</h2>
 
           {cvsExistentes.length === 0 ? (
-            /* Estado vacío — sin CVs optimizados */
+            /* Estado vacío — sin CVs */
             <div className="bg-slate-50 border-2 border-dashed border-slate-200 rounded-xl p-8 text-center">
               <FileText size={42} className="text-slate-300 mx-auto mb-3" weight="light" />
-              <p className="text-sm font-semibold text-slate-700 mb-1">
-                Aún no tienes un CV optimizado
-              </p>
+              <p className="text-sm font-semibold text-slate-700 mb-1">Aún no tienes un CV optimizado</p>
               <p className="text-xs text-slate-500 mb-5 max-w-xs mx-auto">
                 Para medir tu compatibilidad con vacantes, primero sube y optimiza tu CV con nuestra IA.
               </p>
@@ -216,68 +221,82 @@ export default function CVvsJob() {
                 <ArrowRight size={16} weight="bold" />
               </button>
             </div>
-          ) : (
-            /* Lista de CVs optimizados disponibles */
-            <div className="bg-blue-50/50 border border-blue-100 rounded-xl p-4 sm:p-5">
-              <div className="flex gap-3 mb-4">
-                <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center shrink-0">
-                  <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-blue-900 leading-tight">Selecciona tu CV optimizado</h3>
-                  <p className="text-xs text-blue-700 mt-0.5">
-                    ELVIA usará este CV para calcular tu compatibilidad con la vacante.
-                  </p>
-                </div>
-              </div>
+          ) : (() => {
+            const cvSeleccionado = cvsExistentes.find(c => c.id === selectedCvId) || cvsExistentes[0]
+            const cvRestantes = cvsExistentes.filter(c => c.id !== cvSeleccionado?.id)
+            const fmtFecha = (iso) => {
+              const d = new Date(iso)
+              const hoy = new Date()
+              return d.toDateString() === hoy.toDateString()
+                ? `Hoy ${d.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}`
+                : d.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })
+            }
+            const tipoLabel = (cv) => cv.metadata?.subtipo === 'original' ? 'CV Subido' : 'CV Optimizado'
+            const filenameLabel = (cv) => cv.metadata?.filename
+              ? cv.metadata.filename.replace(/\.[^.]+$/, '').slice(0, 50)
+              : null
 
-              <div className="flex flex-wrap gap-2">
-                {cvsExistentes.map((cv) => {
-                  const isSelected = selectedCvId === cv.id
-                  const lang = cv.metadata?.language || 'es'
-                  const subtipo = cv.metadata?.subtipo
-                  const tipo = subtipo === 'original' ? 'CV Subido' : 'CV Optimizado'
+            return (
+              <div>
+                {/* Tarjeta del CV activo */}
+                {cvSeleccionado && (
+                  <div className="flex items-center gap-4 bg-blue-600 text-white rounded-2xl px-5 py-4 mb-3 shadow-md shadow-blue-200">
+                    <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
+                      <FileText size={22} weight="fill" className="text-white" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-sm">{userNombre || 'Mi CV'}</span>
+                        <span className="text-[10px] bg-white/25 rounded-full px-2 py-0.5 font-semibold">✓ Seleccionado</span>
+                      </div>
+                      <div className="text-xs text-blue-200 mt-0.5 flex items-center gap-1.5 flex-wrap">
+                        <span className="font-medium text-white/90">{tipoLabel(cvSeleccionado)}</span>
+                        <span>·</span>
+                        <span>{(cvSeleccionado.metadata?.language || 'es').toUpperCase()}</span>
+                        <span>·</span>
+                        <span>{fmtFecha(cvSeleccionado.created_at)}</span>
+                      </div>
+                      {filenameLabel(cvSeleccionado) && (
+                        <div className="text-[11px] text-blue-200 mt-1 truncate">{filenameLabel(cvSeleccionado)}</div>
+                      )}
+                    </div>
+                  </div>
+                )}
 
-                  const now = new Date()
-                  const created = new Date(cv.created_at)
-                  const isToday = created.toDateString() === now.toDateString()
-                  const fecha = isToday
-                    ? `Hoy ${created.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}`
-                    : created.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })
+                {/* Toggle ver otros */}
+                {cvRestantes.length > 0 && (
+                  <button
+                    onClick={() => setMostrarOtrosCVs(v => !v)}
+                    className="text-xs text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1 mb-2 transition-colors"
+                  >
+                    <CaretDown size={13} className={`transition-transform ${mostrarOtrosCVs ? 'rotate-180' : ''}`} />
+                    {mostrarOtrosCVs ? 'Ocultar otros CVs' : `Usar otro CV (${cvRestantes.length} más)`}
+                  </button>
+                )}
 
-                  return (
-                    <button
-                      key={cv.id}
-                      onClick={() => setSelectedCvId(cv.id)}
-                      className={`flex flex-col items-start px-4 py-3 rounded-xl border transition-all text-left ${
-                        isSelected
-                          ? 'bg-blue-600 border-blue-600 text-white shadow-md shadow-blue-200'
-                          : 'bg-white border-gray-200 text-gray-700 hover:border-blue-300 hover:bg-slate-50'
-                      }`}
-                    >
-                      <div className="flex items-center gap-1.5 mb-1">
-                        <span className="font-bold text-sm leading-none">
-                          {userNombre || 'Mi CV'}
+                {/* Lista colapsable de otros CVs */}
+                {mostrarOtrosCVs && (
+                  <div className="flex flex-wrap gap-2 pl-1">
+                    {cvRestantes.map((cv) => (
+                      <button
+                        key={cv.id}
+                        onClick={() => { setSelectedCvId(cv.id); setMostrarOtrosCVs(false) }}
+                        className="flex flex-col items-start px-3 py-2.5 rounded-xl border border-gray-200 bg-white text-left hover:border-blue-300 hover:bg-blue-50 transition-all"
+                      >
+                        <span className="font-semibold text-xs text-gray-800 leading-none mb-1">{tipoLabel(cv)}</span>
+                        <span className="text-[10px] text-gray-400">
+                          {(cv.metadata?.language || 'es').toUpperCase()} · {fmtFecha(cv.created_at)}
                         </span>
-                        {isSelected && (
-                          <span className="text-xs bg-white/20 rounded-full px-1.5 py-0.5 leading-none">✓</span>
+                        {filenameLabel(cv) && (
+                          <span className="text-[10px] text-gray-400 truncate max-w-[160px] mt-0.5">{filenameLabel(cv)}</span>
                         )}
-                      </div>
-                      <div className={`flex items-center gap-1 text-xs ${isSelected ? 'text-blue-200' : 'text-gray-400'}`}>
-                        <span>{tipo}</span>
-                        <span>·</span>
-                        <span>{lang.toUpperCase()}</span>
-                        <span>·</span>
-                        <span>{fecha}</span>
-                      </div>
-                    </button>
-                  )
-                })}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
-            </div>
-          )}
+            )
+          })()}
 
           {/* ── Sección 2: Vacante ── */}
           <div className="mt-6">
