@@ -3412,42 +3412,29 @@ export default function ProyectoLaboral() {
           className="fixed inset-0 z-50 flex items-center justify-center p-4"
           style={{backgroundColor:'rgba(15,10,40,0.55)', backdropFilter:'blur(4px)'}}
         >
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
-            <div className="px-6 py-6 bg-gradient-to-r from-amber-500 via-purple-600 to-indigo-600 rounded-t-3xl flex items-center gap-3 relative">
-              {/* Estrellas decorativas de fondo */}
-              <div className="absolute top-2 right-4 text-white opacity-20">
-                <Sparkle size={32} weight="fill" />
-              </div>
-              <div className="w-12 h-12 rounded-2xl bg-white/20 border border-white/30 flex items-center justify-center shrink-0">
-                <Trophy size={24} className="text-white" weight="fill"/>
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden">
+            <div className="px-6 py-5 bg-indigo-600 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center shrink-0">
+                <Trophy size={20} className="text-white" weight="fill"/>
               </div>
               <div>
-                <h2 className="text-white font-black text-lg leading-tight">¡Sección Completada!</h2>
-                <p className="text-amber-100 text-xs mt-0.5">Has terminado con éxito {modalSeccionDesbloqueda.currentPilarLabel}</p>
+                <h2 className="text-white font-bold text-base leading-tight">¡Sección completada!</h2>
+                <p className="text-indigo-200 text-xs mt-0.5">{modalSeccionDesbloqueda.currentPilarLabel}</p>
               </div>
             </div>
-            <div className="px-6 py-6 text-center">
-              <div className="w-16 h-16 rounded-full bg-emerald-50 border border-emerald-100 flex items-center justify-center mx-auto mb-4">
-                <Trophy size={32} weight="duotone" className="text-emerald-600"/>
+            <div className="px-6 py-6">
+              <p className="text-sm text-slate-600 mb-4 leading-relaxed">
+                Ahora dirígete a la siguiente sección desbloqueada:
+              </p>
+              <div className="bg-indigo-50 border border-indigo-100 rounded-xl px-4 py-3 mb-4">
+                <p className="text-indigo-700 font-bold text-sm">→ {modalSeccionDesbloqueda.nextPilarLabel}</p>
               </div>
-              <h3 className="text-slate-800 font-extrabold text-lg mb-2">
-                ¡Felicitaciones!
-              </h3>
-              <p className="text-sm text-slate-600 mb-2 leading-relaxed">
-                Completaste <span className="font-bold text-slate-800">{modalSeccionDesbloqueda.currentPilarLabel}</span>.
-              </p>
-              <p className="text-sm text-slate-500 mb-1 leading-relaxed">
-                Ahora dirígete a:
-              </p>
-              <p className="text-base font-black text-indigo-700 mb-5">
-                → {modalSeccionDesbloqueda.nextPilarLabel}
-              </p>
-              <p className="text-xs text-slate-400 mb-6">
+              <p className="text-xs text-slate-400 mb-5">
                 No podemos perder tiempo. ¡Vamos con el mínimo viable profesional!
               </p>
               <button
                 onClick={function(){ setModalSeccionDesbloqueda(null) }}
-                className="w-full py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-sm transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-indigo-100 cursor-pointer"
+                className="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm transition-colors cursor-pointer"
               >
                 Ir a {modalSeccionDesbloqueda.nextPilarLabel} →
               </button>
