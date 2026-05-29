@@ -200,7 +200,7 @@ const matchToJob = async (req, res, next) => {
     // Cargar perfil verificado para anclar el prompt y prevenir alucinación de PII
     const { data: profileMatch } = await db
       .from('profiles')
-      .select('nombre1, apellido1, email_principal, telefono1, indicativo1, pais, ciudad, linkedin_url')
+      .select('nombre1, apellido1, email_principal, telefono1, indicativo1, pais, ciudad, linkedin_url, job_search_profile')
       .eq('id', req.user.id)
       .single();
     const verifiedProfile = profileMatch ? {
@@ -214,8 +214,24 @@ const matchToJob = async (req, res, next) => {
       linkedin_url: profileMatch.linkedin_url,
     } : { email: req.user.email };
 
+    // Construir contexto de ubicación para el análisis (no afecta el score)
+    const jsp = profileMatch?.job_search_profile || {};
+    const ciudadActual = profileMatch?.ciudad || '';
+    const paisActual = profileMatch?.pais || '';
+    // busca_otras_ciudades y ciudades_preferidas se guardan en job_search_profile.perfil
+    const buscaReloc = jsp.perfil?.busca_otras_ciudades ?? false;
+    const ciudadesDestino = Array.isArray(jsp.perfil?.ciudades_preferidas)
+      ? jsp.perfil.ciudades_preferidas.filter(Boolean)
+      : [];
+    const contextoUbicacion = {
+      ciudadActual,
+      paisActual,
+      buscaReloc,
+      ciudadesDestino,
+    };
+
     const language = req.body.language || 'es';
-    const resultado = await matchCVtoJob(cvText, req.body.jobText, language, verifiedProfile);
+    const resultado = await matchCVtoJob(cvText, req.body.jobText, language, verifiedProfile, contextoUbicacion);
 
     // Incrementar contador diario de analisis (hard cap)
     if (req.dailyCapDate) {

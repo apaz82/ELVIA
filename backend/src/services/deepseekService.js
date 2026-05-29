@@ -1099,16 +1099,38 @@ PROBLEMA: [1 oración]
 // ─────────────────────────────────────────────────────────────────────────────
 // matchCVtoJob — Migrado desde claudeService
 // ─────────────────────────────────────────────────────────────────────────────
-const matchCVtoJob = async (cvText, jobText, language = 'es', verifiedProfile = {}) => {
+const matchCVtoJob = async (cvText, jobText, language = 'es', verifiedProfile = {}, contextoUbicacion = {}) => {
   const idioma = ETIQUETA_IDIOMA[language] || 'español';
   const bloqueVerificado = construirBloqueVerificado(verifiedProfile);
+
+  // Bloque de ubicación — solo se incluye si hay datos; NO afecta el score
+  let bloqueUbicacion = '';
+  const { ciudadActual, paisActual, buscaReloc, ciudadesDestino = [] } = contextoUbicacion;
+  if (ciudadActual || paisActual) {
+    const ubicacionCandidato = [ciudadActual, paisActual].filter(Boolean).join(', ');
+    const lineas = [
+      `CONTEXTO DE UBICACIÓN (solo informativo — NO modifica el score):`,
+      `- Ubicación actual del candidato: ${ubicacionCandidato}`,
+    ];
+    if (buscaReloc && ciudadesDestino.length > 0) {
+      lineas.push(`- Abierto a relocalización: Sí — destinos declarados: ${ciudadesDestino.join(', ')}`);
+      lineas.push(`- Si la vacante está en alguno de esos destinos, menciónalo positivamente en la CONCLUSION del ANALISIS.`);
+    } else if (buscaReloc) {
+      lineas.push(`- Abierto a relocalización: Sí (sin destinos específicos declarados).`);
+      lineas.push(`- Si la vacante es en otra ciudad/país, mencionarlo como aspecto a confirmar con el candidato en la CONCLUSION del ANALISIS.`);
+    } else {
+      lineas.push(`- Relocalización: No declarada.`);
+      lineas.push(`- Si la vacante está en una ciudad/país diferente a su ubicación actual, indícalo como aspecto a considerar en la CONCLUSION del ANALISIS, sin penalizar el score.`);
+    }
+    bloqueUbicacion = lineas.join('\n');
+  }
 
   const prompt = `Analiza el CV y la vacante. Adapta el CV específicamente para esta vacante.
 IMPORTANTE: El CV y los cambios realizados deben estar TODOS en ${idioma}.
 RECORDATORIO ABSOLUTO: NO inventes emails, teléfonos, URLs ni habilidades/experiencias
 que no estén en el CV original. Adaptar = reordenar y reformular lo existente.
 ${bloqueVerificado}
-CV ORIGINAL:
+${bloqueUbicacion ? bloqueUbicacion + '\n' : ''}CV ORIGINAL:
 ${cvText}
 
 DESCRIPCIÓN DE LA VACANTE:
