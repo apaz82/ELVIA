@@ -3,109 +3,73 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { supabase } from '../services/authService'
 import html2pdf from 'html2pdf.js'
 import { ArrowLeft, DownloadSimple } from '@phosphor-icons/react'
-import HelpBadge from '../components/common/HelpBadge'
 
-// ── Design tokens ────────────────────────────────────────────────────────────
+const FONT = "'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
+
+// Paleta ELVIA — alineada con la plataforma
 const C = {
-  paper:       '#F5F1E6',
-  paper2:      '#ECE7D6',
-  ink:         '#0E0D0A',
-  inkSoft:     '#2A2722',
-  muted:       '#6B675E',
-  muted2:      '#9A968C',
-  hairline:    '#D6D1BF',
-  navy:        '#0F1B3D',
-  navy2:       '#1A2952',
-  marine:      '#1E3A8A',
-  marineSoft:  '#DCE3F2',
-  saffron:     '#D97706',
-  saffronSoft: '#FBE8C7',
-  saffronLight:'#F2B450',
-  sage:        '#365314',
-  sageSoft:    '#DBE4C9',
-  plum:        '#831843',
-  plumSoft:    '#F2D6E1',
-}
-const DISPLAY = '"Montserrat", system-ui, sans-serif'
-const BODY    = '"Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
-const MONO    = '"JetBrains Mono", ui-monospace, Menlo, monospace'
-
-// SVG resource icons (stroke-based, curated)
-const RES_ICONS = [
-  <svg viewBox="0 0 24 24" style={{ width: 18, height: 18, stroke: 'currentColor', fill: 'none', strokeWidth: 1.4, strokeLinecap: 'round', strokeLinejoin: 'round' }}><rect x="6" y="3" width="12" height="18" rx="1"/><circle cx="14.5" cy="12" r="0.7" fill="currentColor"/></svg>,
-  <svg viewBox="0 0 24 24" style={{ width: 18, height: 18, stroke: 'currentColor', fill: 'none', strokeWidth: 1.4, strokeLinecap: 'round', strokeLinejoin: 'round' }}><path d="M3 12c2 0 2-4 4-4s2 8 4 8 2-6 4-6 2 4 4 4"/></svg>,
-  <svg viewBox="0 0 24 24" style={{ width: 18, height: 18, stroke: 'currentColor', fill: 'none', strokeWidth: 1.4, strokeLinecap: 'round', strokeLinejoin: 'round' }}><path d="M5 5h14v10H5z"/><path d="M3 17h18l-1 2H4z"/></svg>,
-  <svg viewBox="0 0 24 24" style={{ width: 18, height: 18, stroke: 'currentColor', fill: 'none', strokeWidth: 1.4, strokeLinecap: 'round', strokeLinejoin: 'round' }}><circle cx="6" cy="6" r="2"/><circle cx="18" cy="6" r="2"/><circle cx="6" cy="18" r="2"/><circle cx="18" cy="18" r="2"/><path d="M8 6h8M6 8v8M18 8v8M8 18h8"/></svg>,
-  <svg viewBox="0 0 24 24" style={{ width: 18, height: 18, stroke: 'currentColor', fill: 'none', strokeWidth: 1.4, strokeLinecap: 'round', strokeLinejoin: 'round' }}><circle cx="12" cy="12" r="9"/><path d="M16 8l-2 6-6 2 2-6z" fill="currentColor" stroke="none"/></svg>,
-]
-
-// ── Word cloud size assignments ───────────────────────────────────────────────
-const CLOUD_SIZES = ['xl', 'lg', 'xl', 'md', 'lg', 'sm', 'md', 'sm', 'lg', 'md', 'sm', 'md']
-const CLOUD_STYLE = {
-  xl: { fontSize: 32, fontWeight: 800, color: 'white', letterSpacing: '-0.04em' },
-  lg: { fontSize: 22, fontWeight: 700, color: 'white' },
-  md: { fontSize: 16, fontWeight: 600, color: '#F2B450' },
-  sm: { fontSize: 12, fontWeight: 500, color: 'rgba(242,180,80,0.7)' },
+  navy:       '#002650',
+  blue:       '#019DF4',
+  slate:      '#0f172a',
+  slate2:     '#1e293b',
+  muted:      '#475569',
+  muted2:     '#94a3b8',
+  hairline:   '#e2e8f0',
+  bg:         '#f8fafc',
+  white:      '#ffffff',
+  indigo:     '#4f46e5',
+  indigoSoft: '#eef2ff',
+  emerald:    '#059669',
+  emeraldSoft:'#ecfdf5',
+  amber:      '#d97706',
+  amberSoft:  '#fffbeb',
+  rose:       '#e11d48',
+  roseSoft:   '#fff1f2',
 }
 
-const getCloudStyle = (size, text) => {
-  const base = CLOUD_STYLE[size] || CLOUD_STYLE.md;
-  if (text.length > 25) {
-    return { ...base, fontSize: 13, lineHeight: 1.1 };
-  } else if (text.length > 15) {
-    return { ...base, fontSize: 16, lineHeight: 1.1 };
-  }
-  return base;
-};
-
-// Cultura tag color cycling
-const TAG_COLORS = [
-  { bg: '#FBE8C7', color: '#D97706' },
-  { bg: '#DCE3F2', color: '#1E3A8A' },
-  { bg: '#DBE4C9', color: '#365314' },
-  { bg: '#F2D6E1', color: '#831843' },
+// Cuadrante Ikigai — 4 tarjetas
+const IKIGAI_CONFIG = [
+  { key: 'ikigai_amas',     label: 'Lo que amas hacer',         color: C.amber,   bg: C.amberSoft,   icon: '❤️' },
+  { key: 'ikigai_bueno',    label: 'En lo que destacas',        color: C.indigo,  bg: C.indigoSoft,  icon: '⭐' },
+  { key: 'ikigai_necesita', label: 'Lo que el mundo necesita',  color: C.emerald, bg: C.emeraldSoft, icon: '🌍' },
+  { key: 'ikigai_pagar',    label: 'Por lo que te pagarían',    color: C.navy,    bg: '#eff6ff',     icon: '💼' },
 ]
 
-// Company style cycling (typographic logos)
-const CO_STYLES = [
-  { fontWeight: 600, color: '#0E0D0A' },
-  { fontStyle: 'italic', fontWeight: 500, color: '#1E3A8A' },
-  { fontWeight: 700, letterSpacing: '-0.045em', color: '#D97706' },
-  { fontWeight: 500, color: '#365314' },
-  { fontWeight: 600, letterSpacing: 0, color: '#831843' },
+const CULTURA_COLORS = [
+  { bg: C.indigoSoft,  color: C.indigo  },
+  { bg: C.amberSoft,   color: C.amber   },
+  { bg: C.emeraldSoft, color: C.emerald },
+  { bg: '#fdf4ff',     color: '#7e22ce' },
+  { bg: '#f0fdf4',     color: '#166534' },
+  { bg: '#fff7ed',     color: '#c2410c' },
 ]
 
-const DIAS_SHORT = ['L', 'M', 'M', 'J', 'V']
 const DIAS_KEYS  = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes']
+const DIAS_SHORT = ['L', 'M', 'X', 'J', 'V']
 
-// ── SecLabel helper ───────────────────────────────────────────────────────────
-function SecLabel({ children }) {
+function SecTitle({ children, color = C.blue }) {
   return (
-    <div style={{ fontFamily: MONO, fontSize: 9, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.muted2, fontWeight: 600, marginBottom: 14 }}>
+    <div style={{
+      fontFamily: FONT, fontSize: 9, fontWeight: 700,
+      textTransform: 'uppercase', letterSpacing: '0.18em',
+      color,
+      paddingBottom: 6,
+      borderBottom: `2px solid ${color}22`,
+      marginBottom: 10,
+    }}>
       {children}
     </div>
   )
 }
 
-// ── Main component ─────────────────────────────────────────────────────────────
 export default function ReporteLaboral() {
   const { id }    = useParams()
   const navigate  = useNavigate()
   const [data,    setData]        = useState(null)
-  const [profile, setProfile]     = useState(null)
   const [loading, setLoading]     = useState(true)
   const [error,   setError]       = useState('')
   const [descargando, setDescargando] = useState(false)
   const reporteRef = useRef(null)
-
-  // Load Google Fonts for the Executive Atlas design
-  useEffect(() => {
-    const link = document.createElement('link')
-    link.rel  = 'stylesheet'
-    link.href = 'https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap'
-    document.head.appendChild(link)
-    return () => { try { document.head.removeChild(link) } catch (_) {} }
-  }, [])
 
   useEffect(() => { cargarTodo() }, [id])
 
@@ -113,20 +77,11 @@ export default function ReporteLaboral() {
     try {
       const { data: row, error: cvError } = await supabase
         .from('cv_results')
-        .select('user_id, contenido, metadata')
+        .select('contenido, metadata')
         .eq('id', id)
         .single()
-
-      if (cvError || !row) throw new Error('No se encontró el reporte profesional')
+      if (cvError || !row) throw new Error('No se encontró el reporte')
       setData(JSON.parse(row.contenido))
-
-      const { data: prof, error: pError } = await supabase
-        .from('profiles')
-        .select('job_search_profile, autoconocimiento')
-        .eq('id', row.user_id)
-        .single()
-
-      if (!pError && prof) setProfile(prof)
     } catch (err) {
       setError(err.message)
     } finally {
@@ -135,456 +90,374 @@ export default function ReporteLaboral() {
   }
 
   const handleDescargar = () => {
-    if (!reporteRef.current) return
+    if (!reporteRef.current || descargando) return
     setDescargando(true)
-    const jsp        = data || profile?.job_search_profile || {}
-    const perfilInfo = jsp.perfil || {}
-    const nombre     = data?.nombreCandidato || `${perfilInfo.nombre1 || ''} ${perfilInfo.apellido1 || ''}`.trim() || 'ELVIA'
-
-    // Aplicar clase para formatear el reporte en modo PDF
-    reporteRef.current.classList.add('is-generating-pdf')
-
-    const opt = {
-      margin:      0,
-      filename:    `Infografia_Ejecutiva_${nombre.replace(/\s+/g, '_')}.pdf`,
-      image:       { type: 'jpeg', quality: 0.98 },
-      html2canvas: { 
-        scale: 2, 
-        useCORS: true, 
-        letterRendering: true,
-        scrollY: 0,
-        scrollX: 0,
-        windowWidth: 816, // Viewport virtual Carta de 816px de ancho
-      },
-      jsPDF:       { unit: 'in', format: 'letter', orientation: 'portrait' },
-      pagebreak:   { mode: ['css', 'legacy'] }
-    }
-    html2pdf().from(reporteRef.current).set(opt).save().then(() => {
-      reporteRef.current.classList.remove('is-generating-pdf')
-      setDescargando(false)
-    }).catch(err => {
-      reporteRef.current.classList.remove('is-generating-pdf')
-      setDescargando(false)
-      console.error('[html2pdf] Error generating PDF:', err)
-    })
+    const nombre = (data?.nombreCandidato || 'Ejecutivo').replace(/\s+/g, '_')
+    html2pdf()
+      .set({
+        margin: 0,
+        filename: `Autoconocimiento_${nombre}.pdf`,
+        image: { type: 'jpeg', quality: 0.97 },
+        html2canvas: { scale: 2, useCORS: true, scrollY: 0, windowWidth: 794 },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        pagebreak: { mode: ['css', 'legacy'] },
+      })
+      .from(reporteRef.current)
+      .save()
+      .finally(() => setDescargando(false))
   }
 
   if (loading) return (
-    <div className="min-h-screen flex flex-col items-center justify-center" style={{ background: '#D9D5C8' }}>
-      <div style={{ width: 48, height: 48, borderRadius: '50%', border: `4px solid ${C.saffronSoft}`, borderTopColor: C.saffron, animation: 'spin 1s linear infinite', marginBottom: 16 }} />
-      <p style={{ fontFamily: MONO, fontSize: 11, letterSpacing: '0.2em', textTransform: 'uppercase', color: C.muted }}>
-        Renderizando infografía ejecutiva…
-      </p>
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: C.bg, fontFamily: FONT }}>
+      <div style={{ textAlign: 'center' }}>
+        <div style={{ width: 40, height: 40, borderRadius: '50%', border: `3px solid ${C.hairline}`, borderTopColor: C.blue, animation: 'spin 1s linear infinite', margin: '0 auto 12px' }} />
+        <p style={{ color: C.muted, fontSize: 13 }}>Cargando infografía…</p>
+      </div>
     </div>
   )
 
   if (error) return (
-    <div className="min-h-screen pt-24 text-center" style={{ color: '#991b1b', fontFamily: DISPLAY, fontSize: 18, fontWeight: 600 }}>
-      {error}
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: FONT }}>
+      <p style={{ color: C.rose, fontSize: 16, fontWeight: 600 }}>{error}</p>
     </div>
   )
 
-  // ── Data extraction ──────────────────────────────────────────────────────────
-  const jsp          = data || profile?.job_search_profile || {}
-  const perfilInfo   = jsp.perfil           || {}
+  // ── Extraer datos ────────────────────────────────────────────────────────────
+  const jsp          = data || {}
+  const perfil       = jsp.perfil           || {}
   const auto         = jsp.autoconocimiento || {}
   const oferta       = jsp.oferta           || {}
   const recursos     = jsp.recursos         || {}
   const semana       = jsp.semana           || {}
 
-  const nombreCandidato  = data?.nombreCandidato || `${perfilInfo.nombre1 || ''} ${perfilInfo.apellido1 || ''}`.trim() || 'Ejecutivo'
-  const cargoDeseado     = perfilInfo.nombre_cargo || data?.cargo || 'Líder Estratégico'
-  const ciudad           = perfilInfo.ciudad || data?.ciudad || ''
-  const pais             = perfilInfo.pais   || data?.pais   || ''
+  const nombre       = data?.nombreCandidato || `${perfil.nombre1 || ''} ${perfil.apellido1 || ''}`.trim() || 'Ejecutivo'
+  const cargo        = perfil.nombre_cargo   || data?.cargo    || 'Profesional'
+  const ciudad       = perfil.ciudad         || data?.ciudad   || ''
+  const pais         = perfil.pais           || data?.pais     || ''
+  const ubicacion    = [ciudad, pais].filter(Boolean).join(', ')
 
-  const hardSkills     = auto.hard_skills   || []
-  const softSkills     = auto.soft_skills   || []
-  const powerSkills    = auto.power_skills  || []
-  const targetEmpresas = auto.top5empresas  || []
+  const hardSkills   = auto.hard_skills  || []
+  const softSkills   = auto.soft_skills  || []
+  const empresas     = auto.top5empresas || []
 
-  const ofertaValor    = oferta.oferta_valor    || 'Profesional de alto impacto enfocado en resultados estratégicos.'
-  const culturaLaboral = oferta.cultura         || []
-  const ikigaiAmas     = oferta.ikigai_amas     || ''
-  const ikigaiBueno    = oferta.ikigai_bueno    || ''
-  const ikigaiNecesita = oferta.ikigai_necesita || ''
-  const ikigaiPagar    = oferta.ikigai_pagar    || ''
+  const ofertaValor  = oferta.oferta_valor    || ''
+  const cultura      = oferta.cultura         || []
 
-  const semanaBloques    = semana.bloques || {}
-  const totalBloques     = Object.values(semanaBloques).filter(Boolean).length
-  const totalHoras       = totalBloques * 2
+  const ikigaiData   = {
+    ikigai_amas:     oferta.ikigai_amas     || '',
+    ikigai_bueno:    oferta.ikigai_bueno    || '',
+    ikigai_necesita: oferta.ikigai_necesita || '',
+    ikigai_pagar:    oferta.ikigai_pagar    || '',
+  }
 
-  // Limitar recursos activos a máximo 6 para presupuesto de página única
-  const rawRecursos      = Array.isArray(recursos) ? recursos : (Array.isArray(recursos.recursos) ? recursos.recursos : [])
-  const recursosActivos  = rawRecursos.filter(r => r.tengo).slice(0, 6)
+  const semanaBloques   = semana.bloques || {}
+  const totalBloques    = Object.values(semanaBloques).filter(Boolean).length
 
-  // Avatar initials
-  const n1 = perfilInfo.nombre1   || nombreCandidato.split(' ')[0] || 'E'
-  const a1 = perfilInfo.apellido1 || nombreCandidato.split(' ')[1] || 'X'
-  const initials = `${n1[0]}${a1[0]}`.toUpperCase()
+  const rawRecursos     = Array.isArray(recursos) ? recursos : (Array.isArray(recursos.recursos) ? recursos.recursos : [])
+  const recursosActivos = rawRecursos.filter(r => r.tengo).slice(0, 8)
 
-  // Word cloud from hard skills (capped at 8 items for page-budget)
-  const cloudTerms = hardSkills.length >= 4
-    ? hardSkills.slice(0, 8).map((s, i) => ({ text: s.toUpperCase(), size: CLOUD_SIZES[i % CLOUD_SIZES.length] }))
-    : [
-        { text: 'LIDERAZGO', size: 'xl' }, { text: 'ESTRATEGIA', size: 'lg' },
-        { text: 'GESTIÓN', size: 'xl' }, { text: 'INNOVACIÓN', size: 'md' },
-      ]
+  const expAnios     = perfil.experiencia_anios || data?.experiencia_anios || ''
+  const salarioRaw   = perfil.salario_esperado  || data?.salario_esperado  || ''
+  const moneda       = (salarioRaw.trim().split(' ')[1]) || perfil.moneda || ''
+  const salario      = salarioRaw.trim().split(' ')[0] || ''
+  const equipoPersonas = perfil.equipo_personas || data?.equipo_personas || ''
 
-  // Stats strip — use available profile fields
-  const expAnios    = perfilInfo.experiencia_anios || data?.experiencia_anios
-  const equipoPers  = perfilInfo.equipo_personas   || data?.equipo_personas
-  const salarioEsperado = perfilInfo.salario_esperado || data?.salario_esperado || ''
-  const salarioParts    = salarioEsperado ? salarioEsperado.trim().split(' ') : []
-  const salario         = salarioParts[0] || ''
-  const moneda          = salarioParts[1] || perfilInfo.moneda || data?.moneda || ''
-  const expectativaPrest = perfilInfo.expectativa_prestaciones || ''
+  const initials = (() => {
+    const parts = nombre.split(' ').filter(Boolean)
+    if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase()
+    return (parts[0]?.[0] || 'E').toUpperCase()
+  })()
 
-  const stats = [
-    {
-      v: expAnios ? `${expAnios}` : '—',
-      unit: expAnios ? 'años' : '',
-      k: 'Experiencia ejecutiva',
-      color: C.marine,
-    },
-    {
-      v: salario ? Number(String(salario).replace(/[.,]/g, '').replace(',', '')).toLocaleString('es') : '—',
-      unit: salario ? moneda : '',
-      k: 'Expectativa salarial mensual',
-      color: C.saffron,
-      sub: expectativaPrest || null,
-    },
-    {
-      v: equipoPers ? `+${Number(equipoPers).toLocaleString('es')}` : hardSkills.length > 0 ? `${hardSkills.length}` : '—',
-      unit: '',
-      k: equipoPers ? 'Personas lideradas' : 'Hard Skills',
-      color: C.sage,
-    },
-    {
-      v: targetEmpresas.length > 0 ? `${targetEmpresas.length}` : softSkills.length > 0 ? `${softSkills.length}` : '—',
-      unit: '',
-      k: targetEmpresas.length > 0 ? 'Empresas objetivo' : 'Power Skills',
-      color: C.plum,
-    },
-  ]
-
-  const ikigaiQuadrants = [
-    { num: '01', prefix: 'Lo que ', em: 'amo', suffix: ' hacer', body: ikigaiAmas, color: C.saffron },
-    { num: '02', prefix: 'En lo que ', em: 'destaco', suffix: '', body: ikigaiBueno, color: C.marine },
-    { num: '03', prefix: 'Lo que el mundo ', em: 'necesita', suffix: '', body: ikigaiNecesita, color: C.sage },
-    { num: '04', prefix: 'Por lo que me ', em: 'pagarían', suffix: '', body: ikigaiPagar, color: C.plum },
-  ]
-
-  // Limitar visualización a un máximo de 8 competencias por lista
-  const repertorioCols = [
-    { label: 'Hard Skills',  count: hardSkills.length, color: C.marine,  skills: hardSkills.slice(0, 8) },
-    { label: 'Power Skills', count: softSkills.length, color: C.saffron, skills: softSkills.slice(0, 8) },
-    ...(powerSkills.length > 0 ? [{ label: 'Liderazgo', count: powerSkills.length, color: C.plum, skills: powerSkills.slice(0, 8) }] : []),
-  ]
+  const fecha = new Date().toLocaleDateString('es-CO', { day: '2-digit', month: 'long', year: 'numeric' })
 
   // ── Render ───────────────────────────────────────────────────────────────────
   return (
-    <div style={{ background: '#D9D5C8', minHeight: '100vh', paddingBottom: 96 }}>
-
-      {/* Estilo dinámico autoinyectado para maquetación premium de 2 páginas en PDF */}
+    <div style={{ background: '#e8edf2', minHeight: '100vh', fontFamily: FONT, paddingBottom: 80 }}>
       <style>{`
-        /* En PDF, cada sección principal se congela exactamente en 11 pulgadas Carta */
-        .is-generating-pdf .pdf-page {
-          height: 11in !important;
-          max-height: 11in !important;
-          box-sizing: border-box !important;
-          overflow: hidden !important;
-          display: flex !important;
-          flex-direction: column !important;
-          background: #F5F1E6 !important;
-        }
-
-        /* Salto de página para el compilador de PDF */
-        .is-generating-pdf .pdf-page-break {
-          page-break-before: always !important;
-          break-before: page !important;
-        }
-
-        /* Ocultar elementos marcados como no imprimibles en el PDF */
-        .is-generating-pdf .no-print {
-          display: none !important;
-        }
-
-        /* Footer de la página 1: Solo visible en la exportación PDF */
-        .pdf-only-footer {
-          display: none !important;
-        }
-        .is-generating-pdf .pdf-only-footer {
-          display: flex !important;
-          margin-top: auto !important;
-        }
+        @keyframes spin { to { transform: rotate(360deg) } }
+        @media print { .no-print { display: none !important } }
       `}</style>
 
-      {/* Action bar — hidden in PDF */}
-      <div className="no-print" style={{ maxWidth: 900, margin: '0 auto', padding: '24px 24px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      {/* Barra de acción */}
+      <div className="no-print" style={{ maxWidth: 860, margin: '0 auto', padding: '20px 16px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
         <button
-          onClick={() => navigate('/mis-cvs')}
-          style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(8px)', border: `1px solid ${C.hairline}`, borderRadius: 12, padding: '10px 20px', fontFamily: MONO, fontSize: 11, letterSpacing: '0.15em', textTransform: 'uppercase', color: C.inkSoft, cursor: 'pointer' }}
+          onClick={() => navigate(-1)}
+          style={{ display: 'flex', alignItems: 'center', gap: 8, background: C.white, border: `1px solid ${C.hairline}`, borderRadius: 10, padding: '9px 18px', fontSize: 13, fontWeight: 600, color: C.muted, cursor: 'pointer', fontFamily: FONT }}
         >
-          <ArrowLeft size={16} weight="bold" /> Volver a mis documentos
+          <ArrowLeft size={15} weight="bold" /> Volver
         </button>
         <button
           onClick={handleDescargar}
           disabled={descargando}
-          style={{ display: 'flex', alignItems: 'center', gap: 8, background: C.navy, color: 'white', border: 'none', borderRadius: 12, padding: '12px 28px', fontFamily: MONO, fontSize: 11, letterSpacing: '0.15em', textTransform: 'uppercase', cursor: descargando ? 'not-allowed' : 'pointer', opacity: descargando ? 0.6 : 1 }}
+          style={{ display: 'flex', alignItems: 'center', gap: 8, background: C.navy, color: C.white, border: 'none', borderRadius: 10, padding: '10px 24px', fontSize: 13, fontWeight: 700, cursor: descargando ? 'not-allowed' : 'pointer', opacity: descargando ? 0.6 : 1, fontFamily: FONT }}
         >
-          <DownloadSimple size={18} weight="bold" />
-          {descargando ? 'Generando PDF…' : 'Descargar Infografía'}
+          <DownloadSimple size={17} weight="bold" />
+          {descargando ? 'Generando…' : 'Descargar PDF'}
         </button>
       </div>
 
-      {/* ── SHEET ─────────────────────────────────────────────────────────────── */}
+      {/* ── SHEET A4 ──────────────────────────────────────────────────────────── */}
       <div style={{ display: 'flex', justifyContent: 'center', padding: '0 16px' }}>
         <div
           ref={reporteRef}
-          style={{ width: '8.5in', background: C.paper, boxShadow: '0 50px 100px -30px rgba(20,20,18,0.28), 0 8px 24px -8px rgba(20,20,18,0.10)', display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}
+          style={{
+            width: '210mm',
+            background: C.white,
+            boxShadow: '0 20px 60px rgba(0,0,0,0.12)',
+            borderRadius: 4,
+            overflow: 'hidden',
+          }}
         >
-          {/* ── PAGINA 1: Identidad y Propósito Estratégico ── */}
-          <div className="pdf-page">
 
-            {/* ── HEADER — navy + avatar + word cloud ───────────────────────────── */}
-            <header style={{ position: 'relative', backgroundColor: C.navy, backgroundImage: `linear-gradient(135deg, ${C.navy} 0%, ${C.navy2} 100%)`, color: 'white', padding: '24px 36px 20px', overflow: 'hidden' }}>
-              <div className="no-print" style={{ position: 'absolute', inset: 0, background: 'radial-gradient(900px 500px at 100% -20%, rgba(217,119,6,0.18), transparent 55%), radial-gradient(700px 400px at -10% 120%, rgba(30,64,175,0.25), transparent 50%)', pointerEvents: 'none' }} />
-              <div style={{ position: 'relative', display: 'grid', gridTemplateColumns: '1.05fr 1fr', gap: 24, alignItems: 'center' }}>
+          {/* ── HEADER ─────────────────────────────────────────────────────────── */}
+          <div style={{
+            background: C.navy,
+            padding: '28px 36px',
+            display: 'grid',
+            gridTemplateColumns: 'auto 1fr auto',
+            gap: 20,
+            alignItems: 'center',
+          }}>
+            {/* Avatar */}
+            <div style={{
+              width: 72, height: 72, borderRadius: '50%',
+              background: C.blue,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 26, fontWeight: 800, color: C.white,
+              border: '3px solid rgba(255,255,255,0.2)',
+              flexShrink: 0,
+            }}>
+              {initials}
+            </div>
 
-                {/* Identity: avatar + name + role */}
-                <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr', gap: 16, alignItems: 'center' }}>
-                <div style={{ width: 80, height: 80, borderRadius: '50%', background: C.paper, color: C.ink, fontFamily: DISPLAY, fontWeight: 700, fontSize: 30, letterSpacing: '-0.025em', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '3px solid rgba(255,255,255,0.15)', boxShadow: '0 4px 24px rgba(0,0,0,0.35)', flexShrink: 0 }}>
-                  {initials}
-                </div>
-                <div>
-                  <div style={{ fontFamily: MONO, fontSize: 9, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.saffronLight, fontWeight: 700, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
-                    Resumen autoconocimiento
-                    <span className="no-print"><HelpBadge id="reporte.main" /></span>
-                  </div>
-                  <h1 style={{ fontFamily: DISPLAY, fontSize: 30, fontWeight: 700, letterSpacing: '-0.035em', lineHeight: 0.95, color: 'white', margin: '0 0 4px' }}>
-                    {nombreCandidato}
-                  </h1>
-                  <div style={{ fontFamily: MONO, fontSize: 9, letterSpacing: '0.20em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.7)', fontWeight: 500, lineHeight: 1.5 }}>
-                    <b style={{ color: 'white', fontWeight: 700 }}>{cargoDeseado}</b>
-                    {ciudad && ` · ${ciudad}${pais ? `, ${pais}` : ''}`}
-                  </div>
-                </div>
+            {/* Nombre y cargo */}
+            <div>
+              <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.22em', textTransform: 'uppercase', color: C.blue, marginBottom: 4 }}>
+                Resumen de Autoconocimiento
               </div>
-
-              {/* Word cloud — right side of header */}
-              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', gap: '4px 8px', fontFamily: DISPLAY, lineHeight: 1.0, letterSpacing: '-0.03em', justifyContent: 'flex-end', maxHeight: 110, overflow: 'hidden' }}>
-                {cloudTerms.map((term, i) => (
-                  <span key={i} style={{ lineHeight: 1.0, ...getCloudStyle(term.size, term.text) }}>
-                    {term.text}
-                  </span>
-                ))}
+              <div style={{ fontSize: 26, fontWeight: 800, color: C.white, letterSpacing: '-0.02em', lineHeight: 1.1, marginBottom: 4 }}>
+                {nombre}
+              </div>
+              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)', fontWeight: 500 }}>
+                {cargo}{ubicacion ? ` · ${ubicacion}` : ''}
               </div>
             </div>
-          </header>
 
-          {/* ── STATEMENT — oferta de valor ───────────────────────────────────── */}
-          <section style={{ padding: '20px 36px', background: C.paper, borderBottom: `1px solid ${C.hairline}`, display: 'grid', gridTemplateColumns: '60px 1fr', gap: 0, alignItems: 'start' }}>
-            <div style={{ fontFamily: DISPLAY, fontSize: 100, fontWeight: 400, color: C.saffron, lineHeight: 0.7, marginTop: 8, textAlign: 'center', letterSpacing: '-0.06em' }}>&ldquo;</div>
-            <div style={{ borderLeft: `2px solid ${C.saffron}`, paddingLeft: 18 }}>
-              <div style={{ fontFamily: MONO, fontSize: 9, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.saffron, fontWeight: 700, marginBottom: 8 }}>Mi oferta de valor</div>
-              <p style={{ fontFamily: DISPLAY, fontSize: 18, lineHeight: 1.22, letterSpacing: '-0.022em', fontWeight: 500, color: C.ink, margin: 0, maxWidth: 660 }}>
-                {ofertaValor}
-              </p>
+            {/* Logo ELVIA */}
+            <div style={{ textAlign: 'right', flexShrink: 0 }}>
+              <img
+                src="/LOGOS/ELVIA_logo_fondo_transparente.png"
+                alt="ELVIA"
+                style={{ height: 28, objectFit: 'contain' }}
+              />
+              <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', marginTop: 6, letterSpacing: '0.1em' }}>
+                {fecha}
+              </div>
             </div>
-          </section>
+          </div>
+
+          {/* ── OFERTA DE VALOR ────────────────────────────────────────────────── */}
+          {ofertaValor && (
+            <div style={{ background: C.indigoSoft, borderBottom: `1px solid ${C.hairline}`, padding: '16px 36px', display: 'flex', gap: 14, alignItems: 'flex-start' }}>
+              <div style={{ fontSize: 42, fontWeight: 900, color: C.indigo, lineHeight: 0.8, marginTop: 2, flexShrink: 0 }}>&ldquo;</div>
+              <div>
+                <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: C.indigo, marginBottom: 5 }}>Mi oferta de valor</div>
+                <p style={{ fontSize: 13, lineHeight: 1.55, color: C.slate2, margin: 0, fontWeight: 500 }}>{ofertaValor}</p>
+              </div>
+            </div>
+          )}
 
           {/* ── STATS STRIP ───────────────────────────────────────────────────── */}
-          <section style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', background: C.paper, borderBottom: `1px solid ${C.hairline}` }}>
-            {stats.map((s, i) => (
-              <div key={i} style={{ padding: '10px 20px', borderRight: i < 3 ? `1px solid ${C.hairline}` : 'none', display: 'flex', flexDirection: 'column', gap: 2 }}>
-                <div style={{ fontFamily: DISPLAY, fontSize: 32, fontWeight: 700, letterSpacing: '-0.04em', lineHeight: 1.0, color: s.color, fontVariantNumeric: 'tabular-nums' }}>
-                  {s.v}
-                  {s.unit && <small style={{ fontSize: 15, fontWeight: 500, color: C.muted, marginLeft: 2 }}>{s.unit}</small>}
-                </div>
-                <div style={{ fontFamily: MONO, fontSize: 8.5, letterSpacing: '0.18em', textTransform: 'uppercase', color: C.muted, fontWeight: 600 }}>{s.k}</div>
-                {s.sub && <div style={{ fontFamily: BODY, fontSize: 9.5, color: C.muted2, fontWeight: 500, marginTop: 1, lineHeight: 1.2 }}>{s.sub}</div>}
-              </div>
-            ))}
-          </section>
-
-          {/* ── IKIGAI VENN ───────────────────────────────────────────────────── */}
-          <section style={{ padding: '16px 36px', display: 'grid', gridTemplateColumns: '210px 1fr', gap: 24, borderBottom: `1px solid ${C.hairline}`, background: C.paper }}>
-            <div style={{ gridColumn: '1 / -1', fontFamily: MONO, fontSize: 8.5, letterSpacing: '0.24em', textTransform: 'uppercase', color: C.muted2, fontWeight: 600, marginBottom: 2 }}>
-              Propósito · método <b style={{ color: C.ink, fontWeight: 700 }}>Ikigai</b>
-            </div>
-
-            {/* SVG Venn (Compacto: de 300px a 210px) */}
-            <div style={{ width: 210 }}>
-              <svg viewBox="0 0 320 320" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', height: 'auto', display: 'block', mixBlendMode: 'multiply' }}>
-                <circle cx="120" cy="120" r="100" fill="#D97706" fillOpacity="0.55" />
-                <circle cx="200" cy="120" r="100" fill="#1E3A8A" fillOpacity="0.55" />
-                <circle cx="120" cy="200" r="100" fill="#365314" fillOpacity="0.55" />
-                <circle cx="200" cy="200" r="100" fill="#831843" fillOpacity="0.55" />
-                <text x="50"  y="50"  textAnchor="middle" fill="#D97706" fontFamily="Montserrat" fontSize="11" fontWeight="700" letterSpacing="0.05em">AMAS</text>
-                <text x="270" y="50"  textAnchor="middle" fill="#1E3A8A" fontFamily="Montserrat" fontSize="11" fontWeight="700" letterSpacing="0.05em">DESTACAS</text>
-                <text x="50"  y="290" textAnchor="middle" fill="#365314" fontFamily="Montserrat" fontSize="11" fontWeight="700" letterSpacing="0.05em">NECESITA</text>
-                <text x="270" y="290" textAnchor="middle" fill="#831843" fontFamily="Montserrat" fontSize="11" fontWeight="700" letterSpacing="0.05em">PAGARÁN</text>
-                <text x="160" y="158" textAnchor="middle" fill="#0E0D0A" fontFamily="Montserrat" fontSize="18" fontWeight="800" letterSpacing="-0.02em">IKIGAI</text>
-                <text x="160" y="174" textAnchor="middle" fill="#0E0D0A" fontFamily="JetBrains Mono" fontSize="7" fontWeight="600" letterSpacing="0.18em">RAZÓN DE SER</text>
-              </svg>
-              <div style={{ textAlign: 'center', marginTop: 4, fontFamily: MONO, fontSize: 8, letterSpacing: '0.18em', textTransform: 'uppercase', color: C.muted, fontWeight: 600 }}>
-                4 vectores · 1 <b style={{ color: C.ink, fontFamily: DISPLAY, fontSize: 11, fontWeight: 700, letterSpacing: 0, textTransform: 'none', margin: '0 2px' }}>propósito</b>
-              </div>
-            </div>
-
-            {/* Quadrants */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 14px' }}>
-              {ikigaiQuadrants.map((q, i) => (
-                <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-                    <span style={{ fontFamily: MONO, fontSize: 8, letterSpacing: '0.18em', fontWeight: 700, color: 'white', background: q.color, padding: '1px 4px', borderRadius: 2 }}>{q.num}</span>
-                    <span style={{ fontFamily: DISPLAY, fontSize: 12, fontWeight: 600, letterSpacing: '-0.01em', lineHeight: 1.1 }}>
-                      {q.prefix}<em style={{ color: q.color, fontStyle: 'normal' }}>{q.em}</em>{q.suffix}
-                    </span>
+          {(expAnios || salario || equipoPersonas || hardSkills.length > 0) && (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', background: C.bg, borderBottom: `1px solid ${C.hairline}` }}>
+              {[
+                { v: expAnios || '—', unit: expAnios ? 'años' : '', label: 'Experiencia', color: C.navy },
+                { v: salario ? Number(String(salario).replace(/\./g, '').replace(',', '')).toLocaleString('es') : '—', unit: salario ? moneda : '', label: 'Expectativa salarial/mes', color: C.amber },
+                { v: equipoPersonas ? `+${equipoPersonas}` : hardSkills.length > 0 ? hardSkills.length : '—', unit: '', label: equipoPersonas ? 'Personas lideradas' : 'Hard Skills', color: C.emerald },
+                { v: empresas.length > 0 ? empresas.length : softSkills.length > 0 ? softSkills.length : '—', unit: '', label: empresas.length > 0 ? 'Empresas objetivo' : 'Power Skills', color: C.indigo },
+              ].map((s, i) => (
+                <div key={i} style={{ padding: '12px 20px', borderRight: i < 3 ? `1px solid ${C.hairline}` : 'none' }}>
+                  <div style={{ fontSize: 28, fontWeight: 800, color: s.color, letterSpacing: '-0.03em', lineHeight: 1 }}>
+                    {s.v}
+                    {s.unit && <span style={{ fontSize: 13, fontWeight: 500, color: C.muted2, marginLeft: 3 }}>{s.unit}</span>}
                   </div>
-                  <div style={{ fontFamily: BODY, fontSize: 9.5, lineHeight: 1.4, color: C.inkSoft }}>
-                    {q.body || 'Aún no completado.'}
-                  </div>
+                  <div style={{ fontSize: 9, color: C.muted2, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.12em', marginTop: 2 }}>{s.label}</div>
                 </div>
               ))}
             </div>
-          </section>
-
-          {/* Page 1 Footer (PDF-only) */}
-          <footer className="pdf-only-footer" style={{ marginTop: 'auto', padding: '8px 36px', background: '#E8E3D5', color: C.muted, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: MONO, fontSize: 8, letterSpacing: '0.22em', textTransform: 'uppercase', borderTop: `1px solid ${C.hairline}` }}>
-            <img
-              src="/LOGOS/ELVIA_logo_fondo_transparente.png"
-              alt="ELVIA"
-              style={{ height: 28, width: 'auto', objectFit: 'contain' }}
-            />
-            <span>01 / 02</span>
-          </footer>
-
-        </div> {/* fin de pdf-page 1 */}
-
-        {/* ── PAGINA 2: Ejecución y Alineación Operativa ── */}
-        <div className="pdf-page pdf-page-break">
-
-          {/* ── MERCADO — typographic company logos ───────────────────────────── */}
-          {targetEmpresas.length > 0 && (
-            <section style={{ padding: '14px 36px 12px', borderBottom: `1px solid ${C.hairline}`, background: C.paper2 }}>
-              <SecLabel>Compañías objetivo</SecLabel>
-              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '6px 20px', fontFamily: DISPLAY, fontSize: 22, lineHeight: 1, letterSpacing: '-0.025em' }}>
-                {targetEmpresas.map((emp, i) => (
-                  <span key={i}>
-                    <span style={CO_STYLES[i % CO_STYLES.length]}>{emp}</span>
-                    {i < targetEmpresas.length - 1 && (
-                      <span style={{ fontFamily: MONO, fontSize: 11, color: C.muted2, fontWeight: 400, marginLeft: 10 }}>/</span>
-                    )}
-                  </span>
-                ))}
-              </div>
-            </section>
           )}
 
-          {/* ── REPERTORIO + HEATMAP + RESOURCES ─────────────────────────────── */}
-          <section style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', background: C.paper, borderBottom: `1px solid ${C.hairline}`, flexGrow: 1 }}>
+          {/* ── BODY: 2 columnas ──────────────────────────────────────────────── */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 240px' }}>
 
-            {/* 3-column skill lists */}
-            <div style={{ padding: '16px 20px 16px 36px', borderRight: `1px solid ${C.hairline}` }}>
-              <SecLabel>Repertorio · competencias <b style={{ color: C.ink, fontWeight: 700 }}>seleccionadas</b></SecLabel>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14 }}>
-                {repertorioCols.map((col, ci) => (
-                  <div key={ci}>
-                    <h5 style={{ margin: '0 0 6px', fontFamily: DISPLAY, fontSize: 11, fontWeight: 700, letterSpacing: '-0.01em', color: col.color }}>
-                      {col.label}
-                      {col.count > 0 && <small style={{ fontFamily: MONO, fontSize: 8, color: C.muted2, marginLeft: 4, fontWeight: 500, letterSpacing: '0.12em' }}>{col.count}</small>}
-                    </h5>
-                    <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                      {col.skills.map((s, si) => (
-                        <li key={si} style={{ fontFamily: BODY, fontSize: 9, lineHeight: 1.3, color: C.inkSoft, padding: '0.5px 0' }}>
-                          <span style={{ color: C.muted2, marginRight: 4, fontWeight: 700 }}>·</span>{s}
-                        </li>
-                      ))}
-                    </ul>
+            {/* Columna izquierda */}
+            <div style={{ padding: '22px 28px 22px 36px', borderRight: `1px solid ${C.hairline}` }}>
+
+              {/* IKIGAI */}
+              {(ikigaiData.ikigai_amas || ikigaiData.ikigai_bueno || ikigaiData.ikigai_necesita || ikigaiData.ikigai_pagar) && (
+                <div style={{ marginBottom: 20 }}>
+                  <SecTitle color={C.navy}>Propósito · Ikigai</SecTitle>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                    {IKIGAI_CONFIG.map((q) => (
+                      <div key={q.key} style={{ background: q.bg, borderRadius: 8, padding: '10px 12px', borderLeft: `3px solid ${q.color}` }}>
+                        <div style={{ fontSize: 10, fontWeight: 700, color: q.color, marginBottom: 3 }}>
+                          {q.icon} {q.label}
+                        </div>
+                        <p style={{ fontSize: 11, color: C.slate2, margin: 0, lineHeight: 1.45 }}>
+                          {ikigaiData[q.key] || <span style={{ color: C.muted2, fontStyle: 'italic' }}>Sin completar</span>}
+                        </p>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
+                </div>
+              )}
+
+              {/* HARD SKILLS */}
+              {hardSkills.length > 0 && (
+                <div style={{ marginBottom: 18 }}>
+                  <SecTitle color={C.blue}>Hard Skills</SecTitle>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                    {hardSkills.map((s, i) => (
+                      <span key={i} style={{
+                        background: '#eff6ff', color: '#1d4ed8',
+                        border: '1px solid #bfdbfe',
+                        padding: '3px 10px', borderRadius: 20,
+                        fontSize: 11, fontWeight: 600, lineHeight: 1.4,
+                      }}>
+                        {s}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* POWER SKILLS */}
+              {softSkills.length > 0 && (
+                <div style={{ marginBottom: 18 }}>
+                  <SecTitle color={C.indigo}>Power Skills</SecTitle>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                    {softSkills.map((s, i) => (
+                      <span key={i} style={{
+                        background: C.indigoSoft, color: C.indigo,
+                        border: `1px solid ${C.indigo}33`,
+                        padding: '3px 10px', borderRadius: 20,
+                        fontSize: 11, fontWeight: 600, lineHeight: 1.4,
+                      }}>
+                        {s}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* CULTURA */}
+              {cultura.length > 0 && (
+                <div>
+                  <SecTitle color={C.emerald}>Cultura que busco</SecTitle>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                    {cultura.map((c, i) => {
+                      const tc = CULTURA_COLORS[i % CULTURA_COLORS.length]
+                      return (
+                        <span key={i} style={{
+                          background: tc.bg, color: tc.color,
+                          padding: '3px 10px', borderRadius: 20,
+                          fontSize: 11, fontWeight: 600,
+                        }}>
+                          # {c}
+                        </span>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
 
-            {/* Right stack: heatmap + resources */}
-            <div style={{ padding: '16px 36px 16px 20px', display: 'flex', flexDirection: 'column', gap: 18 }}>
+            {/* Columna derecha */}
+            <div style={{ padding: '22px 36px 22px 20px', background: C.bg, display: 'flex', flexDirection: 'column', gap: 18 }}>
 
-              {/* Heatmap */}
-              <div>
-                <SecLabel>Ritmo semanal</SecLabel>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 3 }}>
-                  {DIAS_SHORT.map((day, di) => {
-                    const key = DIAS_KEYS[di]
-                    const amOn = !!semanaBloques[`${key}_am`]
-                    const pmOn = !!semanaBloques[`${key}_pm`]
-                    return (
-                      <div key={di} style={{ display: 'grid', gridTemplateRows: 'auto 1fr 1fr', gap: 2.5 }}>
-                        <div style={{ textAlign: 'center', fontFamily: MONO, fontSize: 8, letterSpacing: '0.18em', color: C.muted, fontWeight: 600, marginBottom: 1 }}>{day}</div>
-                        <div style={{ height: 22, borderRadius: 2, background: amOn ? C.marine : C.paper2 }} />
-                        <div style={{ height: 22, borderRadius: 2, background: pmOn ? 'rgba(30,58,138,0.55)' : C.paper2 }} />
+              {/* EMPRESAS OBJETIVO */}
+              {empresas.length > 0 && (
+                <div>
+                  <SecTitle color={C.navy}>Empresas objetivo</SecTitle>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    {empresas.map((emp, i) => (
+                      <div key={i} style={{
+                        display: 'flex', alignItems: 'center', gap: 8,
+                        background: C.white, borderRadius: 8, padding: '6px 10px',
+                        border: `1px solid ${C.hairline}`,
+                        fontSize: 12, fontWeight: 600, color: C.slate,
+                      }}>
+                        <div style={{ width: 6, height: 6, borderRadius: '50%', background: C.blue, flexShrink: 0 }} />
+                        {emp}
                       </div>
-                    )
-                  })}
-                </div>
-                {totalBloques > 0 && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, fontFamily: MONO, fontSize: 9, letterSpacing: '0.08em', color: C.muted }}>
-                    <span><b style={{ color: C.ink, fontFamily: DISPLAY, fontSize: 12, fontWeight: 700, marginRight: 2 }}>{totalBloques}</b> bloques</span>
-                    <span><b style={{ color: C.ink, fontFamily: DISPLAY, fontSize: 12, fontWeight: 700, marginRight: 2 }}>{totalHoras}h</b> · sem</span>
+                    ))}
                   </div>
-                )}
-              </div>
+                </div>
+              )}
 
-              {/* Resources */}
+              {/* RITMO SEMANAL */}
+              {totalBloques > 0 && (
+                <div>
+                  <SecTitle color={C.navy}>Ritmo semanal</SecTitle>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 3, marginBottom: 6 }}>
+                    {DIAS_SHORT.map((day, di) => {
+                      const key = DIAS_KEYS[di]
+                      const amOn = !!semanaBloques[`${key}_am`]
+                      const pmOn = !!semanaBloques[`${key}_pm`]
+                      return (
+                        <div key={di} style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                          <div style={{ textAlign: 'center', fontSize: 8, fontWeight: 700, color: C.muted2, letterSpacing: '0.1em', marginBottom: 1 }}>{day}</div>
+                          <div style={{ height: 18, borderRadius: 3, background: amOn ? C.blue : C.hairline }} />
+                          <div style={{ height: 18, borderRadius: 3, background: pmOn ? `${C.blue}88` : C.hairline }} />
+                        </div>
+                      )
+                    })}
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: C.muted }}>
+                    <span><b style={{ color: C.slate, fontSize: 13 }}>{totalBloques}</b> bloques</span>
+                    <span><b style={{ color: C.slate, fontSize: 13 }}>{totalBloques * 2}h</b> / sem</span>
+                  </div>
+                </div>
+              )}
+
+              {/* RECURSOS ACTIVOS */}
               {recursosActivos.length > 0 && (
                 <div>
-                  <SecLabel>Recursos activos</SecLabel>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                    {recursosActivos.map((r, ri) => (
-                      <div key={ri} style={{ display: 'grid', gridTemplateColumns: '18px 1fr', gap: 8, alignItems: 'center', padding: '3px 0', borderTop: ri > 0 ? `1px dashed ${C.hairline}` : 'none' }}>
-                        <div style={{ width: 18, height: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.ink }}>
-                          {RES_ICONS[ri % RES_ICONS.length]}
-                        </div>
-                        <span style={{ fontFamily: BODY, fontSize: 9.5, lineHeight: 1.2, color: C.ink }}>{r.nombre}</span>
+                  <SecTitle color={C.navy}>Recursos activos</SecTitle>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                    {recursosActivos.map((r, i) => (
+                      <div key={i} style={{
+                        display: 'flex', alignItems: 'center', gap: 8,
+                        padding: '4px 0',
+                        borderTop: i > 0 ? `1px dashed ${C.hairline}` : 'none',
+                        fontSize: 11, color: C.slate2,
+                      }}>
+                        <div style={{ width: 5, height: 5, borderRadius: '50%', background: C.emerald, flexShrink: 0 }} />
+                        {r.nombre}
                       </div>
                     ))}
                   </div>
                 </div>
               )}
             </div>
-          </section>
-
-          {/* ── CULTURA TAGS ──────────────────────────────────────────────────── */}
-          {culturaLaboral.length > 0 && (
-            <section style={{ padding: '12px 36px 16px', background: C.paper, borderBottom: `1px solid ${C.hairline}` }}>
-              <SecLabel>Cultura que busco</SecLabel>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 6px', fontFamily: DISPLAY, fontSize: 12, fontWeight: 600, letterSpacing: '-0.015em' }}>
-                {culturaLaboral.map((cult, ci) => {
-                  const tc = TAG_COLORS[ci % TAG_COLORS.length]
-                  return (
-                    <span key={ci} style={{ padding: '4px 10px', borderRadius: 999, lineHeight: 1.0, background: tc.bg, color: tc.color }}>
-                      <span style={{ opacity: 0.5, fontWeight: 400 }}># </span>{cult}
-                    </span>
-                  )
-                })}
-              </div>
-            </section>
-          )}
+          </div>
 
           {/* ── FOOTER ────────────────────────────────────────────────────────── */}
-          <footer style={{ marginTop: 'auto', padding: '8px 36px', background: '#E8E3D5', color: C.muted, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: MONO, fontSize: 8, letterSpacing: '0.22em', textTransform: 'uppercase', borderTop: `1px solid ${C.hairline}` }}>
-            <img
-              src="/LOGOS/ELVIA_logo_fondo_transparente.png"
-              alt="ELVIA"
-              style={{ height: 28, width: 'auto', objectFit: 'contain' }}
-            />
-            <span>02 / 02</span>
-          </footer>
+          <div style={{
+            background: C.navy,
+            padding: '10px 36px',
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          }}>
+            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', fontWeight: 500 }}>
+              Generado por <span style={{ color: C.blue, fontWeight: 700 }}>ELVIA®</span> · Ecosistema de Carrera
+            </div>
+            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)' }}>
+              {fecha}
+            </div>
+          </div>
 
-        </div> {/* fin de pdf-page 2 */}
-
+        </div>
       </div>
-    </div>
     </div>
   )
 }
