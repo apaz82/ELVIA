@@ -96,6 +96,10 @@ export default function JobMatches() {
   }
 
   const [modoBusqueda, setModoBusqueda] = useState('cargo') // 'cargo' | 'keywords'
+  const [modoEmpresasActivo, setModoEmpresasActivo] = useState(false) // búsqueda dirigida por empresas objetivo
+  const [empresasObjetivo, setEmpresasObjetivo] = useState([]) // top5 del perfilador
+  const [empresasSeleccionadas, setEmpresasSeleccionadas] = useState([]) // subset para búsqueda
+  const [cargoObjetivo, setCargoObjetivo] = useState('') // nivel + área precargado
   const [titulo, setTitulo]     = useState(resultadoMatch?.jobData?.title || '')
   const [keywords, setKeywords] = useState('')
   const [ubicacion, setUbicacion] = useState(
@@ -168,6 +172,33 @@ export default function JobMatches() {
       .catch(() => {})
   }, [perfil])
 
+  // Cargar Perfilador: top5empresas (con lectura dual) + nivel/área para precarga
+  useEffect(() => {
+    if (!user) return
+    supabase.from('profiles').select('job_search_profile').eq('id', user.id).maybeSingle()
+      .then(({ data: p }) => {
+        const jp = p?.job_search_profile || {}
+        const empresas = (
+          Array.isArray(jp?.perfil?.top5empresas) ? jp.perfil.top5empresas :
+          Array.isArray(jp?.autoconocimiento?.top5empresas) ? jp.autoconocimiento.top5empresas : []
+        ).filter(e => e && String(e).trim())
+        if (empresas.length > 0) {
+          setEmpresasObjetivo(empresas)
+          setEmpresasSeleccionadas(empresas) // todas seleccionadas por default
+          // Construir cargo objetivo: nivel + área
+          const niveles = jp?.perfil?.niveles_cargo || []
+          const areas = jp?.perfil?.areas || []
+          const nivel = niveles[0] || ''
+          const area = areas[0] || ''
+          const cargo = [nivel, area].filter(Boolean).join(' ')
+          if (cargo) setCargoObjetivo(cargo)
+          // Activar modo empresas por default si hay datos completos
+          if (empresas.length > 0 && cargo) setModoEmpresasActivo(true)
+        }
+      })
+      .catch(() => {})
+  }, [user])
+
   const generarJobKey = (title, company) =>
     `${(title || '').toLowerCase().trim()}|${(company || '').toLowerCase().trim()}`
 
@@ -234,6 +265,7 @@ export default function JobMatches() {
   }, [])
 
   const buscar = async () => {
+    if (modoEmpresasActivo) return buscarEnEmpresas()
     const queryActual = modoBusqueda === 'keywords' ? keywords : titulo
     if (!queryActual.trim()) return setError(modoBusqueda === 'keywords' ? 'Ingresa palabras clave' : 'Ingresa el cargo a buscar')
     setLoading(true)
@@ -256,6 +288,34 @@ export default function JobMatches() {
       recargarSavedKeys()
     } catch {
       setError('Error al buscar vacantes')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const buscarEnEmpresas = async () => {
+    const cargo = cargoObjetivo.trim() || titulo.trim()
+    const empresas = empresasSeleccionadas.filter(e => e && String(e).trim())
+    if (!cargo) return setError('Necesitas tener un cargo objetivo en tu Perfilador o escribirlo en el campo Cargo')
+    if (empresas.length === 0) return setError('Selecciona al menos una empresa objetivo')
+    setLoading(true)
+    setError('')
+    setBuscado(false)
+    setPanelAbierto({})
+    try {
+      const params = new URLSearchParams({ title: cargo })
+      if (ubicacion) params.append('location', ubicacion)
+      empresas.slice(0, 5).forEach(e => params.append('companies', e))
+      Object.entries(filtros).forEach(([k, v]) => { if (v) params.append(k, v) })
+      const data = await api.get(`/api/jobs/similar?${params}`)
+      if (data.error) return setError(data.error)
+      setVacantes(data.vacantes || [])
+      setTotal(data.total || 0)
+      setBuscado(true)
+      setMostrarFiltros(false)
+      recargarSavedKeys()
+    } catch {
+      setError('Error al buscar vacantes en empresas objetivo')
     } finally {
       setLoading(false)
     }
@@ -296,7 +356,7 @@ export default function JobMatches() {
   if (!featuresDesbloqueadas) {
     return (
       <FeatureLocked
-        titulo="Vacantes Recomendadas"
+        titulo="Buscar Vacantes"
         descripcion="Accede a las mejores oportunidades laborales filtradas por nuestra IA según tu perfil único."
         icono={<Briefcase size={44} weight="light" />}
       />
@@ -307,7 +367,7 @@ export default function JobMatches() {
     <div className="max-w-4xl mx-auto px-4 py-8">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
-          Vacantes Similares
+          Buscar Vacantes
           <HelpBadge id="jobs.main" />
         </h1>
         <p className="mt-2 text-gray-600">Encuentra oportunidades y verifica tu compatibilidad antes de aplicar.</p>
@@ -362,23 +422,74 @@ export default function JobMatches() {
       {/* Buscador */}
       <div className="bg-white rounded-2xl border border-gray-200 p-6 mb-6">
 
-        {/* Toggle modo búsqueda */}
-        <div className="flex gap-1 bg-gray-100 rounded-lg p-1 w-fit mb-4">
-          {[
-            { key: 'cargo',    label: 'Por cargo' },
-            { key: 'keywords', label: 'Por palabras clave' },
-          ].map(m => (
-            <button key={m.key} onClick={() => setModoBusqueda(m.key)}
-              className={`text-xs font-medium py-1.5 px-4 rounded-md transition-colors
-                ${modoBusqueda === m.key ? 'bg-white text-primary shadow-sm' : 'text-gray-500 hover:text-gray-800'}`}>
-              {m.label}
-            </button>
-          ))}
-        </div>
+        {/* Panel: Mis empresas objetivo */}
+        {empresasObjetivo.length > 0 && (
+          <div className={`mb-5 rounded-xl border-2 p-4 transition-colors ${modoEmpresasActivo ? 'border-indigo-300 bg-indigo-50/60' : 'border-gray-200 bg-gray-50'}`}>
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-bold text-indigo-700">🎯 Mis empresas objetivo</span>
+                <span className="text-xs text-gray-400">({empresasSeleccionadas.length}/{empresasObjetivo.length} seleccionadas)</span>
+              </div>
+              <button
+                onClick={() => setModoEmpresasActivo(v => !v)}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors cursor-pointer ${modoEmpresasActivo ? 'bg-indigo-600' : 'bg-gray-300'}`}>
+                <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${modoEmpresasActivo ? 'translate-x-6' : 'translate-x-1'}`}/>
+              </button>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {empresasObjetivo.map(e => {
+                const sel = empresasSeleccionadas.includes(e)
+                return (
+                  <button key={e}
+                    onClick={() => setEmpresasSeleccionadas(prev => sel ? prev.filter(x => x !== e) : [...prev, e])}
+                    className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border transition-colors cursor-pointer
+                      ${sel ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-500 border-gray-300 hover:border-indigo-400'}`}>
+                    {e}
+                    <span className={`text-xs leading-none ${sel ? 'text-indigo-200' : 'text-gray-400'}`}>{sel ? '✓' : '+'}</span>
+                  </button>
+                )
+              })}
+            </div>
+            {modoEmpresasActivo && (
+              <div className="mt-3 flex items-center gap-2 text-xs text-indigo-600 bg-white border border-indigo-200 rounded-lg px-3 py-2">
+                <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                Buscando con cargo objetivo: <strong className="ml-1">{cargoObjetivo || titulo || 'sin especificar'}</strong>
+                {!cargoObjetivo && <span className="text-amber-600 ml-1">— completa el Perfilador o escribe un cargo abajo</span>}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Toggle modo búsqueda libre (visible solo cuando modo empresas está OFF) */}
+        {!modoEmpresasActivo && (
+          <div className="flex gap-1 bg-gray-100 rounded-lg p-1 w-fit mb-4">
+            {[
+              { key: 'cargo',    label: 'Por cargo' },
+              { key: 'keywords', label: 'Por palabras clave' },
+            ].map(m => (
+              <button key={m.key} onClick={() => setModoBusqueda(m.key)}
+                className={`text-xs font-medium py-1.5 px-4 rounded-md transition-colors
+                  ${modoBusqueda === m.key ? 'bg-white text-primary shadow-sm' : 'text-gray-500 hover:text-gray-800'}`}>
+                {m.label}
+              </button>
+            ))}
+          </div>
+        )}
 
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="flex-1">
-            {modoBusqueda === 'cargo' ? (
+            {modoEmpresasActivo ? (
+              <>
+                <label className="block text-xs font-medium text-gray-500 mb-1">Cargo objetivo</label>
+                <input type="text" value={cargoObjetivo} onChange={e => setCargoObjetivo(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && buscar()}
+                  placeholder="ej. Gerente de RH, Director Comercial..."
+                  className="w-full border border-indigo-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400" />
+                <p className="text-xs text-gray-400 mt-1">Precargado desde tu Perfilador — puedes editarlo.</p>
+              </>
+            ) : modoBusqueda === 'cargo' ? (
               <>
                 <label className="block text-xs font-medium text-gray-500 mb-1">Cargo</label>
                 <input type="text" value={titulo} onChange={e => setTitulo(e.target.value)}
@@ -419,7 +530,10 @@ export default function JobMatches() {
             )}
           </div>
           <div className="sm:self-end">
-            <Button onClick={buscar} loading={loading} disabled={!titulo.trim()}>Buscar</Button>
+            <Button onClick={buscar} loading={loading}
+              disabled={modoEmpresasActivo ? empresasSeleccionadas.length === 0 : !titulo.trim()}>
+              {modoEmpresasActivo ? '🎯 Buscar en mis empresas' : 'Buscar'}
+            </Button>
           </div>
         </div>
 
@@ -519,6 +633,11 @@ export default function JobMatches() {
                         {v.fuente && (
                           <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${v.fuente === 'Google Jobs' ? 'bg-blue-50 text-blue-600' : 'bg-gray-100 text-gray-500'}`}>
                             {v.fuente}
+                          </span>
+                        )}
+                        {v.company && empresasObjetivo.some(e => v.company.toLowerCase().includes(e.toLowerCase())) && (
+                          <span className="text-xs px-2 py-0.5 rounded-full font-semibold bg-indigo-100 text-indigo-700 border border-indigo-200">
+                            🎯 Empresa objetivo
                           </span>
                         )}
                       </div>

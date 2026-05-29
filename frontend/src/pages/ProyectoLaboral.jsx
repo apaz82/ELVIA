@@ -1242,9 +1242,31 @@ function PilarMiPerfil({ perfil, extraData, onChange, onSavePerfil, saving, isPa
                 </div>
               ))}</div>)}
           </div>
+          <div>
+            <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Top 5 Compañías objetivo · <span className="text-amber-600">Escribe al menos 1</span></h3>
+            <p className="text-xs text-slate-400 mb-4">Estas empresas aparecerán como búsqueda dirigida en Buscar Vacantes.</p>
+            <div className="space-y-2">
+              {[0,1,2,3,4].map(function(i){
+                const empresas = Array.isArray(d.top5empresas) ? d.top5empresas : (Array.isArray(data?.autoconocimiento?.top5empresas) ? data.autoconocimiento.top5empresas : [])
+                const updateEmpresa = function(idx,val){
+                  const arr = (Array.isArray(d.top5empresas)?d.top5empresas:empresas).slice()
+                  while(arr.length<5) arr.push('')
+                  arr[idx]=val; up('top5empresas',arr)
+                }
+                return(
+                  <div key={i} className="flex items-center gap-3">
+                    <span className="w-6 h-6 rounded-full bg-amber-100 text-amber-600 text-xs font-black flex items-center justify-center shrink-0 border border-amber-200">{i+1}</span>
+                    <input value={empresas[i]||''} onChange={function(e){updateEmpresa(i,e.target.value)}}
+                      placeholder={'Empresa #'+(i+1)+' (ej: Google, Banorte...)'}
+                      className="flex-1 border border-slate-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-300/50 focus:border-amber-400"/>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
           <button onClick={()=>onSavePerfilLocal(lp)} disabled={saving}
             className={`flex items-center gap-2 font-bold text-sm px-6 py-3 rounded-xl transition-all cursor-pointer disabled:opacity-60 ${justSaved ? 'bg-emerald-600 text-white' : 'bg-indigo-600 hover:bg-indigo-700 text-white'}`}>
-            {saving ? <SpinnerGap size={16} className="animate-spin"/> : (justSaved ? <CheckCircle size={16} weight="fill"/> : <CheckCircle size={16} weight="fill"/>)} 
+            {saving ? <SpinnerGap size={16} className="animate-spin"/> : (justSaved ? <CheckCircle size={16} weight="fill"/> : <CheckCircle size={16} weight="fill"/>)}
             {justSaved ? 'Guardado' : 'Guardar Perfilador'}
           </button>
         </div>
@@ -1259,7 +1281,7 @@ const FEATURES_PREVIEW=[
   {label:'CV Optimizer',desc:'Analiza y mejora tu CV con IA',Icon:FileMagnifyingGlass,color:'violet'},
   {label:'LinkedIn Optimo',desc:'Optimiza tu perfil para reclutadores',Icon:LinkedinLogo,color:'blue'},
   {label:'CV vs Vacante',desc:'Compara tu CV con cualquier vacante',Icon:MagnifyingGlass,color:'teal'},
-  {label:'Vacantes',desc:'Encuentra oportunidades personalizadas',Icon:Briefcase,color:'indigo'},
+  {label:'Buscar Vacantes',desc:'Encuentra oportunidades personalizadas',Icon:Briefcase,color:'indigo'},
   {label:'Entrevistas IA',desc:'Practica con entrevistas simuladas',Icon:MicrophoneStage,color:'rose'},
   {label:'Mis documentos',desc:'Gestiona tus CVs, reportes e infografías',Icon:Folders,color:'amber'},
   {label:'Mis Vacantes',desc:'Guarda y organiza empleos de interés',Icon:BookmarkSimple,color:'green'},
@@ -1638,7 +1660,6 @@ function PilarAutoconocimiento({ data, onChange, onSave, justSaved }) {
     const items = []
     if (!Array.isArray(d.hard_skills)||d.hard_skills.length<2)   items.push('Hard Skills — selecciona al menos 2')
     if (!Array.isArray(d.soft_skills)||d.soft_skills.length<2)   items.push('Power Skills — selecciona al menos 2')
-    if (!Array.isArray(d.top5empresas)||d.top5empresas.filter(function(e){return e&&String(e).trim()}).length<1) items.push('Top 5 Compañías — escribe al menos 1')
     return items
   }
   function handleSave() {
@@ -1737,10 +1758,6 @@ function PilarAutoconocimiento({ data, onChange, onSave, justSaved }) {
     const list = Array.isArray(d[key])?d[key]:[]
     up(key,list.includes(val)?list.filter(function(x){return x!==val}):list.concat([val]))
   }
-  const updateE = function(i,val){
-    const arr = Array.isArray(d.top5empresas)?d.top5empresas.slice():['','','','','']
-    arr[i]=val; up('top5empresas',arr)
-  }
   return (
     <div className="space-y-8">
       <div className="space-y-4">
@@ -1782,21 +1799,6 @@ function PilarAutoconocimiento({ data, onChange, onSave, justSaved }) {
 
 
       </div>
-      <div>
-        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Top 5 Compañías objetivo · <span className="text-amber-600">Debes llenar al menos 1</span></h3>
-        <p className="text-xs text-slate-400 mb-4">Estas empresas aparecerán primero en tu radar de Vacantes.</p>
-        <div className="space-y-2">
-          {[0,1,2,3,4].map(function(i){return(
-            <div key={i} className="flex items-center gap-3">
-              <span className="w-6 h-6 rounded-full bg-amber-100 text-amber-600 text-xs font-black flex items-center justify-center shrink-0 border border-amber-200">{i+1}</span>
-              <input value={(Array.isArray(d.top5empresas)?d.top5empresas:[])[i]||''} onChange={function(e){updateE(i,e.target.value)}}
-                placeholder={'Empresa #'+(i+1)+' (ej: Google, Banorte...)'}
-                className="flex-1 border border-slate-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-300/50 focus:border-amber-400"/>
-            </div>
-          )})}
-        </div>
-      </div>
-
       {/* Botón de guardar */}
       <div className="mt-8 pt-6 border-t border-slate-200 flex justify-end">
         <button onClick={handleSave}
@@ -2721,7 +2723,6 @@ export default function ProyectoLaboral() {
       const items=[]
       if (!Array.isArray(a.hard_skills)||a.hard_skills.length<2)   items.push('Hard Skills — selecciona al menos 2')
       if (!Array.isArray(a.soft_skills)||a.soft_skills.length<2)   items.push('Power Skills — selecciona al menos 2')
-      if (!Array.isArray(a.top5empresas)||a.top5empresas.filter(function(e){return e&&String(e).trim()}).length<1) items.push('Top 5 Compañías — escribe al menos 1')
       return items
     }
     if (pilar==='recursos') {

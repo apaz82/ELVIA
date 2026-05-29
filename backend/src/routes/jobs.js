@@ -251,18 +251,52 @@ const expandirCargo = async (title) => {
 };
 
 // GET /api/jobs/similar
-// Soporta dos modos:
-//   ?title=  → búsqueda por cargo (expande con sinónimos)
-//   ?keywords= → búsqueda por palabras clave/frases (sin expansión)
+// Soporta tres modos:
+//   ?title=              → búsqueda por cargo (expande con sinónimos)
+//   ?keywords=           → búsqueda por palabras clave/frases (sin expansión)
+//   ?title=&companies=   → búsqueda dirigida por empresas objetivo (repite param para múltiples)
 router.get('/similar', auth, async (req, res) => {
   const { title, keywords, location, datecreated, employment_type, experience, radius, salary, page } = req.query;
+  const companiesParam = req.query.companies;
+  const companies = companiesParam
+    ? (Array.isArray(companiesParam) ? companiesParam : [companiesParam]).map(c => c.trim()).filter(Boolean).slice(0, 5)
+    : [];
 
+  const modoEmpresas = companies.length > 0 && !!title;
   const modoKeywords = !!keywords && !title;
   const queryOriginal = keywords || title;
 
   if (!queryOriginal) return res.status(400).json({ error: 'Se requiere el cargo o palabras clave' });
 
   try {
+    if (modoEmpresas) {
+      // Búsqueda dirigida: N llamadas en paralelo, una por empresa, con "cargo at empresa"
+      console.log(`[jobs/similar] Modo empresas | Cargo: "${title}" | Empresas: ${companies.join(', ')}`);
+      const searchPromises = companies.flatMap(empresa => [
+        searchJooble({ title: `${title} ${empresa}`, location, datecreated, employment_type, experience, radius, salary, page }),
+        searchGoogleJobs({ title: `${title} at ${empresa}`, location, datecreated }),
+      ]);
+      const allResults = await Promise.all(searchPromises);
+      const flat = allResults.flat();
+
+      // Dedup + filtrar solo resultados que mencionen alguna empresa objetivo
+      const vistos = new Set();
+      const rawVacantes = flat.filter(v => {
+        const key = `${v.title?.toLowerCase().trim()}|${v.company?.toLowerCase().trim()}`;
+        if (vistos.has(key)) return false;
+        vistos.add(key);
+        // Aceptar cualquier resultado cuando se busca por empresa (la query ya lo filtra implícitamente)
+        return true;
+      });
+
+      // Ordenar: primero los que coinciden explícitamente con alguna empresa objetivo
+      const normalizeEmpresa = s => (s || '').toLowerCase().trim();
+      const estaEnObjetivo = v => companies.some(e => normalizeEmpresa(v.company).includes(normalizeEmpresa(e)));
+      rawVacantes.sort((a, b) => (estaEnObjetivo(b) ? 1 : 0) - (estaEnObjetivo(a) ? 1 : 0));
+
+      return res.json({ vacantes: rawVacantes, total: rawVacantes.length, modoEmpresas: true });
+    }
+
     // Modo cargo: expandir con sinónimos. Modo keywords: usar directo.
     const queryBusqueda = modoKeywords ? queryOriginal : await expandirCargo(title);
     console.log(`[jobs/similar] Modo: ${modoKeywords ? 'keywords' : 'cargo'} | Query: "${queryBusqueda}"`);

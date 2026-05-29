@@ -22,7 +22,11 @@ export function calcPerfilPts(perfil, jpData) {
   if (String(perfil?.salario_esperado||'').trim().length>1) pts+=3
   if (String(jpData?.perfil?.nivel_educativo||'').length>1) pts+=2
   if (String(jpData?.perfil?.anios_experiencia||'').length>0) pts+=2
-  return Math.min(pts, 20)
+  // Top 5 Compañías — movido desde Autoconocimiento al Perfilador (lectura dual para migración gradual)
+  const empresas = Array.isArray(jpData?.perfil?.top5empresas) ? jpData.perfil.top5empresas
+    : (Array.isArray(jpData?.autoconocimiento?.top5empresas) ? jpData.autoconocimiento.top5empresas : [])
+  if (empresas.filter(function(e){return e && String(e).trim()}).length >= 1) pts += 5
+  return Math.min(pts, 25)
 }
 
 export function calcularProgreso(data, perfil) {
@@ -38,10 +42,7 @@ export function calcularProgreso(data, perfil) {
   // 2. Power Skills - 7 pts (sección ex Soft Skills, renombrada)
   if (Array.isArray(auto.soft_skills) && auto.soft_skills.length >= 2) autoPts += 7
 
-  // 4. Compañías - 5 pts
-  if (Array.isArray(auto.top5empresas) && auto.top5empresas.filter(function(e){return e && String(e).trim()}).length >= 1) autoPts += 5
-
-  core += Math.min(autoPts, 20)
+  core += Math.min(autoPts, 15)
 
   // Semana: 10 pts (peso reducido, ejecución táctica)
   const bloques = (data&&data.semana&&data.semana.bloques) ? data.semana.bloques : {}
@@ -80,9 +81,6 @@ export function calcularPorPilar(data, perfil) {
   // 2. Power/Soft Skills (soft_skills) - 7 pts
   if (Array.isArray(auto.soft_skills) && auto.soft_skills.length >= 2) autoPts += 7
 
-  // 4. Compañías - 5 pts
-  if (Array.isArray(auto.top5empresas) && auto.top5empresas.filter(function(e){return e && String(e).trim()}).length >= 1) autoPts += 5
-
   const bloques = (data && data.semana && data.semana.bloques) ? data.semana.bloques : {}
   const bN = Object.values(bloques).filter(Boolean).length
   let semanaPts = 0
@@ -101,8 +99,8 @@ export function calcularPorPilar(data, perfil) {
   IKIGAI_KEYS_PP.forEach(function(k){ if (String(oferta[k] || '').trim().length >= 50) ofertaPts += 4 })
 
   return {
-    perfil:           Math.round((perfilPts / 20) * 100),
-    autoconocimiento: Math.round((Math.min(autoPts, 20) / 20) * 100),
+    perfil:           Math.round((Math.min(perfilPts, 25) / 25) * 100),
+    autoconocimiento: Math.round((Math.min(autoPts, 15) / 15) * 100),
     documentos:       (data && data.optimizer && data.optimizer.cv_generado) ? 100 : 0,
     semana:           Math.round((semanaPts / 20) * 100),
     recursos:         Math.round((recPts / 20) * 100),
