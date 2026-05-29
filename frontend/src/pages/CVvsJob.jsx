@@ -96,6 +96,7 @@ export default function CVvsJob() {
   const guardarEnPipeline = async () => {
     if (!resultadoMatch || !user) return
     setSavingPipeline(true)
+    setError('')
     try {
       const jobData = {
         title:       saveForm.posicion || resultadoMatch.jobData?.title || '',
@@ -103,33 +104,60 @@ export default function CVvsJob() {
         description: jobText || '',
         link:        saveForm.link     || resultadoMatch.jobData?.link || '',
       }
-      const { data: saved, error: errJob } = await supabase
+      
+      // Generar un job_key consistente (titulo|empresa en minúsculas)
+      const key = `${(jobData.title || '').toLowerCase().trim()}|${(jobData.company || '').toLowerCase().trim()}`
+      console.log('Guardando vacante con job_key consistente:', key)
+
+      const { data: savedRows, error: errJob } = await supabase
         .from('saved_jobs')
-        .insert({
+        .upsert({
           user_id: user.id,
           company_id: companyId || null,
+          job_key: key,
           titulo: jobData.title,
           empresa: jobData.company,
           descripcion: jobData.description,
           job_data: jobData,
           estado: saveForm.etapa,
           notas: '',
-        })
+        }, { onConflict: 'user_id,job_key' })
         .select('id')
-        .single()
-      if (errJob) throw errJob
 
-      await supabase.from('job_checks').upsert({
-        job_key:  saved.id,
+      if (errJob) {
+        console.error('Error insertando/actualizando saved_jobs:', errJob)
+        throw errJob
+      }
+      const saved = savedRows?.[0]
+      if (!saved?.id) {
+        const noSavedErr = new Error('No se recibió el ID de la vacante guardada')
+        console.error(noSavedErr)
+        throw noSavedErr
+      }
+
+      console.log('Vacante guardada exitosamente en saved_jobs con ID:', saved.id)
+
+      const { error: errCheck } = await supabase.from('job_checks').upsert({
+        job_key:  key,
         user_id:  user.id,
         company_id: companyId || null,
         score:    resultadoMatch.matchScore,
         motivos:  resultadoMatch.analisis?.fortalezas ?? [],
-      })
+      }, { onConflict: 'user_id,job_key' })
+
+      if (errCheck) {
+        console.error('Error insertando/actualizando job_checks:', errCheck)
+        // No lanzamos error para no arruinar la experiencia si saved_jobs se guardó correctamente,
+        // pero lo dejamos en consola.
+      } else {
+        console.log('Compatibilidad guardada exitosamente en job_checks')
+      }
+
       setSavedToPipeline(true)
       setShowSaveForm(false)
-    } catch {
-      setError('Error al guardar en Pipeline. Intenta de nuevo.')
+    } catch (err) {
+      console.error('Error en guardarEnPipeline:', err)
+      setError(err.message || 'Error al guardar en Pipeline. Intenta de nuevo.')
     } finally {
       setSavingPipeline(false)
     }

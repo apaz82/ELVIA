@@ -291,14 +291,43 @@ export default function Pipeline() {
 
   const cargarTodo = async () => {
     setLoading(true)
-    const [{ data: saved }, { data: checks }] = await Promise.all([
-      supabase.from('saved_jobs').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
-      supabase.from('job_checks').select('job_key, score, motivos').eq('user_id', user.id),
-    ])
-    const checkMap = {}
-    ;(checks || []).forEach(c => { checkMap[c.job_key] = c })
-    setVacantes((saved || []).map(s => ({ ...s, check: checkMap[s.job_key] || checkMap[s.id] || null })))
-    setLoading(false)
+    try {
+      console.log('Cargando vacantes y chequeos en Pipeline para user_id:', user.id)
+      const [{ data: saved, error: errSaved }, { data: checks, error: errChecks }] = await Promise.all([
+        supabase.from('saved_jobs').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
+        supabase.from('job_checks').select('job_key, score, motivos').eq('user_id', user.id),
+      ])
+
+      if (errSaved) {
+        console.error('Error cargando saved_jobs en Pipeline:', errSaved)
+      }
+      if (errChecks) {
+        console.error('Error cargando job_checks en Pipeline:', errChecks)
+      }
+
+      console.log('saved_jobs crudos devueltos:', saved)
+      console.log('job_checks crudos devueltos:', checks)
+
+      const checkMap = {}
+      ;(checks || []).forEach(c => {
+        if (c.job_key) {
+          checkMap[c.job_key] = c
+        }
+      })
+
+      const mappedVacantes = (saved || []).map(s => {
+        // Fallback robusto: buscar compatibilidad por job_key (consistente) o por id (UUID legacy)
+        const check = (s.job_key && checkMap[s.job_key]) || checkMap[s.id] || null
+        return { ...s, check }
+      })
+
+      console.log('Vacantes mapeadas finales para renderizar en Pipeline:', mappedVacantes)
+      setVacantes(mappedVacantes)
+    } catch (err) {
+      console.error('Error general en cargarTodo de Pipeline:', err)
+    } finally {
+      setLoading(false)
+    }
   }
 
   useEffect(() => {
