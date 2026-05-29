@@ -28,6 +28,7 @@ const MI_CARRERA = [
   { to: '/mis-vacantes',  label: 'Mis Vacantes',  Icon: BookmarkSimple },
   { to: '/pipeline',      label: 'Pipeline',      Icon: Kanban },
   { to: '/mis-metricas',  label: 'Mis Métricas',  Icon: ChartBar },
+  { to: '/expertos',      label: 'Mentor Experto', Icon: UsersThree },
 ]
 
 const RECURSOS = [
@@ -311,20 +312,6 @@ export default function Sidebar({ open, onClose }) {
             <BienestarItem onClick={onClose} locked={locked || featureLocked} />
           </div>
 
-          {/* Hablemos */}
-          <div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-outline px-3 mb-2">
-              Hablemos
-            </p>
-            <div className="space-y-0.5">
-              {locked
-                ? <LockedNavItem label="Mentor Experto" Icon={UsersThree} />
-                : featureLocked
-                  ? <FeatureLockedNavItem label="Mentor Experto" Icon={UsersThree} />
-                  : HABLEMOS.map(item => <NavItem key={item.to} {...item} onClick={onClose} />)
-              }
-            </div>
-          </div>
         </nav>
 
         {/* Footer del sidebar */}
