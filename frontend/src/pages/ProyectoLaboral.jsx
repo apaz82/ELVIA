@@ -1151,6 +1151,17 @@ function PilarMiPerfil({ perfil, extraData, onChange, onSavePerfil, saving, isPa
             {Array.isArray(d.areas)&&d.areas.includes('Otro')&&(
               <input value={lp.area_otro||''} onChange={e=>setLP(f=>({...f, area_otro: e.target.value}))} placeholder="Especifica el área..."
                 className="mt-3 w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400/40"/>)}</div>
+          <div>
+            <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Cargo objetivo</h3>
+            <p className="text-xs text-slate-400 mb-2">El título del puesto al que aplicarías — se usa para buscar vacantes relevantes.</p>
+            <input
+              value={d.cargo_objetivo||''}
+              onChange={e=>up('cargo_objetivo', e.target.value)}
+              placeholder="ej. Director General, Gerente Comercial, VP Finanzas..."
+              className="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400/40"
+            />
+            <p className="text-[11px] text-slate-400 mt-1.5">Tip: cargo genérico funciona mejor en búsquedas (ej. "Director General" en vez de "Director de Operaciones Lean")</p>
+          </div>
           <div><h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Industrias de interés</h3>
             <div className="flex flex-wrap gap-2">{[...INDUSTRIAS_LATAM,'Otro'].map(ind=>{const sel=Array.isArray(d.industrias_deseadas)&&d.industrias_deseadas.includes(ind);return(
               <button key={ind} onClick={()=>toggleInd(ind)}

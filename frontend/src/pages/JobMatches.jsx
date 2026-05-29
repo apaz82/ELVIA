@@ -62,16 +62,16 @@ export default function JobMatches() {
 
   const cvText = cvTextContexto || cvSeleccionado?.contenido || ''
 
-  // Cargar CVs guardados si no hay CV en contexto
+  // Cargar CVs base guardados (optimize/generar — no adaptados "match")
   useEffect(() => {
     if (cvTextContexto || !user) return
     supabase.from('cv_results')
       .select('id, contenido, tipo, created_at')
       .eq('user_id', user.id)
-      .in('tipo', ['optimize', 'match', 'generar'])
+      .in('tipo', ['optimize', 'generar'])
       .not('contenido', 'like', '{%')
       .order('created_at', { ascending: false })
-      .limit(10)
+      .limit(5)
       .then(({ data }) => {
         if (!data?.length) return
         setCvsSaved(data)
@@ -186,16 +186,20 @@ export default function JobMatches() {
         if (empresas.length > 0) {
           setEmpresasObjetivo(empresas)
           setEmpresasSeleccionadas(empresas) // todas seleccionadas por default
-          // Precargar keywords con cargo objetivo: nivel + área (editable)
+        }
+        // Precargar keywords: 1º campo directo cargo_objetivo, 2º fallback nivel+área
+        const cargoDirecto = String(jp?.perfil?.cargo_objetivo || '').trim()
+        if (cargoDirecto) {
+          setKeywords(prev => prev || cargoDirecto)
+        } else {
           const niveles = jp?.perfil?.niveles_cargo || []
           const areas = jp?.perfil?.areas || []
-          const nivel = niveles[0] || ''
-          const area = areas[0] || ''
-          const cargo = [nivel, area].filter(Boolean).join(' ')
-          if (cargo) setKeywords(prev => prev || cargo) // no sobreescribir si viene de CVvsJob
-          // Activar modo empresas por default si hay datos completos
-          if (empresas.length > 0 && cargo) setModoEmpresasActivo(true)
+          const cargo = [niveles[0] || '', areas[0] || ''].filter(Boolean).join(' ')
+          if (cargo) setKeywords(prev => prev || cargo)
         }
+        // Activar modo empresas por default si hay empresas Y cargo definido
+        const cargoFinal = cargoDirecto || (jp?.perfil?.niveles_cargo||[])[0] || ''
+        if (empresas.length > 0 && cargoFinal) setModoEmpresasActivo(true)
       })
       .catch(() => {})
   }, [user])
@@ -396,12 +400,12 @@ export default function JobMatches() {
               </button>
               {mostrarSelector && (
                 <div className="absolute left-0 top-full mt-1 w-80 bg-white border border-gray-200 rounded-xl shadow-lg z-10 overflow-hidden">
-                  <p className="text-xs text-gray-400 px-3 pt-2 pb-1">Selecciona el CV para comparar:</p>
+                  <p className="text-xs text-gray-400 px-3 pt-2 pb-1">Selecciona tu CV base:</p>
                   {cvsSaved.map(cv => (
                     <button key={cv.id} onClick={() => { setCvSeleccionado({ id: cv.id, nombre: extraerNombre(cv.contenido), contenido: cv.contenido }); setMostrarSelector(false) }}
                       className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 flex items-center justify-between gap-2 ${cvSeleccionado?.id === cv.id ? 'bg-blue-50 text-primary' : 'text-gray-700'}`}>
                       <span className="truncate">{extraerNombre(cv.contenido)}</span>
-                      <span className="text-xs text-gray-400 shrink-0">{cv.tipo === 'match' ? 'vs Vacante' : 'Optimizado'}</span>
+                      <span className="text-xs text-gray-400 shrink-0">{cv.tipo === 'generar' ? 'CV Inicial' : 'Optimizado'}</span>
                     </button>
                   ))}
                 </div>
