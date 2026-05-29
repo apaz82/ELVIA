@@ -1,6 +1,7 @@
 // ProyectoLaboral.jsx  — Gerente de Proyecto de tu Búsqueda Laboral
 // Design: Plus Jakarta Sans · SaaS Professional · Light mode
 import { useState, useEffect, useCallback, useRef } from 'react'
+import toast from 'react-hot-toast'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../services/authService'
@@ -2992,21 +2993,17 @@ export default function ProyectoLaboral() {
       }
       const pData = data || {}
       const porPilarNew = calcularPorPilar(pData, updatedPerfil)
-      
-      if (porPilarNew.perfil === 100 && !wasComplete) {
-        const currentIdx = PILARES.findIndex(p => p.id === 'perfil')
-        const nextPilar = PILARES[currentIdx + 1]
-        if (nextPilar) {
-          const nextPilarPct = porPilarNew[nextPilar.id] || 0
-          if (nextPilarPct < 100) {
-            setPilarId(nextPilar.id)
-            window.scrollTo({ top: 0, behavior: 'smooth' })
-            setModalSeccionDesbloqueda({
-              currentPilarLabel: 'Mi Perfil',
-              nextPilarLabel: nextPilar.label
-            })
-          }
-        }
+      const currentIdx  = PILARES.findIndex(function(p){ return p.id === 'perfil' })
+      const nextPilar   = PILARES[currentIdx + 1]
+
+      if (porPilarNew.perfil === 100 && nextPilar) {
+        window.scrollTo({ top: 0, behavior: 'smooth' })
+        setModalSeccionDesbloqueda({
+          currentPilarLabel: 'Mi Perfil',
+          nextPilarLabel: nextPilar.label
+        })
+      } else {
+        toast.success('Perfil guardado', { duration: 2000 })
       }
     }
   },[user, refreshPerfil, data, perfil])
@@ -3016,10 +3013,7 @@ export default function ProyectoLaboral() {
     setData(nd); saveData(nd)
   },[data,saveData])
 
-  // updatedData: los datos YA actualizados del pilar que acaba de guardarse.
-  // Se pasa explícitamente desde el subcomponente para que la comparación old/new sea correcta.
   const handlePilarSave = useCallback(function(pilarId, updatedPilarData){
-    // Construir el data completo con el pilar recién actualizado
     const updatedData = updatedPilarData
       ? { ...data, [pilarId]: updatedPilarData }
       : data
@@ -3029,25 +3023,24 @@ export default function ProyectoLaboral() {
     if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current)
     saveTimeoutRef.current = setTimeout(function(){ setJustSaved(null) }, 2000)
 
-    // Calcular progreso ANTES (con data viejo) y DESPUÉS (con data actualizado)
-    const oldPorPilar = calcularPorPilar(data, perfil)
+    // Calcular si el pilar recién guardado llegó a 100%
     const porPilarNew = calcularPorPilar(updatedData, perfil)
-    const wasComplete = oldPorPilar[pilarId] === 100
+    const currentIdx  = PILARES.findIndex(function(p){ return p.id === pilarId })
+    const nextPilar   = PILARES[currentIdx + 1]
 
-    if (porPilarNew[pilarId] === 100 && !wasComplete) {
-      const currentIdx = PILARES.findIndex(p => p.id === pilarId)
-      const nextPilar = PILARES[currentIdx + 1]
-      if (nextPilar) {
-        const nextPilarPct = porPilarNew[nextPilar.id] || 0
-        if (nextPilarPct < 100) {
-          setPilarId(nextPilar.id)
-          window.scrollTo({ top: 0, behavior: 'smooth' })
-          setModalSeccionDesbloqueda({
-            currentPilarLabel: PILARES[currentIdx].label,
-            nextPilarLabel: nextPilar.label
-          })
-        }
-      }
+    if (porPilarNew[pilarId] === 100 && nextPilar) {
+      // Scroll al top y mostrar modal de sección desbloqueada
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+      setModalSeccionDesbloqueda({
+        currentPilarLabel: PILARES[currentIdx].label,
+        nextPilarLabel: nextPilar.label
+      })
+    } else if (porPilarNew[pilarId] === 100) {
+      // Último pilar — toast de felicitaciones
+      toast.success('¡Sección completada al 100%! 🎉', { duration: 3000 })
+    } else {
+      // Guardado parcial — toast simple
+      toast.success('Guardado correctamente', { duration: 2000 })
     }
   },[data, saveData, perfil])
 
@@ -3434,18 +3427,29 @@ export default function ProyectoLaboral() {
               </div>
             </div>
             <div className="px-6 py-6 text-center">
-              <div className="w-16 h-16 rounded-full bg-indigo-50 border border-indigo-100 flex items-center justify-center mx-auto mb-4">
-                <Sparkle size={32} weight="duotone" className="text-indigo-600 animate-pulse"/>
+              <div className="w-16 h-16 rounded-full bg-emerald-50 border border-emerald-100 flex items-center justify-center mx-auto mb-4">
+                <Trophy size={32} weight="duotone" className="text-emerald-600"/>
               </div>
-              <h3 className="text-slate-800 font-extrabold text-base mb-2">¡Siguiente sección desbloqueada!</h3>
-              <p className="text-sm text-slate-500 mb-6 leading-relaxed">
-                Has completado todos los requisitos de esta sección. Ahora se ha desbloqueado <span className="font-bold text-slate-800">{modalSeccionDesbloqueda.nextPilarLabel}</span>. Completa este módulo para continuar construyendo tu estrategia ejecutiva.
+              <h3 className="text-slate-800 font-extrabold text-lg mb-2">
+                ¡Felicitaciones!
+              </h3>
+              <p className="text-sm text-slate-600 mb-2 leading-relaxed">
+                Completaste <span className="font-bold text-slate-800">{modalSeccionDesbloqueda.currentPilarLabel}</span>.
+              </p>
+              <p className="text-sm text-slate-500 mb-1 leading-relaxed">
+                Ahora dirígete a:
+              </p>
+              <p className="text-base font-black text-indigo-700 mb-5">
+                → {modalSeccionDesbloqueda.nextPilarLabel}
+              </p>
+              <p className="text-xs text-slate-400 mb-6">
+                No podemos perder tiempo. ¡Vamos con el mínimo viable profesional!
               </p>
               <button
                 onClick={function(){ setModalSeccionDesbloqueda(null) }}
                 className="w-full py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-sm transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-indigo-100 cursor-pointer"
               >
-                Llenar esta sección
+                Ir a {modalSeccionDesbloqueda.nextPilarLabel} →
               </button>
             </div>
           </div>
