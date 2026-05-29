@@ -1566,10 +1566,10 @@ function SkillsAccordionPicker({ tema, categorias, seleccion, onToggle, icon, ti
     : { bg: 'bg-emerald-50', borde: 'border-emerald-100', chip: 'bg-emerald-600', chipText: 'text-emerald-600', badgeBg: 'bg-emerald-100' }
 
   const total = seleccion.length
-  const excedido = total > 4
+  const excedido = total > 6
   const contadorClass = excedido
     ? 'text-rose-600'
-    : total === 4
+    : total === 6
       ? 'text-emerald-700'
       : 'text-slate-600'
 
@@ -1587,7 +1587,7 @@ function SkillsAccordionPicker({ tema, categorias, seleccion, onToggle, icon, ti
           <div className={`text-xs font-medium ${paleta.chipText}`}>{subtitulo}</div>
         </div>
         <div className={`text-xs font-black uppercase tracking-widest ${contadorClass}`}>
-          {total} / 4
+          {total} / 6
         </div>
       </div>
 
@@ -1603,7 +1603,7 @@ function SkillsAccordionPicker({ tema, categorias, seleccion, onToggle, icon, ti
       {/* Si el usuario excede la recomendación, lo avisamos con tono suave (no bloqueamos). */}
       {excedido ? (
         <div className="mb-3 text-[11px] font-semibold text-rose-700 bg-rose-50 border border-rose-100 rounded-lg px-3 py-2">
-          Llevas {total} seleccionadas. Lo ideal son 4 — prioriza las más alineadas a tu objetivo.
+          Llevas {total} seleccionadas. Lo ideal son 6 — prioriza las más alineadas a tu objetivo.
         </div>
       ) : null}
 
@@ -1787,8 +1787,8 @@ function PilarAutoconocimiento({ data, onChange, onSave, justSaved }) {
         <div className="bg-amber-50 border-l-4 border-amber-400 rounded-r-xl px-4 py-3">
           <div className="text-xs font-black text-amber-900 uppercase tracking-wider mb-1">Recomendación de mentoría</div>
           <p className="text-xs text-amber-900 leading-relaxed">
-            Lo ideal es seleccionar <strong>máximo 4 Hard Skills + 4 Power Skills</strong> — las que mejor te
-            representen y estén alineadas a tu objetivo. Menos es más: 4 + 4 enfocadas comunican más que 20 dispersas.
+            Lo ideal es seleccionar <strong>máximo 6 Hard Skills + 6 Power Skills</strong> — las que mejor te
+            representen y estén alineadas a tu objetivo. Menos es más: 6 + 6 enfocadas comunican más que 20 dispersas.
           </p>
         </div>
 
@@ -1800,7 +1800,7 @@ function PilarAutoconocimiento({ data, onChange, onSave, justSaved }) {
           onToggle={(val) => toggle('hard_skills', val)}
           icon={<Toolbox size={15} className="text-blue-600" weight="duotone"/>}
           titulo="Hard Skills"
-          subtitulo="El “Saber hacer” · Competencias técnicas medibles · Recomendado máximo 4"
+          subtitulo=”El “Saber hacer” · Competencias técnicas medibles · Recomendado máximo 6”
         />
 
         {/* Power Skills — mismo patrón visual, paleta esmeralda */}
@@ -1811,7 +1811,7 @@ function PilarAutoconocimiento({ data, onChange, onSave, justSaved }) {
           onToggle={(val) => toggle('soft_skills', val)}
           icon={<Heart size={15} className="text-emerald-600" weight="duotone"/>}
           titulo="Power Skills"
-          subtitulo="El “Saber lograr” · Habilidades humanas de impacto · Recomendado máximo 4"
+          subtitulo=”El “Saber lograr” · Habilidades humanas de impacto · Recomendado máximo 6”
         />
 
 
