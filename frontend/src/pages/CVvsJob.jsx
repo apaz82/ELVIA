@@ -117,7 +117,7 @@ export default function CVvsJob() {
       setSavedToPipeline(true)
       setShowSaveForm(false)
     } catch {
-      // silently handled — user can retry
+      setError('Error al guardar en Pipeline. Intenta de nuevo.')
     } finally {
       setSavingPipeline(false)
     }
@@ -650,7 +650,7 @@ export default function CVvsJob() {
                   </div>
                 ) : (
                   <button
-                    onClick={() => puedeAdaptar && setShowSaveForm(true)}
+                    onClick={() => { if (!puedeAdaptar) return; setSaveForm({ empresa: resultadoMatch.jobData?.company || '', posicion: resultadoMatch.jobData?.title || '', etapa: 'Descubierto' }); setShowSaveForm(true) }}
                     disabled={!puedeAdaptar}
                     title={!puedeAdaptar ? 'Compatibilidad insuficiente para guardar en Pipeline (mínimo 75%)' : ''}
                     className={`flex items-center gap-2 text-sm font-semibold rounded-xl px-4 py-2.5 transition-colors ${
