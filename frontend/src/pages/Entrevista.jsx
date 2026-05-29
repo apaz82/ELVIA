@@ -124,7 +124,7 @@ export default function Entrevista() {
   // Cargar vacantes guardadas
   useEffect(() => {
     if (!user) return
-    supabase.from('saved_jobs').select('id, titulo, empresa, job_data')
+    supabase.from('saved_jobs').select('id, job_data')
       .eq('user_id', user.id).order('created_at', { ascending: false })
       .then(({ data }) => setVacantesGuardadas(data || []))
   }, [user])
@@ -151,8 +151,8 @@ export default function Entrevista() {
   // Seleccionar vacante guardada
   const seleccionarVacante = (v) => {
     setVacanteSel(v)
-    setEmpresa(v.empresa || '')
-    setCargo(v.titulo || '')
+    setEmpresa(v.job_data?.company || '')
+    setCargo(v.job_data?.title || '')
     setDescripcion(v.job_data?.description || '')
   }
 
