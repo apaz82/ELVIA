@@ -3,7 +3,7 @@ import { useState, useRef, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { useTenant } from '../../context/TenantContext'
-import { List, UserCircle, CaretDown, SignOut, Sparkle, Crown, Coins } from '@phosphor-icons/react'
+import { List, CaretDown, SignOut, Sparkle, Crown, Coins } from '@phosphor-icons/react'
 
 // Configuración de badges por plan (solo los 3 planes activos B2C)
 const PLAN_CONFIG = {
@@ -123,14 +123,6 @@ export default function Header({ onMenuToggle }) {
             {/* Dropdown */}
             {dropdownOpen && (
               <div className="absolute right-0 top-full mt-1.5 bg-surface-container-lowest rounded-xl shadow-float border border-outline-variant/20 py-1.5 w-48 z-50">
-                <Link
-                  to="/perfil"
-                  onClick={() => setDropdownOpen(false)}
-                  className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-on-surface hover:bg-surface-container-low transition-colors"
-                >
-                  <UserCircle size={16} weight="duotone" className="text-primary" />
-                  Mi Perfil
-                </Link>
                 {!isB2B && (
                   <Link
                     to="/mi-plan"
