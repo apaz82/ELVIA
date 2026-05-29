@@ -368,9 +368,30 @@ export default function CVvsJob() {
               </p>
               <div className="flex gap-2 flex-wrap">
                 <button
-                  onClick={() => {
+                  onClick={async () => {
                     const meta = duplicadoDetectado.metadata || {}
-                    setResultadoMatch({ id: duplicadoDetectado.id, matchScore: meta.matchScore ?? 0, analisis: meta.analisis || { fortalezas: [], brechas: [], conclusion: '' }, jobData: meta.jobData || {}, keywords: meta.keywords || null, dimensiones: meta.dimensiones || null, tailoredCV: null, changes: meta.changes || [] })
+                    let tailoredCV = null
+                    try {
+                      const { data: cvData } = await supabase
+                        .from('cv_results')
+                        .select('contenido')
+                        .eq('id', duplicadoDetectado.id)
+                        .single()
+                      if (cvData?.contenido) tailoredCV = cvData.contenido
+                    } catch (err) {
+                      console.error('Error fetching tailored CV:', err)
+                    }
+
+                    setResultadoMatch({
+                      id: duplicadoDetectado.id,
+                      matchScore: meta.matchScore ?? 0,
+                      analisis: meta.analisis || { fortalezas: [], brechas: [], conclusion: '' },
+                      jobData: meta.jobData || {},
+                      keywords: meta.keywords || null,
+                      dimensiones: meta.dimensiones || null,
+                      tailoredCV,
+                      changes: meta.changes || [],
+                    })
                     setCvDesvelado(false)
                     setTabActiva('analisis')
                     setDuplicadoDetectado(null)
@@ -736,7 +757,19 @@ export default function CVvsJob() {
                   return (
                     <button
                       key={item.id}
-                      onClick={() => {
+                      onClick={async () => {
+                        let tailoredCV = null
+                        try {
+                          const { data: cvData } = await supabase
+                            .from('cv_results')
+                            .select('contenido')
+                            .eq('id', item.id)
+                            .single()
+                          if (cvData?.contenido) tailoredCV = cvData.contenido
+                        } catch (err) {
+                          console.error('Error fetching tailored CV:', err)
+                        }
+
                         setResultadoMatch({
                           id: item.id,
                           matchScore: score,
@@ -744,7 +777,7 @@ export default function CVvsJob() {
                           jobData: meta.jobData || {},
                           keywords: meta.keywords || null,
                           dimensiones: meta.dimensiones || null,
-                          tailoredCV: null,
+                          tailoredCV,
                           changes: meta.changes || [],
                         })
                         setCvDesvelado(false)
