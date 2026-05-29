@@ -87,7 +87,7 @@ export default function CVvsJob() {
   const [tabActiva, setTabActiva] = useState('cv')
   const [brechaAbierta, setBrechaAbierta] = useState(null)
   const [showSaveForm, setShowSaveForm] = useState(false)
-  const [saveForm, setSaveForm] = useState({ empresa: '', posicion: '', etapa: 'Descubierto' })
+  const [saveForm, setSaveForm] = useState({ empresa: '', posicion: '', etapa: 'Descubierto', link: '' })
   const [savingPipeline, setSavingPipeline] = useState(false)
   const [savedToPipeline, setSavedToPipeline] = useState(false)
   const [historialAnalisis, setHistorialAnalisis] = useState([])
@@ -101,6 +101,7 @@ export default function CVvsJob() {
         title:       saveForm.posicion || resultadoMatch.jobData?.title || '',
         company:     saveForm.empresa  || resultadoMatch.jobData?.company || '',
         description: jobText || '',
+        link:        saveForm.link     || resultadoMatch.jobData?.link || '',
       }
       const { data: saved, error: errJob } = await supabase
         .from('saved_jobs')
@@ -121,6 +122,7 @@ export default function CVvsJob() {
       await supabase.from('job_checks').upsert({
         job_key:  saved.id,
         user_id:  user.id,
+        company_id: companyId || null,
         score:    resultadoMatch.matchScore,
         motivos:  resultadoMatch.analisis?.fortalezas ?? [],
       })
@@ -707,6 +709,13 @@ export default function CVvsJob() {
                         className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                       />
                     </div>
+                    <input
+                      type="url"
+                      placeholder="Enlace / URL de la vacante (ej: LinkedIn, Indeed...)"
+                      value={saveForm.link || resultadoMatch.jobData?.link || ''}
+                      onChange={e => setSaveForm(f => ({ ...f, link: e.target.value }))}
+                      className="border border-gray-300 rounded-lg px-3 py-2 text-sm w-full focus:outline-none focus:ring-2 focus:ring-primary"
+                    />
                     <select
                       value={saveForm.etapa}
                       onChange={e => setSaveForm(f => ({ ...f, etapa: e.target.value }))}
@@ -726,7 +735,7 @@ export default function CVvsJob() {
                   </div>
                 ) : (
                   <button
-                    onClick={() => { if (!puedeAdaptar) return; setSaveForm({ empresa: resultadoMatch.jobData?.company || '', posicion: resultadoMatch.jobData?.title || '', etapa: 'Descubierto' }); setShowSaveForm(true) }}
+                    onClick={() => { if (!puedeAdaptar) return; setSaveForm({ empresa: resultadoMatch.jobData?.company || '', posicion: resultadoMatch.jobData?.title || '', etapa: 'Descubierto', link: resultadoMatch.jobData?.link || '' }); setShowSaveForm(true) }}
                     disabled={!puedeAdaptar}
                     title={!puedeAdaptar ? 'Compatibilidad insuficiente para guardar en Pipeline (mínimo 75%)' : ''}
                     className={`flex items-center gap-2 text-sm font-semibold rounded-xl px-4 py-2.5 transition-colors ${
