@@ -198,14 +198,10 @@ export default function Expertos() {
             {/* Video */}
             <div className="relative hidden lg:block">
               <div className="absolute inset-0 bg-gradient-to-tr from-emerald-200/40 to-teal-100/40 blur-3xl rounded-3xl -z-10 scale-105" />
-              <div className="rounded-3xl overflow-hidden border border-slate-200 shadow-xl bg-black relative">
-                <video
-                  src="/Optima video mentor 0.mp4"
-                  autoPlay
-                  muted
-                  loop
-                  playsInline
-                  webkit-playsinline="true"
+              <div className="rounded-3xl overflow-hidden border border-slate-200 shadow-xl bg-slate-100 relative">
+                <img
+                  src="/Avatar-Elvia-HD.webp"
+                  alt="Mentor ELVIA"
                   className="w-full h-auto object-cover"
                 />
                 
