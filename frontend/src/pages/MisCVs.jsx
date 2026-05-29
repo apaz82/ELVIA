@@ -57,7 +57,8 @@ function BotonesDescarga({ id, descargando, onDescargar, soloSiOptimizado = fals
   )
 }
 
-function InfoVacante({ title, company, location, link, via, snippet }) {
+function InfoVacante({ title, company, location, link, via, snippet, jobText }) {
+  const [verTexto, setVerTexto] = useState(false)
   return (
     <div className="mt-3 bg-gray-50 border border-gray-200 rounded-lg p-3">
       <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Vacante</p>
@@ -84,6 +85,24 @@ function InfoVacante({ title, company, location, link, via, snippet }) {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
           </svg>
         </a>
+      )}
+      {jobText && (
+        <div className="mt-2 border-t border-gray-200 pt-2">
+          <button
+            onClick={() => setVerTexto(v => !v)}
+            className="text-xs text-gray-500 hover:text-gray-700 font-medium flex items-center gap-1 transition-colors"
+          >
+            <svg className={`w-3 h-3 transition-transform ${verTexto ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/>
+            </svg>
+            {verTexto ? 'Ocultar descripción' : 'Ver descripción de la vacante'}
+          </button>
+          {verTexto && (
+            <pre className="mt-2 text-[11px] text-gray-600 whitespace-pre-wrap leading-relaxed max-h-60 overflow-y-auto bg-white border border-gray-100 rounded-lg p-3">
+              {jobText}
+            </pre>
+          )}
+        </div>
       )}
     </div>
   )
@@ -675,7 +694,8 @@ export default function MisCVs() {
                         {vacTitle && (
                           <div className="mt-6 border-t border-gray-50 pt-4">
                              <InfoVacante title={vacTitle} company={vacCompany} location={vacLocation}
-                                link={vacLink} via={vacVia} snippet={vacSnippet} />
+                                link={vacLink} via={vacVia} snippet={vacSnippet}
+                                jobText={item.metadata?.jobText || ''} />
                           </div>
                         )}
 
