@@ -60,7 +60,7 @@ function Estrellas({ n }) {
 
 // ── Componente principal ────────────────────────────────────────────────────
 export default function Entrevista() {
-  const { user, isPaidPlan, trialExpired, featuresDesbloqueadas } = useAuth()
+  const { user, isPaidPlan, trialExpired, featuresDesbloqueadas, jpData } = useAuth()
   const navigate = useNavigate()
 
   // Bloqueo para usuarios sin progreso 100% o sin plan
@@ -128,6 +128,14 @@ export default function Entrevista() {
       .eq('user_id', user.id).order('created_at', { ascending: false })
       .then(({ data }) => setVacantesGuardadas(data || []))
   }, [user])
+
+  // Pre-cargar cargo objetivo desde el Gerente de Proyecto
+  useEffect(() => {
+    const cargoObjetivo = jpData?.perfil?.cargo_objetivo?.trim()
+    if (cargoObjetivo) {
+      setCargo(prev => prev || cargoObjetivo)
+    }
+  }, [jpData])
 
   // 6.1 — Auto-load job description from Pipeline
   useEffect(() => {
@@ -439,6 +447,32 @@ export default function Entrevista() {
               <HelpBadge id="entrevista.setup" />
             </h2>
           </div>
+
+          {/* Avisos contextuales */}
+          {(() => {
+            const avisos = []
+            if (!jpData?.perfil?.cargo_objetivo) {
+              avisos.push({ key: 'cargo', msg: 'Define tu Cargo Objetivo en el Gerente de Proyecto para que ELVIA preseleccione el cargo y genere preguntas más alineadas a tu búsqueda.' })
+            }
+            if (!jpData?.aspiraciones?.oferta_valor) {
+              avisos.push({ key: 'oferta', msg: 'Agrega tu Oferta de Valor en el Gerente de Proyecto para recibir feedback más personalizado a tu propuesta de valor.' })
+            }
+            if (!avisos.length) return null
+            return (
+              <div className="space-y-2">
+                {avisos.map(a => (
+                  <div key={a.key} className="flex items-start gap-2.5 bg-amber-50 border border-amber-200 rounded-xl px-3.5 py-3">
+                    <span className="text-amber-500 text-sm shrink-0 mt-0.5">⚠</span>
+                    <p className="text-xs text-amber-800 flex-1">{a.msg}{' '}
+                      <button onClick={() => navigate('/proyecto-laboral')} className="font-semibold underline hover:text-amber-900">
+                        Ir al Gerente de Proyecto →
+                      </button>
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )
+          })()}
 
           {/* Vacantes guardadas */}
           {vacantesGuardadas.length > 0 && (
