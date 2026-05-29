@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../services/authService'
 import PlanBanner from '../components/common/PlanBanner'
@@ -61,16 +61,19 @@ function VacanteCard({ item, onMover, onEliminar, onGuardarNota, onGuardarContac
             <h3 className={`font-semibold text-base leading-snug ${!perdida ? 'text-primary hover:underline cursor-pointer' : 'text-gray-900'}`}>{job.title || '—'}</h3>
             {check ? (
               <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${badgeScore(check.score)}`}>
-                {check.score}% · {check.score >= 75 ? 'Top Match' : check.score >= 50 ? 'Good Match' : 'Low Match'}
+                {check.score}% · {check.score >= 75 ? 'Top Match' : check.score >= 50 ? 'Buen Match' : 'Bajo Match'}
               </span>
             ) : !perdida && (
-              <Link
-                to="/cv-vs-job"
-                onClick={() => job.description && sessionStorage.setItem('vacante_prefill', JSON.stringify({ texto: job.description }))}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  sessionStorage.setItem('vacante_prefill', JSON.stringify({ texto: job.description || job.snippet || '' }))
+                  onNavigate('/cv-vs-job')
+                }}
                 className="text-xs font-medium text-primary border border-primary/30 rounded-full px-2 py-0.5 hover:bg-primary/5 transition-colors"
               >
-                Analizar →
-              </Link>
+                Ver compatibilidad →
+              </button>
             )}
             {perdida && (
               <span className="text-xs bg-red-50 text-red-500 border border-red-200 rounded-full px-2 py-0.5 font-medium">No avanzó</span>
@@ -99,10 +102,10 @@ function VacanteCard({ item, onMover, onEliminar, onGuardarNota, onGuardarContac
             /* Hover quick actions — inline in header */
             <>
               <button
-                onClick={(e) => { e.stopPropagation(); job.description && sessionStorage.setItem('vacante_prefill', JSON.stringify({ texto: job.description })); onNavigate('/cv-vs-job') }}
+                onClick={(e) => { e.stopPropagation(); sessionStorage.setItem('vacante_prefill', JSON.stringify({ texto: job.description || job.snippet || '' })); onNavigate('/cv-vs-job') }}
                 className="text-xs text-gray-600 border border-gray-200 rounded-lg px-2.5 py-1.5 hover:bg-gray-50 transition-colors whitespace-nowrap"
               >
-                Analizar
+                Ver compatibilidad
               </button>
               <button
                 onClick={(e) => { e.stopPropagation(); sessionStorage.setItem('entrevista_prefill', JSON.stringify({ empresa: job.company, cargo: job.title, descripcion: job.snippet || job.description, jobId: item.id })); onNavigate('/entrevista') }}
@@ -287,6 +290,7 @@ export default function Pipeline() {
   const [vacantes, setVacantes]     = useState([])
   const [loading, setLoading]       = useState(true)
   const [filtroPerdidas, setFiltro] = useState(false)
+  const [filtroEtapa, setFiltroEtapa] = useState(null) // null = todas
   const [detalleAbierto, setDetalleAbierto] = useState(null)
 
   const cargarTodo = async () => {
@@ -365,11 +369,14 @@ export default function Pipeline() {
   const activas  = vacantes.filter(v => (v.estado || 'Descubierto') !== ETAPA_PERDIDA)
   const perdidas = vacantes.filter(v => (v.estado || 'Descubierto') === ETAPA_PERDIDA)
 
-  // Plan free vs Pro: ya manejado por el gate superior (FeatureLocked)
-  // Si estamos aquí, el usuario tiene acceso total.
   const activasVisibles = activas
 
-  const visibles = filtroPerdidas ? perdidas : activasVisibles
+  const visibles = filtroPerdidas
+    ? perdidas
+    : filtroEtapa
+      ? activasVisibles.filter(v => (v.estado || 'Descubierto') === filtroEtapa)
+      : activasVisibles
+
   const ocultasPorPlan = !isPaidPlan && !featuresDesbloqueadas && !filtroPerdidas && activas.length > activasVisibles.length
 
   const conteo = ETAPAS.reduce((acc, e) => {
@@ -415,36 +422,41 @@ export default function Pipeline() {
       </div>
 
       {!loading && activas.length > 0 && (
-        <div className="mb-6 space-y-2">
-          {/* Fila 1: filtros Activas / No avanzó */}
-          <div className="flex gap-2 flex-wrap">
-            <button onClick={() => setFiltro(false)}
-              className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-xs font-medium transition-colors
-                ${!filtroPerdidas ? 'bg-primary text-white border-primary' : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'}`}>
-              Activas ({activas.length})
-            </button>
-            {perdidas.length > 0 && (
-              <button onClick={() => setFiltro(true)}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-medium transition-colors
-                  ${filtroPerdidas ? 'bg-red-500 text-white border-red-500' : 'bg-white text-red-500 border-red-200 hover:border-red-300'}`}>
-                No avanzó ({perdidas.length})
+        <div className="mb-6 flex gap-2 flex-wrap">
+          {/* Todas las activas */}
+          <button
+            onClick={() => { setFiltro(false); setFiltroEtapa(null) }}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-medium transition-colors
+              ${!filtroPerdidas && !filtroEtapa ? 'bg-primary text-white border-primary' : 'bg-white text-gray-500 border-gray-200 hover:border-primary hover:text-primary'}`}>
+            Todas ({activas.length})
+          </button>
+
+          {/* Por etapa — clickeables */}
+          {ETAPAS.map(etapa => {
+            const c = colorEtapa(etapa)
+            const activo = !filtroPerdidas && filtroEtapa === etapa
+            const etiqueta = etapa === 'Pruebas/Assessment' ? 'Pruebas' : etapa
+            return (
+              <button
+                key={etapa}
+                onClick={() => { setFiltro(false); setFiltroEtapa(activo ? null : etapa) }}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-medium transition-colors
+                  ${activo ? `${c.bg} text-white border-transparent` : 'bg-white border-gray-200 hover:border-gray-300'}`}>
+                <div className={`w-2 h-2 rounded-full ${activo ? 'bg-white/80' : c.bg}`} />
+                <span className={activo ? 'text-white' : 'text-gray-500'}>{etiqueta}</span>
+                <span className={`font-bold ${activo ? 'text-white' : c.text}`}>{conteo[etapa]}</span>
               </button>
-            )}
-          </div>
-          {/* Fila 2: contadores por etapa (wrap, no scroll) */}
-          {!filtroPerdidas && (
-            <div className="flex gap-2 flex-wrap">
-              {ETAPAS.map(etapa => {
-                const c = colorEtapa(etapa)
-                return (
-                  <div key={etapa} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-gray-200 bg-white text-xs">
-                    <div className={`w-2 h-2 rounded-full ${c.bg}`} />
-                    <span className="text-gray-500">{etapa}</span>
-                    <span className={`font-bold ${c.text}`}>{conteo[etapa]}</span>
-                  </div>
-                )
-              })}
-            </div>
+            )
+          })}
+
+          {/* No avanzó */}
+          {perdidas.length > 0 && (
+            <button
+              onClick={() => { setFiltro(true); setFiltroEtapa(null) }}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-medium transition-colors
+                ${filtroPerdidas ? 'bg-red-500 text-white border-red-500' : 'bg-white text-red-500 border-red-200 hover:border-red-300'}`}>
+              No avanzó ({perdidas.length})
+            </button>
           )}
         </div>
       )}
