@@ -7,7 +7,7 @@ import { api } from '../services/api'
 import {
   MicrophoneStage, Microphone, MicrophoneSlash, SpeakerHigh, SpeakerSimpleSlash,
   ArrowRight, ArrowLeft, CheckCircle, Star, Lightning,
-  ChatText, Trophy, Target, Spinner, Crown,
+  ChatText, Trophy, Target, Spinner,
 } from '@phosphor-icons/react'
 import ProGate from '../components/common/ProGate'
 import HelpBadge from '../components/common/HelpBadge'
@@ -121,12 +121,25 @@ export default function Entrevista() {
   const textareaRef    = useRef(null)
   const vocesRef       = useRef([])
 
-  // Cargar vacantes guardadas
+  // Cargar vacantes guardadas con score ≥ 75 y título disponible
   useEffect(() => {
     if (!user) return
-    supabase.from('saved_jobs').select('id, job_data')
-      .eq('user_id', user.id).order('created_at', { ascending: false })
-      .then(({ data }) => setVacantesGuardadas(data || []))
+    Promise.all([
+      supabase.from('saved_jobs').select('id, job_data, job_key').eq('user_id', user.id).order('created_at', { ascending: false }),
+      supabase.from('job_checks').select('job_key, score').eq('user_id', user.id),
+    ]).then(([{ data: saved }, { data: checks }]) => {
+      const checkMap = {}
+      ;(checks || []).forEach(c => { if (c.job_key) checkMap[c.job_key] = c.score })
+      const filtradas = (saved || [])
+        .filter(s => {
+          const titulo = s.job_data?.title
+          if (!titulo) return false
+          const score = checkMap[s.job_key] ?? checkMap[s.id]
+          return score !== undefined && score >= 75
+        })
+        .map(s => ({ ...s, score: checkMap[s.job_key] ?? checkMap[s.id] }))
+      setVacantesGuardadas(filtradas)
+    })
   }, [user])
 
   // Pre-cargar cargo objetivo desde el Gerente de Proyecto
@@ -161,7 +174,7 @@ export default function Entrevista() {
     setVacanteSel(v)
     setEmpresa(v.job_data?.company || '')
     setCargo(v.job_data?.title || '')
-    setDescripcion(v.job_data?.description || '')
+    setDescripcion(v.job_data?.snippet || v.job_data?.description || '')
   }
 
   // ── Cargar voces disponibles ───────────────────────────────────────────
@@ -193,11 +206,19 @@ export default function Entrevista() {
     if (!window.speechSynthesis) return
     const voces = vocesRef.current
 
-    const vozBuena =
-         voces.find(v => /es/i.test(v.lang) && /Natural|Online|Neural/i.test(v.name))
-      || voces.find(v => /es/i.test(v.lang) && /Google/i.test(v.name))
+    // Preferir voces LATAM (es-MX, es-US, es-419) sobre es-ES
+    const esLatam = v => /es-(MX|US|419|AR|CO|CL|PE)/i.test(v.lang)
+    const esNeural = v => /Natural|Online|Neural/i.test(v.name)
+    const esGoogle = v => /Google/i.test(v.name)
+    const esEspanol = v => /^es/i.test(v.lang)
 
-    if (!vozBuena) return // sin voz neuronal disponible → silencio
+    const vozBuena =
+         voces.find(v => esLatam(v) && esNeural(v))
+      || voces.find(v => esLatam(v) && esGoogle(v))
+      || voces.find(v => esEspanol(v) && esNeural(v))
+      || voces.find(v => esEspanol(v) && esGoogle(v))
+
+    if (!vozBuena) return // sin voz de calidad disponible → silencio
 
     window.speechSynthesis.cancel()
     const utt = new SpeechSynthesisUtterance(texto)
@@ -424,9 +445,6 @@ export default function Entrevista() {
         <div>
           <div className="flex items-center gap-2 mb-1">
             <h1 className="text-2xl font-bold text-gray-900">Simulador de Entrevista</h1>
-            <span className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest bg-amber-400/20 text-amber-600 border border-amber-300 rounded-full px-2.5 py-0.5">
-              <Crown size={10} weight="fill" /> Premium
-            </span>
           </div>
           <p className="text-sm text-gray-500">Practica con ELVIA y recibe feedback profesional en tiempo real.</p>
         </div>
@@ -477,7 +495,8 @@ export default function Entrevista() {
           {/* Vacantes guardadas */}
           {vacantesGuardadas.length > 0 && (
             <div className="card">
-              <h2 className="text-sm font-semibold text-gray-700 mb-3">Seleccionar vacante guardada</h2>
+              <h2 className="text-sm font-semibold text-gray-700 mb-1">Practicar con una vacante guardada</h2>
+              <p className="text-xs text-gray-400 mb-3">Solo se muestran vacantes con compatibilidad ≥ 75%</p>
               <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
                 {vacantesGuardadas.map(v => (
                   <button key={v.id} onClick={() => seleccionarVacante(v)}
@@ -485,8 +504,11 @@ export default function Entrevista() {
                       ${vacanteSel?.id === v.id
                         ? 'bg-primary/5 border-primary/40 text-primary font-medium'
                         : 'border-gray-200 text-gray-700 hover:border-gray-300'}`}>
-                    <p className="font-medium truncate">{v.titulo || 'Sin título'}</p>
-                    {v.empresa && <p className="text-xs text-gray-400 mt-0.5">{v.empresa}</p>}
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="font-medium truncate">{v.job_data?.title}</p>
+                      <span className="shrink-0 text-[10px] font-bold text-green-700 bg-green-50 border border-green-200 px-1.5 py-0.5 rounded-full">{v.score}%</span>
+                    </div>
+                    {v.job_data?.company && <p className="text-xs text-gray-400 mt-0.5">{v.job_data.company}</p>}
                   </button>
                 ))}
               </div>

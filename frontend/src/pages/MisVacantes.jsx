@@ -82,21 +82,13 @@ export default function MisVacantes() {
   const cargarTodo = async () => {
     setLoading(true)
     try {
-      console.log('Cargando vacantes y chequeos en MisVacantes para user_id:', user.id)
       const [{ data: saved, error: errSaved }, { data: checks, error: errChecks }] = await Promise.all([
         supabase.from('saved_jobs').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
         supabase.from('job_checks').select('job_key, score, motivos').eq('user_id', user.id),
       ])
 
-      if (errSaved) {
-        console.error('Error cargando saved_jobs en MisVacantes:', errSaved)
-      }
-      if (errChecks) {
-        console.error('Error cargando job_checks en MisVacantes:', errChecks)
-      }
-
-      console.log('saved_jobs crudos devueltos en MisVacantes:', saved)
-      console.log('job_checks crudos devueltos en MisVacantes:', checks)
+      if (errSaved) console.error('Error cargando saved_jobs en MisVacantes:', errSaved)
+      if (errChecks) console.error('Error cargando job_checks en MisVacantes:', errChecks)
 
       const checkMap = {}
       ;(checks || []).forEach(c => {
@@ -111,7 +103,6 @@ export default function MisVacantes() {
         return { ...s, check }
       })
 
-      console.log('Vacantes mapeadas finales para renderizar en MisVacantes:', mappedVacantes)
       setVacantes(mappedVacantes)
     } catch (err) {
       console.error('Error general en cargarTodo de MisVacantes:', err)
