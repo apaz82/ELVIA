@@ -112,7 +112,7 @@ export default function CVvsJob() {
       let savedRows = null
       let errJob = null
 
-      // Intento 1: Inserción completa con todos los campos (B2B multi-tenant) y job_key
+      // Intento 1: Inserción completa con todos los campos (B2B multi-tenant) y job_key, omitiendo 'descripcion' plana
       const res1 = await supabase
         .from('saved_jobs')
         .insert({
@@ -121,7 +121,6 @@ export default function CVvsJob() {
           job_key: key,
           titulo: jobData.title,
           empresa: jobData.company,
-          descripcion: jobData.description,
           job_data: jobData,
           estado: saveForm.etapa,
           notas: '',
@@ -142,7 +141,6 @@ export default function CVvsJob() {
             user_id: user.id,
             titulo: jobData.title,
             empresa: jobData.company,
-            descripcion: jobData.description,
             job_data: jobData,
             estado: saveForm.etapa,
             notas: '',

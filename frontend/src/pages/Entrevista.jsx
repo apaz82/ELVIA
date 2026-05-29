@@ -124,7 +124,7 @@ export default function Entrevista() {
   // Cargar vacantes guardadas
   useEffect(() => {
     if (!user) return
-    supabase.from('saved_jobs').select('id, titulo, empresa, descripcion')
+    supabase.from('saved_jobs').select('id, titulo, empresa, job_data')
       .eq('user_id', user.id).order('created_at', { ascending: false })
       .then(({ data }) => setVacantesGuardadas(data || []))
   }, [user])
@@ -137,7 +137,7 @@ export default function Entrevista() {
         const data = JSON.parse(prefill)
         setEmpresa(data.empresa || '')
         setCargo(data.cargo || '')
-        setDescripcion(data.descripcion || '')
+        setDescripcion(data.descripcion || data.job_data?.description || '')
         if (data.jobId) {
           setVacanteSel({ id: data.jobId })
         }
@@ -153,7 +153,7 @@ export default function Entrevista() {
     setVacanteSel(v)
     setEmpresa(v.empresa || '')
     setCargo(v.titulo || '')
-    setDescripcion(v.descripcion || '')
+    setDescripcion(v.job_data?.description || '')
   }
 
   // ── Cargar voces disponibles ───────────────────────────────────────────
