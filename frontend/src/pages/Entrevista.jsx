@@ -242,81 +242,71 @@ export default function Entrevista() {
       setEscuchando(false)
       return
     }
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition
-    if (!SR) { setError('Tu navegador no soporta reconocimiento de voz. Usa Chrome o Edge.'); return }
 
-    // Verificar permiso antes de intentar (solo en browsers que soporten Permissions API)
-    if (navigator.permissions) {
+    setError('')
+
+    try {
+      const SR = window.SpeechRecognition || window.webkitSpeechRecognition
+      if (!SR) { setError('Tu navegador no soporta reconocimiento de voz. Usa Chrome o Edge.'); return }
+
+      // Verificar permiso explícitamente con getUserMedia — fuerza el popup si es la primera vez
       try {
-        const perm = await navigator.permissions.query({ name: 'microphone' })
-        if (perm.state === 'denied') {
-          setError('El micrófono está bloqueado para este sitio. Haz clic en el ícono del candado en la barra de dirección → Micrófono → Permitir, y recarga la página.')
-          return
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+        stream.getTracks().forEach(t => t.stop())
+      } catch (err) {
+        setError(`Micrófono inaccesible [${err?.name}]: ${err?.message}. Verifica el permiso en el candado de la barra de dirección y recarga.`)
+        return
+      }
+
+      // Detener TTS antes de escuchar
+      window.speechSynthesis.cancel()
+      setHablando(false)
+
+      const rec = new SR()
+      rec.lang = 'es-MX'
+      rec.continuous = true
+      rec.interimResults = true
+      rec.onstart  = () => { setEscuchando(true); setError('') }
+      rec.onresult = (e) => {
+        let parcial = ''
+        let final   = ''
+        for (let i = 0; i < e.results.length; i++) {
+          if (e.results[i].isFinal) final   += e.results[i][0].transcript + ' '
+          else                       parcial += e.results[i][0].transcript
         }
-      } catch { /* algunos navegadores no soportan query de micrófono, continuar */ }
-    }
-
-    // Detener TTS antes de escuchar
-    window.speechSynthesis.cancel()
-    setHablando(false)
-
-    // Chrome requiere getUserMedia activo antes de SpeechRecognition en HTTPS
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      stream.getTracks().forEach(t => t.stop()) // solo necesitamos el permiso, liberar el stream
-    } catch (err) {
-      if (err?.name === 'NotAllowedError' || err?.name === 'PermissionDeniedError') {
-        setError('Permiso de micrófono denegado. Haz clic en el candado de la barra de dirección → Micrófono → Permitir, y recarga la página.')
-      } else {
-        setError(`No se pudo acceder al micrófono: ${err?.message || err?.name}`)
+        setInputRespuesta(prev => {
+          const base = prev.endsWith('…') ? prev.slice(0, -1) : prev
+          return (final || (base + parcial)).trim()
+        })
       }
-      return
-    }
-
-    const rec = new SR()
-    rec.lang = 'es-MX'
-    rec.continuous = true
-    rec.interimResults = true
-    rec.onstart  = () => { setEscuchando(true); setError('') }
-    rec.onresult = (e) => {
-      // Acumular parciales + finales sobre el texto existente
-      let parcial = ''
-      let final   = ''
-      for (let i = 0; i < e.results.length; i++) {
-        if (e.results[i].isFinal) final   += e.results[i][0].transcript + ' '
-        else                       parcial += e.results[i][0].transcript
+      rec.onend   = () => setEscuchando(false)
+      rec.onerror = (e) => {
+        setEscuchando(false)
+        if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
+          setError('Micrófono bloqueado. Si usas Brave: desactiva Shields para este sitio. En Chrome: candado → Micrófono → Permitir y recarga.')
+        } else if (e.error === 'no-speech') {
+          setError('No se detectó voz. Asegúrate de hablar cerca del micrófono.')
+        } else if (e.error === 'network') {
+          setError('Error de red con el servicio de voz. Brave bloquea este servicio — prueba en Chrome o Edge.')
+        } else {
+          setError(`Error de micrófono [${e.error}]. Prueba en Chrome o Edge.`)
+        }
       }
-      setInputRespuesta(prev => {
-        // Si ya hay texto escrito antes de grabar, mantenerlo y agregar
-        const base = prev.endsWith('…') ? prev.slice(0, -1) : prev
-        return (final || (base + parcial)).trim()
-      })
-    }
-    rec.onend   = () => setEscuchando(false)
-    rec.onerror = (e) => {
-      setEscuchando(false)
-      if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
-        setError('Micrófono bloqueado. Si usas Brave: ve a brave://settings/shields y desactiva "Bloquear scripts" para este sitio, o prueba en Chrome/Edge. En Chrome: ícono del candado → Micrófono → Permitir.')
-      } else if (e.error === 'no-speech') {
-        setError('No se detectó voz. Asegúrate de hablar cerca del micrófono.')
-      } else if (e.error === 'network') {
-        setError('Error de red. El reconocimiento de voz requiere conexión a internet. Brave puede bloquear el servicio — prueba en Chrome o Edge.')
-      } else {
-        setError(`Error de micrófono (${e.error}). Usa Chrome o Edge para mejor compatibilidad.`)
+      try {
+        rec.start()
+        recognitionRef.current = rec
+      } catch (err) {
+        setEscuchando(false)
+        if (err?.name === 'InvalidStateError') {
+          recognitionRef.current?.stop()
+          setError('El micrófono ya estaba activo. Intenta de nuevo.')
+        } else {
+          setError(`No se pudo iniciar el micrófono [${err?.name}]: ${err?.message}`)
+        }
       }
-    }
-    try {
-      rec.start()
-      recognitionRef.current = rec
     } catch (err) {
       setEscuchando(false)
-      // InvalidStateError: ya había una sesión activa
-      if (err?.name === 'InvalidStateError') {
-        recognitionRef.current?.stop()
-        setError('El micrófono ya estaba activo. Intenta de nuevo.')
-      } else {
-        setError(`No se pudo iniciar el micrófono: ${err?.message || err}. Verifica los permisos del sitio en el candado de la barra de dirección.`)
-      }
+      setError(`Error inesperado [${err?.name}]: ${err?.message}`)
     }
   }
 
