@@ -64,7 +64,7 @@ export default function Header({ onMenuToggle }) {
       </button>
 
       {/* Logo — solo en móvil; respeta branding_mode del tenant */}
-      <Link to="/" className="flex items-center gap-2 md:hidden">
+      <Link to="/dashboard" className="flex items-center gap-2 md:hidden">
         {isB2B && !elviaProminent ? (
           <>
             {showTenantLogo && (
