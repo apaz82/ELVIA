@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { api } from '../../services/api'
 import { descargarCV, matchCVVacante } from '../../services/cvService'
 import Button from './Button'
+import { useTenant } from '../../context/TenantContext'
 
 /**
  * JobActionPanel handles:
@@ -17,6 +18,7 @@ export default function JobActionPanel({
   onRefreshUsage, 
   onSave 
 }) {
+  const { isB2B } = useTenant()
   const [loadingCompat, setLoadingCompat] = useState(false)
   const [loadingMatch, setLoadingMatch]   = useState(false)
   const [resultadoCompat, setResultadoCompat] = useState(compatibilidadInicial)
@@ -87,9 +89,11 @@ export default function JobActionPanel({
         <button onClick={verificarCompatibilidad} disabled={loadingCompat}
           className="flex items-center gap-2 text-xs font-medium text-primary hover:underline transition-all">
           Ver compatibilidad con mi CV →
-          <span className="flex items-center gap-0.5 bg-amber-50 border border-amber-200 text-amber-600 text-[10px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-tight">
-            1 crédito
-          </span>
+          {!isB2B && (
+            <span className="flex items-center gap-0.5 bg-amber-50 border border-amber-200 text-amber-600 text-[10px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-tight">
+              1 crédito
+            </span>
+          )}
         </button>
       )}
 
@@ -125,12 +129,24 @@ export default function JobActionPanel({
           </ul>
 
           <div className="pt-3 border-t border-black/5">
-            <Button onClick={generarCV} loading={loadingMatch} variant="primary" className="w-full text-xs py-2">
-              Generar CV adaptado para esta vacante →
-            </Button>
-            <p className="text-[10px] text-gray-400 text-center mt-2 italic">
-              Se creará una versión optimizada de tu CV para los requisitos de este puesto.
-            </p>
+            {resultadoCompat.score >= 75 ? (
+              <>
+                <Button onClick={generarCV} loading={loadingMatch} variant="primary" className="w-full text-xs py-2">
+                  Generar CV adaptado para esta vacante →
+                </Button>
+                <p className="text-[10px] text-gray-400 text-center mt-2 italic">
+                  Se creará una versión optimizada de tu CV para los requisitos de este puesto.
+                </p>
+              </>
+            ) : (
+              <div className="flex items-start gap-3 bg-red-50 border border-red-200 rounded-xl px-3 py-2.5">
+                <span className="text-red-500 text-base shrink-0">✕</span>
+                <div>
+                  <p className="text-xs font-bold text-red-800">CV adaptado no disponible para esta vacante</p>
+                  <p className="text-xs text-red-700 mt-0.5">Los requerimientos de la vacante no coinciden suficientemente con tu CV, por lo que no podemos generar un CV adaptado a esta vacante (compatibilidad {resultadoCompat.score}% — se requiere mínimo 75%). Revisa el análisis para entender las brechas.</p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

@@ -3,6 +3,7 @@ import DOMPurify from 'dompurify'
 import { useNavigate } from 'react-router-dom'
 import { useCV } from '../context/CVContext'
 import { useAuth } from '../context/AuthContext'
+import { useTenant } from '../context/TenantContext'
 import { supabase } from '../services/authService'
 import { api } from '../services/api'
 import Button from '../components/common/Button'
@@ -37,6 +38,7 @@ const colorScore = (score) => {
 export default function JobMatches() {
   const { resultadoMatch, resultadoOptimize } = useCV()
   const { user, refreshUsage, perfil, featuresDesbloqueadas } = useAuth()
+  const { isB2B } = useTenant()
   const navigate = useNavigate()
 
   // CV base para compatibilidad: primero el de contexto (sesión actual), si no el seleccionado de historial
@@ -634,9 +636,11 @@ export default function JobMatches() {
                         <button onClick={() => togglePanel(vid)}
                           className="mt-3 flex items-center gap-2 text-xs font-medium text-primary hover:underline transition-all">
                           Ver compatibilidad con mi CV →
-                          <span className="flex items-center gap-0.5 bg-amber-50 border border-amber-200 text-amber-600 text-[10px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-tight">
-                            1 crédito
-                          </span>
+                          {!isB2B && (
+                            <span className="flex items-center gap-0.5 bg-amber-50 border border-amber-200 text-amber-600 text-[10px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-tight">
+                              1 crédito
+                            </span>
+                          )}
                         </button>
                       )}
                     </div>
