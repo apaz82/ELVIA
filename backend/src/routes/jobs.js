@@ -263,6 +263,102 @@ const searchGoogleJobs = async ({ title, location, datecreated }) => {
   } catch { return []; }
 };
 
+// Busca en Adzuna — filtro por país real, buena cobertura LATAM
+const ADZUNA_COUNTRY_MAP = {
+  mx: 'mx', co: 'co', ar: 'ar', cl: 'cl', pe: 'pe',
+  es: 'es', br: 'br', us: 'us',
+};
+const searchAdzuna = async ({ title, location, datecreated, employment_type }) => {
+  const appId  = process.env.ADZUNA_APP_ID;
+  const appKey = process.env.ADZUNA_APP_KEY;
+  if (!appId || !appKey) return [];
+  try {
+    const gl      = detectarGL(location);
+    const country = ADZUNA_COUNTRY_MAP[gl] || 'mx';
+    const params  = new URLSearchParams({
+      app_id:        appId,
+      app_key:       appKey,
+      results_per_page: '15',
+      what:          title,
+      where:         location || '',
+      content_type:  'application/json',
+    });
+    if (employment_type) params.set('full_time', employment_type === 'Full-time' ? '1' : '0');
+    if (datecreated) {
+      const daysMap = { '1': '1', '3': '3', '7': '7', '30': '30' };
+      if (daysMap[datecreated]) params.set('max_days_old', daysMap[datecreated]);
+    }
+    const res = await fetch(`https://api.adzuna.com/v1/api/jobs/${country}/search/1?${params}`);
+    if (!res.ok) return [];
+    const data = await res.json();
+    return (data.results || []).map((j, i) => ({
+      id:       `adzuna-${j.id || i}`,
+      title:    j.title,
+      company:  j.company?.display_name || '',
+      location: j.location?.display_name || '',
+      salary:   j.salary_min ? `${Math.round(j.salary_min).toLocaleString()} - ${Math.round(j.salary_max || j.salary_min).toLocaleString()}` : null,
+      snippet:  (j.description || '').slice(0, 300),
+      link:     j.redirect_url || '',
+      updated:  j.created || null,
+      fuente:   'Adzuna',
+    }));
+  } catch { return []; }
+};
+
+// Busca en JSearch (RapidAPI) — scraper de LinkedIn, filtro de país real
+const searchJSearch = async ({ title, location, employment_type }) => {
+  const apiKey = process.env.JSEARCH_API_KEY;
+  if (!apiKey) return [];
+  try {
+    const query = location ? `${title} in ${location}` : title;
+    const params = new URLSearchParams({ query, page: '1', num_pages: '1' });
+    if (employment_type) {
+      const typeMap = { 'Full-time': 'FULLTIME', 'Part-time': 'PARTTIME', 'Contract': 'CONTRACTOR', 'Internship': 'INTERN' };
+      if (typeMap[employment_type]) params.set('employment_types', typeMap[employment_type]);
+    }
+    const res = await fetch(`https://jsearch.p.rapidapi.com/search?${params}`, {
+      headers: {
+        'X-RapidAPI-Key':  apiKey,
+        'X-RapidAPI-Host': 'jsearch.p.rapidapi.com',
+      },
+    });
+    if (!res.ok) return [];
+    const data = await res.json();
+    return (data.data || []).map((j, i) => ({
+      id:       `jsearch-${j.job_id || i}`,
+      title:    j.job_title,
+      company:  j.employer_name || '',
+      location: [j.job_city, j.job_state, j.job_country].filter(Boolean).join(', '),
+      salary:   j.job_min_salary ? `${j.job_min_salary.toLocaleString()} - ${(j.job_max_salary || j.job_min_salary).toLocaleString()} ${j.job_salary_currency || ''}`.trim() : null,
+      snippet:  (j.job_description || '').slice(0, 300),
+      link:     j.job_apply_link || j.job_google_link || '',
+      updated:  j.job_posted_at_datetime_utc || null,
+      fuente:   'LinkedIn',
+    }));
+  } catch { return []; }
+};
+
+// Busca en Remotive — solo empleos 100% remotos (gratis, sin auth)
+const searchRemotive = async ({ title }) => {
+  try {
+    const params = new URLSearchParams({ search: title, limit: '10' });
+    const res = await fetch(`https://remotive.com/api/remote-jobs?${params}`);
+    if (!res.ok) return [];
+    const data = await res.json();
+    return (data.jobs || []).map(j => ({
+      id:       `remotive-${j.id}`,
+      title:    j.title,
+      company:  j.company_name || '',
+      location: j.candidate_required_location || 'Remoto',
+      salary:   j.salary || null,
+      snippet:  (j.description || '').replace(/<[^>]*>/g, '').slice(0, 300),
+      link:     j.url || '',
+      updated:  j.publication_date || null,
+      fuente:   'Remotive',
+    }));
+  } catch { return []; }
+};
+
 // Expande el título del cargo con sinónimos usando DeepSeek (solo español LATAM)
 const expandirCargo = async (title) => {
   if (!client) return title;
@@ -307,6 +403,8 @@ router.get('/similar', auth, async (req, res) => {
       const searchPromises = companies.flatMap(empresa => [
         searchJooble({ title: `${title} ${empresa}`, location, datecreated, employment_type, experience, radius, salary, page }),
         searchGoogleJobs({ title: `${title} at ${empresa}`, location, datecreated }),
+        searchAdzuna({ title: `${title} ${empresa}`, location, datecreated, employment_type }),
+        searchJSearch({ title: `${title} ${empresa}`, location, employment_type }),
       ]);
       const allResults = await Promise.all(searchPromises);
       const flat = allResults.flat();
@@ -341,16 +439,22 @@ router.get('/similar', auth, async (req, res) => {
     const queryBusqueda = modoKeywords ? queryOriginal : await expandirCargo(title);
     console.log(`[jobs/similar] Modo: ${modoKeywords ? 'keywords' : 'cargo'} | Query: "${queryBusqueda}"`);
 
-    const [joobleResults, googleResults] = await Promise.all([
+    // Remotive solo cuando el usuario busca trabajo remoto
+    const esRemoto = /remot|remote/i.test(location || '') || /remot|remote/i.test(queryBusqueda);
+
+    const [joobleResults, googleResults, adzunaResults, jsearchResults, remotiveResults] = await Promise.all([
       searchJooble({ title: queryBusqueda, location, datecreated, employment_type, experience, radius, salary, page }),
       searchGoogleJobs({ title: queryBusqueda, location, datecreated }),
+      searchAdzuna({ title: queryBusqueda, location, datecreated, employment_type }),
+      searchJSearch({ title: queryBusqueda, location, employment_type }),
+      esRemoto ? searchRemotive({ title: modoKeywords ? queryOriginal : title }) : Promise.resolve([]),
     ]);
 
-    console.log(`[jobs/similar] Jooble: ${joobleResults.length} | Google Jobs: ${googleResults.length}`);
+    console.log(`[jobs/similar] Jooble: ${joobleResults.length} | Google: ${googleResults.length} | Adzuna: ${adzunaResults.length} | JSearch: ${jsearchResults.length} | Remotive: ${remotiveResults.length}`);
 
     // Combinar y deduplicar
     const vistos = new Set();
-    const rawVacantes = [...joobleResults, ...googleResults].filter(v => {
+    const rawVacantes = [...joobleResults, ...googleResults, ...adzunaResults, ...jsearchResults, ...remotiveResults].filter(v => {
       const key = `${v.title?.toLowerCase().trim()}|${v.company?.toLowerCase().trim()}`;
       if (vistos.has(key)) return false;
       vistos.add(key);
