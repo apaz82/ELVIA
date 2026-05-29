@@ -15,6 +15,7 @@ const requireRole = require('../middleware/requireAdmin');
 const auditAdmin = require('../middleware/auditAdmin');
 const logAudit = require('../lib/logAudit');
 const { sendHRWelcomeEmail } = require('../services/resendService');
+const { runEmailTriggers } = require('../controllers/cronController');
 
 const tenantCreateLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
@@ -22,6 +23,25 @@ const tenantCreateLimiter = rateLimit({
   keyGenerator: (req) => req.user?.id || req.ip,
   handler: (req, res) => res.status(429).json({ error: 'Demasiadas creaciones de tenant. Intenta en una hora.' }),
 });
+
+/**
+ * POST /api/admin/cron/email-triggers
+ * Disparado por Railway Cron (diario). No requiere sesión de usuario.
+ * Protegido exclusivamente con CRON_SECRET en header: Authorization: Bearer <secret>
+ * IMPORTANTE: debe ir ANTES del router.use(auth) para no requerir token de usuario.
+ */
+router.post('/cron/email-triggers', (req, res, next) => {
+  const secret = process.env.CRON_SECRET
+  if (!secret) {
+    console.error('[Cron] CRON_SECRET no configurado — endpoint deshabilitado')
+    return res.status(503).json({ error: 'Endpoint no disponible' })
+  }
+  const authHeader = req.headers.authorization || ''
+  if (authHeader !== `Bearer ${secret}`) {
+    return res.status(401).json({ error: 'No autorizado' })
+  }
+  next()
+}, runEmailTriggers);
 
 // Auditar todas las acciones mutantes del panel admin (POST/PUT/PATCH/DELETE)
 router.use(auth, auditAdmin);
