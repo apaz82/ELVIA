@@ -420,7 +420,7 @@ const TABS = [
   { id: 'respiracion',label: 'Respiración',  Icon: Wind      },
   { id: 'radar',      label: 'Radar',        Icon: ChartBar  },
   { id: 'lecturas',   label: 'Lecturas',     Icon: BookOpen  },
-  { id: 'videos',     label: 'Videos',       Icon: Play      },
+  // videos ocultos temporalmente
 ]
 
 // ─── Componente Principal ────────────────────────────────────────────────────
