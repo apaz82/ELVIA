@@ -409,23 +409,8 @@ export default function Entrevista() {
       })
       setEvaluacion(resultado)
       setPaso('feedback')
-
-      // Guardar evaluación en el pipeline job si viene de una vacante guardada
-      if (vacanteSel?.id) {
-        try {
-          const { data: job } = await supabase
-            .from('saved_jobs')
-            .select('metadata')
-            .eq('id', vacanteSel.id)
-            .single()
-          const metaActual = job?.metadata || {}
-          await supabase
-            .from('saved_jobs')
-            .update({ metadata: { ...metaActual, entrevista: { puntuacion: resultado.puntuacion, resumen: resultado.resumen, fecha: new Date().toISOString() } } })
-            .eq('id', vacanteSel.id)
-          setGuardadoEnPipeline(true)
-        } catch { /* silencioso — no bloquear el flujo principal */ }
-      }
+      // El reporte se guarda automáticamente en el backend (cv_results, TTL 14 días)
+      setGuardadoEnPipeline(true)
     } catch {
       setError('Error al evaluar la entrevista.')
     } finally {
@@ -1016,7 +1001,7 @@ export default function Entrevista() {
                 {empresa && <><span className="text-gray-300">·</span><p className="text-xs text-gray-500">{empresa}</p></>}
                 {guardadoEnPipeline && (
                   <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-2.5 py-0.5">
-                    ✓ Guardado en Pipeline
+                    ✓ Reporte guardado · disponible 14 días en Mis Documentos
                   </span>
                 )}
               </div>
@@ -1133,14 +1118,14 @@ export default function Entrevista() {
           )}
 
           {/* Acciones */}
-          <div className="flex gap-3">
+          <div className="flex gap-3 flex-wrap">
             <button onClick={reiniciar}
               className="flex-1 border border-primary text-primary font-semibold py-3 rounded-xl hover:bg-primary/5 transition-colors flex items-center justify-center gap-2">
               <ArrowLeft size={16} weight="bold" /> Nueva entrevista
             </button>
-            <button onClick={() => navigate('/dashboard')}
+            <button onClick={() => navigate('/mis-cvs?tab=reportes')}
               className="flex-1 bg-primary text-white font-semibold py-3 rounded-xl hover:bg-primary/90 transition-colors">
-              Ir al dashboard
+              Ver en Mis Documentos →
             </button>
           </div>
         </div>
