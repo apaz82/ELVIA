@@ -236,6 +236,8 @@ const matchToJob = async (req, res, next) => {
           keywords: resultado.keywords,
           dimensiones: resultado.dimensiones,
           language,
+          jobText: (req.body.jobText || '').slice(0, 5000),
+          job_fingerprint: (req.body.jobText || '').trim().toLowerCase().slice(0, 300),
         },
       })
       .select('id')

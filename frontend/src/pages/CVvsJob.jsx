@@ -89,6 +89,8 @@ export default function CVvsJob() {
   const [saveForm, setSaveForm] = useState({ empresa: '', posicion: '', etapa: 'Descubierto' })
   const [savingPipeline, setSavingPipeline] = useState(false)
   const [savedToPipeline, setSavedToPipeline] = useState(false)
+  const [historialAnalisis, setHistorialAnalisis] = useState([])
+  const [mostrarHistorial, setMostrarHistorial] = useState(false)
 
   const guardarEnPipeline = async () => {
     if (!resultadoMatch || !user) return
@@ -123,6 +125,7 @@ export default function CVvsJob() {
 
   useEffect(() => {
     setError('')
+    setResultadoMatch(null)
   }, [jobText, selectedCvId])
 
   const analizar = async () => {
@@ -163,6 +166,18 @@ export default function CVvsJob() {
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+    if (!user) return
+    supabase
+      .from('cv_results')
+      .select('id, metadata, created_at')
+      .eq('user_id', user.id)
+      .eq('tipo', 'match')
+      .order('created_at', { ascending: false })
+      .limit(10)
+      .then(({ data }) => setHistorialAnalisis(data || []))
+  }, [user, savedToPipeline])
 
   const colorScore = (score) => {
     if (score >= 75) return 'text-green-600'
@@ -213,7 +228,13 @@ export default function CVvsJob() {
                 ? `Hoy ${d.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}`
                 : d.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })
             }
-            const tipoLabel = (cv) => cv.metadata?.subtipo === 'original' ? 'CV Subido' : 'CV Optimizado'
+            const tipoLabel = (cv) => {
+              const s = cv.metadata?.subtipo
+              if (s === 'desde_cero')      return 'CV de tu Proceso de Autoconocimiento'
+              if (s === 'optimizacion_ia') return 'CV Optimizado con ELVIA'
+              if (s === 'original')        return 'CV subido por ti'
+              return 'CV Optimizado'
+            }
             const filenameLabel = (cv) => cv.metadata?.filename
               ? cv.metadata.filename.replace(/\.[^.]+$/, '').slice(0, 50)
               : null
@@ -322,9 +343,9 @@ export default function CVvsJob() {
               className="w-full sm:w-auto"
               onClick={analizar}
               loading={loading}
-              disabled={!selectedCvId || !jobText.trim()}
+              disabled={!selectedCvId || !jobText.trim() || !!resultadoMatch}
             >
-              {loading ? (loadingText || 'Analizando...') : 'Analizar compatibilidad'}
+              {loading ? (loadingText || 'Analizando...') : resultadoMatch ? 'Análisis realizado ✓' : 'Analizar compatibilidad'}
             </Button>
           </div>
           {error && <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">{error}</div>}
@@ -342,7 +363,7 @@ export default function CVvsJob() {
 
         {resultadoMatch && (() => {
           const score = resultadoMatch.matchScore
-          const puedeAdaptar = score >= 80
+          const puedeAdaptar = score >= 75
           const empresa = resultadoMatch.jobData?.company || ''
           const tabs = [
             { key: 'analisis', label: 'Análisis' },
@@ -381,8 +402,8 @@ export default function CVvsJob() {
               <div className="flex items-start gap-3 bg-red-50 border border-red-200 rounded-2xl px-4 py-3 mb-5">
                 <span className="text-red-500 text-lg shrink-0">✕</span>
                 <div>
-                  <p className="text-sm font-bold text-red-800">Esta vacante no se alinea con tu perfil actual</p>
-                  <p className="text-xs text-red-700 mt-0.5">Los requerimientos de la vacante no coinciden suficientemente con tu CV (compatibilidad {score}% — se requiere mínimo 80%). Revisa el análisis y las keywords faltantes para entender las brechas.</p>
+                  <p className="text-sm font-bold text-red-800">CV adaptado no disponible para esta vacante</p>
+                  <p className="text-xs text-red-700 mt-0.5">Los requerimientos de la vacante no coinciden suficientemente con tu CV, por lo que no podemos generar un CV adaptado a esta vacante (compatibilidad {score}% — se requiere mínimo 75%). Revisa el análisis y las keywords faltantes para entender las brechas.</p>
                 </div>
               </div>
             )}
@@ -542,6 +563,16 @@ export default function CVvsJob() {
                     Guardado en Mis Documentos como: <span className="font-medium text-gray-600">{empresa || 'Confidencial'} — CV Adaptado — {new Date().toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
                   </p>
                   <pre className="whitespace-pre-wrap font-mono text-xs bg-gray-50 p-4 rounded-xl">{resultadoMatch.tailoredCV}</pre>
+                  <div className="flex items-center gap-3 bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 mt-2">
+                    <span className="text-blue-600 text-sm">📁</span>
+                    <p className="text-sm text-blue-800 flex-1">Tu CV adaptado ya está guardado en <strong>Mis Documentos</strong>.</p>
+                    <button
+                      onClick={() => navigate('/mis-cvs')}
+                      className="text-xs font-bold text-blue-700 underline hover:text-blue-900 transition-colors whitespace-nowrap"
+                    >
+                      Ir a Mis Documentos →
+                    </button>
+                  </div>
                 </div>
               ) : (
                 <div className="bg-blue-50 border border-blue-200 rounded-2xl p-7 text-center space-y-4">
@@ -570,9 +601,17 @@ export default function CVvsJob() {
             {user && (
               <div className="mt-6 pt-5 border-t border-gray-100">
                 {savedToPipeline ? (
-                  <p className="text-sm text-green-600 font-medium flex items-center gap-2">
-                    ✓ Vacante guardada en tu Pipeline
-                  </p>
+                  <div className="flex items-center justify-between bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3">
+                    <p className="text-sm text-emerald-700 font-semibold flex items-center gap-2">
+                      ✓ Vacante guardada en tu Pipeline
+                    </p>
+                    <button
+                      onClick={() => navigate('/pipeline')}
+                      className="text-xs font-bold text-emerald-700 underline hover:text-emerald-900 transition-colors"
+                    >
+                      Ir al Pipeline →
+                    </button>
+                  </div>
                 ) : showSaveForm ? (
                   <div className="space-y-3">
                     <p className="text-sm font-semibold text-gray-700">Guardar en Pipeline</p>
@@ -610,8 +649,15 @@ export default function CVvsJob() {
                     </div>
                   </div>
                 ) : (
-                  <button onClick={() => setShowSaveForm(true)}
-                    className="flex items-center gap-2 text-sm font-semibold text-primary border border-primary/30 rounded-xl px-4 py-2.5 hover:bg-primary/5 transition-colors">
+                  <button
+                    onClick={() => puedeAdaptar && setShowSaveForm(true)}
+                    disabled={!puedeAdaptar}
+                    title={!puedeAdaptar ? 'Compatibilidad insuficiente para guardar en Pipeline (mínimo 75%)' : ''}
+                    className={`flex items-center gap-2 text-sm font-semibold rounded-xl px-4 py-2.5 transition-colors ${
+                      puedeAdaptar
+                        ? 'text-primary border border-primary/30 hover:bg-primary/5 cursor-pointer'
+                        : 'text-gray-400 border border-gray-200 cursor-not-allowed opacity-60'
+                    }`}>
                     + Guardar vacante en Pipeline
                   </button>
                 )}
@@ -620,6 +666,64 @@ export default function CVvsJob() {
           </div>
         )
       })()}
+
+        {historialAnalisis.length > 0 && (
+          <div className="mt-6 bg-white rounded-2xl border border-gray-200 p-5">
+            <button
+              onClick={() => setMostrarHistorial(v => !v)}
+              className="w-full flex items-center justify-between text-left"
+            >
+              <h3 className="text-sm font-bold text-gray-700">Análisis recientes</h3>
+              <span className="text-xs text-gray-400 flex items-center gap-1">
+                {mostrarHistorial ? 'Ocultar' : `Ver últimos ${Math.min(historialAnalisis.length, 10)}`}
+                <CaretDown size={12} className={`transition-transform ${mostrarHistorial ? 'rotate-180' : ''}`} />
+              </span>
+            </button>
+            {mostrarHistorial && (
+              <div className="mt-4 space-y-2">
+                {historialAnalisis.slice(0, 10).map((item) => {
+                  const meta = item.metadata || {}
+                  const score = meta.matchScore ?? 0
+                  const empresa = meta.jobData?.company || ''
+                  const titulo = meta.jobData?.title || 'Vacante'
+                  const fecha = new Date(item.created_at).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => {
+                        setResultadoMatch({
+                          id: item.id,
+                          matchScore: score,
+                          analisis: meta.analisis || { fortalezas: [], brechas: [], conclusion: '' },
+                          jobData: meta.jobData || {},
+                          keywords: meta.keywords || null,
+                          dimensiones: meta.dimensiones || null,
+                          tailoredCV: null,
+                          changes: meta.changes || [],
+                        })
+                        setCvDesvelado(false)
+                        setTabActiva('analisis')
+                        setSavedToPipeline(false)
+                        setShowSaveForm(false)
+                        window.scrollTo({ top: 0, behavior: 'smooth' })
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-gray-100 hover:border-blue-200 hover:bg-blue-50 transition-all text-left"
+                    >
+                      <div className={`text-sm font-bold w-10 shrink-0 text-center ${score >= 75 ? 'text-emerald-600' : score >= 50 ? 'text-amber-500' : 'text-red-500'}`}>
+                        {score}%
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-xs font-semibold text-gray-800 truncate">{titulo}{empresa ? ` · ${empresa}` : ''}</div>
+                        <div className="text-[10px] text-gray-400 mt-0.5">{fecha}</div>
+                      </div>
+                      <ArrowRight size={13} className="text-gray-300 shrink-0" />
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   )

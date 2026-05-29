@@ -5,6 +5,7 @@ const PLAN_CONFIG = {
   free:       { cv_optimizer: 1,        cv_generar: 1,        cv_match: 3,        watermark: true,  proGate: true,  chat_limit: Infinity },
   mensual:    { cv_optimizer: Infinity, cv_generar: Infinity, cv_match: Infinity, watermark: false, proGate: false, chat_limit: Infinity },
   trimestral: { cv_optimizer: Infinity, cv_generar: Infinity, cv_match: Infinity, watermark: false, proGate: false, chat_limit: Infinity },
+  b2b:        { cv_optimizer: Infinity, cv_generar: Infinity, cv_match: Infinity, watermark: false, proGate: false, chat_limit: Infinity },
 };
 
 const planContext = async (req, res, next) => {
@@ -13,7 +14,7 @@ const planContext = async (req, res, next) => {
 
   const { data, error } = await db
     .from('profiles')
-    .select('usage_count, cv_optimizer_count, cv_generar_count, cv_match_count, plan, suspended, plan_expires_at, free_trial_expires_at')
+    .select('usage_count, cv_optimizer_count, cv_generar_count, cv_match_count, plan, suspended, plan_expires_at, free_trial_expires_at, company_id')
     .eq('id', userId)
     .maybeSingle();
 
@@ -62,9 +63,9 @@ const planContext = async (req, res, next) => {
     });
   }
 
-  // Plan expirado → degradar en memoria Y actualizar en DB para sincronía
-  let plan = data.plan || 'free';
-  if (['mensual', 'trimestral'].includes(plan) && data.plan_expires_at && new Date(data.plan_expires_at) < new Date()) {
+  // Usuarios B2B (pertenecen a un tenant) → plan b2b sin watermark ni límites
+  let plan = data.company_id ? 'b2b' : (data.plan || 'free');
+  if (!data.company_id && ['mensual', 'trimestral'].includes(plan) && data.plan_expires_at && new Date(data.plan_expires_at) < new Date()) {
     plan = 'free';
     // Actualizar en DB para mantener sincronía
     const { error: degradeErr } = await db
@@ -88,7 +89,7 @@ const planContext = async (req, res, next) => {
     plan,
     config,
     trialExpired,
-    isPaidPlan: ['mensual', 'trimestral'].includes(plan),
+    isPaidPlan: ['mensual', 'trimestral', 'b2b'].includes(plan),
     cv_optimizer_count: data.cv_optimizer_count || 0,
     cv_generar_count:   data.cv_generar_count || 0,
     cv_match_count:     data.cv_match_count     || 0,
