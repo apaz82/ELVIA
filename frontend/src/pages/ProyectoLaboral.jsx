@@ -1679,7 +1679,7 @@ function PilarAutoconocimiento({ data, onChange, onSave, justSaved }) {
   }
   function handleSave() {
     const f = getIncompletos()
-    if (f.length>0) { setModalIncompleto(f) } else { onSave() }
+    if (f.length>0) { setModalIncompleto(f) } else { onSave(d) }
   }
 
   // ─── Catálogos de skills categorizados (LinkedIn Top-50 2026 + nuestro inventario fusionado) ───
@@ -1834,7 +1834,7 @@ function PilarAutoconocimiento({ data, onChange, onSave, justSaved }) {
               <ul className="space-y-2 mb-6">{modalIncompleto.map(function(item,i){return(<li key={i} className="flex items-start gap-2 text-sm text-slate-700"><span className="w-5 h-5 rounded-full bg-violet-100 text-violet-600 text-xs font-black flex items-center justify-center shrink-0 mt-0.5">!</span>{item}</li>)})}</ul>
               <div className="flex gap-3">
                 <button onClick={function(){setModalIncompleto(null)}} className="flex-1 px-4 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-700 text-white font-bold text-sm transition-colors cursor-pointer">Volver a completar</button>
-                <button onClick={function(){setModalIncompleto(null);onSave()}} className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-500 hover:bg-slate-50 font-medium text-sm transition-colors cursor-pointer">Guardar así</button>
+                <button onClick={function(){setModalIncompleto(null);onSave(d)}} className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-500 hover:bg-slate-50 font-medium text-sm transition-colors cursor-pointer">Guardar así</button>
               </div>
             </div>
           </div>
@@ -1861,7 +1861,7 @@ function PilarRecursos({ data, onChange, onSave, justSaved, pais }) {
   function handleSave() {
     const activos = recursos.filter(function(r){return r.tengo===true}).length
     if (activos < 1) { setModalIncompleto(['Marca al menos 1 recurso que ya tienes disponible']) }
-    else { onSave() }
+    else { onSave({ recursos }) }
   }
 
   return (
@@ -1944,7 +1944,7 @@ function PilarRecursos({ data, onChange, onSave, justSaved, pais }) {
               <ul className="space-y-2 mb-6">{modalIncompleto.map(function(item,i){return(<li key={i} className="flex items-start gap-2 text-sm text-slate-700"><span className="w-5 h-5 rounded-full bg-blue-100 text-blue-600 text-xs font-black flex items-center justify-center shrink-0 mt-0.5">!</span>{item}</li>)})}</ul>
               <div className="flex gap-3">
                 <button onClick={function(){setModalIncompleto(null)}} className="flex-1 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm transition-colors cursor-pointer">Volver a completar</button>
-                <button onClick={function(){setModalIncompleto(null);onSave()}} className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-500 hover:bg-slate-50 font-medium text-sm transition-colors cursor-pointer">Guardar así</button>
+                <button onClick={function(){setModalIncompleto(null);onSave({ recursos })}} className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-500 hover:bg-slate-50 font-medium text-sm transition-colors cursor-pointer">Guardar así</button>
               </div>
             </div>
           </div>
@@ -1969,7 +1969,7 @@ function PilarSemana({ data, onChange, onSave, justSaved }) {
   function handleSave() {
     const bN = Object.values(bloques).filter(Boolean).length
     if (bN < 1) { setModalIncompleto(['Agrega al menos 1 bloque de horas en tu horario semanal']) }
-    else { onSave() }
+    else { onSave(d) }
   }
   return (
     <div className="space-y-8">
@@ -2044,7 +2044,7 @@ function PilarSemana({ data, onChange, onSave, justSaved }) {
               <ul className="space-y-2 mb-6">{modalIncompleto.map(function(item,i){return(<li key={i} className="flex items-start gap-2 text-sm text-slate-700"><span className="w-5 h-5 rounded-full bg-teal-100 text-teal-600 text-xs font-black flex items-center justify-center shrink-0 mt-0.5">!</span>{item}</li>)})}</ul>
               <div className="flex gap-3">
                 <button onClick={function(){setModalIncompleto(null)}} className="flex-1 px-4 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-bold text-sm transition-colors cursor-pointer">Volver a completar</button>
-                <button onClick={function(){setModalIncompleto(null);onSave()}} className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-500 hover:bg-slate-50 font-medium text-sm transition-colors cursor-pointer">Guardar así</button>
+                <button onClick={function(){setModalIncompleto(null);onSave(d)}} className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-500 hover:bg-slate-50 font-medium text-sm transition-colors cursor-pointer">Guardar así</button>
               </div>
             </div>
           </div>
@@ -2131,7 +2131,7 @@ function PilarOfertaDeValor({ data, onChange, onSave, justSaved, contexto }) {
     if (faltantes.length > 0) {
       setModalIncompleto(faltantes)
     } else {
-      onSave()
+      onSave(d)
     }
   }
 
@@ -2544,7 +2544,7 @@ function PilarOfertaDeValor({ data, onChange, onSave, justSaved, contexto }) {
                   Volver a completar
                 </button>
                 <button
-                  onClick={function(){ setModalIncompleto(null); onSave() }}
+                  onClick={function(){ setModalIncompleto(null); onSave(d) }}
                   className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-500 hover:bg-slate-50 font-medium text-sm transition-colors cursor-pointer"
                 >
                   Guardar así
@@ -3016,19 +3016,24 @@ export default function ProyectoLaboral() {
     setData(nd); saveData(nd)
   },[data,saveData])
 
-  const handlePilarSave = useCallback(function(pilarId){
+  // updatedData: los datos YA actualizados del pilar que acaba de guardarse.
+  // Se pasa explícitamente desde el subcomponente para que la comparación old/new sea correcta.
+  const handlePilarSave = useCallback(function(pilarId, updatedPilarData){
+    // Construir el data completo con el pilar recién actualizado
+    const updatedData = updatedPilarData
+      ? { ...data, [pilarId]: updatedPilarData }
+      : data
+
     setJustSaved(pilarId)
-    // Forzar guardado inmediato al presionar el botón, evitando depender solo del debounce/onChange
-    saveData(data)
+    saveData(updatedData)
     if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current)
     saveTimeoutRef.current = setTimeout(function(){ setJustSaved(null) }, 2000)
 
-    // Check old progress of this pilar
+    // Calcular progreso ANTES (con data viejo) y DESPUÉS (con data actualizado)
     const oldPorPilar = calcularPorPilar(data, perfil)
+    const porPilarNew = calcularPorPilar(updatedData, perfil)
     const wasComplete = oldPorPilar[pilarId] === 100
 
-    // Check if it is now complete
-    const porPilarNew = calcularPorPilar(data, perfil)
     if (porPilarNew[pilarId] === 100 && !wasComplete) {
       const currentIdx = PILARES.findIndex(p => p.id === pilarId)
       const nextPilar = PILARES[currentIdx + 1]
@@ -3341,10 +3346,10 @@ export default function ProyectoLaboral() {
           </div>
           <div className="p-6 md:p-8">
             {pilarId==='perfil'        &&<PilarMiPerfil perfil={perfil} extraData={data.perfil} onChange={function(v){updatePilar('perfil',v)}} onSavePerfil={savePerfil} saving={saving} isPaidPlan={isPaidPlan} data={data} userId={user?.id} pct={pct}/>}
-            {pilarId==='autoconocimiento'&&<PilarAutoconocimiento data={data.autoconocimiento} onChange={function(v){updatePilar('autoconocimiento',v)}} onSave={function(){handlePilarSave('autoconocimiento')}} justSaved={justSaved==='autoconocimiento'}/>}
-            {pilarId==='recursos'      &&<PilarRecursos         data={data.recursos}         onChange={function(v){updatePilar('recursos',v)}} onSave={function(){handlePilarSave('recursos')}} justSaved={justSaved==='recursos'} pais={perfil?.pais_prestaciones || perfil?.pais || ''}/>}
-            {pilarId==='semana'        &&<PilarSemana           data={data.semana}           onChange={function(v){updatePilar('semana',v)}} onSave={function(){handlePilarSave('semana')}} justSaved={justSaved==='semana'}/>}
-            {pilarId==='oferta'        &&<PilarOfertaDeValor    data={data.oferta}           onChange={function(v){updatePilar('oferta',v)}} onSave={function(){handlePilarSave('oferta')}} justSaved={justSaved==='oferta'} contexto={{hard_skills:data?.autoconocimiento?.hard_skills||[],soft_skills:data?.autoconocimiento?.soft_skills||[],niveles_cargo:data?.perfil?.niveles_cargo||[],areas:data?.perfil?.areas||[]}}/>}
+            {pilarId==='autoconocimiento'&&<PilarAutoconocimiento data={data.autoconocimiento} onChange={function(v){updatePilar('autoconocimiento',v)}} onSave={function(v){handlePilarSave('autoconocimiento', v)}} justSaved={justSaved==='autoconocimiento'}/>}
+            {pilarId==='recursos'      &&<PilarRecursos         data={data.recursos}         onChange={function(v){updatePilar('recursos',v)}} onSave={function(v){handlePilarSave('recursos', v)}} justSaved={justSaved==='recursos'} pais={perfil?.pais_prestaciones || perfil?.pais || ''}/>}
+            {pilarId==='semana'        &&<PilarSemana           data={data.semana}           onChange={function(v){updatePilar('semana',v)}} onSave={function(v){handlePilarSave('semana', v)}} justSaved={justSaved==='semana'}/>}
+            {pilarId==='oferta'        &&<PilarOfertaDeValor    data={data.oferta}           onChange={function(v){updatePilar('oferta',v)}} onSave={function(v){handlePilarSave('oferta', v)}} justSaved={justSaved==='oferta'} contexto={{hard_skills:data?.autoconocimiento?.hard_skills||[],soft_skills:data?.autoconocimiento?.soft_skills||[],niveles_cargo:data?.perfil?.niveles_cargo||[],areas:data?.perfil?.areas||[]}}/>}
             {pilarId==='documentos'    &&<PilarOptimizadorCV pct={pct}/>}
           </div>
         </div>
