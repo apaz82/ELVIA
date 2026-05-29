@@ -473,6 +473,7 @@ export default function JobMatches() {
                 )
               })}
             </div>
+            <p className="mt-2 text-xs text-gray-400">Estas compañías las seleccionaste en tu Autoconocimiento, puedes desmarcar para no tenerlas en cuenta y ampliar la búsqueda.</p>
             {modoEmpresasActivo && (
               <div className="mt-3 flex items-center gap-2 text-xs text-indigo-600 bg-white border border-indigo-200 rounded-lg px-3 py-2">
                 <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
