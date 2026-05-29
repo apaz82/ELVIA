@@ -117,6 +117,8 @@ export default function Entrevista() {
   const [respuestaCorta, setRespuestaCorta] = useState(false)
   const [confirmSalir, setConfirmSalir]     = useState(false)
   const [activeBrowserTab, setActiveBrowserTab] = useState('chrome')
+  // Brave bloquea Speech Recognition por política de privacidad
+  const esBrave = typeof navigator !== 'undefined' && navigator.brave?.isBrave != null
   const recognitionRef = useRef(null)
   const textareaRef    = useRef(null)
   const vocesRef       = useRef([])
@@ -269,8 +271,15 @@ export default function Entrevista() {
     rec.onend   = () => setEscuchando(false)
     rec.onerror = (e) => {
       setEscuchando(false)
-      if (e.error === 'not-allowed') setError('Permiso de micrófono denegado. Actívalo en la configuración del navegador.')
-      else if (e.error === 'no-speech') setError('No se detectó voz. Intenta de nuevo.')
+      if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
+        setError('Micrófono bloqueado. Si usas Brave: ve a brave://settings/shields y desactiva "Bloquear scripts" para este sitio, o prueba en Chrome/Edge. En Chrome: ícono del candado → Micrófono → Permitir.')
+      } else if (e.error === 'no-speech') {
+        setError('No se detectó voz. Asegúrate de hablar cerca del micrófono.')
+      } else if (e.error === 'network') {
+        setError('Error de red. El reconocimiento de voz requiere conexión a internet. Brave puede bloquear el servicio — prueba en Chrome o Edge.')
+      } else {
+        setError(`Error de micrófono (${e.error}). Usa Chrome o Edge para mejor compatibilidad.`)
+      }
     }
     rec.start()
     recognitionRef.current = rec
@@ -718,6 +727,12 @@ export default function Entrevista() {
                   </button>
                 </div>
               </div>
+
+              {esBrave && (
+                <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-2">
+                  ⚠ <strong>Brave bloquea el micrófono</strong> por política de privacidad. Para usar voz: desactiva Shields para este sitio o usa <strong>Chrome / Edge</strong>. También puedes escribir tu respuesta directamente.
+                </p>
+              )}
 
               <textarea ref={textareaRef} value={inputRespuesta}
                 onChange={e => { setInputRespuesta(e.target.value); setRespuestaCorta(false) }} rows={5}
