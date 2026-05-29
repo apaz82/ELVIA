@@ -100,8 +100,8 @@ export default function JobMatches() {
   const [modoEmpresasActivo, setModoEmpresasActivo] = useState(false) // búsqueda dirigida por empresas objetivo
   const [empresasObjetivo, setEmpresasObjetivo] = useState([]) // top5 del perfilador
   const [empresasSeleccionadas, setEmpresasSeleccionadas] = useState([]) // subset para búsqueda
-  const [cargoObjetivo, setCargoObjetivo] = useState('') // nivel + área precargado
   const [keywords, setKeywords] = useState(resultadoMatch?.jobData?.title || '')
+  const [compatScores, setCompatScores] = useState({}) // jobKey → score calculado
   const [paisSeleccionado, setPaisSeleccionado] = useState('') // selector de país
   const [ubicacion, setUbicacion] = useState(
     [resultadoMatch?.jobData?.location, resultadoMatch?.jobData?.country].filter(Boolean).join(', ')
@@ -186,13 +186,13 @@ export default function JobMatches() {
         if (empresas.length > 0) {
           setEmpresasObjetivo(empresas)
           setEmpresasSeleccionadas(empresas) // todas seleccionadas por default
-          // Construir cargo objetivo: nivel + área
+          // Precargar keywords con cargo objetivo: nivel + área (editable)
           const niveles = jp?.perfil?.niveles_cargo || []
           const areas = jp?.perfil?.areas || []
           const nivel = niveles[0] || ''
           const area = areas[0] || ''
           const cargo = [nivel, area].filter(Boolean).join(' ')
-          if (cargo) setCargoObjetivo(cargo)
+          if (cargo) setKeywords(prev => prev || cargo) // no sobreescribir si viene de CVvsJob
           // Activar modo empresas por default si hay datos completos
           if (empresas.length > 0 && cargo) setModoEmpresasActivo(true)
         }
@@ -292,7 +292,7 @@ export default function JobMatches() {
   }
 
   const buscarEnEmpresas = async () => {
-    const query = (cargoObjetivo.trim() || keywords.trim())
+    const query = keywords.trim()
     const empresas = empresasSeleccionadas.filter(e => e && String(e).trim())
     if (!query) return setError('Escribe un cargo o palabras clave para buscar en tus empresas objetivo')
     if (empresas.length === 0) return setError('Selecciona al menos una empresa objetivo')
@@ -454,8 +454,8 @@ export default function JobMatches() {
                 <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                 </svg>
-                Buscando con cargo objetivo: <strong className="ml-1">{cargoObjetivo || keywords || 'sin especificar'}</strong>
-                {!cargoObjetivo && <span className="text-amber-600 ml-1">— completa el Perfilador o escribe un cargo abajo</span>}
+                Palabras clave para buscar: <strong className="ml-1">{keywords || 'sin especificar'}</strong>
+                {!keywords && <span className="text-amber-600 ml-1">— escribe cargo o habilidades abajo</span>}
               </div>
             )}
           </div>
@@ -463,25 +463,18 @@ export default function JobMatches() {
 
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="flex-1">
-            {modoEmpresasActivo ? (
-              <>
-                <label className="block text-xs font-medium text-gray-500 mb-1">Cargo objetivo</label>
-                <input type="text" value={cargoObjetivo} onChange={e => setCargoObjetivo(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && buscar()}
-                  placeholder="ej. Gerente de RH, Director Comercial..."
-                  className="w-full border border-indigo-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400" />
-                <p className="text-xs text-gray-400 mt-1">Precargado desde tu Perfilador — puedes editarlo.</p>
-              </>
-            ) : (
-              <>
-                <label className="block text-xs font-medium text-gray-500 mb-1">Cargo, habilidades o palabras clave</label>
-                <input type="text" value={keywords} onChange={e => setKeywords(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && buscar()}
-                  placeholder="ej. Director Comercial, transformación digital, SAP..."
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
-                <p className="text-xs text-gray-400 mt-1">Puedes combinar cargo, habilidades o frases separadas por coma.</p>
-              </>
-            )}
+            <>
+              <label className="block text-xs font-medium text-gray-500 mb-1">
+                {modoEmpresasActivo ? 'Cargo, habilidades o palabras clave' : 'Cargo, habilidades o palabras clave'}
+              </label>
+              <input type="text" value={keywords} onChange={e => setKeywords(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && buscar()}
+                placeholder="ej. Director Comercial, transformación digital, SAP..."
+                className={`w-full border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 ${modoEmpresasActivo ? 'border-indigo-300 focus:ring-indigo-400' : 'border-gray-300 focus:ring-primary'}`} />
+              <p className="text-xs text-gray-400 mt-1">
+                {modoEmpresasActivo ? 'Precargado desde tu Perfilador — puedes editarlo.' : 'Puedes combinar cargo, habilidades o frases separadas por coma.'}
+              </p>
+            </>
           </div>
           <div className="sm:w-56 relative">
             <label className="block text-xs font-medium text-gray-500 mb-1">Ubicación</label>
@@ -585,6 +578,8 @@ export default function JobMatches() {
               const vid = v.id || v.link
               const jobKey = generarJobKey(v.title, v.company)
               const esGuardada = savedKeys.has(jobKey)
+              const scoreAnalizado = compatScores[jobKey] // undefined si no se analizó
+              const puedeGuardar = scoreAnalizado === undefined || scoreAnalizado >= 75
               return (
                 <div key={vid} className="bg-white rounded-xl border border-gray-200 p-5 hover:border-gray-300 transition-colors">
                   <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
@@ -621,13 +616,16 @@ export default function JobMatches() {
 
                       {/* Panel de acciones IA */}
                       {(panelAbierto[vid] || esGuardada) && (
-                        <JobActionPanel 
+                        <JobActionPanel
                           vacante={v}
                           cvId={cvSeleccionado?.id || (resultadoOptimize ? 'context' : null)}
                           cvText={cvText}
-                          compatibilidadInicial={null} // El componente buscará en cache automáticamente
+                          compatibilidadInicial={null}
                           onRefreshUsage={refreshUsage}
                           onSave={() => autoSave(v)}
+                          onCompatibilidadCalculada={(score) =>
+                            setCompatScores(prev => ({ ...prev, [jobKey]: score }))
+                          }
                         />
                       )}
 
@@ -646,10 +644,17 @@ export default function JobMatches() {
                     </div>
 
                     <div className="shrink-0 flex flex-col items-stretch gap-2">
-                      {/* Corazón */}
-                      <button onClick={() => toggleLike(v)} title={esGuardada ? 'Quitar de guardados' : 'Guardar vacante'}
+                      {/* Corazón — deshabilitado si score analizado < 75% */}
+                      <button
+                        onClick={() => puedeGuardar ? toggleLike(v) : null}
+                        title={!puedeGuardar ? `Compatibilidad ${scoreAnalizado}% — se requiere mínimo 75% para guardar` : esGuardada ? 'Quitar de guardados' : 'Guardar vacante'}
                         className={`flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 border text-xs font-medium transition-colors
-                          ${esGuardada ? 'bg-red-50 border-red-200 text-red-500 hover:bg-red-100' : 'border-gray-200 text-gray-400 hover:border-red-200 hover:text-red-400'}`}>
+                          ${!puedeGuardar
+                            ? 'border-gray-100 text-gray-300 cursor-not-allowed bg-gray-50'
+                            : esGuardada
+                              ? 'bg-red-50 border-red-200 text-red-500 hover:bg-red-100'
+                              : 'border-gray-200 text-gray-400 hover:border-red-200 hover:text-red-400'
+                          }`}>
                         <svg className="w-4 h-4" fill={esGuardada ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
                         </svg>

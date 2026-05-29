@@ -10,13 +10,14 @@ import { useTenant } from '../../context/TenantContext'
  * 2. In-place tailored CV generation
  * 3. Download links for generated CV
  */
-export default function JobActionPanel({ 
-  vacante, 
-  cvId, 
-  cvText, 
+export default function JobActionPanel({
+  vacante,
+  cvId,
+  cvText,
   compatibilidadInicial = null,
-  onRefreshUsage, 
-  onSave 
+  onRefreshUsage,
+  onSave,
+  onCompatibilidadCalculada,
 }) {
   const { isB2B } = useTenant()
   const [loadingCompat, setLoadingCompat] = useState(false)
@@ -41,6 +42,7 @@ export default function JobActionPanel({
       })
       if (data.error) return setError(data.error)
       setResultadoCompat(data)
+      if (onCompatibilidadCalculada) onCompatibilidadCalculada(data.score)
       if (!data.fromCache && onRefreshUsage) onRefreshUsage()
       if (onSave) onSave()
     } catch {
