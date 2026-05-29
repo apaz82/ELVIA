@@ -7,6 +7,7 @@ import { descargarCV } from '../services/cvService'
 import FeatureLocked from '../components/common/FeatureLocked'
 import HelpBadge from '../components/common/HelpBadge'
 import LinkedinReportePDF from '../components/LinkedinReportePDF'
+import ReporteCompensacion from '../components/ReporteCompensacion'
 import { FilePdf, LinkedinLogo } from '@phosphor-icons/react'
 
 const extraerNombre = (contenido) => {
@@ -119,6 +120,7 @@ export default function MisCVs() {
   const [cvsReportes,    setCvsReportes]    = useState([])
   const [cvsLinkedin,    setCvsLinkedin]    = useState([])
   const [cvsEntrevistas, setCvsEntrevistas] = useState([])
+  const [cvsReporteComp, setCvsReporteComp] = useState([])
   const [checks, setChecks]                 = useState([])
   const [loading, setLoading]               = useState(true)
   const [descargando, setDescargando]       = useState({})
@@ -178,10 +180,10 @@ export default function MisCVs() {
     // - Reportes: subtipo 'infografia' o tipo 'infografia_proyecto' (legacy)
     
     // Optimizados: excluir infografía Y análisis LinkedIn (que tienen su propia tab)
-    const SUBTIPOS_REPORTE = ['infografia_proyecto', 'linkedin_analysis', 'entrevista_simulada']
+    const SUBTIPOS_REPORTE = ['infografia_proyecto', 'linkedin_analysis', 'entrevista_simulada', 'reporte_compensacion']
     setCvsOptimizados(todos.filter(c => c.tipo === 'optimize' && !SUBTIPOS_REPORTE.includes(c.subtipo)))
     setCvsOriginal(todos.filter(c => c.tipo === 'original'))
-    // Reportes: infografías + LinkedIn + entrevistas (todo lo que no es CV)
+    // Reportes: infografías + LinkedIn + entrevistas + compensación (todo lo que no es CV)
     const ahora = new Date()
     const entrevistas = todos.filter(c => c.subtipo === 'entrevista_simulada').map(c => ({
       ...c,
@@ -193,6 +195,7 @@ export default function MisCVs() {
     setCvsEntrevistas(entrevistas)
     setCvsReportes(todos.filter(c => c.subtipo === 'infografia_proyecto'))
     setCvsLinkedin(todos.filter(c => c.subtipo === 'linkedin_analysis'))
+    setCvsReporteComp(todos.filter(c => c.subtipo === 'reporte_compensacion'))
     
     setCvsMatch(todos.filter(c => c.tipo === 'match').map(cv => {
       const jobTitle   = cv.metadata?.jobData?.title || ''
@@ -258,6 +261,64 @@ export default function MisCVs() {
     }
   }
 
+  const descargarReporteCompPDF = async (item) => {
+    try {
+      // Si tenemos el PDF pre-generado en base64, usarlo directamente
+      const meta = item.metadata || {}
+      if (meta.pdf_base64) {
+        const byteChars = atob(meta.pdf_base64)
+        const byteArr = new Uint8Array(byteChars.length)
+        for (let i = 0; i < byteChars.length; i++) byteArr[i] = byteChars.charCodeAt(i)
+        const blob = new Blob([byteArr], { type: 'application/pdf' })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = meta.filename || 'Reporte de Compensacion.pdf'
+        a.click()
+        URL.revokeObjectURL(url)
+        return
+      }
+
+      // Fallback: regenerar con html2pdf
+      const { default: html2pdf } = await import('html2pdf.js')
+      let payload = {}
+      try {
+        payload = typeof item.contenido === 'string' ? JSON.parse(item.contenido) : (item.contenido || {})
+      } catch { /* usa vacío */ }
+
+      const contenedor = document.createElement('div')
+      contenedor.style.position = 'fixed'
+      contenedor.style.left = '-9999px'
+      contenedor.style.top = '0'
+      document.body.appendChild(contenedor)
+
+      const root = createRoot(contenedor)
+      await new Promise(resolve => {
+        root.render(
+          <ReporteCompensacion
+            data={payload}
+            nombre={meta.nombre || 'Ejecutivo'}
+          />
+        )
+        setTimeout(resolve, 400)
+      })
+
+      await html2pdf().set({
+        margin: 0,
+        filename: meta.filename || 'Reporte de Compensacion.pdf',
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true },
+        jsPDF: { unit: 'px', format: [794, 1123], orientation: 'portrait' },
+      }).from(contenedor.firstChild).save()
+
+      root.unmount()
+      document.body.removeChild(contenedor)
+    } catch (err) {
+      console.error('[descargarReporteCompPDF]', err)
+      alert('No se pudo generar el PDF. Intenta de nuevo.')
+    }
+  }
+
   const eliminarCheck = async (id) => {
     await supabase.from('job_checks').delete().eq('id', id)
     setChecks(prev => prev.filter(c => c.id !== id))
@@ -307,7 +368,7 @@ export default function MisCVs() {
   const checksAlto = checks.filter(c => c.score >= 70).length
   const checksBajo = checks.filter(c => c.score < 70).length
 
-  const totalReportes = cvsLinkedin.length + cvsEntrevistas.length + cvsReportes.length
+  const totalReportes = cvsLinkedin.length + cvsEntrevistas.length + cvsReportes.length + cvsReporteComp.length
   const tabs = [
     { key: 'optimizados',      label: `CV Optimizado (${cvsOptimizados.length})` },
     // Mostrar tab CV Inicial solo si hay documentos originales guardados
@@ -517,6 +578,41 @@ export default function MisCVs() {
                           </div>
                           <button onClick={() => navigate(`/reporte/${item.id}`)}
                             className="px-6 py-2.5 text-sm font-bold text-white bg-primary hover:bg-primary/90 rounded-xl flex items-center justify-center gap-2 min-w-[160px] transition-all shadow-sm">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                            Descargar PDF
+                          </button>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Sección: Reportes de Compensación */}
+              {cvsReporteComp.length > 0 && (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 border-b border-gray-100 pb-3">
+                    <h3 className="text-sm font-bold text-gray-800">Reporte de Compensación</h3>
+                  </div>
+                  <div className="space-y-4">
+                    {cvsReporteComp.map(item => {
+                      const meta = item.metadata || {}
+                      return (
+                        <div key={item.id} className="group flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 bg-white border border-gray-100 rounded-2xl hover:border-emerald-300 hover:shadow-xl hover:shadow-emerald-50 transition-all duration-300">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap mb-2">
+                              <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200">Compensación</span>
+                            </div>
+                            <p className="text-base font-bold text-gray-800 truncate">{meta.filename || 'Reporte de Compensacion.pdf'}</p>
+                            <p className="text-sm text-gray-400 mt-1.5 flex items-center gap-1.5 font-medium">
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                              </svg>
+                              {formatFecha(item.created_at)}
+                            </p>
+                          </div>
+                          <button onClick={() => descargarReporteCompPDF(item)}
+                            className="px-6 py-2.5 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl flex items-center justify-center gap-2 min-w-[160px] transition-all shadow-sm">
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
                             Descargar PDF
                           </button>

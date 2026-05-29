@@ -6,6 +6,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../services/authService'
 import { extractarPerfilCV, descargarCV } from '../services/cvService'
+import ReporteCompensacion from '../components/ReporteCompensacion'
 import { RECURSOS_DEFAULT as RECURSOS_DEFAULT_BASE, calcPerfilPts, calcularProgreso as calcProgreso, calcularPorPilar } from '../utils/progresoLaboral'
 import {
   Brain, CalendarCheck, Toolbox, FileText,
@@ -2769,37 +2770,108 @@ export default function ProyectoLaboral() {
   const [cargando,setCargando] = useState(true)  // estado de carga inicial
   const [errorCarga, setErrorCarga] = useState(null)  // error al cargar datos
   const [bannerCvCreada, setBannerCvCreada] = useState(false)  // banner tras guardar CV
-  const [generandoPdf, setGenerandoPdf] = useState(false) // Trigger gen infografía
+  const [generandoPdf, setGenerandoPdf] = useState(false)
+  const [modalConfirmInfografia, setModalConfirmInfografia] = useState(false)
+  const [generandoReporteComp, setGenerandoReporteComp] = useState(false)
   const pilarCardRef         = useRef(null)
   const saveTimeoutRef       = useRef(null)
-  const cvAutoPopuladoRef    = useRef(false)  // evita doble ejecución
+  const cvAutoPopuladoRef    = useRef(false)
+  const reporteCompRef       = useRef(null)
 
-  const generarInfografia = async () => {
+  const handleClickGenerarInfografia = async () => {
     const ofertaCompleta = porPilar?.oferta === 100
     if (pct < 50 && !ofertaCompleta) {
       alert("Debes completar al menos el 50% de tu Proyecto Laboral o tener tu Oferta de Valor al 100% para generar la infografía ejecutiva. ¡Sigue avanzando!")
       return
     }
+    // Verificar si ya tiene una infografía generada
+    const { data: existing } = await supabase
+      .from('cv_results')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('tipo', 'optimize')
+      .filter('metadata->>subtipo', 'eq', 'infografia_proyecto')
+      .limit(1)
+    if (existing?.length > 0) {
+      setModalConfirmInfografia(true)
+    } else {
+      generarInfografia()
+    }
+  }
+
+  const generarInfografia = async () => {
+    setModalConfirmInfografia(false)
     setGenerandoPdf(true)
     try {
       const { data: { session } } = await supabase.auth.getSession()
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000'
       const res = await fetch(`${apiUrl}/api/cv/infografia-proyecto`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        }
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` }
       })
       const respData = await res.json()
       if (!res.ok) throw new Error(respData.error || 'Error al generar infografía')
-      
-      // Open visual report in a new tab so the user does not exit the platform
       window.open(`/reporte-visual/${respData.id}`, '_blank')
     } catch(e) {
       alert("Error: " + e.message)
     } finally {
       setGenerandoPdf(false)
+    }
+  }
+
+  const generarReporteCompensacion = async (currentData) => {
+    if (!user) return
+    setGenerandoReporteComp(true)
+    try {
+      const { default: html2pdf } = await import('html2pdf.js')
+      const el = reporteCompRef.current
+      if (!el) return
+
+      const opt = {
+        margin: 0,
+        filename: 'Reporte de Compensacion.pdf',
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true },
+        jsPDF: { unit: 'px', format: [794, 1123], orientation: 'portrait' }
+      }
+      const pdfBlob = await html2pdf().set(opt).from(el).outputPdf('blob')
+
+      const pdfBase64 = await new Promise((resolve) => {
+        const reader = new FileReader()
+        reader.onloadend = () => resolve(reader.result.split(',')[1])
+        reader.readAsDataURL(pdfBlob)
+      })
+
+      // Upsert: buscar si ya existe
+      const { data: existing } = await supabase
+        .from('cv_results')
+        .select('id')
+        .eq('user_id', user.id)
+        .filter('metadata->>subtipo', 'eq', 'reporte_compensacion')
+        .limit(1)
+
+      const payload = {
+        contenido: JSON.stringify({ perfil: currentData?.perfil || {}, recursos: currentData?.recursos || {} }),
+        metadata: {
+          filename: 'Reporte de Compensacion.pdf',
+          frontend_pdf: true,
+          subtipo: 'reporte_compensacion',
+          pdf_base64: pdfBase64,
+        },
+      }
+
+      const existingId = existing?.[0]?.id
+      if (existingId) {
+        await supabase.from('cv_results').update({ contenido: payload.contenido, metadata: payload.metadata }).eq('id', existingId)
+      } else {
+        await supabase.from('cv_results').insert({ user_id: user.id, tipo: 'optimize', ...payload })
+      }
+
+      toast.success('Tu Reporte de Compensación fue guardado en Mis Documentos → Reportes 📄', { duration: 5000 })
+    } catch (e) {
+      console.error('Error generando Reporte de Compensación:', e)
+    } finally {
+      setGenerandoReporteComp(false)
     }
   }
 
@@ -3042,6 +3114,12 @@ export default function ProyectoLaboral() {
       // Guardado parcial — toast simple
       toast.success('Guardado correctamente', { duration: 2000 })
     }
+
+    // Generar Reporte de Compensación automáticamente cuando Recursos llega a 100%
+    if (pilarId === 'recursos' && porPilarNew['recursos'] === 100) {
+      // pequeño delay para que React renderice el componente oculto
+      setTimeout(() => generarReporteCompensacion(updatedData), 300)
+    }
   },[data, saveData, perfil])
 
   const pct      = calcularProgreso(data, perfil)
@@ -3275,8 +3353,8 @@ export default function ProyectoLaboral() {
                   </div>
 
                   {/* Generar PDF Infográfico CTA — Glow Effect */}
-                  <button 
-                    onClick={generarInfografia}
+                  <button
+                    onClick={handleClickGenerarInfografia}
                     disabled={generandoPdf}
                     className="group/btn w-full relative overflow-hidden bg-white text-slate-900 font-black text-xs py-4 rounded-[1.25rem] transition-all hover:scale-[1.02] active:scale-[0.98] shadow-[0_20px_40px_-10px_rgba(255,255,255,0.1)] disabled:opacity-50"
                     title={(pct < 50 && porPilar?.oferta !== 100) ? "Requiere 50% de completitud o 100% de Oferta de Valor" : "Genera tu presentación ejecutiva"}
@@ -3437,6 +3515,43 @@ export default function ProyectoLaboral() {
                 className="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm transition-colors cursor-pointer"
               >
                 Ir a {modalSeccionDesbloqueda.nextPilarLabel} →
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Componente oculto para captura PDF del Reporte de Compensación */}
+      <div style={{ position: 'fixed', left: '-9999px', top: 0, zIndex: -1, pointerEvents: 'none' }}>
+        <ReporteCompensacion
+          reporteRef={reporteCompRef}
+          data={data}
+          nombre={perfil?.nombre || [perfil?.nombre1, perfil?.apellido1].filter(Boolean).join(' ') || 'Ejecutivo'}
+        />
+      </div>
+
+      {/* Modal confirmación: regenerar infografía */}
+      {modalConfirmInfografia && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center shrink-0">
+                <svg className="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+              </div>
+              <div>
+                <h3 className="font-bold text-slate-800 text-sm">¿Regenerar Infografía?</h3>
+                <p className="text-xs text-slate-500 mt-0.5">Ya tienes una Infografía de Autoconocimiento guardada</p>
+              </div>
+            </div>
+            <p className="text-sm text-slate-600 mb-5">Al continuar, la infografía anterior será reemplazada con los datos actualizados. Solo se guarda una versión en Mis Documentos.</p>
+            <div className="flex gap-3">
+              <button onClick={() => setModalConfirmInfografia(false)}
+                className="flex-1 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-sm font-medium hover:bg-slate-50 transition-colors">
+                Cancelar
+              </button>
+              <button onClick={generarInfografia}
+                className="flex-1 py-2.5 rounded-xl bg-violet-600 text-white text-sm font-bold hover:bg-violet-700 transition-colors">
+                Sí, regenerar
               </button>
             </div>
           </div>

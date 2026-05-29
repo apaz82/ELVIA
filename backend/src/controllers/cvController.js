@@ -487,31 +487,17 @@ const generarInfografiaProyecto = async (req, res, next) => {
     const db = req.supabase;
     const userId = req.user.id;
 
-    // Validar límite de 10 generaciones de infografías de autoconocimiento
-    const { data: existingInfografias, error: countError } = await db
+    // Buscar infografía existente del usuario para reemplazarla (upsert por usuario)
+    const { data: existingInfografias } = await db
       .from('cv_results')
-      .select('id, metadata')
+      .select('id')
       .eq('user_id', userId)
-      .eq('tipo', 'optimize');
+      .eq('tipo', 'optimize')
+      .filter('metadata->>subtipo', 'eq', 'infografia_proyecto')
+      .order('created_at', { ascending: false })
+      .limit(1);
 
-    if (countError) {
-      console.error('[generarInfografiaProyecto] Error al verificar límite:', countError.message);
-    } else {
-      const userInfografias = (existingInfografias || []).filter(row => {
-        try {
-          const meta = typeof row.metadata === 'string' ? JSON.parse(row.metadata) : row.metadata;
-          return meta && meta.subtipo === 'infografia_proyecto';
-        } catch (e) {
-          return false;
-        }
-      });
-
-      if (userInfografias.length >= 10) {
-        return res.status(400).json({ 
-          error: 'Has alcanzado el límite máximo de 10 generaciones de tu Infografía de Autoconocimiento. Puedes ver y descargar tus infografías ya generadas en la sección "Mis documentos".' 
-        });
-      }
-    }
+    const existingId = existingInfografias?.[0]?.id || null;
 
     const { data: profile, error } = await db
       .from('profiles')
@@ -552,23 +538,33 @@ const generarInfografiaProyecto = async (req, res, next) => {
     // Adjuntar nombre para la UI
     proyectoCorregido.nombreCandidato = `${profile.nombre1 || ''} ${profile.apellido1 || ''}`.trim() || 'Ejecutivo';
 
-    // 2. Guardar en cv_results como registro persistente
-    // Nota: tipo='optimize' por compatibilidad con check constraint cv_results_tipo_check
-    // (solo permite 'original'|'optimize'|'match'). Discriminamos vía metadata.subtipo.
-    const { data: savedRecord, error: dbError } = await db
-      .from('cv_results')
-      .insert({
-        user_id: userId,
-        tipo: 'optimize',
-        contenido: JSON.stringify(proyectoCorregido),
-        metadata: {
-          filename: `Plan de Carrera Ejecutivo.pdf`,
-          frontend_pdf: true,
-          subtipo: 'infografia_proyecto'
-        }
-      })
-      .select('id')
-      .single();
+    // 2. Guardar en cv_results — reemplazar si ya existe, insertar si no
+    const infografiaPayload = {
+      user_id: userId,
+      tipo: 'optimize',
+      contenido: JSON.stringify(proyectoCorregido),
+      metadata: {
+        filename: 'Infografia Autoconocimiento.pdf',
+        frontend_pdf: true,
+        subtipo: 'infografia_proyecto'
+      }
+    };
+
+    let savedRecord, dbError;
+    if (existingId) {
+      ({ data: savedRecord, error: dbError } = await db
+        .from('cv_results')
+        .update({ contenido: infografiaPayload.contenido, metadata: infografiaPayload.metadata })
+        .eq('id', existingId)
+        .select('id')
+        .single());
+    } else {
+      ({ data: savedRecord, error: dbError } = await db
+        .from('cv_results')
+        .insert(infografiaPayload)
+        .select('id')
+        .single());
+    }
 
     if (dbError) {
       console.error('[generarInfografiaProyecto] DB Error:', dbError.message);
