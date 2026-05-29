@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../services/authService'
 import { calcularProgreso, calcPerfilPts, calcularPorPilar } from '../utils/progresoLaboral'
+import { useTrackEvent } from '../hooks/useTrackEvent'
 import {
   FileMagnifyingGlass, MagnifyingGlass, Briefcase,
   ChartLineUp, ArrowRight, Sparkle,
@@ -86,6 +87,9 @@ export default function Dashboard() {
   const [showNotifications, setShowNotifications] = useState(false)
   const [bienestar, setBienestar] = useState({ checkins: {}, radar: {} })
   const notifRef = useRef(null)
+
+  const track = useTrackEvent()
+  useEffect(() => { track('page_view', 'dashboard') }, [])
 
   const nombre = perfil?.nombre1
     ? `${perfil.nombre1}${perfil.apellido1 ? ' ' + perfil.apellido1 : ''}`

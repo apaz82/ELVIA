@@ -7,6 +7,7 @@ import { useAuth } from '../context/AuthContext'
 import { supabase } from '../services/authService'
 import { extractarPerfilCV, descargarCV } from '../services/cvService'
 import ReporteCompensacion from '../components/ReporteCompensacion'
+import { useTrackEvent } from '../hooks/useTrackEvent'
 import { RECURSOS_DEFAULT as RECURSOS_DEFAULT_BASE, calcPerfilPts, calcularProgreso as calcProgreso, calcularPorPilar } from '../utils/progresoLaboral'
 import {
   Brain, CalendarCheck, Toolbox, FileText,
@@ -2711,6 +2712,8 @@ function PilarBienestar() {
 
 export default function ProyectoLaboral() {
   const { user, perfil, refreshPerfil, onboardingPendiente, isPaidPlan, refreshJpData } = useAuth()
+  const track = useTrackEvent()
+  useEffect(() => { track('page_view', 'proyecto_laboral') }, [])
   const navigate = useNavigate()
   const location = useLocation()
   const [pilarId,setPilarId] = useState('perfil')
@@ -3092,6 +3095,7 @@ export default function ProyectoLaboral() {
 
     setJustSaved(pilarId)
     saveData(updatedData)
+    track('pilar_saved', 'proyecto_laboral', { pilar: pilarId, pct: porPilarNew[pilarId] })
     if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current)
     saveTimeoutRef.current = setTimeout(function(){ setJustSaved(null) }, 2000)
 

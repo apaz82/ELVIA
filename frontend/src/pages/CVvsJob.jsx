@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext'
 import { useCV } from '../context/CVContext'
 import { matchCVVacante, descargarCV } from '../services/cvService'
 import { supabase } from '../services/authService'
+import { useTrackEvent } from '../hooks/useTrackEvent'
 import LanguageSelector from '../components/common/LanguageSelector'
 import Button from '../components/common/Button'
 import FeatureLocked from '../components/common/FeatureLocked'
@@ -14,6 +15,8 @@ export default function CVvsJob() {
   const { user, refreshUsage, featuresDesbloqueadas, companyId, jpData, loading: authLoading } = useAuth()
   const { resultadoOptimize, resultadoMatch, setResultadoMatch } = useCV()
   const navigate = useNavigate()
+  const track = useTrackEvent()
+  useEffect(() => { track('page_view', 'cvvsjob') }, [])
 
   const [cvsExistentes, setCvsExistentes] = useState([])
   const [selectedCvId, setSelectedCvId] = useState(null)
@@ -168,6 +171,7 @@ export default function CVvsJob() {
   const analizar = async () => {
     if (!selectedCvId) return setError('Selecciona un CV optimizado para continuar.')
     if (!jobText.trim()) return setError('Pega la descripción de la vacante')
+    track('feature_used', 'cvvsjob', { action: 'analizar' })
 
     // Detectar vacante duplicada antes de llamar a la IA
     const fingerprint = jobText.trim().toLowerCase().slice(0, 300)

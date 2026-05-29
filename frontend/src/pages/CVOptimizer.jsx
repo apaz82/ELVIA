@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useCV } from '../context/CVContext'
 import { optimizarCV, descargarCV, obtenerInfografia } from '../services/cvService'
+import { useTrackEvent } from '../hooks/useTrackEvent'
 import CVInfographic from '../components/cv/CVInfographic'
 import { supabase } from '../services/authService'
 import FileUpload from '../components/common/FileUpload'
@@ -72,6 +73,8 @@ export default function CVOptimizer() {
   const { user, refreshUsage, perfil, featuresDesbloqueadas, loading: authLoading } = useAuth()
   const { cvArchivo, setCvArchivo, setResultadoOptimize, resultadoOptimize } = useCV()
   const navigate = useNavigate()
+  const track = useTrackEvent()
+  useEffect(() => { track('page_view', 'cv_optimizer') }, [])
 
   const [language, setLanguage]           = useState('')
   const [loading, setLoading]             = useState(false)
@@ -175,10 +178,11 @@ export default function CVOptimizer() {
   const analizar = async () => {
     if (!cvArchivo) return setError('Selecciona un archivo primero')
     if (!user)      return navigate('/auth')
-    
+
     setShowConfirmModal(false)
     setLoading(true)
     setError('')
+    track('feature_used', 'cv_optimizer', { language })
     try {
       const data = await optimizarCV(cvArchivo, language)
       if (data.error) {
