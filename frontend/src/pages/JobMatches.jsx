@@ -95,13 +95,12 @@ export default function JobMatches() {
     setBusquedasGuardadas(actualizadas)
   }
 
-  const [modoBusqueda, setModoBusqueda] = useState('cargo') // 'cargo' | 'keywords'
   const [modoEmpresasActivo, setModoEmpresasActivo] = useState(false) // búsqueda dirigida por empresas objetivo
   const [empresasObjetivo, setEmpresasObjetivo] = useState([]) // top5 del perfilador
   const [empresasSeleccionadas, setEmpresasSeleccionadas] = useState([]) // subset para búsqueda
   const [cargoObjetivo, setCargoObjetivo] = useState('') // nivel + área precargado
-  const [titulo, setTitulo]     = useState(resultadoMatch?.jobData?.title || '')
-  const [keywords, setKeywords] = useState('')
+  const [keywords, setKeywords] = useState(resultadoMatch?.jobData?.title || '')
+  const [paisSeleccionado, setPaisSeleccionado] = useState('') // selector de país
   const [ubicacion, setUbicacion] = useState(
     [resultadoMatch?.jobData?.location, resultadoMatch?.jobData?.country].filter(Boolean).join(', ')
   )
@@ -266,16 +265,13 @@ export default function JobMatches() {
 
   const buscar = async () => {
     if (modoEmpresasActivo) return buscarEnEmpresas()
-    const queryActual = modoBusqueda === 'keywords' ? keywords : titulo
-    if (!queryActual.trim()) return setError(modoBusqueda === 'keywords' ? 'Ingresa palabras clave' : 'Ingresa el cargo a buscar')
+    if (!keywords.trim()) return setError('Ingresa cargo, habilidades o palabras clave')
     setLoading(true)
     setError('')
     setBuscado(false)
     setPanelAbierto({})
     try {
-      const params = new URLSearchParams()
-      if (modoBusqueda === 'keywords') params.append('keywords', keywords)
-      else params.append('title', titulo)
+      const params = new URLSearchParams({ keywords })
       if (ubicacion) params.append('location', ubicacion)
       Object.entries(filtros).forEach(([k, v]) => { if (v) params.append(k, v) })
       const data = await api.get(`/api/jobs/similar?${params}`)
@@ -284,7 +280,7 @@ export default function JobMatches() {
       setTotal(data.total || 0)
       setBuscado(true)
       setMostrarFiltros(false)
-      persistirBusqueda(titulo || keywords, ubicacion, filtros)
+      persistirBusqueda(keywords, ubicacion, filtros)
       recargarSavedKeys()
     } catch {
       setError('Error al buscar vacantes')
@@ -294,16 +290,17 @@ export default function JobMatches() {
   }
 
   const buscarEnEmpresas = async () => {
-    const cargo = cargoObjetivo.trim() || titulo.trim()
+    const query = (cargoObjetivo.trim() || keywords.trim())
     const empresas = empresasSeleccionadas.filter(e => e && String(e).trim())
-    if (!cargo) return setError('Necesitas tener un cargo objetivo en tu Perfilador o escribirlo en el campo Cargo')
+    if (!query) return setError('Escribe un cargo o palabras clave para buscar en tus empresas objetivo')
     if (empresas.length === 0) return setError('Selecciona al menos una empresa objetivo')
     setLoading(true)
     setError('')
     setBuscado(false)
     setPanelAbierto({})
     try {
-      const params = new URLSearchParams({ title: cargo })
+      // Usamos keywords (no title) para evitar expansión de sinónimos que distorsiona resultados
+      const params = new URLSearchParams({ keywords: query })
       if (ubicacion) params.append('location', ubicacion)
       empresas.slice(0, 5).forEach(e => params.append('companies', e))
       Object.entries(filtros).forEach(([k, v]) => { if (v) params.append(k, v) })
@@ -322,17 +319,17 @@ export default function JobMatches() {
   }
 
   const aplicarBusquedaGuardada = (b) => {
-    setTitulo(b.titulo)
+    setKeywords(b.titulo)
     setUbicacion(b.ubicacion)
     setFiltros(b.filtros)
     setTimeout(() => buscarCon(b.titulo, b.ubicacion, b.filtros), 0)
   }
 
-  const buscarCon = async (t, u, f) => {
-    if (!t.trim()) return
+  const buscarCon = async (kw, u, f) => {
+    if (!kw.trim()) return
     setLoading(true); setError(''); setBuscado(false); setPanelAbierto({})
     try {
-      const params = new URLSearchParams({ title: t })
+      const params = new URLSearchParams({ keywords: kw })
       if (u) params.append('location', u)
       Object.entries(f).forEach(([k, v]) => { if (v) params.append(k, v) })
       const data = await api.get(`/api/jobs/similar?${params}`)
@@ -455,26 +452,10 @@ export default function JobMatches() {
                 <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                 </svg>
-                Buscando con cargo objetivo: <strong className="ml-1">{cargoObjetivo || titulo || 'sin especificar'}</strong>
+                Buscando con cargo objetivo: <strong className="ml-1">{cargoObjetivo || keywords || 'sin especificar'}</strong>
                 {!cargoObjetivo && <span className="text-amber-600 ml-1">— completa el Perfilador o escribe un cargo abajo</span>}
               </div>
             )}
-          </div>
-        )}
-
-        {/* Toggle modo búsqueda libre (visible solo cuando modo empresas está OFF) */}
-        {!modoEmpresasActivo && (
-          <div className="flex gap-1 bg-gray-100 rounded-lg p-1 w-fit mb-4">
-            {[
-              { key: 'cargo',    label: 'Por cargo' },
-              { key: 'keywords', label: 'Por palabras clave' },
-            ].map(m => (
-              <button key={m.key} onClick={() => setModoBusqueda(m.key)}
-                className={`text-xs font-medium py-1.5 px-4 rounded-md transition-colors
-                  ${modoBusqueda === m.key ? 'bg-white text-primary shadow-sm' : 'text-gray-500 hover:text-gray-800'}`}>
-                {m.label}
-              </button>
-            ))}
           </div>
         )}
 
@@ -489,24 +470,14 @@ export default function JobMatches() {
                   className="w-full border border-indigo-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400" />
                 <p className="text-xs text-gray-400 mt-1">Precargado desde tu Perfilador — puedes editarlo.</p>
               </>
-            ) : modoBusqueda === 'cargo' ? (
-              <>
-                <label className="block text-xs font-medium text-gray-500 mb-1">Cargo</label>
-                <input type="text" value={titulo} onChange={e => setTitulo(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && buscar()}
-                  placeholder="ej. Director Comercial, Gerente de RH..."
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
-              </>
             ) : (
               <>
-                <label className="block text-xs font-medium text-gray-500 mb-1">
-                  Palabras clave o frases
-                </label>
+                <label className="block text-xs font-medium text-gray-500 mb-1">Cargo, habilidades o palabras clave</label>
                 <input type="text" value={keywords} onChange={e => setKeywords(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && buscar()}
-                  placeholder="ej. transformación digital, liderazgo de equipos, SAP, supply chain..."
+                  placeholder="ej. Director Comercial, transformación digital, SAP..."
                   className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
-                <p className="text-xs text-gray-400 mt-1">Puedes combinar palabras, habilidades o frases separadas por coma.</p>
+                <p className="text-xs text-gray-400 mt-1">Puedes combinar cargo, habilidades o frases separadas por coma.</p>
               </>
             )}
           </div>
@@ -531,7 +502,7 @@ export default function JobMatches() {
           </div>
           <div className="sm:self-end">
             <Button onClick={buscar} loading={loading}
-              disabled={modoEmpresasActivo ? empresasSeleccionadas.length === 0 : !titulo.trim()}>
+              disabled={modoEmpresasActivo ? empresasSeleccionadas.length === 0 : !keywords.trim()}>
               {modoEmpresasActivo ? '🎯 Buscar en mis empresas' : 'Buscar'}
             </Button>
           </div>

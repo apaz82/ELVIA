@@ -221,7 +221,7 @@ const detectarGL = (location) => {
 };
 
 // Palabras/patrones que identifican resultados claramente de USA
-const ES_USA_REGEX = /\b(united states|u\.s\.|usa|\bCA\b|\bNY\b|\bTX\b|\bFL\b|\bIL\b|new york|california|texas|florida|illinois|georgia|washington,? d\.?c|chicago|los angeles|san francisco|houston|dallas|austin|seattle|boston|denver|atlanta|phoenix|san diego|las vegas|nashville|charlotte|portland|minneapolis)\b/i;
+const ES_USA_REGEX = /\b(united states|u\.s\.a?|usa|u\.s\b|new york|new jersey|california|texas|florida|illinois|georgia|washington,?\s*d\.?\s*c\.?|ohio|pennsylvania|north carolina|michigan|virginia|arizona|tennessee|massachusetts|indiana|missouri|maryland|wisconsin|minnesota|colorado|south carolina|alabama|louisiana|kentucky|oregon|oklahoma|connecticut|utah|iowa|nevada|arkansas|mississippi|kansas|new mexico|nebraska|west virginia|idaho|hawai+i|new hampshire|maine|rhode island|montana|delaware|south dakota|north dakota|alaska|wyoming|vermont|chicago|los angeles|san francisco|houston|dallas|austin|seattle|boston|denver|atlanta|phoenix|san diego|las vegas|nashville|charlotte|portland|minneapolis|miami|new orleans|san antonio|detroit|baltimore|memphis|louisville|milwaukee|albuquerque|tucson|fresno|sacramento|kansas city|omaha|colorado springs|raleigh|long beach|virginia beach|oakland|minneapolis|tampa|tulsa|arlington|new orleans|wichita|cleveland|bakersfield|aurora|anaheim|santa ana|corpus christi|riverside|lexington|stockton|st\. louis|pittsburgh|anchorage|cincinnati|greensboro|toledo|newark|plano|henderson|lincoln|buffalo|fort wayne|jersey city|chula vista|orlando|st\. paul|norfolk|madison|durham|lubbock|winston[- ]salem|garland|glendale|hialeah|reno|baton rouge|irvine|chesapeake|scottsdale|north las vegas|fremont|gilbert|san bernardino|birmingham|rochester|richmond|spokane|des moines|montgomery|modesto|fayetteville|tacoma|oxnard|fontana|columbus|moreno valley|glendale|akron|yonkers|aurora|huntington beach|santa clara|worcester|tallahassee|grand rapids|overland park|tempe|garden grove|oceanside|rockford|fort lauderdale|chattanooga|providence|rancho cucamonga|santa rosa|peoria|cape coral|ontario|springfield|elk grove|pembroke pines|eugene|corona|cary|salinas|palmdale|pasadena|hayward|sunnyvale|pomona|escondido|kansas city|savannah|fort collins|lakewood|paterson|killeen|bridgeport|mcallen|torrance|macon|hartford|surprise|gainesville|clarksville|warren|fullerton|columbia|sterling heights|west valley city|el monte|vallejo|berkeley|peoria|lansing|clearwater|clovis|west palm beach|beaumont|ann arbor|odessa|abilene|cambridge|waco|new haven|cedar rapids|elizabeth|el paso|denton|indianapolis|jacksonville|san jose|san antonio|riverside|toledo)\b/i;
 const esResultadoUSA = (v) => ES_USA_REGEX.test(v.location || '');
 
 // Busca en Google Jobs via SerpApi
@@ -379,10 +379,9 @@ const expandirCargo = async (title) => {
 };
 
 // GET /api/jobs/similar
-// Soporta tres modos:
-//   ?title=              → búsqueda por cargo (expande con sinónimos)
-//   ?keywords=           → búsqueda por palabras clave/frases (sin expansión)
-//   ?title=&companies=   → búsqueda dirigida por empresas objetivo (repite param para múltiples)
+// Soporta dos modos:
+//   ?keywords=            → búsqueda por palabras clave/frases (sin expansión IA)
+//   ?keywords=&companies= → búsqueda dirigida por empresas objetivo (repite param para múltiples)
 router.get('/similar', auth, async (req, res) => {
   const { title, keywords, location, datecreated, employment_type, experience, radius, salary, page } = req.query;
   const companiesParam = req.query.companies;
@@ -390,21 +389,21 @@ router.get('/similar', auth, async (req, res) => {
     ? (Array.isArray(companiesParam) ? companiesParam : [companiesParam]).map(c => c.trim()).filter(Boolean).slice(0, 5)
     : [];
 
-  const modoEmpresas = companies.length > 0 && !!title;
-  const modoKeywords = !!keywords && !title;
-  const queryOriginal = keywords || title;
+  // Normalizar: keywords toma precedencia sobre title (title existe por retrocompatibilidad)
+  const queryOriginal = (keywords || title || '').trim();
+  const modoEmpresas = companies.length > 0 && !!queryOriginal;
 
   if (!queryOriginal) return res.status(400).json({ error: 'Se requiere el cargo o palabras clave' });
 
   try {
     if (modoEmpresas) {
-      // Búsqueda dirigida: N llamadas en paralelo, una por empresa, con "cargo at empresa"
-      console.log(`[jobs/similar] Modo empresas | Cargo: "${title}" | Empresas: ${companies.join(', ')}`);
+      // Búsqueda dirigida: N llamadas en paralelo, una por empresa
+      console.log(`[jobs/similar] Modo empresas | Query: "${queryOriginal}" | Empresas: ${companies.join(', ')}`);
       const searchPromises = companies.flatMap(empresa => [
-        searchJooble({ title: `${title} ${empresa}`, location, datecreated, employment_type, experience, radius, salary, page }),
-        searchGoogleJobs({ title: `${title} at ${empresa}`, location, datecreated }),
-        searchAdzuna({ title: `${title} ${empresa}`, location, datecreated, employment_type }),
-        searchJSearch({ title: `${title} ${empresa}`, location, employment_type }),
+        searchJooble({ title: `${queryOriginal} ${empresa}`, location, datecreated, employment_type, experience, radius, salary, page }),
+        searchGoogleJobs({ title: `${queryOriginal} at ${empresa}`, location, datecreated }),
+        searchAdzuna({ title: `${queryOriginal} ${empresa}`, location, datecreated, employment_type }),
+        searchJSearch({ title: `${queryOriginal} ${empresa}`, location, employment_type }),
       ]);
       const allResults = await Promise.all(searchPromises);
       const flat = allResults.flat();
@@ -435,9 +434,9 @@ router.get('/similar', auth, async (req, res) => {
       return res.json({ vacantes: resultadosEmpresas, total: resultadosEmpresas.length, modoEmpresas: true });
     }
 
-    // Modo cargo: expandir con sinónimos. Modo keywords: usar directo.
-    const queryBusqueda = modoKeywords ? queryOriginal : await expandirCargo(title);
-    console.log(`[jobs/similar] Modo: ${modoKeywords ? 'keywords' : 'cargo'} | Query: "${queryBusqueda}"`);
+    // Siempre usar keywords directo (sin expansión de sinónimos vía IA)
+    const queryBusqueda = queryOriginal;
+    console.log(`[jobs/similar] Modo keywords | Query: "${queryBusqueda}"`);
 
     // Remotive solo cuando el usuario busca trabajo remoto
     const esRemoto = /remot|remote/i.test(location || '') || /remot|remote/i.test(queryBusqueda);
@@ -447,7 +446,7 @@ router.get('/similar', auth, async (req, res) => {
       searchGoogleJobs({ title: queryBusqueda, location, datecreated }),
       searchAdzuna({ title: queryBusqueda, location, datecreated, employment_type }),
       searchJSearch({ title: queryBusqueda, location, employment_type }),
-      esRemoto ? searchRemotive({ title: modoKeywords ? queryOriginal : title }) : Promise.resolve([]),
+      esRemoto ? searchRemotive({ title: queryOriginal }) : Promise.resolve([]),
     ]);
 
     console.log(`[jobs/similar] Jooble: ${joobleResults.length} | Google: ${googleResults.length} | Adzuna: ${adzunaResults.length} | JSearch: ${jsearchResults.length} | Remotive: ${remotiveResults.length}`);
@@ -491,9 +490,7 @@ router.get('/similar', auth, async (req, res) => {
       .map((v, i) => `${i}. ${v.title} | ${v.company || ''} | ${v.location || ''}`)
       .join('\n');
 
-    const promptFiltro = modoKeywords
-      ? `Se buscó con palabras clave: "${queryOriginal}", ubicación: "${ubicacionCtx}". De esta lista devuelve los índices de vacantes relacionadas con esas palabras clave y cuya ubicación sea compatible con "${ubicacionCtx}" (excluir si claramente son de un país diferente al solicitado). Responde únicamente con los índices separados por comas.\n\n${listaParaFiltrar}`
-      : `Se buscó el cargo: "${title}", ubicación: "${ubicacionCtx}". De esta lista devuelve SOLO los índices de vacantes que:\n1. Sean relevantes para ese cargo\n2. Cuya ubicación sea compatible con "${ubicacionCtx}" (excluir si claramente son de otro país)\nResponde únicamente con los índices separados por comas.\n\n${listaParaFiltrar}`;
+    const promptFiltro = `Se buscó con: "${queryOriginal}", ubicación: "${ubicacionCtx}". De esta lista devuelve los índices de vacantes relacionadas con esa búsqueda y cuya ubicación sea compatible con "${ubicacionCtx}" (excluir si claramente son de un país diferente al solicitado). Responde únicamente con los índices separados por comas.\n\n${listaParaFiltrar}`;
 
     let vacantes = filtrados;
     try {
