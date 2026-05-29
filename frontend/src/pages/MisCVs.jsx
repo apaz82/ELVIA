@@ -129,6 +129,8 @@ export default function MisCVs() {
   const [filtroCompatibilidad, setFiltroCompatibilidad] = useState('todos')
   const [seleccionados, setSeleccionados]   = useState(new Set())
 
+  if (authLoading) return null
+
   if (!featuresDesbloqueadas) {
     return (
       <FeatureLocked

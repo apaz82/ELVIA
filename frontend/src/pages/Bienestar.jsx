@@ -426,7 +426,7 @@ const TABS = [
 // ─── Componente Principal ────────────────────────────────────────────────────
 
 export default function Bienestar() {
-  const { user, featuresDesbloqueadas } = useAuth()
+  const { user, featuresDesbloqueadas, loading } = useAuth()
   const [tab, setTab]     = useState('checkin')
   const [perfil, setPerfil] = useState({})
   const [saving, setSaving] = useState(false)
@@ -444,6 +444,8 @@ export default function Bienestar() {
     await supabase.from('profiles').update({ bienestar_data: nuevo }).eq('id', user.id)
     setSaving(false)
   }
+
+  if (loading) return null
 
   if (!featuresDesbloqueadas) {
     return (

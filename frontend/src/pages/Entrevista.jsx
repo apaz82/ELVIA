@@ -60,10 +60,12 @@ function Estrellas({ n }) {
 
 // ── Componente principal ────────────────────────────────────────────────────
 export default function Entrevista() {
-  const { user, isPaidPlan, trialExpired, featuresDesbloqueadas, jpData } = useAuth()
+  const { user, isPaidPlan, trialExpired, featuresDesbloqueadas, jpData, loading: authLoading } = useAuth()
   const navigate = useNavigate()
 
   // Bloqueo para usuarios sin progreso 100% o sin plan
+  if (authLoading) return null
+
   if (!featuresDesbloqueadas) {
     return (
       <ProGate

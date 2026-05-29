@@ -322,6 +322,8 @@ export default function Pipeline() {
     cargarTodo()
   }, [user, authLoading])
 
+  if (authLoading) return null
+
   if (!featuresDesbloqueadas) {
     return (
       <FeatureLocked

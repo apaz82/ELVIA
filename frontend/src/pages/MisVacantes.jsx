@@ -27,6 +27,8 @@ export default function MisVacantes() {
   const [tab, setTab]             = useState('todas')
   const [ordenFecha, setOrdenFecha] = useState('desc')
 
+  if (authLoading) return null
+
   if (!featuresDesbloqueadas) {
     return (
       <FeatureLocked

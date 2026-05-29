@@ -340,15 +340,17 @@ function RenderContenido({ secciones }) {
 
 // ── Componente principal ──────────────────────────────────────────────────────
 export default function Biblioteca() {
-  const { featuresDesbloqueadas } = useAuth()
+  const { featuresDesbloqueadas, loading } = useAuth()
   const [busqueda, setBusqueda] = useState('')
   const [categoriaActiva, setCategoriaActiva] = useState('Todos')
   const [articuloAbierto, setArticuloAbierto] = useState(null)
   const [infografiaAbierta, setInfografiaAbierta] = useState(null)
 
+  if (loading) return null
+
   if (!featuresDesbloqueadas) {
     return (
-      <FeatureLocked 
+      <FeatureLocked
         titulo="Biblioteca de Recursos" 
         descripcion="Accede a guías exclusivas, infografías y artículos creados por expertos para acelerar tu búsqueda laboral."
         icono={<BookOpen size={44} weight="light" />}

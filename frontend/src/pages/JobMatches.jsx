@@ -37,7 +37,7 @@ const colorScore = (score) => {
 
 export default function JobMatches() {
   const { resultadoMatch, resultadoOptimize } = useCV()
-  const { user, refreshUsage, perfil, featuresDesbloqueadas } = useAuth()
+  const { user, refreshUsage, perfil, featuresDesbloqueadas, loading: authLoading } = useAuth()
   const { isB2B } = useTenant()
   const navigate = useNavigate()
 
@@ -361,6 +361,8 @@ export default function JobMatches() {
     }))
     navigate('/cv-vs-job')
   }
+
+  if (authLoading) return null
 
   if (!featuresDesbloqueadas) {
     return (

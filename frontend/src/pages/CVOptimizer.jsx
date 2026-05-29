@@ -69,7 +69,7 @@ const nombreCV = (cv) => {
 }
 
 export default function CVOptimizer() {
-  const { user, refreshUsage, perfil, featuresDesbloqueadas } = useAuth()
+  const { user, refreshUsage, perfil, featuresDesbloqueadas, loading: authLoading } = useAuth()
   const { cvArchivo, setCvArchivo, setResultadoOptimize, resultadoOptimize } = useCV()
   const navigate = useNavigate()
 
@@ -87,9 +87,11 @@ export default function CVOptimizer() {
   const [cvDecision, setCvDecision] = useState(null)
   const [showConfirmModal, setShowConfirmModal] = useState(false)
 
+  if (authLoading) return null
+
   if (!featuresDesbloqueadas) {
     return (
-      <FeatureLocked 
+      <FeatureLocked
         titulo="Optimizador de CV" 
         descripcion="Crea una versión de tu CV de alto impacto con formato Harvard, optimizada para ATS y revisada por nuestra IA."
         icono={<FileMagnifyingGlass size={44} weight="light" />}

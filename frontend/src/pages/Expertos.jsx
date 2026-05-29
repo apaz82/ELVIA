@@ -87,11 +87,13 @@ function ModalPrivacidad({ onClose }) {
 
 // ─── Componente principal ─────────────────────────────────────────────────────
 export default function Expertos() {
-  const { featuresDesbloqueadas } = useAuth()
+  const { featuresDesbloqueadas, loading } = useAuth()
   const [servicio, setServicio] = useState('')
   const [detalle, setDetalle]  = useState('')
   const [modalPriv, setModalPriv] = useState(false)
   const [enviado, setEnviado]  = useState(false)
+
+  if (loading) return null
 
   if (!featuresDesbloqueadas) {
     return (

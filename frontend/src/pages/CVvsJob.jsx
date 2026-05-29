@@ -11,7 +11,7 @@ import HelpBadge from '../components/common/HelpBadge'
 import { MagnifyingGlass, CaretDown, FileText, ArrowRight, Lightbulb } from '@phosphor-icons/react'
 
 export default function CVvsJob() {
-  const { user, refreshUsage, featuresDesbloqueadas, companyId, jpData } = useAuth()
+  const { user, refreshUsage, featuresDesbloqueadas, companyId, jpData, loading: authLoading } = useAuth()
   const { resultadoOptimize, resultadoMatch, setResultadoMatch } = useCV()
   const navigate = useNavigate()
 
@@ -20,6 +20,8 @@ export default function CVvsJob() {
   const [userNombre, setUserNombre] = useState('')
   const [mostrarOtrosCVs, setMostrarOtrosCVs] = useState(false)
   const [cvDesvelado, setCvDesvelado] = useState(false)
+
+  if (authLoading) return null
 
   if (!featuresDesbloqueadas) {
     return (
