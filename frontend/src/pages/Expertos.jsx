@@ -1,7 +1,5 @@
 // Expertos.jsx — Mentor Experto: asesoría 1-a-1 humana y confidencial
 import { useState } from 'react'
-import { useAuth } from '../context/AuthContext'
-import FeatureLocked from '../components/common/FeatureLocked'
 import {
   UsersThree, ShieldCheck, Lock, Info, X,
   CheckCircle, Clock, ListChecks, Warning, Seal
@@ -87,23 +85,10 @@ function ModalPrivacidad({ onClose }) {
 
 // ─── Componente principal ─────────────────────────────────────────────────────
 export default function Expertos() {
-  const { featuresDesbloqueadas, loading } = useAuth()
   const [servicio, setServicio] = useState('')
   const [detalle, setDetalle]  = useState('')
   const [modalPriv, setModalPriv] = useState(false)
   const [enviado, setEnviado]  = useState(false)
-
-  if (loading) return null
-
-  if (!featuresDesbloqueadas) {
-    return (
-      <FeatureLocked 
-        titulo="Mentor Experto 1-a-1" 
-        descripcion="Habla directamente con un profesional senior para resolver dudas críticas sobre tu proceso, oferta o estrategia de carrera."
-        icono={<UsersThree size={44} weight="light" />}
-      />
-    )
-  }
 
   const puedeEnviar = servicio && detalle.trim().length >= 20
 
@@ -205,10 +190,6 @@ export default function Expertos() {
                   className="w-full h-auto object-cover"
                 />
                 
-                {/* Brand Overlay */}
-                <div className="absolute top-4 left-4 bg-slate-900/60 backdrop-blur-md rounded-xl p-1.5 border border-white/10 flex items-center justify-center shadow-lg">
-                  <img src="/LOGOS/ELVIA_logo_fondo_transparente.png" alt="ELVIA" className="h-7 w-auto object-contain" />
-                </div>
               </div>
               {/* Floating badge */}
               <div className="absolute -bottom-4 -left-4 bg-white rounded-2xl shadow-lg border border-slate-200 px-4 py-3 flex items-center gap-3">
