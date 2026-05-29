@@ -102,6 +102,7 @@ export default function JobMatches() {
   const [empresasSeleccionadas, setEmpresasSeleccionadas] = useState([]) // subset para búsqueda
   const [keywords, setKeywords] = useState(resultadoMatch?.jobData?.title || '')
   const [compatScores, setCompatScores] = useState({}) // jobKey → score calculado
+  const [avisosPerfil, setAvisosPerfil] = useState([]) // mensajes contextuales de campos faltantes
   const [paisSeleccionado, setPaisSeleccionado] = useState('') // selector de país
   const [ubicacion, setUbicacion] = useState(
     [resultadoMatch?.jobData?.location, resultadoMatch?.jobData?.country].filter(Boolean).join(', ')
@@ -173,12 +174,26 @@ export default function JobMatches() {
       .catch(() => {})
   }, [perfil])
 
-  // Cargar Perfilador: top5empresas (con lectura dual) + nivel/área para precarga
+  // Cargar Perfilador: top5empresas + cargo_objetivo + avisos contextuales
   useEffect(() => {
     if (!user) return
     supabase.from('profiles').select('job_search_profile').eq('id', user.id).maybeSingle()
       .then(({ data: p }) => {
         const jp = p?.job_search_profile || {}
+
+        // Detectar campos clave faltantes para mostrar avisos contextuales
+        const avisos = []
+        const cargoObjDir = String(jp?.perfil?.cargo_objetivo || '').trim()
+        const nivelCargo = (jp?.perfil?.niveles_cargo || []).length > 0
+        if (!cargoObjDir && !nivelCargo) {
+          avisos.push({ tipo: 'cargo', msg: 'Completa el campo "Cargo objetivo" en el Perfilador para obtener mejores resultados de búsqueda.', ruta: '/proyecto-laboral' })
+        }
+        const hardSkills = jp?.autoconocimiento?.hard_skills || []
+        const softSkills = jp?.autoconocimiento?.soft_skills || []
+        if (hardSkills.length < 2 || softSkills.length < 2) {
+          avisos.push({ tipo: 'skills', msg: 'Agrega al menos 2 Hard Skills y 2 Power Skills en el Gerente de Proyecto para mejorar el análisis de compatibilidad.', ruta: '/proyecto-laboral' })
+        }
+        setAvisosPerfil(avisos)
         const empresas = (
           Array.isArray(jp?.perfil?.top5empresas) ? jp.perfil.top5empresas :
           Array.isArray(jp?.autoconocimiento?.top5empresas) ? jp.autoconocimiento.top5empresas : []
@@ -419,6 +434,20 @@ export default function JobMatches() {
               No tienes CVs guardados — <button onClick={() => navigate('/')} className="underline font-medium ml-0.5">optimiza tu CV primero</button>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Avisos contextuales de perfil incompleto */}
+      {avisosPerfil.length > 0 && (
+        <div className="space-y-2 mb-4">
+          {avisosPerfil.map(a => (
+            <div key={a.tipo} className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-xs text-amber-800">
+              <svg className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+              </svg>
+              <span>{a.msg} <button onClick={() => navigate(a.ruta)} className="underline font-semibold ml-0.5">Ir al Gerente de Proyecto →</button></span>
+            </div>
+          ))}
         </div>
       )}
 
