@@ -147,9 +147,9 @@ export const AuthProvider = ({ children }) => {
   }, [fetchPerfil, fetchJpData])
 
   const login = useCallback((email, password, captchaToken) =>
-    supabase.auth.signInWithPassword({ email, password, options: { captchaToken } }), [])
+    supabase.auth.signInWithPassword({ email, password, options: { ...(captchaToken ? { captchaToken } : {}) } }), [])
   const register = useCallback((email, password, extraData = {}, captchaToken) =>
-    supabase.auth.signUp({ email, password, options: { data: extraData, captchaToken } }), [])
+    supabase.auth.signUp({ email, password, options: { data: extraData, ...(captchaToken ? { captchaToken } : {}) } }), [])
   const logout   = useCallback(async () => {
     // Limpiar caché de tenant para evitar contaminación entre sesiones
     try {

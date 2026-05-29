@@ -102,6 +102,8 @@ export default function Auth() {
     if (msg.includes('User already registered'))    return 'Ya existe una cuenta con este email.'
     if (msg.includes('Password should be'))         return 'La contraseña no cumple los requisitos mínimos de seguridad.'
     if (msg.includes('rate limit'))                 return 'Demasiados intentos. Espera unos minutos.'
+    if (msg.includes('Auth session missing') || msg.includes('session_not_found')) return 'Error de validación de seguridad. Recarga la página e intenta de nuevo.'
+    if (msg.includes('captcha'))                    return 'Error en la verificación de seguridad. Recarga la página e intenta de nuevo.'
     return msg
   }
 
@@ -573,7 +575,7 @@ export default function Auth() {
 
               <button
                 type="submit"
-                disabled={loading || !turnstileToken || (modo === 'register' && (!aceptaPolitica || !pwdStrong))}
+                disabled={loading || (modo === 'register' && (!aceptaPolitica || !pwdStrong))}
                 className="btn-primary w-full disabled:opacity-60"
               >
                 {loading
