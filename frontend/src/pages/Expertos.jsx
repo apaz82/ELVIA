@@ -144,7 +144,7 @@ export default function Expertos() {
               </h1>
 
               <p className="text-slate-500 text-base leading-relaxed">
-                Una sesión de <strong className="text-slate-700">1 hora</strong> con un mentor senior de la industria, enfocada 100% en tu momento actual. Sin plantillas, sin respuestas genéricas — solo orientación real y accionable.
+                Una sesión de <strong className="text-slate-700">50 minutos</strong> con un mentor senior de la industria, enfocada 100% en tu momento actual. Sin plantillas, sin respuestas genéricas — solo orientación real y accionable.
               </p>
 
               {/* Scope — qué incluye / no incluye */}
@@ -178,7 +178,7 @@ export default function Expertos() {
               {/* Stats */}
               <div className="flex items-center gap-6 pt-2 border-t border-slate-100">
                 {[
-                  { icon: Clock, label: '1 hora', sub: 'de sesión enfocada' },
+                  { icon: Clock, label: '50 min', sub: 'de sesión enfocada' },
                   { icon: ShieldCheck, label: 'Top 1%', sub: 'de la industria' },
                   { icon: Lock, label: '100% privado', sub: 'sesión encriptada' },
                 ].map(s => (
