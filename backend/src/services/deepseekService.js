@@ -1114,6 +1114,14 @@ ${cvText}
 DESCRIPCIÓN DE LA VACANTE:
 ${jobText}
 
+CRITERIOS OBLIGATORIOS PARA CALCULAR EL SCORE:
+- 90-100: Candidato cumple prácticamente TODOS los requisitos obligatorios y la mayoría de los deseables.
+- 75-89: Cumple los requisitos core (experiencia, hard skills principales) con brechas menores en complementarios.
+- 50-74: Cumple parcialmente. Faltan 2-3 requisitos importantes pero el perfil tiene potencial.
+- 25-49: Brecha significativa. Faltan competencias centrales de la vacante.
+- 0-24: El perfil no coincide con el rol. No se recomienda aplicar sin desarrollo previo.
+CALIBRACIÓN: Un profesional de RRHH con 5 años aplicando a Gerente de RRHH que pide 8 años = 65%. El mismo aplicando a Coordinador de RRHH = 85%. Sé CONSISTENTE: el mismo CV + la misma vacante debe producir siempre el mismo score.
+
 Responde usando exactamente estos delimitadores (sin texto fuera de ellos):
 
 <CV>
