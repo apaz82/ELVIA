@@ -18,6 +18,7 @@ import MarketingTab from '../components/admin/tabs/MarketingTab'
 import KnowledgeTab from '../components/admin/tabs/KnowledgeTab'
 import B2BTab from '../components/admin/tabs/B2BTab'
 import AuditTab from '../components/admin/tabs/AuditTab'
+import CohortTab from '../components/admin/tabs/CohortTab'
 
 // Client Supabase propio del admin
 const db = createClient(
@@ -233,6 +234,7 @@ function Dashboard({ adminUser, onLogout }) {
         case 'knowledge':     return <KnowledgeTab API_URL={API_URL} db={db} theme={theme} />
         case 'suscripciones': return <SubscriptionsTab users={users} theme={theme} />
         case 'codigos':       return <CodesTab db={db} API_URL={API_URL} theme={theme} />
+        case 'cohort':        return <CohortTab db={db} theme={theme} />
         case 'audit':         return <AuditTab db={db} API_URL={API_URL} theme={theme} />
         case 'sistema':       return <SystemTab db={db} API_URL={API_URL} theme={theme} />
         default:              return <OverviewTab stats={statsB2C} theme={theme} users={users} />

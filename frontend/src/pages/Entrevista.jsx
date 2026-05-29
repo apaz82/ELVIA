@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../services/authService'
 import { api } from '../services/api'
+import { useTrackEvent } from '../hooks/useTrackEvent'
 import {
   MicrophoneStage, Microphone, MicrophoneSlash, SpeakerHigh, SpeakerSimpleSlash,
   ArrowRight, ArrowLeft, CheckCircle, Star, Lightning,
@@ -62,6 +63,8 @@ function Estrellas({ n }) {
 export default function Entrevista() {
   const { user, isPaidPlan, trialExpired, featuresDesbloqueadas, jpData, loading: authLoading } = useAuth()
   const navigate = useNavigate()
+  const track = useTrackEvent()
+  useEffect(() => { track('page_view', 'entrevista') }, [])
 
   // Bloqueo para usuarios sin progreso 100% o sin plan
   if (authLoading) return null
@@ -345,6 +348,7 @@ export default function Entrevista() {
     if (!cargo.trim()) { setError('Escribe el cargo para continuar'); return }
     setError('')
     setLoadingPreguntas(true)
+    track('feature_used', 'entrevista', { cargo, entrevistador })
     try {
       const { preguntas: qs } = await api.post('/api/interview/preguntas', {
         empresa, cargo, entrevistador, descripcion, numPreguntas,

@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext'
 import { supabase } from '../services/authService'
 import { calcularProgreso } from '../utils/progresoLaboral'
 import toast from 'react-hot-toast'
+import { useTrackEvent } from '../hooks/useTrackEvent'
 import HelpBadge from '../components/common/HelpBadge'
 import LinkedinReportePDF from '../components/LinkedinReportePDF'
 import {
@@ -383,6 +384,8 @@ function SeccionResultado({ seccion, datos, original, editable, onEditableChange
 export default function LinkedinOptima() {
   const { user, isPaidPlan, trialExpired, jpData, perfil } = useAuth()
   const navigate = useNavigate()
+  const track = useTrackEvent()
+  useEffect(() => { track('page_view', 'linkedin_pro') }, [])
 
   // Calcular progreso para el "Progress-based Unlock"
   const proyectoPct = calcularProgreso(jpData || {}, perfil || {})
@@ -508,6 +511,7 @@ export default function LinkedinOptima() {
     setCargando(true)
     setError('')
     setResultado(null)
+    track('feature_used', 'linkedin_pro', { action: 'analizar' })
 
     try {
       const { data: { session } } = await supabase.auth.getSession()

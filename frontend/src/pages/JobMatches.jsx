@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext'
 import { useTenant } from '../context/TenantContext'
 import { supabase } from '../services/authService'
 import { api } from '../services/api'
+import { useTrackEvent } from '../hooks/useTrackEvent'
 import Button from '../components/common/Button'
 import JobActionPanel from '../components/common/JobActionPanel'
 import FeatureLocked from '../components/common/FeatureLocked'
@@ -40,6 +41,8 @@ export default function JobMatches() {
   const { user, refreshUsage, perfil, featuresDesbloqueadas, loading: authLoading } = useAuth()
   const { isB2B } = useTenant()
   const navigate = useNavigate()
+  const track = useTrackEvent()
+  useEffect(() => { track('page_view', 'job_matches') }, [])
 
   // CV base para compatibilidad: primero el de contexto (sesión actual), si no el seleccionado de historial
   const cvTextContexto = resultadoOptimize?.optimizedCV || resultadoMatch?.tailoredCV || ''
@@ -340,6 +343,7 @@ export default function JobMatches() {
   const buscarCon = async (kw, u, f) => {
     if (!kw.trim()) return
     setLoading(true); setError(''); setBuscado(false); setPanelAbierto({})
+    track('feature_used', 'job_matches', { keywords: kw, ubicacion: u })
     try {
       const params = new URLSearchParams({ keywords: kw })
       if (u) params.append('location', u)

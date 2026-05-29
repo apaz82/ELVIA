@@ -10,6 +10,7 @@ const TABS_B2C = [
   { id: 'waitlist',      label: 'Lista de Espera', icon: PI.ListStar },
   { id: 'marketing',     label: 'Marketing Hub',  icon: PI.TrendUp },
   { id: 'knowledge',     label: 'Conocimiento',   icon: PI.Brain },
+  { id: 'cohort',        label: 'Cohort Telefónica', icon: PI.Binoculars },
   { id: 'audit',         label: 'Audit Log',      icon: PI.ClockCounterClockwise },
   { id: 'sistema',       label: 'Configuración',  icon: PI.Gear },
 ]
