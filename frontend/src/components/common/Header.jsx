@@ -1,9 +1,9 @@
 // Header superior — glassmorphism, hamburger + usuario + badge de plan
-import { useState, useRef, useEffect } from 'react'
+import React from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { useTenant } from '../../context/TenantContext'
-import { List, CaretDown, SignOut, Sparkle, Crown, Coins } from '@phosphor-icons/react'
+import { List, SignOut, Sparkle, Crown } from '@phosphor-icons/react'
 
 // Configuración de badges por plan (solo los 3 planes activos B2C)
 const PLAN_CONFIG = {
@@ -16,8 +16,7 @@ export default function Header({ onMenuToggle }) {
   const { user, perfil, logout } = useAuth()
   const { tenant, isB2B, showTenantLogo, showElviaLogo, elviaProminent, showProgramBadge, programBadgeText, tenantResolved } = useTenant()
   const navigate = useNavigate()
-  const [dropdownOpen, setDropdownOpen] = useState(false)
-  const dropdownRef = useRef(null)
+
 
   const planKey = perfil?.plan || 'free'
   const planCfg = PLAN_CONFIG[planKey] || PLAN_CONFIG['free']
@@ -35,16 +34,6 @@ export default function Header({ onMenuToggle }) {
     ? `${perfil.nombre1}${perfil.apellido1 ? ' ' + perfil.apellido1 : ''}`
     : user?.email?.split('@')[0]
 
-  // Cerrar dropdown al click fuera
-  useEffect(() => {
-    const handler = (e) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
-        setDropdownOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [])
 
   // Evita flash B2C→B2B: mostrar header neutro hasta que el tenant esté resuelto
   if (!tenantResolved) {
@@ -103,38 +92,16 @@ export default function Header({ onMenuToggle }) {
             </Link>
           )}
 
-          {/* Avatar + nombre — con dropdown */}
-          <div className="relative" ref={dropdownRef}>
-            <button
-              onClick={() => setDropdownOpen(o => !o)}
-              className="flex items-center gap-2 px-2 py-1.5 rounded-xl hover:bg-white/10 transition-colors"
-            >
-              <div className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center shrink-0">
-                <span className="text-xs font-bold text-white">
-                  {(perfil?.nombre1 || user.email)?.[0]?.toUpperCase()}
-                </span>
-              </div>
-              <span className="text-sm font-medium text-white truncate max-w-[140px]">
-                {nombre}
+          {/* Avatar + nombre — sin dropdown */}
+          <div className="flex items-center gap-2 px-2 py-1.5">
+            <div className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center shrink-0">
+              <span className="text-xs font-bold text-white">
+                {(perfil?.nombre1 || user.email)?.[0]?.toUpperCase()}
               </span>
-              <CaretDown size={13} weight="bold" className={`text-white/80 transition-transform ${dropdownOpen ? 'rotate-180' : ''}`} />
-            </button>
-
-            {/* Dropdown */}
-            {dropdownOpen && (
-              <div className="absolute right-0 top-full mt-1.5 bg-surface-container-lowest rounded-xl shadow-float border border-outline-variant/20 py-1.5 w-48 z-50">
-                {!isB2B && (
-                  <Link
-                    to="/mi-plan"
-                    onClick={() => setDropdownOpen(false)}
-                    className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-on-surface hover:bg-surface-container-low transition-colors"
-                  >
-                    <Coins size={16} weight="duotone" className="text-primary" />
-                    Mi Plan
-                  </Link>
-                )}
-              </div>
-            )}
+            </div>
+            <span className="text-sm font-medium text-white truncate max-w-[140px]">
+              {nombre}
+            </span>
           </div>
 
           <button
