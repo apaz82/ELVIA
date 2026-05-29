@@ -260,6 +260,19 @@ export default function Entrevista() {
     window.speechSynthesis.cancel()
     setHablando(false)
 
+    // Chrome requiere getUserMedia activo antes de SpeechRecognition en HTTPS
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      stream.getTracks().forEach(t => t.stop()) // solo necesitamos el permiso, liberar el stream
+    } catch (err) {
+      if (err?.name === 'NotAllowedError' || err?.name === 'PermissionDeniedError') {
+        setError('Permiso de micrófono denegado. Haz clic en el candado de la barra de dirección → Micrófono → Permitir, y recarga la página.')
+      } else {
+        setError(`No se pudo acceder al micrófono: ${err?.message || err?.name}`)
+      }
+      return
+    }
+
     const rec = new SR()
     rec.lang = 'es-MX'
     rec.continuous = true
