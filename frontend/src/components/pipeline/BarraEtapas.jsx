@@ -58,7 +58,7 @@ export default function BarraEtapas({ estadoActual, etapasFechas = {}, onCambiar
                 ${pasado ? 'text-gray-500' : ''}
                 ${futuro ? 'text-gray-300' : ''}
                 ${!bloqueado ? 'group-hover:text-gray-700' : ''}`}>
-                {etapa}
+                {etapa === 'Pruebas/Assessment' ? 'Pruebas' : etapa}
               </span>
               {fechaEtapa && (
                 <span className="text-[9px] text-gray-400 mt-0.5">{formatFechaCorta(fechaEtapa)}</span>
