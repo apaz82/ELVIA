@@ -62,20 +62,25 @@ export default function JobMatches() {
 
   const cvText = cvTextContexto || cvSeleccionado?.contenido || ''
 
-  // Cargar CVs base guardados (optimize/generar — no adaptados "match")
+  // Cargar CVs base guardados (optimize/generar — no infografías, linkedin, entrevistas)
   useEffect(() => {
     if (cvTextContexto || !user) return
+    const SUBTIPOS_EXCLUIDOS = ['infografia_proyecto', 'linkedin_analysis', 'entrevista_simulada']
     supabase.from('cv_results')
-      .select('id, contenido, tipo, created_at')
+      .select('id, contenido, tipo, metadata, created_at')
       .eq('user_id', user.id)
       .in('tipo', ['optimize', 'generar'])
-      .not('contenido', 'like', '{%')
       .order('created_at', { ascending: false })
-      .limit(5)
+      .limit(10)
       .then(({ data }) => {
         if (!data?.length) return
-        setCvsSaved(data)
-        setCvSeleccionado({ id: data[0].id, nombre: extraerNombre(data[0].contenido), contenido: data[0].contenido })
+        const cvBase = (data || []).filter(r => {
+          const sub = r.metadata?.subtipo
+          return !SUBTIPOS_EXCLUIDOS.includes(sub)
+        })
+        if (!cvBase.length) return
+        setCvsSaved(cvBase)
+        setCvSeleccionado({ id: cvBase[0].id, nombre: extraerNombre(cvBase[0].contenido), contenido: cvBase[0].contenido })
       })
   }, [user, cvTextContexto])
 
@@ -105,7 +110,7 @@ export default function JobMatches() {
   const [avisosPerfil, setAvisosPerfil] = useState([]) // mensajes contextuales de campos faltantes
   const [paisSeleccionado, setPaisSeleccionado] = useState('') // selector de país
   const [ubicacion, setUbicacion] = useState(
-    [resultadoMatch?.jobData?.location, resultadoMatch?.jobData?.country].filter(Boolean).join(', ')
+    [resultadoMatch?.jobData?.location, resultadoMatch?.jobData?.country].filter(Boolean).join(', ') || 'México'
   )
   const [filtros, setFiltros] = useState({
     datecreated: '', employment_type: '', experience: '', radius: '', salary: '',
@@ -151,27 +156,12 @@ export default function JobMatches() {
   const [savedKeys, setSavedKeys]           = useState(new Set()) // job_keys con liked=true
   const [busquedasGuardadas, setBusquedasGuardadas] = useState(cargarBusquedasGuardadas)
 
-  // Ubicación automática: perfil → IP geolocation
+  // Prioridad ubicación: perfil del usuario → default México (sin geo-IP)
   useEffect(() => {
-    // Si ya hay ubicación (viene de CVvsJob) no sobreescribir
-    if (ubicacion) return
-    // 1. Perfil del usuario
-    if (perfil?.ciudad || perfil?.pais) {
+    if (!perfil) return
+    if (perfil.ciudad || perfil.pais) {
       setUbicacion([perfil.ciudad, perfil.pais].filter(Boolean).join(', '))
-      return
     }
-    // 2. Fallback: geolocalización por IP
-    fetch('https://ipapi.co/json/')
-      .then(r => r.json())
-      .then(d => {
-        // Usar region (ej. "Mexico City") en vez de city (ej. "Cuauhtémoc")
-        // para obtener la ciudad principal, no la alcaldía/municipio
-        const lugar = d.region || d.city
-        if (lugar || d.country_name) {
-          setUbicacion([lugar, d.country_name].filter(Boolean).join(', '))
-        }
-      })
-      .catch(() => {})
   }, [perfil])
 
   // Cargar Perfilador: top5empresas + cargo_objetivo + avisos contextuales

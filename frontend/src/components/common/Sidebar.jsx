@@ -261,6 +261,7 @@ export default function Sidebar({ open, onClose }) {
                 ? <FeatureLockedNavItem label="Dashboard" Icon={House} />
                 : INICIO.map(item => <NavItem key={item.to} {...item} onClick={onClose} />)
             }
+            <BienestarItem onClick={onClose} locked={locked || featureLocked} />
           </div>
 
           {/* Herramientas */}
@@ -308,8 +309,6 @@ export default function Sidebar({ open, onClose }) {
                   : RECURSOS.map(item => <NavItem key={item.to} {...item} onClick={onClose} />)
               }
             </div>
-            <div className="my-2 mx-3 h-px bg-rose-100" />
-            <BienestarItem onClick={onClose} locked={locked || featureLocked} />
           </div>
 
         </nav>

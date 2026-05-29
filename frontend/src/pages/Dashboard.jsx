@@ -368,11 +368,6 @@ export default function Dashboard() {
             )}
           </div>
 
-          <Link to="/cv-desde-cero"
-            className="flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold text-xs px-5 py-3 rounded-2xl transition-all shadow-md shadow-indigo-50 active:scale-95">
-            <FileMagnifyingGlass size={16} weight="duotone" />
-            Crear mi CV
-          </Link>
         </div>
       </header>
 

@@ -305,10 +305,11 @@ export default function MisCVs() {
   const checksAlto = checks.filter(c => c.score >= 70).length
   const checksBajo = checks.filter(c => c.score < 70).length
 
-  const totalReportes = cvsLinkedin.length + cvsEntrevistas.length
+  const totalReportes = cvsLinkedin.length + cvsEntrevistas.length + cvsReportes.length
   const tabs = [
     { key: 'optimizados',      label: `CV Optimizado (${cvsOptimizados.length})` },
-    { key: 'original',         label: `CV Inicial (${cvsOriginal.length})` },
+    // Mostrar tab CV Inicial solo si hay documentos originales guardados
+    ...(cvsOriginal.length > 0 ? [{ key: 'original', label: `CV Inicial (${cvsOriginal.length})` }] : []),
     { key: 'reportes',         label: `Reportes (${totalReportes})` },
     { key: 'compatibilidades', label: `Análisis Rápidos (${checks.length})` },
     { key: 'match',            label: `CV Adaptados (${cvsMatch.length})` },
@@ -348,17 +349,22 @@ export default function MisCVs() {
               {cvsOptimizados.length === 0
               ? <EmptyState mensaje="Aún no tienes documentos generados." cta="Crear mi CV ahora" ruta="/cv-desde-cero" />
               : <div className="space-y-4">
-                  {cvsOptimizados.map(item => (
-                    <div key={item.id} className="group flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 bg-white border border-gray-100 rounded-2xl hover:border-primary/30 hover:shadow-xl hover:shadow-primary/5 transition-all duration-300">
+                  {cvsOptimizados.map((item, idx) => (
+                    <div key={item.id} className={`group flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 bg-white rounded-2xl hover:shadow-xl transition-all duration-300 ${idx === 0 ? 'border-2 border-primary/30 hover:border-primary/50' : 'border border-gray-100 hover:border-primary/30 hover:shadow-primary/5'}`}>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap mb-2">
                           <span className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-lg ${
-                            item.subtipo === 'desde_cero' 
-                              ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' 
+                            item.subtipo === 'desde_cero'
+                              ? 'bg-emerald-50 text-emerald-600 border border-emerald-100'
                               : 'bg-primary/5 text-primary border border-primary/10'
                           }`}>
                             {item.subtipo === 'desde_cero' ? 'Perfect Resume' : 'IA Optimized'}
                           </span>
+                          {idx === 0 && (
+                            <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-lg bg-indigo-600 text-white">
+                              CV Base
+                            </span>
+                          )}
                           {item.metadata?.language && (
                             <span className="text-[10px] font-bold text-gray-400 uppercase bg-gray-50 px-2 py-1 rounded-lg border border-gray-100">
                               {item.metadata.language}
@@ -484,7 +490,39 @@ export default function MisCVs() {
                 </div>
               )}
 
-              {/* Infografías ocultas temporalmente — se habilitan próximamente */}
+              {/* Sección: Infografías de Proyecto */}
+              {cvsReportes.length > 0 && (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 border-b border-gray-100 pb-3">
+                    <h3 className="text-sm font-bold text-gray-800">Infografía de Autoconocimiento</h3>
+                  </div>
+                  <div className="space-y-4">
+                    {cvsReportes.map(item => {
+                      const meta = item.metadata || {}
+                      return (
+                        <div key={item.id} className="group flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 bg-white border border-gray-100 rounded-2xl hover:border-primary/30 hover:shadow-xl hover:shadow-primary/5 transition-all duration-300">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap mb-2">
+                              <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-lg bg-amber-50 text-amber-700 border border-amber-200">Infografía</span>
+                            </div>
+                            <p className="text-base font-bold text-gray-800 truncate">{meta.filename || 'Plan de Carrera Ejecutivo.pdf'}</p>
+                            <p className="text-sm text-gray-400 mt-1.5 flex items-center gap-1.5 font-medium">
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                              </svg>
+                              {formatFecha(item.created_at)}
+                            </p>
+                          </div>
+                          <button onClick={() => navigate('/proyecto-laboral')}
+                            className="px-6 py-2.5 text-sm font-bold text-primary border border-primary/30 hover:bg-primary hover:text-white rounded-xl flex items-center justify-center min-w-[160px] transition-all">
+                            Ver en Gerente →
+                          </button>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
 
               {totalReportes === 0 && (
                 <EmptyState mensaje="Aún no tienes reportes generados." cta="Ir al simulador de entrevista" ruta="/entrevista" />
@@ -630,12 +668,7 @@ export default function MisCVs() {
                                 </div>
                               )}
                               <div className="mt-6 flex items-center justify-between gap-3">
-                                {item.score >= 70 && (
-                                  <button onClick={() => navigate('/cv-vs-job')}
-                                    className="px-5 py-2.5 bg-primary text-white text-sm font-bold rounded-xl hover:bg-primary/90 transition-all shadow-lg shadow-primary/20">
-                                    Adaptar CV para esta vacante →
-                                  </button>
-                                )}
+                                {false && /* botón Adaptar CV eliminado */ null}
                                 {esBajo && (
                                   <button onClick={() => eliminarCheck(item.id)}
                                     className="text-sm font-bold text-red-500 hover:text-red-700 transition-colors ml-auto flex items-center gap-1.5 opacity-50 hover:opacity-100">

@@ -88,15 +88,16 @@ const LinkedinReportePDF = forwardRef(function LinkedinReportePDF({ analisis, ed
         const textoOriginal = original?.[secId] || ''
 
         return (
-          <div key={secId} style={{ border: `1px solid ${c.border}`, borderRadius: '10px', marginBottom: '16px', overflow: 'hidden', pageBreakInside: 'avoid' }}>
-            {/* Header sección */}
-            <div style={{ background: c.bg, padding: '10px 16px' }}>
-              <div style={{ display: 'inline-block', verticalAlign: 'middle', width: '38px', height: '38px', borderRadius: '8px', background: '#fff', border: `1px solid ${c.border}`, textAlign: 'center', lineHeight: '38px', fontWeight: '900', fontSize: '13px', color: c.color }}>
-                {datos.puntaje}
+          <div key={secId} style={{ border: `1px solid ${c.border}`, borderRadius: '10px', marginBottom: '20px', overflow: 'hidden', pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+            {/* Header sección: título a la izquierda, círculo de score a la derecha */}
+            <div style={{ background: c.bg, padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div>
+                <div style={{ fontWeight: '800', fontSize: '14px', color: '#0f172a', lineHeight: '1.3' }}>{label}</div>
+                <span style={{ fontSize: '10px', fontWeight: '700', color: c.color, background: '#fff', border: `1px solid ${c.border}`, padding: '1px 8px', borderRadius: '20px', display: 'inline-block', marginTop: '2px' }}>{c.label}</span>
               </div>
-              <div style={{ display: 'inline-block', verticalAlign: 'middle', marginLeft: '12px' }}>
-                <div style={{ fontWeight: '800', fontSize: '13px', color: '#0f172a', lineHeight: '1.3' }}>{label}</div>
-                <span style={{ fontSize: '10px', fontWeight: '700', color: c.color, background: '#fff', border: `1px solid ${c.border}`, padding: '1px 8px', borderRadius: '20px', display: 'inline-block' }}>{c.label}</span>
+              <div style={{ width: '44px', height: '44px', borderRadius: '50%', border: `3px solid ${c.color}`, background: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <span style={{ fontSize: '14px', fontWeight: '900', color: c.color, lineHeight: '1' }}>{datos.puntaje}</span>
+                <span style={{ fontSize: '7px', color: c.color, fontWeight: '700' }}>/ 100</span>
               </div>
             </div>
 

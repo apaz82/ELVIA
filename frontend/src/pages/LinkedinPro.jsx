@@ -401,6 +401,7 @@ export default function LinkedinOptima() {
   const [historial, setHistorial] = useState([])
   const [historialAbierto, setHistorialAbierto] = useState(false)
   const [generandoInforme, setGenerandoInforme] = useState(false)
+  const [informeGenerado, setInformeGenerado] = useState(false)
   const [analisisPrevio, setAnalisisPrevio] = useState(null) // { created_at } del análisis guardado
   const [modalReemplazar, setModalReemplazar] = useState(false)
   // Contador de uso mensual (límite duro de análisis IA por mes calendario).
@@ -634,6 +635,7 @@ export default function LinkedinOptima() {
         })
       }
 
+      setInformeGenerado(true)
       toast.success('¡Informe creado! Puedes verlo en Mis Documentos', { duration: 5000, icon: '📄' })
     } catch (err) {
       console.error('[generarInforme]', err)
@@ -724,20 +726,27 @@ export default function LinkedinOptima() {
             </p>
           </div>
 
-          <button
-            onClick={handleGenerarInforme}
-            disabled={generandoInforme}
-            className="w-full py-4 rounded-2xl bg-gradient-to-r from-[#0077B5] to-[#019DF4] hover:brightness-110 text-white text-sm font-black uppercase tracking-wider shadow-lg shadow-blue-900/20 transition-all active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-60"
-          >
-            {generandoInforme ? (
-              <><CircleNotch size={18} className="animate-spin" /> Generando informe...</>
-            ) : (
-              <><FileArrowDown size={18} weight="bold" /> OK — Generar informe PDF</>
-            )}
-          </button>
+          {!informeGenerado ? (
+            <button
+              onClick={handleGenerarInforme}
+              disabled={generandoInforme}
+              className="w-full py-4 rounded-2xl bg-gradient-to-r from-[#0077B5] to-[#019DF4] hover:brightness-110 text-white text-sm font-black uppercase tracking-wider shadow-lg shadow-blue-900/20 transition-all active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-60"
+            >
+              {generandoInforme ? (
+                <><CircleNotch size={18} className="animate-spin" /> Generando informe...</>
+              ) : (
+                <><FileArrowDown size={18} weight="bold" /> Generar informe PDF</>
+              )}
+            </button>
+          ) : (
+            <div className="w-full py-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm font-bold flex items-center justify-center gap-2">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7"/></svg>
+              Informe generado
+            </div>
+          )}
 
           <button
-            onClick={() => navigate('/mis-cvs?tab=linkedin')}
+            onClick={() => navigate('/mis-cvs?tab=reportes')}
             className="w-full py-3 rounded-2xl border border-slate-200 text-slate-600 text-sm font-bold hover:bg-slate-50 transition-all flex items-center justify-center gap-2"
           >
             Ir a Mis Documentos
