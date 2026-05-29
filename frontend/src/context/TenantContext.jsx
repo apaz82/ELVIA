@@ -98,7 +98,7 @@ export function TenantProvider({ children }) {
       const cached = readCache('slug_' + slug)
       if (cached) return cached
     }
-    
+
     // 2. Si no hay slug, intentar usar el último tenant B2B activo en esta pestaña
     const lastActive = readCache('last_active_tenant')
     if (lastActive) return lastActive
@@ -109,6 +109,14 @@ export function TenantProvider({ children }) {
   const [tenantRole, setTenantRole] = useState('user')
   const [cohort, setCohort]         = useState(null)
   const [loading, setLoading]       = useState(false)
+  // tenantResolved: true cuando el tenant ya fue determinado (caché síncrono o fetch completado).
+  // Evita el flash B2C→B2B en el Header al cargar por primera vez.
+  const [tenantResolved, setTenantResolved] = useState(() => {
+    const match = window.location.pathname.match(URL_SLUG_REGEX)
+    const slug = match?.[2] || null
+    if (slug) return Boolean(readCache('slug_' + slug))
+    return Boolean(readCache('last_active_tenant'))
+  })
 
   // ── Detectar slug en URL ────────────────────────────────────────────────
   const urlSlug = useMemo(() => {
@@ -126,6 +134,8 @@ export function TenantProvider({ children }) {
       if (authLoading || (user && !perfilCargado)) {
         return
       }
+
+      try {
 
       // PRIORIDAD 1: slug en URL (landing público pre-login)
       if (urlSlug) {
@@ -241,6 +251,10 @@ export function TenantProvider({ children }) {
         setCohort(null)
         clearCache('last_active_tenant')
       }
+
+      } finally {
+        if (!cancelled) setTenantResolved(true)
+      }
     }
 
     resolveTenant()
@@ -271,6 +285,7 @@ export function TenantProvider({ children }) {
     tenantRole,
     cohort,
     loading,
+    tenantResolved,
     isB2B:           Boolean(tenant?.id && tenant.sector !== 'b2c'),
     isCorporate:     tenant?.sector === 'corporate',
     isUniversity:    tenant?.sector === 'university',
