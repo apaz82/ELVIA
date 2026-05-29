@@ -522,4 +522,71 @@ router.post('/invitacion', auth, async (req, res) => {
   }
 })
 
+// ── POST /api/email/contacto-comercial — formulario "Quiero más información" ──
+// Público, rate-limited (3/10min por IP)
+const escapeHtml = (str) => String(str || '')
+  .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;').replace(/'/g, '&#x27;')
+
+router.post('/contacto-comercial', emailRateLimit, async (req, res) => {
+  const { nombre, empresa, email, telefono, mensaje } = req.body || {}
+
+  if (!nombre || !empresa || !email) {
+    return res.status(400).json({ error: 'Faltan datos: nombre, empresa y email son requeridos' })
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return res.status(400).json({ error: 'Email inválido' })
+  }
+
+  if (!resend) {
+    console.warn('[email/contacto-comercial] Resend no configurado')
+    return res.status(503).json({ error: 'Servicio de email no disponible' })
+  }
+
+  try {
+    const nombreSafe   = escapeHtml(nombre)
+    const empresaSafe  = escapeHtml(empresa)
+    const emailSafe    = escapeHtml(email)
+    const telefonoSafe = escapeHtml(telefono || 'No proporcionado')
+    const mensajeSafe  = escapeHtml(mensaje || 'Sin mensaje').replace(/\n/g, '<br/>')
+    const fecha        = new Date().toLocaleString('es-MX', { dateStyle: 'long', timeStyle: 'short' })
+
+    await resend.emails.send({
+      from: 'ELVIA Web <noreply@elvia.lat>',
+      to: ['comercial@elvia.lat'],
+      reply_to: email,
+      subject: `🎯 Nueva solicitud comercial: ${empresaSafe}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; line-height: 1.6; color: #1e293b;">
+          <h2 style="color:#E8541A;margin-bottom:8px;">Nueva solicitud desde elvia.lat</h2>
+          <p style="color:#64748b;font-size:13px;margin-top:0;">${fecha}</p>
+
+          <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:20px 24px;margin:20px 0;">
+            <table style="width:100%;border-collapse:collapse;font-size:14px;">
+              <tr><td style="padding:6px 0;color:#64748b;width:30%;">Nombre</td><td style="padding:6px 0;font-weight:bold;">${nombreSafe}</td></tr>
+              <tr style="border-top:1px solid #e2e8f0;"><td style="padding:6px 0;color:#64748b;">Empresa</td><td style="padding:6px 0;font-weight:bold;">${empresaSafe}</td></tr>
+              <tr style="border-top:1px solid #e2e8f0;"><td style="padding:6px 0;color:#64748b;">Email</td><td style="padding:6px 0;"><a href="mailto:${emailSafe}" style="color:#E8541A;">${emailSafe}</a></td></tr>
+              <tr style="border-top:1px solid #e2e8f0;"><td style="padding:6px 0;color:#64748b;">Teléfono</td><td style="padding:6px 0;">${telefonoSafe}</td></tr>
+            </table>
+          </div>
+
+          <div style="background:#fffbeb;border-left:4px solid #f59e0b;border-radius:0 8px 8px 0;padding:16px 20px;">
+            <p style="margin:0 0 6px;font-weight:bold;color:#92400e;font-size:13px;">Mensaje:</p>
+            <p style="margin:0;font-size:14px;color:#78350f;">${mensajeSafe}</p>
+          </div>
+
+          <p style="font-size:12px;color:#94a3b8;margin-top:24px;">
+            Responde directamente a este email para contactar a ${nombreSafe}.
+          </p>
+        </div>
+      `,
+    })
+
+    res.json({ ok: true, message: 'Solicitud enviada' })
+  } catch (err) {
+    console.error('[email/contacto-comercial]', err.message)
+    res.status(500).json({ error: 'No se pudo enviar la solicitud' })
+  }
+})
+
 module.exports = router;

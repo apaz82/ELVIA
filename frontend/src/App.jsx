@@ -221,9 +221,13 @@ export default function App() {
     <Suspense fallback={<PageLoader />}>
     <Routes>
       <Route path="/reset-password"  element={<ResetPassword />} />  {/* Por si acaso falla el bloqueo anterior */}
-      <Route path="/"              element={<LandingMuyPronto />} />
-      <Route path="/waitlist"       element={<PublicRoute><Landing /></PublicRoute>} />
-      <Route path="/inicio"         element={<PublicRoute><Landing2 /></PublicRoute>} />
+      {/* Raíz: Landing2 en modo comercial (B2B + login para invitados) */}
+      <Route path="/"              element={<PublicRoute><Landing2 modoComercial={true} /></PublicRoute>} />
+      {/* Rutas legacy deshabilitadas — redirigen a la raíz para evitar exposición pública.
+          Si necesitas reactivar: cambia el <Navigate> por <PublicRoute>...</PublicRoute>. */}
+      <Route path="/waitlist"       element={<Navigate to="/" replace />} />
+      <Route path="/inicio"         element={<Navigate to="/" replace />} />
+      <Route path="/muy-pronto"     element={<LandingMuyPronto />} />
       <Route path="/auth"          element={<PublicRoute><Auth /></PublicRoute>} />
       <Route path="/privacidad"      element={<Privacidad />} />
       <Route path="/cookies"         element={<Cookies />} />

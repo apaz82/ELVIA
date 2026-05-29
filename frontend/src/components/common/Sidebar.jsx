@@ -206,7 +206,7 @@ export default function Sidebar({ open, onClose }) {
 
         {/* Logo */}
         <div className="flex justify-center items-center relative w-full px-5 py-4 h-24 border-b border-outline-variant/20 shrink-0">
-          <Link to={locked ? '/proyecto-laboral' : '/'} onClick={onClose} className="flex items-center">
+          <Link to={locked ? '/proyecto-laboral' : '/dashboard'} onClick={onClose} className="flex items-center">
             <img src="/LOGOS/ELVIA_logo_fondo_transparente.png" alt="ELVIA" className="h-[4.5rem] w-auto object-contain" />
           </Link>
           <button onClick={onClose} className="absolute right-4 top-1/2 -translate-y-1/2 md:hidden text-on-surface-variant hover:bg-surface-container p-1 rounded-lg transition-colors">

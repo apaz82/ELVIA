@@ -163,7 +163,9 @@ function AnimatedCounter({ target, suffix = '', duration = 1600 }) {
 }
 
 // ─── Componente principal ──────────────────────────────────────────────────
-export default function Landing() {
+// modoComercial=true → oculta CTAs de registro abierto y muestra formulario "Solicitar información".
+// Se usa cuando la landing está montada en la raíz `/` como página comercial B2B.
+export default function Landing({ modoComercial = false }) {
   const navigate  = useNavigate()
   const { user, perfil, creditosRestantes, LIMITE_PLAN } = useAuth()
   const { scrollYProgress } = useScroll()
@@ -181,6 +183,37 @@ export default function Landing() {
   const [showDemoOverlay, setShowDemoOverlay] = useState(false)
   const demoSectionRef = useRef(null)
   const demoTypingStarted = useRef(false)
+
+  // ─── Formulario contacto comercial (solo modoComercial) ──────────────────
+  const [contactoForm, setContactoForm] = useState({ nombre: '', empresa: '', email: '', telefono: '', mensaje: '' })
+  const [contactoEnviando, setContactoEnviando] = useState(false)
+  const [contactoEnviado, setContactoEnviado] = useState(false)
+  const [contactoError, setContactoError] = useState('')
+
+  const enviarContactoComercial = async (e) => {
+    e.preventDefault()
+    setContactoError('')
+    if (!contactoForm.nombre.trim() || !contactoForm.email.trim() || !contactoForm.empresa.trim()) {
+      setContactoError('Por favor completa nombre, empresa y email.')
+      return
+    }
+    setContactoEnviando(true)
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'https://cv-optimizer-pro-production.up.railway.app'
+      const res = await fetch(`${apiUrl}/api/email/contacto-comercial`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(contactoForm),
+      })
+      if (!res.ok) throw new Error('Error enviando')
+      setContactoEnviado(true)
+      setContactoForm({ nombre: '', empresa: '', email: '', telefono: '', mensaje: '' })
+    } catch (err) {
+      setContactoError('No pudimos enviar tu mensaje. Intenta de nuevo o escribe a comercial@elvia.lat.')
+    } finally {
+      setContactoEnviando(false)
+    }
+  }
 
   // ─── Sticky CTA (Recomendación Marketing) ──────────────────────────────
   const [showStickyCTA, setShowStickyCTA] = useState(false)
@@ -317,13 +350,18 @@ export default function Landing() {
           ) : (
             <>
               <button onClick={() => navigate('/auth')}
-                className="hidden sm:inline-flex items-center justify-center px-4 py-2.5 text-sm font-bold text-gray-700 bg-transparent border-2 border-gray-200 hover:border-gray-300 hover:text-gray-900 rounded-xl transition-all shadow-sm">
+                className={modoComercial
+                  ? "flex items-center gap-2 bg-[#E8541A] text-white font-bold text-sm px-6 py-2.5 rounded-xl hover:bg-[#E8541A]/90 transition-all shadow-md shadow-[#E8541A]/20"
+                  : "hidden sm:inline-flex items-center justify-center px-4 py-2.5 text-sm font-bold text-gray-700 bg-transparent border-2 border-gray-200 hover:border-gray-300 hover:text-gray-900 rounded-xl transition-all shadow-sm"
+                }>
                 Iniciar sesión
               </button>
-              <button onClick={() => navigate('/auth?register=true')}
-                className="flex items-center gap-2 bg-[#E8541A] text-white font-bold text-sm px-6 py-2.5 rounded-xl hover:bg-[#E8541A]/90 transition-all shadow-md shadow-[#E8541A]/20">
-                Empezar gratis
-              </button>
+              {!modoComercial && (
+                <button onClick={() => navigate('/auth?register=true')}
+                  className="flex items-center gap-2 bg-[#E8541A] text-white font-bold text-sm px-6 py-2.5 rounded-xl hover:bg-[#E8541A]/90 transition-all shadow-md shadow-[#E8541A]/20">
+                  Empezar gratis
+                </button>
+              )}
             </>
           )}
         </div>
@@ -379,27 +417,47 @@ export default function Landing() {
             </motion.p>
 
             <motion.div variants={fadeInUp} className="mt-8 flex flex-col sm:flex-row items-center sm:items-start gap-6">
-              <button
-                onClick={() => document.getElementById('features-section')?.scrollIntoView({ behavior: 'smooth' })}
-                className="bg-[#E8541A] text-white font-black py-4 px-8 rounded-2xl text-lg transition-all shadow-[0_8px_30px_rgba(232,84,26,0.3)] hover:shadow-[0_8px_30px_rgba(232,84,26,0.5)] flex items-center gap-2 group w-full sm:w-auto justify-center h-14"
-              >
-                Únete y sé pionero ELVIA
-                <ArrowDown className="w-5 h-5 group-hover:translate-y-1 transition-transform" weight="bold" />
-              </button>
-              
-              <div className="flex items-center gap-3 text-sm text-gray-500 mt-2 sm:mt-0">
-                <div className="flex -space-x-2">
-                  <div className="w-10 h-10 rounded-full border-2 border-white bg-teal-100 flex items-center justify-center relative z-30 shadow-sm text-teal-700 font-bold text-xs tracking-tighter">AM</div>
-                  <div className="w-10 h-10 rounded-full border-2 border-white bg-blue-100 flex items-center justify-center relative z-20 shadow-sm text-blue-700 font-bold text-xs tracking-tighter">JR</div>
-                  <div className="w-10 h-10 rounded-full border-2 border-white bg-amber-100 flex items-center justify-center relative z-10 shadow-sm text-amber-700 font-bold text-xs tracking-tighter">CV</div>
-                </div>
-                <div className="flex flex-col text-left">
-                  <div className="flex items-center gap-0.5 mt-0.5">
-                    {[1,2,3,4,5].map(i => <Star key={i} size={14} weight="fill" className="text-amber-500" />)}
+              {modoComercial ? (
+                <>
+                  <button
+                    onClick={() => document.getElementById('contacto-comercial')?.scrollIntoView({ behavior: 'smooth' })}
+                    className="bg-[#E8541A] text-white font-black py-4 px-8 rounded-2xl text-lg transition-all shadow-[0_8px_30px_rgba(232,84,26,0.3)] hover:shadow-[0_8px_30px_rgba(232,84,26,0.5)] flex items-center gap-2 group w-full sm:w-auto justify-center h-14"
+                  >
+                    Quiero más información
+                    <ArrowDown className="w-5 h-5 group-hover:translate-y-1 transition-transform" weight="bold" />
+                  </button>
+                  <button
+                    onClick={() => navigate('/auth')}
+                    className="bg-white border-2 border-gray-200 text-gray-800 font-bold py-4 px-8 rounded-2xl text-lg transition-all hover:border-gray-400 hover:bg-gray-50 flex items-center gap-2 w-full sm:w-auto justify-center h-14"
+                  >
+                    Ya tengo cuenta · Iniciar sesión
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={() => document.getElementById('features-section')?.scrollIntoView({ behavior: 'smooth' })}
+                    className="bg-[#E8541A] text-white font-black py-4 px-8 rounded-2xl text-lg transition-all shadow-[0_8px_30px_rgba(232,84,26,0.3)] hover:shadow-[0_8px_30px_rgba(232,84,26,0.5)] flex items-center gap-2 group w-full sm:w-auto justify-center h-14"
+                  >
+                    Únete y sé pionero ELVIA
+                    <ArrowDown className="w-5 h-5 group-hover:translate-y-1 transition-transform" weight="bold" />
+                  </button>
+
+                  <div className="flex items-center gap-3 text-sm text-gray-500 mt-2 sm:mt-0">
+                    <div className="flex -space-x-2">
+                      <div className="w-10 h-10 rounded-full border-2 border-white bg-teal-100 flex items-center justify-center relative z-30 shadow-sm text-teal-700 font-bold text-xs tracking-tighter">AM</div>
+                      <div className="w-10 h-10 rounded-full border-2 border-white bg-blue-100 flex items-center justify-center relative z-20 shadow-sm text-blue-700 font-bold text-xs tracking-tighter">JR</div>
+                      <div className="w-10 h-10 rounded-full border-2 border-white bg-amber-100 flex items-center justify-center relative z-10 shadow-sm text-amber-700 font-bold text-xs tracking-tighter">CV</div>
+                    </div>
+                    <div className="flex flex-col text-left">
+                      <div className="flex items-center gap-0.5 mt-0.5">
+                        {[1,2,3,4,5].map(i => <Star key={i} size={14} weight="fill" className="text-amber-500" />)}
+                      </div>
+                      <p className="text-xs mt-0.5"><strong className="text-gray-900">+500</strong> en lista</p>
+                    </div>
                   </div>
-                  <p className="text-xs mt-0.5"><strong className="text-gray-900">+500</strong> en lista</p>
-                </div>
-              </div>
+                </>
+              )}
             </motion.div>
 
             {/* Trust Badges moved inside the right column below mockup */}
@@ -449,10 +507,12 @@ export default function Landing() {
 
               {/* CTA Button */}
               <button
-                onClick={() => navigate('/auth?register=true')}
+                onClick={() => modoComercial
+                  ? document.getElementById('contacto-comercial')?.scrollIntoView({ behavior: 'smooth' })
+                  : navigate('/auth?register=true')}
                 className="w-full flex items-center justify-center gap-2 bg-[#E8541A] hover:bg-[#d44813] text-white font-bold py-3.5 px-6 rounded-2xl transition-all shadow-md shadow-orange-500/10 mt-auto group"
               >
-                Empezar gratis ahora <ArrowRight size={16} weight="bold" className="group-hover:translate-x-1 transition-transform" />
+                {modoComercial ? 'Quiero más información' : 'Empezar gratis ahora'} <ArrowRight size={16} weight="bold" className="group-hover:translate-x-1 transition-transform" />
               </button>
             </div>
 
@@ -710,14 +770,16 @@ export default function Landing() {
                     Este es un ejemplo — para tener esta funcionalidad, regístrate.
                   </p>
                   <div className="flex flex-col gap-3">
-                    <button 
-                      onClick={() => navigate('/auth?register=true')} 
+                    <button
+                      onClick={() => modoComercial
+                        ? document.getElementById('contacto-comercial')?.scrollIntoView({ behavior: 'smooth' })
+                        : navigate('/auth?register=true')}
                       className="w-full bg-[#1A91F0] text-white font-bold py-4 px-6 rounded-2xl hover:bg-blue-600 hover:shadow-lg transition-all shadow-md focus:ring-4 focus:ring-blue-500/20"
                     >
-                      Empezar gratis ahora
+                      {modoComercial ? 'Quiero más información' : 'Empezar gratis ahora'}
                     </button>
                     <p className="text-xs text-gray-400 mt-2 font-medium">
-                      Descubre tu análisis completo. 100% Gratis.
+                      {modoComercial ? 'Cuéntanos sobre tu equipo y te contactamos.' : 'Descubre tu análisis completo. 100% Gratis.'}
                     </p>
                   </div>
                 </div>
@@ -1136,10 +1198,12 @@ export default function Landing() {
 
                 {/* CTA */}
                 <button
-                  onClick={() => navigate('/auth?register=true')}
+                  onClick={() => modoComercial
+                    ? document.getElementById('contacto-comercial')?.scrollIntoView({ behavior: 'smooth' })
+                    : navigate('/auth?register=true')}
                   className="w-full mt-8 bg-teal-500 hover:bg-teal-600 text-white font-bold py-3 rounded-xl transition-colors shadow-lg shadow-teal-500/20"
                 >
-                  Comenzar análisis gratuito
+                  {modoComercial ? 'Quiero más información' : 'Comenzar análisis gratuito'}
                 </button>
               </div>
 
@@ -1153,6 +1217,88 @@ export default function Landing() {
           </div>
         </div>
       </section>
+
+      {/* ─── Formulario contacto comercial (solo modoComercial) ───────────────────────── */}
+      {modoComercial && (
+        <section id="contacto-comercial" className="relative z-10 py-20 px-6 border-t border-gray-200 bg-gradient-to-b from-slate-50 to-white">
+          <div className="container mx-auto max-w-3xl">
+            <div className="text-center mb-10">
+              <p className="text-sm font-bold uppercase tracking-[0.2em] text-[#E8541A] mb-3">¿Tu empresa necesita ELVIA?</p>
+              <h2 className="font-headline font-black text-4xl md:text-5xl text-[#002650] mb-4">
+                Cuéntanos sobre tu equipo
+              </h2>
+              <p className="text-gray-600 text-lg max-w-xl mx-auto">
+                Acompañamos a empresas en transiciones, outplacement y desarrollo de carrera. Déjanos tus datos y te contactamos en 24h.
+              </p>
+            </div>
+
+            {contactoEnviado ? (
+              <div className="bg-emerald-50 border-2 border-emerald-200 rounded-3xl p-10 text-center">
+                <CheckCircle size={56} weight="duotone" className="text-emerald-500 mx-auto mb-4" />
+                <h3 className="text-2xl font-black text-emerald-900 mb-2">¡Recibimos tu mensaje!</h3>
+                <p className="text-emerald-700">
+                  Nuestro equipo comercial te contactará en menos de 24 horas hábiles.
+                </p>
+              </div>
+            ) : (
+              <form onSubmit={enviarContactoComercial} className="bg-white border border-gray-200 rounded-3xl p-8 md:p-10 shadow-xl shadow-gray-200/50">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">Nombre completo *</label>
+                    <input type="text" required value={contactoForm.nombre}
+                      onChange={e => setContactoForm({...contactoForm, nombre: e.target.value})}
+                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#E8541A]/30 focus:border-[#E8541A] transition-all" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">Empresa *</label>
+                    <input type="text" required value={contactoForm.empresa}
+                      onChange={e => setContactoForm({...contactoForm, empresa: e.target.value})}
+                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#E8541A]/30 focus:border-[#E8541A] transition-all" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">Email corporativo *</label>
+                    <input type="email" required value={contactoForm.email}
+                      onChange={e => setContactoForm({...contactoForm, email: e.target.value})}
+                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#E8541A]/30 focus:border-[#E8541A] transition-all" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">Teléfono (opcional)</label>
+                    <input type="tel" value={contactoForm.telefono}
+                      onChange={e => setContactoForm({...contactoForm, telefono: e.target.value})}
+                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#E8541A]/30 focus:border-[#E8541A] transition-all" />
+                  </div>
+                </div>
+                <div className="mt-5">
+                  <label className="block text-sm font-bold text-gray-700 mb-2">¿Cuéntanos un poco sobre tu necesidad? (opcional)</label>
+                  <textarea rows="4" value={contactoForm.mensaje}
+                    onChange={e => setContactoForm({...contactoForm, mensaje: e.target.value})}
+                    placeholder="Ej: Estamos planeando un proceso de outplacement para 50 colaboradores..."
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#E8541A]/30 focus:border-[#E8541A] transition-all resize-none" />
+                </div>
+
+                {contactoError && (
+                  <div className="mt-4 p-3 bg-rose-50 border border-rose-200 rounded-xl text-sm text-rose-700">
+                    {contactoError}
+                  </div>
+                )}
+
+                <button type="submit" disabled={contactoEnviando}
+                  className="w-full mt-6 bg-[#E8541A] hover:bg-[#E8541A]/90 text-white font-bold text-lg py-4 rounded-2xl transition-all shadow-md shadow-orange-500/20 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                  {contactoEnviando ? (
+                    <><span className="animate-spin rounded-full border-2 border-white/20 border-t-white w-5 h-5" /> Enviando…</>
+                  ) : (
+                    <>Enviar solicitud <ArrowRight size={18} weight="bold" /></>
+                  )}
+                </button>
+
+                <p className="text-xs text-gray-400 text-center mt-4">
+                  O escríbenos directamente a <a href="mailto:comercial@elvia.lat" className="text-[#E8541A] font-bold hover:underline">comercial@elvia.lat</a>
+                </p>
+              </form>
+            )}
+          </div>
+        </section>
+      )}
 
       {/* ─── CTA Final Post-Lanzamiento ──────────────────────────────────────────────────────────── */}
       <section className="relative z-10 py-24 px-6 border-t border-gray-200 bg-white">
@@ -1199,18 +1345,30 @@ export default function Landing() {
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full sm:w-auto z-10">
             <button
-              onClick={() => navigate('/auth?register=true')}
+              onClick={() => modoComercial
+                ? document.getElementById('contacto-comercial')?.scrollIntoView({ behavior: 'smooth' })
+                : navigate('/auth?register=true')}
               className="w-full sm:w-auto bg-[#E8541A] hover:bg-[#E8541A]/90 text-white font-bold text-lg px-10 py-5 rounded-2xl transition-all shadow-[0_0_30px_rgba(232,84,26,0.3)] hover:shadow-[0_0_30px_rgba(232,84,26,0.5)] flex items-center justify-center gap-3 group"
             >
-              Crear mi cuenta gratis ahora
+              {modoComercial ? 'Solicitar información ahora' : 'Crear mi cuenta gratis ahora'}
               <ArrowRight size={20} weight="bold" className="group-hover:translate-x-1 transition-transform" />
             </button>
+            {modoComercial && (
+              <button
+                onClick={() => navigate('/auth')}
+                className="w-full sm:w-auto bg-white/10 hover:bg-white/20 text-white font-bold text-lg px-10 py-5 rounded-2xl transition-all border border-white/20 flex items-center justify-center gap-3"
+              >
+                Ya tengo cuenta · Iniciar sesión
+              </button>
+            )}
           </div>
 
-          <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-6 text-sm font-semibold tracking-wide text-gray-500 z-10">
-            <span className="flex items-center gap-2 text-center sm:text-left"><CheckCircle size={18} weight="fill" className="text-teal-500" /> Sin tarjeta de crédito para la prueba de 7 días</span>
-            <span className="flex items-center gap-2 text-center sm:text-left"><CheckCircle size={18} weight="fill" className="text-teal-500" /> Funcionalidades gratis</span>
-          </div>
+          {!modoComercial && (
+            <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-6 text-sm font-semibold tracking-wide text-gray-500 z-10">
+              <span className="flex items-center gap-2 text-center sm:text-left"><CheckCircle size={18} weight="fill" className="text-teal-500" /> Sin tarjeta de crédito para la prueba de 7 días</span>
+              <span className="flex items-center gap-2 text-center sm:text-left"><CheckCircle size={18} weight="fill" className="text-teal-500" /> Funcionalidades gratis</span>
+            </div>
+          )}
         </motion.div>
       </section>
 
@@ -1234,9 +1392,9 @@ export default function Landing() {
         </div>
       </footer>
 
-      {/* Sticky CTA (Mobile/Desktop) */}
+      {/* Sticky CTA (Mobile/Desktop) — oculto en modo comercial */}
       <AnimatePresence>
-        {!user && showStickyCTA && (
+        {!user && showStickyCTA && !modoComercial && (
           <motion.div
             initial={{ opacity: 0, y: 100 }}
             animate={{ opacity: 1, y: 0 }}
