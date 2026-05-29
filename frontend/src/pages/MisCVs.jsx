@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react'
+import { createRoot } from 'react-dom/client'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../services/authService'
 import { descargarCV } from '../services/cvService'
 import FeatureLocked from '../components/common/FeatureLocked'
 import HelpBadge from '../components/common/HelpBadge'
+import LinkedinReportePDF from '../components/LinkedinReportePDF'
 import { FilePdf, LinkedinLogo } from '@phosphor-icons/react'
 
 const extraerNombre = (contenido) => {
@@ -177,6 +179,51 @@ export default function MisCVs() {
     setDescargando(d => ({ ...d, [id]: formato }))
     try { await descargarCV(id, formato) }
     finally { setDescargando(d => ({ ...d, [id]: null })) }
+  }
+
+  const descargarLinkedinPDF = async (item) => {
+    try {
+      const { default: html2pdf } = await import('html2pdf.js')
+      const meta = item.metadata || {}
+      const nombreArchivo = (meta.filename || 'Analisis LinkedIn').replace(/_/g, ' ').replace(/\.pdf$/i, '')
+
+      let payload = {}
+      try {
+        payload = typeof item.contenido === 'string' ? JSON.parse(item.contenido) : (item.contenido || {})
+      } catch { /* usa vacío */ }
+
+      const contenedor = document.createElement('div')
+      contenedor.style.position = 'fixed'
+      contenedor.style.left = '-9999px'
+      contenedor.style.top = '0'
+      document.body.appendChild(contenedor)
+
+      const root = createRoot(contenedor)
+      await new Promise(resolve => {
+        root.render(
+          <LinkedinReportePDF
+            analisis={payload.analisis || payload}
+            editables={payload.editables || {}}
+            original={payload.original || {}}
+          />
+        )
+        setTimeout(resolve, 300)
+      })
+
+      await html2pdf().set({
+        margin: 8,
+        filename: `${nombreArchivo}.pdf`,
+        image: { type: 'jpeg', quality: 0.95 },
+        html2canvas: { scale: 2, useCORS: true },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+      }).from(contenedor.firstChild).save()
+
+      root.unmount()
+      document.body.removeChild(contenedor)
+    } catch (err) {
+      console.error('[descargarLinkedinPDF]', err)
+      alert('No se pudo generar el PDF. Intenta de nuevo.')
+    }
   }
 
   const eliminarCheck = async (id) => {
@@ -379,7 +426,7 @@ export default function MisCVs() {
                             ) : null}
                           </div>
                           <p className="text-lg font-bold text-gray-800 truncate group-hover:text-[#0077B5] transition-colors">
-                            {meta.filename || 'Informe LinkedIn'}
+                            {(meta.filename || 'Informe LinkedIn').replace(/_/g, ' ').replace(/\.pdf$/i, '')}
                           </p>
                           <p className="text-sm text-gray-400 mt-1 flex items-center gap-1.5 font-medium">
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -390,11 +437,10 @@ export default function MisCVs() {
                         </div>
                         <div className="flex gap-2">
                           <button
-                            onClick={() => handleDescargar(item.id, 'txt')}
-                            disabled={!!descargando[item.id]}
-                            className="px-6 py-2.5 text-sm font-bold text-white bg-[#0077B5] hover:bg-[#005e8d] rounded-xl flex items-center justify-center min-w-[160px] transition-all shadow-lg shadow-blue-100 disabled:opacity-50"
+                            onClick={() => descargarLinkedinPDF(item)}
+                            className="px-6 py-2.5 text-sm font-bold text-white bg-[#0077B5] hover:bg-[#005e8d] rounded-xl flex items-center justify-center min-w-[160px] transition-all shadow-lg shadow-blue-100"
                           >
-                            {descargando[item.id] ? 'Descargando...' : 'Descargar documento'}
+                            Descargar PDF
                           </button>
                         </div>
                       </div>

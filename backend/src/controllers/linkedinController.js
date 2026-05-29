@@ -21,7 +21,7 @@ const extraerResumenDeCV = (cvRow) => {
 // Límite mensual de análisis IA por usuario.
 // Contamos en la tabla linkedin_analyses (se inserta automáticamente en cada análisis).
 // Esto cuenta consumo de tokens DeepSeek, no descargas de PDF.
-const LIMITE_ANALISIS_MES = 5
+const LIMITE_ANALISIS_MES = 10
 
 const contarAnalisisMes = async (supabase, userId) => {
   const inicio = new Date()
@@ -67,9 +67,9 @@ const getUsoMes = async (req, res, next) => {
 // POST /api/linkedin/analizar
 const analizarPerfil = async (req, res, next) => {
   try {
-    const { titular, extracto, experiencia, habilidades, educacion, contextoLaboral } = req.body
+    const { titular, extracto, experiencia, habilidades, idiomas, educacion, contextoLaboral } = req.body
 
-    const camposRecibidos = [titular, extracto, experiencia, habilidades, educacion]
+    const camposRecibidos = [titular, extracto, experiencia, habilidades, idiomas, educacion]
       .filter(v => v && v.trim().length > 0)
 
     if (camposRecibidos.length === 0) {
@@ -137,7 +137,7 @@ const analizarPerfil = async (req, res, next) => {
     }
 
     const resultado = await analizarLinkedin({
-      titular, extracto, experiencia, habilidades, educacion,
+      titular, extracto, experiencia, habilidades, idiomas, educacion,
       contextoLaboral,
       gerenteContext,
       cvOptimo,
@@ -145,7 +145,7 @@ const analizarPerfil = async (req, res, next) => {
 
     // Persistir análisis para historial (best-effort — no bloquea la respuesta si falla)
     if (req.supabase && req.user?.id) {
-      const camposUsados = Object.entries({ titular, extracto, experiencia, habilidades, educacion })
+      const camposUsados = Object.entries({ titular, extracto, experiencia, habilidades, idiomas, educacion })
         .filter(([, v]) => v && v.trim().length > 0)
         .map(([k]) => k)
       req.supabase.from('linkedin_analyses').insert({
@@ -257,7 +257,7 @@ const guardarReporte = async (req, res, next) => {
         tipo: 'optimize', // requerido por el constraint existente; discriminamos vía metadata.subtipo
         contenido: JSON.stringify(payload),
         metadata: {
-          filename: filename || `Analisis_LinkedIn_${new Date().toISOString().slice(0,10)}.pdf`,
+          filename: filename || `Analisis LinkedIn ${new Date().toISOString().slice(0,10)}`,
           frontend_pdf: true,
           subtipo: 'linkedin_analysis',
           puntaje_global: analisis.puntaje_global ?? null,

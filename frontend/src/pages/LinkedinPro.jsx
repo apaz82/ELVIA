@@ -1,16 +1,18 @@
 // LinkedIn Optima — Validador y optimizador de perfil LinkedIn con IA
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import { createRoot } from 'react-dom/client'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../services/authService'
 import { calcularProgreso } from '../utils/progresoLaboral'
 import toast from 'react-hot-toast'
 import HelpBadge from '../components/common/HelpBadge'
+import LinkedinReportePDF from '../components/LinkedinReportePDF'
 import {
   LinkedinLogo, Sparkle, CheckCircle, WarningCircle,
   CaretDown, CaretUp, ArrowRight, Trophy, Star, LightbulbFilament,
   FilePdf, NotePencil, UploadSimple, CircleNotch, Clock,
-  Copy, Eye, EyeSlash, PencilSimple
+  Copy, Eye, EyeSlash, PencilSimple, FileArrowDown
 } from '@phosphor-icons/react'
 import FeatureLocked from '../components/common/FeatureLocked'
 
@@ -346,6 +348,16 @@ function SeccionResultado({ seccion, datos, original, editable, onEditableChange
             </div>
           )}
 
+          {/* Tip especial para idiomas */}
+          {seccion.id === 'idiomas' && (
+            <div className="flex items-start gap-2 bg-sky-50 border border-sky-200 rounded-xl px-4 py-3">
+              <LightbulbFilament size={15} weight="fill" className="text-sky-500 shrink-0 mt-0.5" />
+              <p className="text-xs text-sky-700 font-medium leading-relaxed">
+                Es ideal determinar el nivel de inglés realista. Te recomendamos hacer algún test gratuito en línea de buena reputación o si tienes de alguna institución avalada del idioma, y tenerlo en cuenta para esta sección.
+              </p>
+            </div>
+          )}
+
           {/* Bloque editable: el texto sugerido aplicado, listo para pegar en LinkedIn */}
           {esHabilidades ? (
             <BloqueHabilidades
@@ -382,15 +394,15 @@ export default function LinkedinOptima() {
   const [cargando, setCargando] = useState(false)
   const [resultado, setResultado] = useState(null)
   // Snapshot del texto original que el usuario subió/escribió en el momento del análisis.
-  // Lo guardamos por separado para que el botón "Ver mi texto actual" siga funcionando aunque cambien `campos` después.
   const [originalSnapshot, setOriginalSnapshot] = useState({ titular: '', extracto: '', experiencia: '', habilidades: '', idiomas: '', educacion: '' })
   // Textos editables que la IA sugirió por sección — el usuario los modifica antes de pegarlos en LinkedIn.
   const [editables, setEditables] = useState({ titular: '', extracto: '', experiencia: '', habilidades: [], idiomas: '', educacion: '' })
   const [error, setError] = useState('')
   const [historial, setHistorial] = useState([])
   const [historialAbierto, setHistorialAbierto] = useState(false)
+  const [generandoInforme, setGenerandoInforme] = useState(false)
   // Contador de uso mensual (límite duro de análisis IA por mes calendario).
-  const [usoMes, setUsoMes] = useState({ usados: 0, restantes: 5, limite: 5, fecha_reset: null })
+  const [usoMes, setUsoMes] = useState({ usados: 0, restantes: 10, limite: 10, fecha_reset: null })
 
   useEffect(() => {
     if (!user) return
@@ -526,17 +538,6 @@ export default function LinkedinOptima() {
       }
       setEditables(nuevosEditables)
 
-      // Auto-save en Mis Documentos (best effort — no bloquea el flujo).
-      if (user && accessToken) {
-        try {
-          await fetch(`${API}/api/linkedin/guardar-reporte`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
-            body: JSON.stringify({ analisis: data, editables: nuevosEditables, original: campos }),
-          })
-        } catch { /* no bloquea */ }
-      }
-
       // Agregar al historial local inmediatamente (sin esperar re-fetch)
       const camposUsados = Object.entries(campos).filter(([, v]) => v.trim().length > 0).map(([k]) => k)
       setHistorial(prev => [{
@@ -553,6 +554,70 @@ export default function LinkedinOptima() {
       setError(err.message)
     } finally {
       setCargando(false)
+    }
+  }
+
+  const handleGenerarInforme = async () => {
+    if (!resultado) return
+    setGenerandoInforme(true)
+    try {
+      const { default: html2pdf } = await import('html2pdf.js')
+
+      // Renderizar el componente PDF en un div temporal fuera del DOM visible
+      const contenedor = document.createElement('div')
+      contenedor.style.position = 'fixed'
+      contenedor.style.left = '-9999px'
+      contenedor.style.top = '0'
+      document.body.appendChild(contenedor)
+
+      const root = createRoot(contenedor)
+      const fecha = new Date().toISOString().slice(0, 10)
+      const nombreArchivo = `Analisis LinkedIn ${fecha}`
+
+      await new Promise(resolve => {
+        root.render(
+          <LinkedinReportePDF
+            analisis={resultado}
+            editables={editables}
+            original={originalSnapshot}
+          />
+        )
+        // Dar tiempo al render
+        setTimeout(resolve, 300)
+      })
+
+      await html2pdf().set({
+        margin: 8,
+        filename: `${nombreArchivo}.pdf`,
+        image: { type: 'jpeg', quality: 0.95 },
+        html2canvas: { scale: 2, useCORS: true },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+      }).from(contenedor.firstChild).save()
+
+      root.unmount()
+      document.body.removeChild(contenedor)
+
+      // Guardar registro en Mis Documentos
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session?.access_token) {
+        await fetch(`${API}/api/linkedin/guardar-reporte`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+          body: JSON.stringify({
+            analisis: resultado,
+            editables,
+            original: originalSnapshot,
+            filename: nombreArchivo,
+          }),
+        })
+      }
+
+      toast.success('¡Informe creado! Puedes verlo en Mis Documentos', { duration: 5000, icon: '📄' })
+    } catch (err) {
+      console.error('[generarInforme]', err)
+      toast.error('No se pudo generar el informe. Intenta de nuevo.')
+    } finally {
+      setGenerandoInforme(false)
     }
   }
 
@@ -635,12 +700,25 @@ export default function LinkedinOptima() {
               Estas sugerencias se generaron tomando en cuenta tu Autoconocimiento, oferta de valor y el contexto de tu búsqueda laboral registrado en tu Gerente de Proyecto. Revísalas con calma y aplícalas gradualmente — el criterio final siempre es tuyo.
             </p>
           </div>
+
+          <button
+            onClick={handleGenerarInforme}
+            disabled={generandoInforme}
+            className="w-full py-4 rounded-2xl bg-gradient-to-r from-[#0077B5] to-[#019DF4] hover:brightness-110 text-white text-sm font-black uppercase tracking-wider shadow-lg shadow-blue-900/20 transition-all active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-60"
+          >
+            {generandoInforme ? (
+              <><CircleNotch size={18} className="animate-spin" /> Generando informe...</>
+            ) : (
+              <><FileArrowDown size={18} weight="bold" /> OK — Generar informe PDF</>
+            )}
+          </button>
+
           <button
             onClick={() => navigate('/mis-cvs?tab=linkedin')}
-            className="w-full py-4 rounded-2xl bg-[#019DF4] hover:bg-[#0288d1] text-white text-sm font-black uppercase tracking-wider shadow-lg shadow-blue-900/20 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+            className="w-full py-3 rounded-2xl border border-slate-200 text-slate-600 text-sm font-bold hover:bg-slate-50 transition-all flex items-center justify-center gap-2"
           >
-            Ver en Mis Documentos
-            <ArrowRight size={16} weight="bold" />
+            Ir a Mis Documentos
+            <ArrowRight size={14} weight="bold" />
           </button>
 
           <p className="text-center text-sm text-slate-500 font-medium leading-relaxed pt-2">
