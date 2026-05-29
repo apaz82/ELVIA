@@ -1,18 +1,16 @@
 // LinkedIn Optima — Validador y optimizador de perfil LinkedIn con IA
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../services/authService'
 import { calcularProgreso } from '../utils/progresoLaboral'
 import toast from 'react-hot-toast'
 import HelpBadge from '../components/common/HelpBadge'
-import LinkedinReportePDF from '../components/common/LinkedinReportePDF'
-import LinkedinResultModal from '../components/common/LinkedinResultModal'
 import {
   LinkedinLogo, Sparkle, CheckCircle, WarningCircle,
   CaretDown, CaretUp, ArrowRight, Trophy, Star, LightbulbFilament,
   FilePdf, NotePencil, UploadSimple, CircleNotch, Clock,
-  Copy, Eye, EyeSlash, PencilSimple, DownloadSimple
+  Copy, Eye, EyeSlash, PencilSimple
 } from '@phosphor-icons/react'
 import FeatureLocked from '../components/common/FeatureLocked'
 
@@ -44,18 +42,26 @@ const SECCIONES = [
   {
     id: 'experiencia',
     label: 'Experiencia',
-    placeholder: 'Empresa - Cargo | Fecha\nDescripción del rol y logros...\n\nEmpresa - Cargo | Fecha\nDescripción...',
-    descripcion: 'Copia el texto de tus posiciones más recientes (últimos 10 años).',
+    placeholder: 'Empresa ABC · Gerente de Marketing Digital\nene. 2022 – presente · 3 años\nBogotá, Colombia\nLideré un equipo de 8 personas y aumenté la tasa de conversión en 35%...\n\nEmpresa XYZ · Jefe de Producto\nmar. 2019 – dic. 2021 · 2 años 10 meses\nMedellín, Colombia\nDesarrollé el roadmap de producto SaaS para 50 000 usuarios activos...',
+    descripcion: 'Copia cada cargo con empresa, fechas y descripción. Ordena del más reciente al más antiguo.',
     maxLength: 5000,
-    rows: 6,
+    rows: 10,
   },
   {
     id: 'habilidades',
-    label: 'Habilidades (Skills)',
+    label: 'Aptitudes (Skills)',
     placeholder: 'Ej: Product Management, Agile, Scrum, SQL, Tableau, Liderazgo de equipos...',
-    descripcion: 'Lista tus habilidades principales, separadas por coma.',
+    descripcion: 'Lista tus aptitudes principales, separadas por coma. LinkedIn las llama "Skills".',
     maxLength: 1000,
     rows: 3,
+  },
+  {
+    id: 'idiomas',
+    label: 'Idiomas (Languages)',
+    placeholder: 'Ej: Español (Nativo), Inglés (B2 – Avanzado), Portugués (A2 – Básico)...',
+    descripcion: 'Idiomas que manejas y nivel de dominio.',
+    maxLength: 300,
+    rows: 2,
   },
   {
     id: 'educacion',
@@ -178,7 +184,7 @@ function BloqueHabilidades({ habilidades, onChange, original }) {
     <div className="bg-white border-2 border-emerald-200 rounded-2xl p-5 mt-2">
       <div className="flex items-center justify-between mb-3">
         <p className="text-[11px] font-black uppercase tracking-wider text-emerald-700 flex items-center gap-1.5">
-          <PencilSimple size={13} weight="fill" /> Tus habilidades — edita la lista antes de pegarlas
+          <PencilSimple size={13} weight="fill" /> Tus aptitudes — edita la lista antes de pegarlas
         </p>
         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
           {lista.length} / 50
@@ -206,7 +212,7 @@ function BloqueHabilidades({ habilidades, onChange, original }) {
           value={nuevaSkill}
           onChange={e => setNuevaSkill(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); agregar() } }}
-          placeholder="Agregar habilidad y presionar Enter"
+          placeholder="Agregar aptitud y presionar Enter"
           className="flex-1 rounded-xl bg-slate-50 px-4 py-2.5 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:bg-white"
         />
         <button
@@ -219,7 +225,7 @@ function BloqueHabilidades({ habilidades, onChange, original }) {
       <div className="flex flex-wrap items-center gap-2">
         <button
           type="button"
-          onClick={() => copiarPortapapeles(lista.join('\n'), 'Habilidades')}
+          onClick={() => copiarPortapapeles(lista.join('\n'), 'Aptitudes')}
           disabled={lista.length === 0}
           className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-600 text-white text-[11px] font-bold uppercase tracking-wider hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
         >
@@ -240,7 +246,7 @@ function BloqueHabilidades({ habilidades, onChange, original }) {
       </div>
       {verOriginal && original ? (
         <div className="mt-3 bg-slate-50 border border-slate-200 rounded-xl p-4">
-          <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">Tus habilidades actuales</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">Tus aptitudes actuales</p>
           <p className="text-xs text-slate-600 leading-relaxed whitespace-pre-line">{original}</p>
         </div>
       ) : null}
@@ -330,6 +336,16 @@ function SeccionResultado({ seccion, datos, original, editable, onEditableChange
             </div>
           )}
 
+          {/* Nota Autoconocimiento solo para extracto */}
+          {seccion.id === 'extracto' && (
+            <div className="flex items-start gap-2 bg-indigo-50 border border-indigo-100 rounded-xl px-4 py-3">
+              <LightbulbFilament size={15} weight="fill" className="text-indigo-500 shrink-0 mt-0.5" />
+              <p className="text-xs text-indigo-700 font-medium leading-relaxed">
+                Esta sugerencia se generó tomando en cuenta tu Autoconocimiento y oferta de valor del Gerente de Proyecto.
+              </p>
+            </div>
+          )}
+
           {/* Bloque editable: el texto sugerido aplicado, listo para pegar en LinkedIn */}
           {esHabilidades ? (
             <BloqueHabilidades
@@ -360,23 +376,16 @@ export default function LinkedinOptima() {
   const proyectoPct = calcularProgreso(jpData || {}, perfil || {})
   const isUnlockedByProgress = proyectoPct >= 100
 
-  // Ref al nodo off-screen del reporte PDF (capturado por html2pdf).
-  const reporteRef = useRef(null)
-  const [descargandoPDF, setDescargandoPDF] = useState(false)
-  const [pdfSaved, setPdfSaved] = useState(false)
-  // El modal disclaimer solo aparece en análisis nuevos (no al revisar historial).
-  const [showResultModal, setShowResultModal] = useState(false)
-
-  const [campos, setCampos] = useState({ titular: '', extracto: '', experiencia: '', habilidades: '', educacion: '' })
+  const [campos, setCampos] = useState({ titular: '', extracto: '', experiencia: '', habilidades: '', idiomas: '', educacion: '' })
   const [importMode, setImportMode] = useState('pdf') // 'pdf' | 'manual'
   const [isExtracting, setIsExtracting] = useState(false)
   const [cargando, setCargando] = useState(false)
   const [resultado, setResultado] = useState(null)
   // Snapshot del texto original que el usuario subió/escribió en el momento del análisis.
   // Lo guardamos por separado para que el botón "Ver mi texto actual" siga funcionando aunque cambien `campos` después.
-  const [originalSnapshot, setOriginalSnapshot] = useState({ titular: '', extracto: '', experiencia: '', habilidades: '', educacion: '' })
+  const [originalSnapshot, setOriginalSnapshot] = useState({ titular: '', extracto: '', experiencia: '', habilidades: '', idiomas: '', educacion: '' })
   // Textos editables que la IA sugirió por sección — el usuario los modifica antes de pegarlos en LinkedIn.
-  const [editables, setEditables] = useState({ titular: '', extracto: '', experiencia: '', habilidades: [], educacion: '' })
+  const [editables, setEditables] = useState({ titular: '', extracto: '', experiencia: '', habilidades: [], idiomas: '', educacion: '' })
   const [error, setError] = useState('')
   const [historial, setHistorial] = useState([])
   const [historialAbierto, setHistorialAbierto] = useState(false)
@@ -507,13 +516,26 @@ export default function LinkedinOptima() {
         const fuente = sa.habilidades || secs.habilidades?.ejemplo || campos.habilidades || ''
         return String(fuente).split(/[,\n;]+/).map(s => s.trim()).filter(Boolean)
       })()
-      setEditables({
+      const nuevosEditables = {
         titular:     sa.titular     || secs.titular?.ejemplo     || campos.titular     || '',
         extracto:    sa.extracto    || secs.extracto?.ejemplo    || campos.extracto    || '',
         experiencia: sa.experiencia || secs.experiencia?.ejemplo || campos.experiencia || '',
         habilidades: habilidadesIniciales,
+        idiomas:     sa.idiomas     || secs.idiomas?.ejemplo     || campos.idiomas     || '',
         educacion:   sa.educacion   || secs.educacion?.ejemplo   || campos.educacion   || '',
-      })
+      }
+      setEditables(nuevosEditables)
+
+      // Auto-save en Mis Documentos (best effort — no bloquea el flujo).
+      if (user && accessToken) {
+        try {
+          await fetch(`${API}/api/linkedin/guardar-reporte`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+            body: JSON.stringify({ analisis: data, editables: nuevosEditables, original: campos }),
+          })
+        } catch { /* no bloquea */ }
+      }
 
       // Agregar al historial local inmediatamente (sin esperar re-fetch)
       const camposUsados = Object.entries(campos).filter(([, v]) => v.trim().length > 0).map(([k]) => k)
@@ -527,8 +549,6 @@ export default function LinkedinOptima() {
         created_at: new Date().toISOString(),
       }, ...prev.slice(0, 9)])
       window.scrollTo({ top: 0, behavior: 'smooth' })
-      // Mostrar modal disclaimer solo en análisis NUEVOS (no al revisar histórico).
-      setShowResultModal(true)
     } catch (err) {
       setError(err.message)
     } finally {
@@ -538,72 +558,10 @@ export default function LinkedinOptima() {
 
   const handleReset = () => {
     setResultado(null)
-    setCampos({ titular: '', extracto: '', experiencia: '', habilidades: '', educacion: '' })
-    setEditables({ titular: '', extracto: '', experiencia: '', habilidades: [], educacion: '' })
-    setOriginalSnapshot({ titular: '', extracto: '', experiencia: '', habilidades: '', educacion: '' })
+    setCampos({ titular: '', extracto: '', experiencia: '', habilidades: '', idiomas: '', educacion: '' })
+    setEditables({ titular: '', extracto: '', experiencia: '', habilidades: [], idiomas: '', educacion: '' })
+    setOriginalSnapshot({ titular: '', extracto: '', experiencia: '', habilidades: '', idiomas: '', educacion: '' })
     setImportMode('pdf')
-    setPdfSaved(false)
-  }
-
-  // Genera y descarga el reporte PDF + lo persiste en cv_results para que aparezca en Mis Documentos.
-  const descargarPDF = async () => {
-    if (!reporteRef.current) {
-      toast.error('No se pudo preparar el reporte')
-      return
-    }
-    setDescargandoPDF(true)
-    try {
-      // Import dinámico para no inflar el bundle inicial.
-      const html2pdfModule = await import('html2pdf.js')
-      const html2pdf = html2pdfModule.default || html2pdfModule
-
-      const nombreUsuario = `${perfil?.nombre1 || ''} ${perfil?.apellido1 || ''}`.trim() || 'ELVIA'
-      const filename = `Analisis_LinkedIn_${nombreUsuario.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.pdf`
-
-      const opt = {
-        margin:      0,
-        filename,
-        image:       { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true, letterRendering: true, windowWidth: 816 },
-        jsPDF:       { unit: 'in', format: 'letter', orientation: 'portrait' },
-        pagebreak:   { mode: ['css', 'legacy'] },
-      }
-
-      await html2pdf().from(reporteRef.current).set(opt).save()
-
-      // Persistir el reporte en cv_results — best effort, no bloquea la descarga.
-      if (!pdfSaved && user) {
-        try {
-          const { data: { session } } = await supabase.auth.getSession()
-          const token = session?.access_token
-          if (token) {
-            await fetch(`${API}/api/linkedin/guardar-reporte`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}`,
-              },
-              body: JSON.stringify({
-                analisis: resultado,
-                editables,
-                original: originalSnapshot,
-                filename,
-              }),
-            })
-            setPdfSaved(true)
-          }
-        } catch {
-          // Fallar el save no debe romper la descarga
-        }
-      }
-
-      toast.success('Reporte descargado y guardado en Mis Documentos')
-    } catch (err) {
-      console.error('[descargarPDF] error:', err)
-      toast.error('No pudimos generar el PDF. Intenta de nuevo.')
-    } finally {
-      setDescargandoPDF(false)
-    }
   }
 
   // ─── Vista de resultados ─────────────────────────────────────────────────
@@ -668,74 +626,27 @@ export default function LinkedinOptima() {
 
         {/* Acciones finales */}
         <div className="space-y-3">
-          <button
-            onClick={descargarPDF}
-            disabled={descargandoPDF}
-            className="w-full py-4 rounded-2xl bg-[#019DF4] hover:bg-[#0288d1] text-white text-sm font-black uppercase tracking-wider shadow-lg shadow-blue-900/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-[0.98] flex items-center justify-center gap-3"
-          >
-            {descargandoPDF ? (
-              <>
-                <CircleNotch size={18} className="animate-spin" />
-                Generando informe PDF...
-              </>
-            ) : (
-              <>
-                <DownloadSimple size={18} weight="bold" />
-                Descargar informe PDF
-              </>
-            )}
-          </button>
+          <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-5">
+            <p className="text-sm font-bold text-indigo-900 mb-2 flex items-center gap-2">
+              <LightbulbFilament size={16} weight="duotone" className="text-indigo-500" />
+              Sobre estas sugerencias
+            </p>
+            <p className="text-sm text-indigo-700 leading-relaxed">
+              Estas sugerencias se generaron tomando en cuenta tu Autoconocimiento, oferta de valor y el contexto de tu búsqueda laboral registrado en tu Gerente de Proyecto. Revísalas con calma y aplícalas gradualmente — el criterio final siempre es tuyo.
+            </p>
+          </div>
           <button
             onClick={() => navigate('/mis-cvs?tab=linkedin')}
-            className="w-full py-4 rounded-2xl bg-white border border-slate-200 text-sm font-bold text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all shadow-sm active:scale-[0.98] flex items-center justify-center gap-2"
+            className="w-full py-4 rounded-2xl bg-[#019DF4] hover:bg-[#0288d1] text-white text-sm font-black uppercase tracking-wider shadow-lg shadow-blue-900/20 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
           >
-            Ir a Mis Documentos
+            Ver en Mis Documentos
             <ArrowRight size={16} weight="bold" />
           </button>
-          <button
-            onClick={handleReset}
-            className="w-full py-3 rounded-2xl bg-transparent text-xs font-bold text-slate-500 hover:text-slate-700 transition-all"
-          >
-            Analizar otro perfil
-          </button>
 
-          <div className="text-center opacity-40 grayscale hover:grayscale-0 transition-all duration-500 pt-4">
-             <div className="flex items-center justify-center gap-2 mb-1">
-                <Sparkle size={12} weight="fill" className="text-amber-500" />
-                <p className="text-[9px] font-black uppercase tracking-widest text-slate-800">
-                  Certificado de Calidad ELVIA
-                </p>
-             </div>
-             <p className="text-[9px] text-slate-500 leading-tight italic">
-               Construido y optimizado por mentores de carrera expertos y tecnología de última generación.
-             </p>
-          </div>
+          <p className="text-center text-sm text-slate-500 font-medium leading-relaxed pt-2">
+            Son sugerencias con las mejores prácticas de mercado, tu criterio es la palabra final.
+          </p>
         </div>
-
-        {/* Vista off-screen del PDF — html2pdf captura este nodo cuando el usuario descarga */}
-        <LinkedinReportePDF
-          reporteRef={reporteRef}
-          nombre={`${perfil?.nombre1 || ''} ${perfil?.apellido1 || ''}`.trim()}
-          resultado={resultado}
-          editables={editables}
-        />
-
-        {/* Modal disclaimer post-análisis (solo en análisis nuevos, no en historial) */}
-        <LinkedinResultModal
-          open={showResultModal}
-          onClose={() => setShowResultModal(false)}
-          puntajeGlobal={resultado?.puntaje_global}
-          restantes={usoMes?.restantes}
-          descargando={descargandoPDF}
-          onDescargarPDF={async () => {
-            await descargarPDF()
-            setShowResultModal(false)
-          }}
-          onIrMisDocumentos={() => {
-            setShowResultModal(false)
-            navigate('/mis-cvs?tab=linkedin')
-          }}
-        />
       </div>
     )
   }
@@ -786,12 +697,13 @@ export default function LinkedinOptima() {
                         const secs = entry.secciones || {}
                         const habilidadesIniciales = String(secs.habilidades?.ejemplo || '')
                           .split(/[,\n;]+/).map(s => s.trim()).filter(Boolean)
-                        setOriginalSnapshot({ titular: '', extracto: '', experiencia: '', habilidades: '', educacion: '' })
+                        setOriginalSnapshot({ titular: '', extracto: '', experiencia: '', habilidades: '', idiomas: '', educacion: '' })
                         setEditables({
                           titular:     secs.titular?.ejemplo     || '',
                           extracto:    secs.extracto?.ejemplo    || '',
                           experiencia: secs.experiencia?.ejemplo || '',
                           habilidades: habilidadesIniciales,
+                          idiomas:     secs.idiomas?.ejemplo     || '',
                           educacion:   secs.educacion?.ejemplo   || '',
                         })
                         setHistorialAbierto(false)
@@ -993,19 +905,24 @@ export default function LinkedinOptima() {
                 </div>
               )}
 
-              {/* Contador de análisis IA del mes — el usuario sabe cuánto le queda antes de presionar */}
-              <div className={`flex items-center justify-between gap-3 px-5 py-3 rounded-2xl border ${usoMes.restantes <= 1 ? 'bg-amber-50 border-amber-200' : 'bg-slate-50 border-slate-200'} mt-8`}>
-                <div className="flex items-center gap-2">
-                  <Sparkle size={16} weight="fill" className={usoMes.restantes <= 1 ? 'text-amber-500' : 'text-indigo-500'} />
-                  <span className="text-xs font-bold text-slate-700">
-                    Análisis IA restantes este mes: <span className={`font-black ${usoMes.restantes === 0 ? 'text-rose-600' : usoMes.restantes <= 1 ? 'text-amber-700' : 'text-indigo-700'}`}>{usoMes.restantes} / {usoMes.limite}</span>
-                  </span>
+              {/* Contador de análisis del mes */}
+              <div className={`space-y-2 px-5 py-4 rounded-2xl border ${usoMes.restantes <= 1 ? 'bg-amber-50 border-amber-200' : 'bg-slate-50 border-slate-200'} mt-8`}>
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <Sparkle size={16} weight="fill" className={usoMes.restantes <= 1 ? 'text-amber-500' : 'text-indigo-500'} />
+                    <span className="text-xs font-bold text-slate-700">
+                      Análisis restantes este mes: <span className={`font-black ${usoMes.restantes === 0 ? 'text-rose-600' : usoMes.restantes <= 1 ? 'text-amber-700' : 'text-indigo-700'}`}>{usoMes.restantes} / {usoMes.limite}</span>
+                    </span>
+                  </div>
+                  {usoMes.restantes === 0 && usoMes.fecha_reset ? (
+                    <span className="text-[10px] font-bold text-rose-700 uppercase tracking-wider">
+                      Se reinicia el {new Date(usoMes.fecha_reset).toLocaleDateString('es-CO', { day: '2-digit', month: 'short' })}
+                    </span>
+                  ) : null}
                 </div>
-                {usoMes.restantes === 0 && usoMes.fecha_reset ? (
-                  <span className="text-[10px] font-bold text-rose-700 uppercase tracking-wider">
-                    Se reinicia el {new Date(usoMes.fecha_reset).toLocaleDateString('es-CO', { day: '2-digit', month: 'short' })}
-                  </span>
-                ) : null}
+                <p className="text-[11px] text-slate-500 leading-relaxed">
+                  Es recomendable hacer cada vez menos cambios, y que sean cambios menores — los cambios bruscos en el perfil pueden confundir al mercado.
+                </p>
               </div>
 
               <button

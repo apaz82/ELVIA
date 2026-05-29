@@ -390,10 +390,11 @@ export default function MisCVs() {
                         </div>
                         <div className="flex gap-2">
                           <button
-                            onClick={() => navigate('/linkedin-pro')}
-                            className="px-6 py-2.5 text-sm font-bold text-white bg-[#0077B5] hover:bg-[#005e8d] rounded-xl flex items-center justify-center min-w-[160px] transition-all shadow-lg shadow-blue-100"
+                            onClick={() => handleDescargar(item.id, 'txt')}
+                            disabled={!!descargando[item.id]}
+                            className="px-6 py-2.5 text-sm font-bold text-white bg-[#0077B5] hover:bg-[#005e8d] rounded-xl flex items-center justify-center min-w-[160px] transition-all shadow-lg shadow-blue-100 disabled:opacity-50"
                           >
-                            Ir a LinkedIn Pro →
+                            {descargando[item.id] ? 'Descargando...' : 'Descargar documento'}
                           </button>
                         </div>
                       </div>
