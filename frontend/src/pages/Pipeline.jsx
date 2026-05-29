@@ -15,7 +15,7 @@ const badgeScore = (score) => {
   return 'bg-red-100 text-red-600 border-red-200'
 }
 
-function VacanteCard({ item, onMover, onEliminar, onGuardarNota, onGuardarContacto, onAbrirDetalle }) {
+function VacanteCard({ item, onMover, onEliminar, onGuardarNota, onGuardarContacto, onAbrirDetalle, onNavigate }) {
   const job     = item.job_data || {}
   const check   = item.check
   const estado  = item.estado || 'Descubierto'
@@ -99,13 +99,13 @@ function VacanteCard({ item, onMover, onEliminar, onGuardarNota, onGuardarContac
             /* Hover quick actions — inline in header */
             <>
               <button
-                onClick={(e) => { e.stopPropagation(); job.description && sessionStorage.setItem('vacante_prefill', JSON.stringify({ texto: job.description })); navigate('/cv-vs-job') }}
+                onClick={(e) => { e.stopPropagation(); job.description && sessionStorage.setItem('vacante_prefill', JSON.stringify({ texto: job.description })); onNavigate('/cv-vs-job') }}
                 className="text-xs text-gray-600 border border-gray-200 rounded-lg px-2.5 py-1.5 hover:bg-gray-50 transition-colors whitespace-nowrap"
               >
                 Analizar
               </button>
               <button
-                onClick={(e) => { e.stopPropagation(); sessionStorage.setItem('entrevista_prefill', JSON.stringify({ empresa: job.company, cargo: job.title, descripcion: job.description, jobId: item.id })); navigate('/entrevista') }}
+                onClick={(e) => { e.stopPropagation(); sessionStorage.setItem('entrevista_prefill', JSON.stringify({ empresa: job.company, cargo: job.title, descripcion: job.snippet || job.description, jobId: item.id })); onNavigate('/entrevista') }}
                 className="text-xs text-gray-600 border border-gray-200 rounded-lg px-2.5 py-1.5 hover:bg-gray-50 transition-colors whitespace-nowrap flex items-center gap-1"
               >
                 <Headphones size={12} /> Entrevista
@@ -292,21 +292,13 @@ export default function Pipeline() {
   const cargarTodo = async () => {
     setLoading(true)
     try {
-      console.log('Cargando vacantes y chequeos en Pipeline para user_id:', user.id)
       const [{ data: saved, error: errSaved }, { data: checks, error: errChecks }] = await Promise.all([
         supabase.from('saved_jobs').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
         supabase.from('job_checks').select('job_key, score, motivos').eq('user_id', user.id),
       ])
 
-      if (errSaved) {
-        console.error('Error cargando saved_jobs en Pipeline:', errSaved)
-      }
-      if (errChecks) {
-        console.error('Error cargando job_checks en Pipeline:', errChecks)
-      }
-
-      console.log('saved_jobs crudos devueltos:', saved)
-      console.log('job_checks crudos devueltos:', checks)
+      if (errSaved) console.error('Error cargando saved_jobs:', errSaved)
+      if (errChecks) console.error('Error cargando job_checks:', errChecks)
 
       const checkMap = {}
       ;(checks || []).forEach(c => {
@@ -321,7 +313,6 @@ export default function Pipeline() {
         return { ...s, check }
       })
 
-      console.log('Vacantes mapeadas finales para renderizar en Pipeline:', mappedVacantes)
       setVacantes(mappedVacantes)
     } catch (err) {
       console.error('Error general en cargarTodo de Pipeline:', err)
@@ -474,6 +465,7 @@ export default function Pipeline() {
               onGuardarNota={guardarNota}
               onGuardarContacto={guardarContacto}
               onAbrirDetalle={setDetalleAbierto}
+              onNavigate={navigate}
             />
           ))}
         </div>
