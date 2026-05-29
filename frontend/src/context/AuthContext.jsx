@@ -183,15 +183,18 @@ export const AuthProvider = ({ children }) => {
 
     const plan = perfil.plan || 'free'
     const PLANES_PAGO = ['mensual', 'trimestral']
+    // b2b nunca expira ni tiene límites de créditos
+    const isB2B = plan === 'b2b' || !!perfil.company_id
 
-    // Cualquier plan de pago expirado → degradar a free en el cliente
+    // Cualquier plan de pago expirado → degradar a free en el cliente (no aplica a b2b)
     const planExpirado =
+      !isB2B &&
       PLANES_PAGO.includes(plan) &&
       perfil.plan_expires_at &&
       new Date(perfil.plan_expires_at) < new Date()
     const planEfectivo = planExpirado ? 'free' : plan
 
-    const isPaidPlan = PLANES_PAGO.includes(planEfectivo)
+    const isPaidPlan = isB2B || PLANES_PAGO.includes(planEfectivo)
 
 
     // Trial: 7 días desde el registro
