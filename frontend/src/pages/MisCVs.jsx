@@ -305,7 +305,7 @@ export default function MisCVs() {
   const checksAlto = checks.filter(c => c.score >= 70).length
   const checksBajo = checks.filter(c => c.score < 70).length
 
-  const totalReportes = cvsReportes.length + cvsLinkedin.length + cvsEntrevistas.length
+  const totalReportes = cvsLinkedin.length + cvsEntrevistas.length
   const tabs = [
     { key: 'optimizados',      label: `CV Optimizado (${cvsOptimizados.length})` },
     { key: 'original',         label: `CV Inicial (${cvsOriginal.length})` },
@@ -484,38 +484,7 @@ export default function MisCVs() {
                 </div>
               )}
 
-              {/* Sección: Infografías de Proyecto Laboral */}
-              {cvsReportes.length > 0 && (
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2 border-b border-gray-100 pb-3">
-                    <h3 className="text-sm font-bold text-gray-800">Planes de Carrera / Infografías</h3>
-                  </div>
-                  <div className="space-y-4">
-                    {cvsReportes.map(item => (
-                      <div key={item.id} className="group flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 bg-white border border-gray-100 rounded-2xl hover:border-purple-300 hover:shadow-xl hover:shadow-purple-50 transition-all duration-300">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap mb-2">
-                            <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-lg bg-purple-50 text-purple-600 border border-purple-100">Plan de Carrera</span>
-                          </div>
-                          <p className="text-lg font-bold text-gray-800 truncate group-hover:text-purple-600 transition-colors">
-                            {item.metadata?.filename || 'Infografía Visual Executive'}
-                          </p>
-                          <p className="text-sm text-gray-400 mt-1 flex items-center gap-1.5 font-medium">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                            {formatFecha(item.created_at)}
-                          </p>
-                        </div>
-                        <button onClick={() => navigate(`/reporte-visual/${item.id}`)}
-                          className="px-6 py-2.5 text-sm font-bold text-white bg-purple-600 hover:bg-purple-700 rounded-xl flex items-center justify-center min-w-[160px] transition-all shadow-lg shadow-purple-200">
-                          Ver Infografía →
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+              {/* Infografías ocultas temporalmente — se habilitan próximamente */}
 
               {totalReportes === 0 && (
                 <EmptyState mensaje="Aún no tienes reportes generados." cta="Ir al simulador de entrevista" ruta="/entrevista" />
