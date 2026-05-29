@@ -409,7 +409,7 @@ CRITERIOS DE EVALUACIÓN 2026:
 - Titular: debe contener cargo (alineado al objetivo si hay), industria/nicho, propuesta de valor, keywords de ATS. Máx 220 chars.
 - Extracto: primera línea con gancho, historia profesional acorde al objetivo, logros cuantificados, CTA. Debe tener 3+ párrafos.
 - Experiencia: verbos de acción, logros con métricas, descripciones enfocadas en habilidades transferibles al rol objetivo.
-- Habilidades: mix de hard skills + power skills, priorizando las relevantes para el sector objetivo. NUNCA incluir idiomas aquí.
+- Habilidades (Aptitudes/Skills): CRITERIO DE PUNTAJE ESPECIAL — el PDF exportado por LinkedIn solo muestra las 3 habilidades destacadas por diseño de la plataforma, esto NO refleja cuántas tiene el usuario en su perfil real. Por tanto: puntaje 0 = perfil sin ninguna habilidad declarada; puntaje 60-100 = tiene cualquier cantidad de habilidades (incluso 3). NUNCA bajes el puntaje por tener pocas habilidades visibles en el PDF. El diagnóstico debe destacar que lo importante es tener habilidades (cualquier cantidad), ordenadas por relevancia para su sector objetivo. Sugiere cuáles agregar o reordenar. NUNCA incluir idiomas aquí.
 - Idiomas: evalúa si el nivel declarado es creíble y suficiente para el objetivo laboral. La sección Idiomas en LinkedIn es DIFERENTE de Aptitudes/Habilidades.
 
 REGLAS ESTRICTAS DE ÉTICA Y CALIDAD:
