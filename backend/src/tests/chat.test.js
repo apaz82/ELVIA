@@ -1,8 +1,7 @@
 const request = require('supertest');
 const express = require('express');
-const chatRoutes = require('../routes/chat');
 
-// Mock req.user directly in the auth middleware for testing
+// Mock auth middleware
 jest.mock('../middleware/auth', () => (req, res, next) => {
   if (req.headers.authorization === 'Bearer valid-token') {
     req.user = { id: 'test-user-id', email: 'test@example.com' };
@@ -11,18 +10,25 @@ jest.mock('../middleware/auth', () => (req, res, next) => {
   return res.status(401).json({ error: 'No autorizado' });
 });
 
-// Mock Anthropic SDK
-jest.mock('@anthropic-ai/sdk', () => {
-  return jest.fn().mockImplementation(() => {
-    return {
-      messages: {
-        create: jest.fn().mockResolvedValue({
-          content: [{ text: 'Mocked AI response' }]
-        })
-      }
-    };
-  });
-});
+// Mock deepseekService a nivel de módulo para evitar inicialización con API key ausente
+jest.mock('../services/deepseekService', () => ({
+  generateChatResponse: jest.fn().mockResolvedValue('Mocked AI response'),
+  generarPreguntasEntrevista: jest.fn(),
+  extraerDatosInfografia: jest.fn(),
+  extraerDatosLinkedin: jest.fn(),
+  analizarLinkedin: jest.fn(),
+  corregirProyectoLaboral: jest.fn(),
+  extractProfileFromCV: jest.fn(),
+  optimizarResumen: jest.fn(),
+  fusionarResumen: jest.fn(),
+  optimizarDescripcionExp: jest.fn(),
+  generarCarta: jest.fn(),
+  evaluarEntrevista: jest.fn(),
+  optimizeCV: jest.fn(),
+  matchCVtoJob: jest.fn(),
+}));
+
+const chatRoutes = require('../routes/chat');
 
 const app = express();
 app.use(express.json());
