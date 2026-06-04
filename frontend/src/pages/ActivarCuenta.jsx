@@ -71,16 +71,21 @@ export default function ActivarCuenta() {
       return
     }
 
-    // Si el hash contiene un token de activación, primero cerramos cualquier sesión
-    // previa para que Supabase pueda establecer la sesión fresh del invitado.
-    // Sin este signOut, getSession() devolvería la cuenta ya logueada del navegador.
+    // Si el hash contiene un token de activación, cerramos cualquier sesión previa
+    // ÚNICAMENTE si el token del hash no coincide con la sesión actual.
+    // Esto evita cerrar la sesión recién iniciada por el token de recuperación en la carga de la página.
     const hasActivationToken = initialHash.includes('access_token') || initialHash.includes('type=recovery')
 
     const init = async () => {
       if (hasActivationToken) {
         const { data: { session: existing } } = await supabase.auth.getSession()
         if (existing) {
-          await supabase.auth.signOut()
+          const params = new URLSearchParams(initialHash.replace('#', '?'))
+          const hashToken = params.get('access_token')
+          // Solo cerrar sesión si la sesión activa NO corresponde al token del enlace
+          if (hashToken && existing.access_token !== hashToken) {
+            await supabase.auth.signOut()
+          }
         }
       } else {
         // Sin hash de token: revisar si ya hay sesión activa (caso cuenta ya activada)
@@ -101,6 +106,9 @@ export default function ActivarCuenta() {
         const meta = session?.user?.user_metadata || {}
         const name = [meta.nombre1, meta.apellido1].filter(Boolean).join(' ').trim()
         if (name) setCandidateName(name)
+      } else if (event === 'SIGNED_OUT' || !session) {
+        setTokenValido(false)
+        setCandidateName('')
       }
     })
     return () => subscription.unsubscribe()
